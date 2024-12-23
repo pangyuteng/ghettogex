@@ -14,3 +14,7 @@ pydantic==2.9.0
 pydantic-core==2.23.2
 huggingface-hub==0.27.0
 flask==3.0.3
+charset-normalizer==3.4.0
+requests==2.32.3
+matplotlib==3.5.3
+seaborn==0.13.2
