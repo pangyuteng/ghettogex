@@ -7,22 +7,37 @@ import time
 import pytz
 import datetime
 import pandas as pd
+import pandas_market_calendars as mcal
 import yfinance as yf
 from requests_ratelimiter import LimiterSession
 
+
 MYFOLDER = os.environ.get("MYFOLDER","tmp")
 
-logger.setLevel(logging.INFO)
-fh = logging.FileHandler(os.path.join(MYFOLDER,'log.txt'))
-fh.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-ch.setFormatter(formatter)
-if False:
-    logger.addHandler(fh)
-logger.addHandler(ch)
+def now_in_new_york():
+    now_utc = datetime.datetime.now(pytz.utc)
+    eastern = pytz.timezone('US/Eastern')
+    now_et = now_utc.astimezone(eastern)
+    return now_et
+
+nyse = mcal.get_calendar('NYSE')
+def market_is_open(tstamp=None):
+    if tstamp is None:
+        tstamp = now_in_new_york()
+    today = tstamp.strftime("%Y-%m-%d")
+    early = nyse.schedule(start_date=today, end_date=today)
+    if len(early) == 0:
+        return False
+    hour_list = [
+        list(early.to_dict()['market_open'].values())[0],
+        list(early.to_dict()['market_close'].values())[0]
+    ]
+    eastern = pytz.timezone('US/Eastern')
+    logger.debug(f'{tstamp},{hour_list[0].astimezone(eastern)},{hour_list[1].astimezone(eastern)}')
+    if tstamp > min(hour_list) and tstamp < max(hour_list):
+        return True
+    else:
+        return False
 
 def get_option_chain(ticker,ticker_obj):
     mylist = []
@@ -47,9 +62,7 @@ BTC_TICKER = "BTC-USD"
 INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX']
 BTC_TICKER_LIST = ['^CBTX','^MBTX','ARKB','GBTC','IBIT','MSTR']
 def main():
-    now_utc = datetime.datetime.now(pytz.utc)
-    eastern = pytz.timezone('US/Eastern')
-    now_et = now_utc.astimezone(eastern)
+    now_et = now_in_new_york()
     logger.info(str(now_et))
     date_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d')
     time_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d-%H-%M-%Z') # '%Y-%m-%d-%H-%M-%S-%Z'
@@ -86,7 +99,21 @@ def main():
             logger.info('options found')
 
 if __name__== "__main__":
+    logger.setLevel(logging.INFO)
+    fh = logging.FileHandler(os.path.join(MYFOLDER,'log.txt'))
+    fh.setLevel(logging.INFO)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+    if False:
+        logger.addHandler(fh)
+    logger.addHandler(ch)
     while True:
-        main()
+        if market_is_open():
+            main()
+        else:
+            logger.info('market closed...')
         logger.info('sleeping...')
         time.sleep(5)
