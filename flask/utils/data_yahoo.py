@@ -43,7 +43,8 @@ def main():
     now_et = now_utc.astimezone(eastern)
     print(now_et)
     date_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d')
-    time_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d-%H-%M-%S-%Z')
+    #time_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d-%H-%M-%S-%Z')
+    time_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d-%H-%M-%Z')
     ticker_list = [BTC_TICKER]
     ticker_list.extend(INDEX_TICKER_LIST)
     ticker_list.extend(BTC_TICKER_LIST)
@@ -52,7 +53,7 @@ def main():
         os.makedirs(cache_folder,exist_ok=True)
         json_file = os.path.join(cache_folder,f"underlying-{ticker}-{time_stamp}.json")
         if not os.path.exists(json_file):
-            ticker_obj = yf.Ticker(ticker,session=LimiterSession(per_second=3))
+            ticker_obj = yf.Ticker(ticker,session=LimiterSession(per_second=5))
             info_dict = ticker_obj.info
             with open(json_file,'w') as f:
                 f.write(json.dumps(info_dict))
@@ -64,14 +65,14 @@ def main():
     ticker_list = []
     ticker_list.extend(INDEX_TICKER_LIST)
     ticker_list.extend(BTC_TICKER_LIST)
-    tickers = yf.Tickers(ticker_list,session=LimiterSession(per_second=3))
+    tickers = yf.Tickers(ticker_list,session=LimiterSession(per_second=5))
     for ticker in ticker_list:
         print(ticker)
         cache_folder = os.path.join(MYFOLDER,ticker,date_stamp)
         os.makedirs(cache_folder,exist_ok=True)
         ticker_obj = tickers.tickers[ticker]
         print('----')
-        csv_file = os.path.join(cache_folder,f"options-{ticker}-{time_stamp}.json")
+        csv_file = os.path.join(cache_folder,f"options-{ticker}-{time_stamp}.csv")
         if not os.path.exists(csv_file):
             df = get_option_chain(ticker,ticker_obj)
             df.to_csv(csv_file,index=False)
@@ -81,4 +82,4 @@ if __name__== "__main__":
         main()
         print(datetime.datetime.now())
         print('sleeping...')
-        time.sleep(60)
+        time.sleep(5)
