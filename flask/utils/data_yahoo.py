@@ -49,6 +49,7 @@ def main():
     ticker_list.extend(INDEX_TICKER_LIST)
     ticker_list.extend(BTC_TICKER_LIST)
     for ticker in ticker_list:
+        print(ticker,'underlying')
         cache_folder = os.path.join(MYFOLDER,ticker,date_stamp)
         os.makedirs(cache_folder,exist_ok=True)
         json_file = os.path.join(cache_folder,f"underlying-{ticker}-{time_stamp}.json")
@@ -60,22 +61,25 @@ def main():
             #price_df = ticker_obj.history(period='5d')
             #last_price = price_df['Close'][-1]
             #print(ticker,last_price)
-        print("----")
+        else:
+            print('found')
+
     print("----")
     ticker_list = []
     ticker_list.extend(INDEX_TICKER_LIST)
     ticker_list.extend(BTC_TICKER_LIST)
     tickers = yf.Tickers(ticker_list,session=LimiterSession(per_second=5))
     for ticker in ticker_list:
-        print(ticker)
+        print(ticker,'options')
         cache_folder = os.path.join(MYFOLDER,ticker,date_stamp)
         os.makedirs(cache_folder,exist_ok=True)
-        ticker_obj = tickers.tickers[ticker]
-        print('----')
         csv_file = os.path.join(cache_folder,f"options-{ticker}-{time_stamp}.csv")
+        ticker_obj = tickers.tickers[ticker]
         if not os.path.exists(csv_file):
             df = get_option_chain(ticker,ticker_obj)
             df.to_csv(csv_file,index=False)
+        else:
+            print('found')
 
 if __name__== "__main__":
     while True:
