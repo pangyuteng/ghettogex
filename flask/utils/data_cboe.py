@@ -1,3 +1,6 @@
+"""
+source https://github.com/Matteo-Ferrara/gex-tracker
+"""
 import sys
 import traceback
 import json
@@ -146,10 +149,6 @@ def print_gex_surface(spot, data):
         (data.expiration < selected_date)
         & (data.strike > spot * 0.85)
         & (data.strike < spot * 1.15)
-    )
-    selected_date = datetime.today() + timedelta(days=700)
-    limit_criteria = (
-        (data.expiration < selected_date)
     )
     data = data.loc[limit_criteria]
 

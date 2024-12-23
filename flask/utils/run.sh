@@ -1,10 +1,4 @@
-python data_cboe.py MBTX
-python data_cboe.py IBIT
-python data_cboe.py HODL
 python data_cboe.py ARKB
-python data_cboe.py EZBC
-python data_cboe.py BTCW
-python data_cboe.py BTCO
-python data_cboe.py BRRR
-python data_cboe.py DEFI
 python data_cboe.py GBTC
+python data_cboe.py IBIT
+python data_cboe.py MBTX
