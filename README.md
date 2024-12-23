@@ -25,3 +25,7 @@ https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted
 + [ ] show gex given ticker
 
 + [ ] overallmarket gex??? (SPX+SPY+(weighted,but-how?)tickers-gex)
+
+https://polygon.io/options
+https://x.com/ag_trader
+i'll @ you if i make any (ugly) frontend/js progress.
