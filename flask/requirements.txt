@@ -18,3 +18,5 @@ charset-normalizer==3.4.0
 requests==2.32.3
 matplotlib==3.5.3
 seaborn==0.13.2
+yfinance==0.2.51
+requests_ratelimiter==0.7.0
