@@ -6,13 +6,14 @@ import json
 import time
 import pytz
 import datetime
+import pathlib
 import pandas as pd
 import pandas_market_calendars as mcal
 import yfinance as yf
 from requests_ratelimiter import LimiterSession
 
 
-MYFOLDER = os.environ.get("MYFOLDER","tmp")
+CACHE_FOLDER = os.environ.get("CACHE_FOLDER","utils/tmp")
 
 def now_in_new_york():
     now_utc = datetime.datetime.now(pytz.utc)
@@ -61,9 +62,10 @@ def get_option_chain(ticker,ticker_obj):
 BTC_TICKER = "BTC-USD"
 INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX']
 BTC_TICKER_LIST = ['^CBTX','^MBTX','ARKB','GBTC','IBIT','MSTR']
-def main():
+def cache_main():
     now_et = now_in_new_york()
     logger.info(str(now_et))
+    year_stamp = datetime.datetime.strftime(now_et,'%Y')
     date_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d')
     time_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d-%H-%M-%Z') # '%Y-%m-%d-%H-%M-%S-%Z'
     ticker_list = [BTC_TICKER]
@@ -71,7 +73,7 @@ def main():
     ticker_list.extend(BTC_TICKER_LIST)
     for ticker in ticker_list:
         logger.info(f'{ticker} underlying')
-        cache_folder = os.path.join(MYFOLDER,ticker,date_stamp)
+        cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
         os.makedirs(cache_folder,exist_ok=True)
         json_file = os.path.join(cache_folder,f"underlying-{ticker}-{time_stamp}.json")
         if not os.path.exists(json_file):
@@ -88,7 +90,7 @@ def main():
     tickers = yf.Tickers(ticker_list,session=LimiterSession(per_second=5))
     for ticker in ticker_list:
         logger.info(f'{ticker} options')
-        cache_folder = os.path.join(MYFOLDER,ticker,date_stamp)
+        cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
         os.makedirs(cache_folder,exist_ok=True)
         csv_file = os.path.join(cache_folder,f"options-{ticker}-{time_stamp}.csv")
         ticker_obj = tickers.tickers[ticker]
@@ -98,9 +100,25 @@ def main():
         else:
             logger.info('options found')
 
+def get_cache_latest(ticker,tstamp):
+    year_stamp = datetime.datetime.strftime(tstamp,'%Y')
+    date_stamp = datetime.datetime.strftime(tstamp,'%Y-%m-%d')
+    cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
+    print(cache_folder)
+    json_file_list = sorted([str(x) for x in pathlib.Path(cache_folder).rglob(f"underlying-{ticker}-*.json")])
+    csv_file_list = sorted([str(x) for x in pathlib.Path(cache_folder).rglob(f"options-{ticker}-*.csv")])
+    if len(csv_file_list) == 0 or len(json_file_list) == 0:
+        raise LookupError()
+    last_json_file = json_file_list[-1]
+    csv_json_file = csv_file_list[-1]
+    with open(last_json_file,'r') as f:
+        underlying_dict = json.loads(f.read())
+    options_df = pd.read_csv(csv_json_file)
+    return underlying_dict,options_df,last_json_file,csv_json_file
+
 if __name__== "__main__":
     logger.setLevel(logging.INFO)
-    fh = logging.FileHandler(os.path.join(MYFOLDER,'log.txt'))
+    fh = logging.FileHandler(os.path.join(CACHE_FOLDER,'log.txt'))
     fh.setLevel(logging.INFO)
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
@@ -112,8 +130,15 @@ if __name__== "__main__":
     logger.addHandler(ch)
     while True:
         if market_is_open():
-            main()
+            cache_main()
         else:
             logger.info('market closed...')
         logger.info('sleeping...')
         time.sleep(5)
+
+
+"""
+
+python -m utils.data_yahoo
+
+"""
