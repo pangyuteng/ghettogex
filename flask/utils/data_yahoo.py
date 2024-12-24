@@ -109,19 +109,19 @@ def get_cache_latest(ticker,tstamp=None):
         dates_folder = os.path.join(CACHE_FOLDER,ticker,year_str)
         date_str = sorted(os.listdir(dates_folder))[-1]
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_str,date_str)
-        json_file_list = sorted([str(x) for x in pathlib.Path(cache_folder).rglob(f"underlying-{ticker}-*.json")])
-        csv_file_list = sorted([str(x) for x in pathlib.Path(cache_folder).rglob(f"options-{ticker}-*.csv")])
+        json_file_list = sorted([os.path.abspath(str(x)) for x in pathlib.Path(cache_folder).rglob(f"underlying-{ticker}-*.json")])
+        csv_file_list = sorted([os.path.abspath(str(x)) for x in pathlib.Path(cache_folder).rglob(f"options-{ticker}-*.csv")])
         if len(csv_file_list) == 0 or len(json_file_list) == 0:
             raise LookupError()
         last_json_file = json_file_list[-1]
-        csv_json_file = csv_file_list[-1]
+        last_csv_file = csv_file_list[-1]
     else:
         raise NotImplementedError()
 
     with open(last_json_file,'r') as f:
         underlying_dict = json.loads(f.read())
-    options_df = pd.read_csv(csv_json_file)
-    return underlying_dict,options_df,last_json_file,csv_json_file
+    options_df = pd.read_csv(last_csv_file)
+    return underlying_dict,options_df,last_json_file,last_csv_file
 
 if __name__== "__main__":
     logger.setLevel(logging.INFO)
