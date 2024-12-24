@@ -5,6 +5,7 @@ import sys
 import traceback
 import json
 import os
+import re
 from datetime import timedelta, datetime
 
 import matplotlib.pyplot as plt
@@ -68,18 +69,23 @@ def scrape_data(ticker):
     return spot_price, fix_option_data(option_data)
 
 
+
+
 def fix_option_data(data):
     """
     Fix option data columns.
 
     From the name of the option derive type of option, expiration and strike price
     """
+    #SPY270115P00900000
     data["option_type"] = data.option.str.extract(r"\d([A-Z])\d")
-    data["strike"] = data.option.str.extract(r"\d[A-Z](\d+)\d\d\d").astype(int)
+    #data["strike"] = data.option.str.extract(r"\d[A-Z](\d+)\d\d\d").astype(float)
+    data["strike"] = data.option.str.extract(r"\d[A-Z](\d+)").astype(float)/1000
     data["expiration"] = data.option.str.extract(r"[A-Z](\d+)").astype(str)
     # Convert expiration to datetime format
     data["expiration"] = pd.to_datetime(data["expiration"], format="%y%m%d")
     return data
+
 
 
 def compute_total_gex(spot, data):

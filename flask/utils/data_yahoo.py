@@ -125,15 +125,14 @@ def get_cache_latest(ticker,tstamp=None):
 
 if __name__== "__main__":
     logger.setLevel(logging.INFO)
-    fh = logging.FileHandler(os.path.join(CACHE_FOLDER,'log.txt'))
-    fh.setLevel(logging.INFO)
+    #fh = logging.FileHandler(os.path.join(CACHE_FOLDER,'log.txt'))
+    #fh.setLevel(logging.INFO)
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    fh.setFormatter(formatter)
+    #fh.setFormatter(formatter)
     ch.setFormatter(formatter)
-    if False:
-        logger.addHandler(fh)
+    #logger.addHandler(fh)
     logger.addHandler(ch)
     while True:
         cache_main()

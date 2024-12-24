@@ -16,18 +16,10 @@ from .data_yahoo import (
 def get_iv_df(ticker,option_type,tstamp=None):
     
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
-    print(last_csv_file)
-    print(options_df.shape,option_type)
     df = options_df[options_df.option_type==option_type]
-    print(df.shape)
-    # print(df.shape)
-    #df = df.groupby(['expiration','strike','iv']).tail(1)
-    #df = df[['expiration','strike','iv']].drop_duplicates()
     df = df.sort_values(by=['expiration', 'strike','iv'])
     df = df[['expiration','strike','iv']]
-    df.to_csv("ok.csv",index=False)
     iv_df = df.pivot(index='expiration', columns='strike', values='iv')
-    print(iv_df.shape)
     return iv_df
 
     #contractSymbol,lastTradeDate,strike,lastPrice,bid,ask,change,percentChange,
