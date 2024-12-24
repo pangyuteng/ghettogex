@@ -27,7 +27,7 @@ def index():
     ticker_list = []
     ticker_list.extend(INDEX_TICKER_LIST)
     ticker_list.extend(BTC_TICKER_LIST)
-
+    ticker_list = ["^SPX"]
     mylist = []
     for ticker in ticker_list:
         mylist.append(dict(
