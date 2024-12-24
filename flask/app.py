@@ -23,9 +23,6 @@ app.config["SECRET_KEY"] = "the random string"
 
 @app.route('/', methods=['GET'])
 def index():
-
-@app.route('/', methods=['GET'])
-def index():
     return render_template('index.html')
 
 @app.route('/overview', methods=['GET'])
@@ -52,7 +49,7 @@ def overview():
             title=f'{ticker} put',
         ))
     
-    return render_template('index.html',mylist=mylist)
+    return render_template('overview.html',mylist=mylist)
 
 @app.route('/iv', methods=['GET'])
 def get_iv():

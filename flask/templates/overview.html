@@ -16,6 +16,7 @@
             return csvdata.map(function(row) { return row[key]; });
         }
         var columnList = Object.keys(csvdata[0]);
+        console.log(columnList)
         var z_data=[ ]
         for(i=0;i<columnList.length;i++)
         {
@@ -41,6 +42,10 @@
             t: 50,
         },
         scene:{
+            // yaxis: {
+            //     ticktext: 'strike',
+            //     tickvals: columnList
+            // },
             camera: {
                 eye: {x: 0, y: 0, z: 1},
                 up:  {x: 0,  y: 1, z: 0},
