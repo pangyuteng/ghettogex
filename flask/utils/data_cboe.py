@@ -32,12 +32,12 @@ def run(ticker):
 
 
 MYFOLDER = os.environ.get("MYFOLDER","utils/tmp")
-def scrape_data(ticker):
+def scrape_data(ticker,save_as_json=False):
     """Scrape data from CBOE website"""
     # Check if data is already downloaded
     json_file = os.path.join(MYFOLDER,f"{ticker}.json")
     #if os.path.exists(json_file):
-    if False:
+    if save_as_json:
         with open(json_file,"r") as f:
             data = pd.DataFrame.from_dict(json.loads(f.read()))
     else:
@@ -50,16 +50,18 @@ def scrape_data(ticker):
                 url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
             print(url)
             data = requests.get(url)
-            with open(json_file,"w") as f:
-                f.write(json.dumps(data.json()))
+            if save_as_json:
+                with open(json_file,"w") as f:
+                    f.write(json.dumps(data.json()))
 
         except ValueError:
             traceback.print_exc()
             data = requests.get(
                 f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
             )
-            with open(json_file,"w") as f:
-                f.write(json.dumps(data.json()))
+            if save_as_json:
+                with open(json_file,"w") as f:
+                    f.write(json.dumps(data.json()))
         # Convert json to pandas DataFrame
         data = pd.DataFrame.from_dict(data.json())
 
