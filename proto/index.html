@@ -43,7 +43,7 @@ https://plotly.com/javascript/3d-surface-plots/
         scene:{
             camera: {
                 eye: {x: 0, y: 0, z: 1},
-                up:  {x: 1, y: 0, z: 0},
+                up:  {x: 0,  y: 1, z: 0},
                 projection: {
                     type: 'orthographic'
                 }
@@ -85,7 +85,7 @@ https://plotly.com/javascript/3d-surface-plots/
         scene:{
             camera: {
                 eye: {x: 0, y: 0, z: 1},
-                up:  {x: 1, y: 0, z: 0},
+                up:  {x: 0,  y: 1, z: 0},
                 projection: {
                     type: 'orthographic'
                 }
@@ -94,7 +94,7 @@ https://plotly.com/javascript/3d-surface-plots/
         };
         Plotly.newPlot('myDiv2', data2, layout2);
         Plotly.newPlot('myDiv22', data2, layout2);
-    });
+    }); // perspective orthographic
 
     d3.csv('iv3.csv', function(err, rows){
         function unpack(rows, key) {
@@ -128,7 +128,7 @@ https://plotly.com/javascript/3d-surface-plots/
         scene:{
             camera: {
                 eye: {x: 0, y: 0, z: 1},
-                up:  {x: 1, y: 0, z: 0},
+                up:  {x: 0,  y: 1, z: 0},
                 projection: {
                     type: 'orthographic'
                 }
@@ -143,6 +143,7 @@ https://plotly.com/javascript/3d-surface-plots/
 </head>
 
 <body>
+    <br>
     <div class="container">
         <div class="row">
             <div class="col-sm" id='myDiv1'>
@@ -152,6 +153,7 @@ https://plotly.com/javascript/3d-surface-plots/
             <div class="col-sm" id='myDiv3'>
             </div>
         </div>
+    <br>
         <div class="row">
             <div class="col-sm" id='myDiv11'>
             </div>
