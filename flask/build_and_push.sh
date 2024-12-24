@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build -t tradefi-flask:latest .
+docker build -t fi-flask:latest .

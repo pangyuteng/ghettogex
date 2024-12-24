@@ -1,4 +1,4 @@
-# tradefi.aigonewrong.com
+# fi.aigonewrong.com
 
 
 + [x] create new machine for runner, setup access to kube cluster
@@ -14,11 +14,11 @@
     + install runner under aigonewrong@runner:~
 
 https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/adding-self-hosted-runners
-https://github.com/pangyuteng/tradefi.aigonewrong.com/settings/actions/runners
+https://github.com/pangyuteng/fi.aigonewrong.com/settings/actions/runners
 https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/configuring-the-self-hosted-runner-application-as-a-service
 
     
-+ [ ] setup bare miminal cicd to deploy to tradefi.aigonewrong.com
++ [ ] setup bare miminal cicd to deploy to fi.aigonewrong.com
 
 + [ ] main page to show SPX, VIX and SPX gex
 
