@@ -30,20 +30,25 @@ def run(ticker):
     print_gex_surface(spot_price, option_data)
 
 
-MYFOLDER = os.environ.get("MYFOLDER","tmp")
+MYFOLDER = os.environ.get("MYFOLDER","utils/tmp")
 def scrape_data(ticker):
     """Scrape data from CBOE website"""
     # Check if data is already downloaded
     json_file = os.path.join(MYFOLDER,f"{ticker}.json")
-    if os.path.exists(json_file):
+    #if os.path.exists(json_file):
+    if False:
         with open(json_file,"r") as f:
             data = pd.DataFrame.from_dict(json.loads(f.read()))
     else:
         # Request data and save it to file
         try:
-            data = requests.get(
-                f"https://cdn.cboe.com/api/global/delayed_quotes/options/_{ticker}.json"
-            )
+            if ticker.startswith("^"):
+                ticker = ticker.replace("^","")
+                url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/_{ticker}.json"
+            else:
+                url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
+            print(url)
+            data = requests.get(url)
             with open(json_file,"w") as f:
                 f.write(json.dumps(data.json()))
 
@@ -69,7 +74,7 @@ def fix_option_data(data):
 
     From the name of the option derive type of option, expiration and strike price
     """
-    data["type"] = data.option.str.extract(r"\d([A-Z])\d")
+    data["option_type"] = data.option.str.extract(r"\d([A-Z])\d")
     data["strike"] = data.option.str.extract(r"\d[A-Z](\d+)\d\d\d").astype(int)
     data["expiration"] = data.option.str.extract(r"[A-Z](\d+)").astype(str)
     # Convert expiration to datetime format

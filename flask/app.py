@@ -32,13 +32,13 @@ def index():
     for ticker in ticker_list:
         mylist.append(dict(
             ticker=ticker,
-            iv_url=url_for('get_iv',ticker=ticker,option_type="call"),
+            iv_url=url_for('get_iv',ticker=ticker,option_type="C"),
             div_name=f'div-call-{ticker}',
             title=f'{ticker} call',
         ))
         mylist.append(dict(
             ticker=ticker,
-            iv_url=url_for('get_iv',ticker=ticker,option_type="put"),
+            iv_url=url_for('get_iv',ticker=ticker,option_type="P"),
             div_name=f'div-put-{ticker}',
             title=f'{ticker} put',
         ))

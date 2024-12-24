@@ -18,19 +18,19 @@ def get_iv_df(ticker,option_type,tstamp=None):
     underlying_dict,options_df,last_json_file,csv_json_file = get_cache_latest(ticker,tstamp=tstamp)
 
     df = options_df[options_df.option_type==option_type]
-    df = df[['expiry','strike','impliedVolatility']]
-    df = df.sort_values(by=['expiry', 'strike'])
+    df = df[['expiration','strike','iv']]
+    df = df.sort_values(by=['expiration', 'strike'])
 
-    iv_df = df.pivot(index='expiry', columns='strike', values='impliedVolatility')
+    iv_df = df.pivot(index='expiration', columns='strike', values='iv')
     
     return iv_df
 
     #contractSymbol,lastTradeDate,strike,lastPrice,bid,ask,change,percentChange,
-    #volume,openInterest,impliedVolatility,inTheMoney,contractSize,currency,ticker,option_type,expiry
+    #volume,openInterest,iv,inTheMoney,contractSize,currency,ticker,option_type,expiration
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
-    iv_df = get_iv_df(ticker,'call')
+    iv_df = get_iv_df(ticker,'C')
     iv_df.to_csv("ok.csv")
     for n,row in iv_df.iterrows():
         print(row)

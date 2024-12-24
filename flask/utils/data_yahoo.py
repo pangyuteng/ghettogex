@@ -11,7 +11,7 @@ import pandas as pd
 import pandas_market_calendars as mcal
 import yfinance as yf
 from requests_ratelimiter import LimiterSession
-
+from .data_cboe import scrape_data
 
 CACHE_FOLDER = os.environ.get("CACHE_FOLDER","utils/tmp")
 
@@ -42,17 +42,17 @@ def market_is_open(tstamp=None):
 
 def get_option_chain(ticker,ticker_obj):
     mylist = []
-    for expiry in ticker_obj.options:
-        call_df = ticker_obj.option_chain(expiry).calls
+    for expiration in ticker_obj.options:
+        call_df = ticker_obj.option_chain(expiration).calls
         call_df['ticker']=ticker
         call_df['option_type']='call'
-        call_df['expiry']=expiry
+        call_df['expiration']=expiration
         mylist.append(call_df)
 
-        put_df = ticker_obj.option_chain(expiry).puts
+        put_df = ticker_obj.option_chain(expiration).puts
         put_df['ticker']=ticker
         put_df['option_type']='put'
-        put_df['expiry']=expiry
+        put_df['expiration']=expiration
         mylist.append(put_df)
     if len(mylist) == 0:
         return pd.DataFrame([])
@@ -95,7 +95,8 @@ def cache_main():
         csv_file = os.path.join(cache_folder,f"options-{ticker}-{time_stamp}.csv")
         ticker_obj = tickers.tickers[ticker]
         if not os.path.exists(csv_file):
-            df = get_option_chain(ticker,ticker_obj)
+            #df = get_option_chain(ticker,ticker_obj)
+            spot_price, df = scrape_data(ticker)
             df.to_csv(csv_file,index=False)
         else:
             logger.info('options found')
@@ -135,6 +136,7 @@ if __name__== "__main__":
         logger.addHandler(fh)
     logger.addHandler(ch)
     while True:
+        cache_main()
         if market_is_open():
             cache_main()
         else:
