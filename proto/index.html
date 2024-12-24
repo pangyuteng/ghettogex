@@ -37,8 +37,17 @@ https://plotly.com/javascript/3d-surface-plots/
         margin: {
             l: 50,
             r: 50,
-            b: 20,
+            b: 50,
             t: 50,
+        },
+        scene:{
+            camera: {
+                eye: {x: 0, y: 0, z: 1},
+                up:  {x: 1, y: 0, z: 0},
+                projection: {
+                    type: 'orthographic'
+                }
+            }
         }
         };
         Plotly.newPlot('myDiv1', data1, layout1);
@@ -70,8 +79,17 @@ https://plotly.com/javascript/3d-surface-plots/
         margin: {
             l: 50,
             r: 50,
-            b: 20,
+            b: 50,
             t: 50,
+        },
+        scene:{
+            camera: {
+                eye: {x: 0, y: 0, z: 1},
+                up:  {x: 1, y: 0, z: 0},
+                projection: {
+                    type: 'orthographic'
+                }
+            }
         }
         };
         Plotly.newPlot('myDiv2', data2, layout2);
@@ -104,8 +122,17 @@ https://plotly.com/javascript/3d-surface-plots/
         margin: {
             l: 50,
             r: 50,
-            b: 20,
+            b: 50,
             t: 50,
+        },
+        scene:{
+            camera: {
+                eye: {x: 0, y: 0, z: 1},
+                up:  {x: 1, y: 0, z: 0},
+                projection: {
+                    type: 'orthographic'
+                }
+            }
         }
         };
         Plotly.newPlot('myDiv3', data3, layout3);
