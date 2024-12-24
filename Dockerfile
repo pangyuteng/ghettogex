@@ -24,7 +24,7 @@ RUN pip install vtk-osmesa --extra-index-url https://gitlab.kitware.com/api/v4/p
 #RUN mkdir -p /.cache/pip && chmod -R 777 /.cache/pip
 
 ENV BATCH_SIZE=1
-RUN mkdir -p /opt/demo && chmod -R 777 /opt/demo
-COPY --chmod=777 . /opt/demo
-WORKDIR /opt/demo
+RUN mkdir -p /opt/fi && chmod -R 777 /opt/fi
+COPY --chmod=777 . /opt/fi
+WORKDIR /opt/fi/flask
 CMD ["python","app.py"]

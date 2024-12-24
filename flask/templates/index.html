@@ -1,9 +1,75 @@
-<html>
+
+<html lang="en" data-bs-theme="dark">
 <head>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+	<!-- Load plotly.js into the DOM -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+	<script src='https://cdn.plot.ly/plotly-2.35.2.min.js'></script>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js'></script>
+    <style>
+    </style>
+    <script>
+    {% for myitem in mylist %}
+
+    d3.csv('{{ myitem.iv_url | safe }}', function(csvdata){
+        function unpack(csvdata, key) {
+            return csvdata.map(function(row) { return row[key]; });
+        }
+        var columnList = Object.keys(csvdata[0]);
+        var z_data=[ ]
+        for(i=0;i<columnList.length;i++)
+        {
+            console.log(columnList[i]);
+            z_data.push(unpack(csvdata,columnList[i]));
+        }
+
+        var data = [{
+                z: z_data,
+                type: 'surface'
+                }];
+
+        var layout = {
+        title: {
+            text: '{{ myitem.ticker }}'
+        },
+        autosize: false,
+        width: 400,
+        height: 400,
+        margin: {
+            l: 50,
+            r: 50,
+            b: 50,
+            t: 50,
+        },
+        scene:{
+            camera: {
+                eye: {x: 0, y: 0, z: 1},
+                up:  {x: 0,  y: 1, z: 0},
+                projection: {
+                    type: 'orthographic'
+                }
+            }
+        }
+        };
+        Plotly.newPlot('{{ myitem.div_name }}', data, layout);
+    });
+
+    {% endfor %}
+
+    // perspective orthographic
+    </script>
 </head>
+
 <body>
-hola
+    {% for row in mylist %}
+    <br><br>
+    <div class="container">
+        {{ row.title }}<br>
+        <div class="row">
+            <div class="col-sm" id='{{ row.div_name }}'>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 </body>
 </html>

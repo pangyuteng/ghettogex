@@ -100,17 +100,23 @@ def cache_main():
         else:
             logger.info('options found')
 
-def get_cache_latest(ticker,tstamp):
-    year_stamp = datetime.datetime.strftime(tstamp,'%Y')
-    date_stamp = datetime.datetime.strftime(tstamp,'%Y-%m-%d')
-    cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
-    print(cache_folder)
-    json_file_list = sorted([str(x) for x in pathlib.Path(cache_folder).rglob(f"underlying-{ticker}-*.json")])
-    csv_file_list = sorted([str(x) for x in pathlib.Path(cache_folder).rglob(f"options-{ticker}-*.csv")])
-    if len(csv_file_list) == 0 or len(json_file_list) == 0:
-        raise LookupError()
-    last_json_file = json_file_list[-1]
-    csv_json_file = csv_file_list[-1]
+def get_cache_latest(ticker,tstamp=None):
+
+    if tstamp is None:
+        years_folder = os.path.join(CACHE_FOLDER,ticker)
+        year_str = sorted(os.listdir(years_folder))[-1]
+        dates_folder = os.path.join(CACHE_FOLDER,ticker,year_str)
+        date_str = sorted(os.listdir(dates_folder))[-1]
+        cache_folder = os.path.join(CACHE_FOLDER,ticker,year_str,date_str)
+        json_file_list = sorted([str(x) for x in pathlib.Path(cache_folder).rglob(f"underlying-{ticker}-*.json")])
+        csv_file_list = sorted([str(x) for x in pathlib.Path(cache_folder).rglob(f"options-{ticker}-*.csv")])
+        if len(csv_file_list) == 0 or len(json_file_list) == 0:
+            raise LookupError()
+        last_json_file = json_file_list[-1]
+        csv_json_file = csv_file_list[-1]
+    else:
+        raise NotImplementedError()
+
     with open(last_json_file,'r') as f:
         underlying_dict = json.loads(f.read())
     options_df = pd.read_csv(csv_json_file)

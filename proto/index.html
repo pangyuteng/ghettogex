@@ -17,7 +17,7 @@ https://plotly.com/javascript/3d-surface-plots/
         }
 
         var z_data1=[ ]
-        for(i=0;i<24;i++)
+        for(i=0;i<rows.length;i++)
         {
         z_data1.push(unpack(rows,i));
         }
@@ -55,11 +55,11 @@ https://plotly.com/javascript/3d-surface-plots/
     });
     d3.csv('iv2.csv', function(err, rows){
         function unpack(rows, key) {
-        return rows.map(function(row) { return row[key]; });
+            return rows.map(function(row) { return row[key]; });
         }
 
         var z_data2=[ ]
-        for(i=0;i<24;i++)
+        for(i=0;i<rows.length;i++)
         {
         z_data2.push(unpack(rows,i));
         }
@@ -102,7 +102,7 @@ https://plotly.com/javascript/3d-surface-plots/
         }
 
         var z_data3=[ ]
-        for(i=0;i<24;i++)
+        for(i=0;i<rows.length;i++)
         {
         z_data3.push(unpack(rows,i));
         }
