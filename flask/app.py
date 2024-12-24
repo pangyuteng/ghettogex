@@ -24,10 +24,19 @@ app.config["SECRET_KEY"] = "the random string"
 @app.route('/', methods=['GET'])
 def index():
 
-    ticker_list = []
-    ticker_list.extend(INDEX_TICKER_LIST)
-    ticker_list.extend(BTC_TICKER_LIST)
-    ticker_list = ["^SPX"]
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('index.html')
+
+@app.route('/overview', methods=['GET'])
+def overview():
+    ticker = request.args.get('ticker',None)
+    if ticker is not None:
+        ticker_list = [ticker]
+    else:
+        ticker_list = []
+        ticker_list.extend(INDEX_TICKER_LIST)
+        ticker_list.extend(BTC_TICKER_LIST)
     mylist = []
     for ticker in ticker_list:
         mylist.append(dict(

@@ -67,6 +67,7 @@ def scrape_data(ticker,save_as_json=False):
 
     spot_price = data.loc["current_price", "data"]
     option_data = pd.DataFrame(data.loc["options", "data"])
+    option_data['spot_price']=spot_price
 
     return spot_price, fix_option_data(option_data)
 
