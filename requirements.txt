@@ -13,4 +13,4 @@ requests_ratelimiter==0.7.0
 pandas-market-calendars==4.4.2
 py-vollib==1.0.1
 numba==0.51.2
-py_vollib_vectorized
+py-vollib-vectorized==0.1.1
