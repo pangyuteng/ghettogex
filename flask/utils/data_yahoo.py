@@ -12,14 +12,9 @@ import pandas_market_calendars as mcal
 import yfinance as yf
 from requests_ratelimiter import LimiterSession
 from .data_cboe import scrape_data
-
+from .misc import now_in_new_york
 CACHE_FOLDER = os.environ.get("CACHE_FOLDER","utils/tmp")
 
-def now_in_new_york():
-    now_utc = datetime.datetime.now(pytz.utc)
-    eastern = pytz.timezone('US/Eastern')
-    now_et = now_utc.astimezone(eastern)
-    return now_et
 
 nyse = mcal.get_calendar('NYSE')
 def market_is_open(tstamp=None):
@@ -135,7 +130,6 @@ if __name__== "__main__":
     #logger.addHandler(fh)
     logger.addHandler(ch)
     while True:
-        cache_main()
         if market_is_open():
             cache_main()
         else:

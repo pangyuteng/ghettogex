@@ -97,11 +97,13 @@ def compute_total_gex(spot, data):
     data["GEX"] = spot * data.gamma * data.open_interest * contract_size * spot * 0.01
 
     # For put option we assume negative gamma, i.e. dealers sell puts and buy calls
-    data["GEX"] = data.apply(lambda x: -x.GEX if x.type == "P" else x.GEX, axis=1)
-    print(f"Total notional GEX: ${round(data.GEX.sum() / 10 ** 9, 4)} Bn")
+    data["GEX"] = data.apply(lambda x: -x.GEX if x.option_type == "P" else x.GEX, axis=1)
+    total_gex_bn = round(data.GEX.sum() / 10 ** 9, 4)
+    print(f"Total notional GEX: ${total_gex_bn} Bn")
+    return total_gex_bn
 
 
-def compute_gex_by_strike(spot, data):
+def compute_gex_by_strike(spot, data, ticker=None):
     """Compute and plot GEX by strike"""
     # Compute total GEX by strike
     gex_by_strike = data.groupby("strike")["GEX"].sum() / 10**9
@@ -126,18 +128,15 @@ def compute_gex_by_strike(spot, data):
     plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-by-strike.png"))
     plt.close
 
-def compute_gex_by_expiration(data):
+def compute_gex_by_expiration(data, ticker=None):
     """Compute and plot GEX by expiration"""
     # Limit data to one year
     selected_date = datetime.today() + timedelta(days=7)
     data = data.loc[data.expiration < selected_date]
-    print(sorted(list(data.expiration.unique())))
     # Compute GEX by expiration date
     gex_by_expiration = data.groupby("expiration")["GEX"].sum() / 10**9
 
     # Plot GEX by expiration
-    print(gex_by_expiration.index[0])
-    print(type(gex_by_expiration.index[0]))
     plt.bar(
         gex_by_expiration.index,
         gex_by_expiration.values,
@@ -155,7 +154,7 @@ def compute_gex_by_expiration(data):
     plt.close
 
 
-def print_gex_surface(spot, data):
+def print_gex_surface(spot, data, ticker=None):
     """Plot 3D surface"""
     # Limit data to 1 year and +- 15% from ATM
     selected_date = datetime.today() + timedelta(days=365)

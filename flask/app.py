@@ -9,7 +9,7 @@ from flask import (
     redirect, url_for, jsonify, send_file
 )
 
-from utils.plotter import get_iv_df
+from utils.compute import get_iv_df
 from utils.data_yahoo import INDEX_TICKER_LIST,BTC_TICKER_LIST
 
 app = Flask(__name__,
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 """
 
 docker run -it -p 5000:5000 -u $(id -u):$(id -g) \
-    -w $PWD -v /mnt:/mnt \
+    --env-file=.env -w $PWD -v /mnt:/mnt \
     fi-flask bash
 
 python app.py
