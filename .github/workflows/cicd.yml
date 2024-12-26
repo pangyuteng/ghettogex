@@ -68,6 +68,7 @@ jobs:
       # Runs a single command using the runners shell
       - name: build contianer
         run: |
+          echo hi
           whoami
           docker image ls
           docker ps
