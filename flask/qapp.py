@@ -32,14 +32,16 @@ def render_html(html_file,**kwargs):
 async def ws_data():
     try:
         while True:
+            mysec = 5
+            message = f"socket will send data every {mysec} seconds."
             tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
             mylist = []
             for n in range(100):
                 myitem = (np.random.rand(100)*2).astype(float).tolist()
                 mylist.append(myitem)
-            data_str = render_html("q-refresh.html",mylist=mylist,tstamp=tstamp)
+            data_str = render_html("refresh.html",mylist=mylist,tstamp=tstamp,message=message)
             await websocket.send(data_str)
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(mysec)
     except asyncio.CancelledError:
         print('Client disconnected')
         raise
@@ -47,7 +49,7 @@ async def ws_data():
 
 @app.route("/")
 async def home():
-    return await render_template("q-index.html")
+    return await render_template("index.html")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
