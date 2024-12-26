@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fi-app
+  labels:
+    k8s-app: fi-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: fi-app
+  template:
+    metadata:
+      labels:
+        k8s-app: fi-app
+    spec:
+      imagePullSecrets: 
+      - name: registry-credentials
+      containers:
+      - name: web
+        image: ghcr.io/pangyuteng/fi.aigonewrong.com:main
+        imagePullPolicy: Always
+        env:
+        - name: FLASK_APP
+          value: "app.py"
+        command: ["python"]
+        args: ["qapp.py", "5000"]
+        ports:
+        - containerPort: 5000
+          name: web
+          protocol: TCP

@@ -1,0 +1,37 @@
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
+  BUILDX_GIT_INFO: false
+stages:
+  - build
+  - deploy
+build:
+  stage: build
+  tags:
+    - kubernetes
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker --version
+    - until docker info; do sleep 1; done
+  script:
+    - |
+      echo $CI_REGISTRY/$CI_PROJECT_PATH/flask:latest
+      docker login -u gitlab-ci-token -p $PERSONAL_ACCESS_TOKEN $CI_REGISTRY/$CI_PROJECT_PATH
+      docker build -t $CI_REGISTRY/$CI_PROJECT_PATH/flask:latest .
+      docker push $CI_REGISTRY/$CI_PROJECT_PATH/flask:latest
+deploy:
+  stage: deploy
+  tags:
+    - kubernetes
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: ['']
+  script:
+    - kubectl config get-contexts
+    - kubectl config use-context pangyuteng/hello-k3s-gitlab-agent:agent-in-k3s
+    - kubectl get pods -A
+    - ls
+    - kubectl apply -f .manifest
