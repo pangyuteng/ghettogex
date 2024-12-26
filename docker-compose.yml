@@ -1,0 +1,20 @@
+services:
+    flask:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: fi-flask
+        volumes:
+            - $PWD:/opt/app
+            192.168.68.147:/mnt/hd1
+        restart: always
+        ports:
+          - 5000:5000
+        working_dir: /opt/app
+        command: python qapp.py 5000 --debug
+        healthcheck:
+            test: curl -f http://localhost:5000/ping || exit 1
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
