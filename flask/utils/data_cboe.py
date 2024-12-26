@@ -14,7 +14,7 @@ import requests
 from matplotlib import dates
 
 # Set plot style
-plt.style.use("seaborn-dark")
+#plt.style.use("seaborn-dark")
 for param in ["figure.facecolor", "axes.facecolor", "savefig.facecolor"]:
     plt.rcParams[param] = "#212946"
 for param in ["text.color", "axes.labelcolor", "xtick.color", "ytick.color"]:
