@@ -1,18 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fi-app
-  labels:
-    k8s-app: fi-app
+  name: fi-app-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      k8s-app: fi-app
+      app: fi-app
   template:
     metadata:
       labels:
-        k8s-app: fi-app
+        app: fi-app
     spec:
       imagePullSecrets:
       - name: registry-credentials
