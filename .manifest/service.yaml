@@ -7,7 +7,8 @@ metadata:
 spec:
   ports:
   - protocol: TCP
-    port: 5000
+    port: 80
+    targetPort: 80
   selector:
     k8s-app: fi-app
   type: LoadBalancer

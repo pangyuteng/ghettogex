@@ -24,8 +24,8 @@ spec:
         - name: OK
           value: HAHA
         command: ["python"]
-        args: ["qapp.py", "5000"]
+        args: ["qapp.py", "80"]
         ports:
-        - containerPort: 5000
+        - containerPort: 80
           name: web
           protocol: TCP
