@@ -20,13 +20,14 @@ https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted
     
 + [ ] setup bare miminal cicd to deploy to fi.aigonewrong.com
 
-kubectl create secret docker-registry registry-credentials --docker-server=registry.gitlab.com --docker-username=<username> --docker-password=<token> -n <namespace> --dry-run=client -o yaml > registry-credentials.yml
 
-kubectl create secret docker-registry ghcr-login-secret --docker-server=https://ghcr.io --docker-username=$YOUR_GITHUB_USERNAME --docker-password=$YOUR_GITHUB_TOKEN 
+kubectl create secret docker-registry ghcr-login-secret --docker-server=https://ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.GITHUB_TOKEN }}
 
---docker-email=$YOUR_EMAIL
 
-ghcr-login-secret
+kubectl create secret docker-registry registry-credentials --docker-server=docker.io \
+--docker-username=<username> --docker-password=<token> --dry-run=client \
+-o yaml > registry-credentials.yml
+
 kubectl apply -f registry-credentials.yml
 
 

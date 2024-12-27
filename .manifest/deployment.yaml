@@ -15,10 +15,10 @@ spec:
         k8s-app: fi-app
     spec:
       imagePullSecrets:
-      - name: ghcr-login-secret
+      - name: registry-credentials
       containers:
       - name: web
-        image: ghcr.io/pangyuteng/fi.aigonewrong.com:main
+        image: docker.io/pangyuteng/private:fi-aigonewrong-main
         imagePullPolicy: Always
         env:
         - name: OK
