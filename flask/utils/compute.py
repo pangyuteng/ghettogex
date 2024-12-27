@@ -22,6 +22,29 @@ from .data_cboe import (
     compute_gex_by_expiration,
 )
 
+
+def compute_iv(row,today):
+    # option,bid,bid_size,ask,ask_size,iv,
+    # open_interest,volume,delta,gamma,vega,theta,rho,theo,change,
+    # open,high,low,tick,last_trade_price,last_trade_time,
+    # percent_change,prev_day_close,spot_price,option_type,strike,expiration
+    price = row.last_trade_price
+    # :param S: underlying asset price
+    S = row.spot_price
+    # :param K: strike price
+    K = row.strike
+    # :param t: time to expiration in years
+    t = (row.expiration-today).days/365
+    #:param r: risk-free interest rate
+    r = 0.01
+    # :param q: annualized continuous dividend rate
+    q = 0
+    #:param flag: 'c' or 'p' for call or put.
+    flag = row.option_type.lower()
+    iv = implied_volatility(price, S, K, t, r, q, flag)
+    return iv
+
+
 def _get_iv_df(ticker,option_type,tstamp=None,is_pivot=True):
     
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
@@ -48,27 +71,44 @@ def _get_iv_df(ticker,option_type,tstamp=None,is_pivot=True):
     #contractSymbol,lastTradeDate,strike,lastPrice,bid,ask,change,percentChange,
     #volume,openInterest,iv,inTheMoney,contractSize,currency,ticker,option_type,expiration
 
-def compute_iv(row,today):
-    # option,bid,bid_size,ask,ask_size,iv,
-    # open_interest,volume,delta,gamma,vega,theta,rho,theo,change,
-    # open,high,low,tick,last_trade_price,last_trade_time,
-    # percent_change,prev_day_close,spot_price,option_type,strike,expiration
-    price = row.last_trade_price
-    # :param S: underlying asset price
-    S = row.spot_price
-    # :param K: strike price
-    K = row.strike
-    # :param t: time to expiration in years
-    t = (row.expiration-today).days/365
-    #:param r: risk-free interest rate
-    r = 0.01
-    # :param q: annualized continuous dividend rate
-    q = 0
-    #:param flag: 'c' or 'p' for call or put.
-    flag = row.option_type.lower()
-    iv = implied_volatility(price, S, K, t, r, q, flag)
-    return iv
 
+def myinterp(array, scale=1, method='cubic'):
+    x = np.arange(array.shape[1]*scale)[::scale]
+    y = np.arange(array.shape[0]*scale)[::scale]
+    x_in_grid, y_in_grid = np.meshgrid(x,y)
+    x_out, y_out = np.meshgrid(np.arange(max(x)+1),np.arange(max(y)+1))
+    array = np.ma.masked_invalid(array)
+    x_in = x_in_grid[~array.mask]
+    y_in = y_in_grid[~array.mask]
+    zi = griddata((x_in, y_in), array[~array.mask].reshape(-1),(x_out, y_out), method=method)
+    return zi
+
+def get_iv_df(ticker,option_type,tstamp=None,is_pivot=True,interp=True):
+    df = _get_iv_df(ticker,option_type,tstamp=tstamp,is_pivot=is_pivot)
+    if is_pivot is True and interp is True:
+        arr = df.to_numpy()
+        arr = myinterp(arr)
+        df = pd.DataFrame(data=arr,index=df.index,columns=df.columns)
+    return df
+
+def iv_test(ticker,option_type):
+    df = get_iv_df(ticker,option_type,is_pivot=True,interp=False)
+    df.to_csv(f"ok-{ticker}-{option_type}.csv")
+    arr = df.to_numpy()
+    arr[arr==0]=np.nan
+    print(np.nanmax(arr),np.nanmedian(arr),np.nanmin(arr),np.sum(np.isnan(arr)))
+    print(arr.shape)
+    df.to_csv(f"ok-{ticker}-{option_type}-interp.csv")
+    df = get_iv_df(ticker,option_type,is_pivot=True,interp=True)
+    arr = df.to_numpy()
+    print(np.nanmax(arr),np.nanmedian(arr),np.nanmin(arr),np.sum(np.isnan(arr)))
+    print(arr.shape)
+    print("---")
+    plt.imshow(arr)
+    plt.grid(True)
+    plt.colorbar()
+    plt.title(f'{ticker} {option_type}')
+    plt.savefig(f'ok-{ticker}-{option_type}.png')
 
 def get_gex_df(ticker,tstamp=None):
     
@@ -93,46 +133,8 @@ def get_gex_df(ticker,tstamp=None):
     return df
 
 
-def myinterp(array, scale=1, method='cubic'):
-    x = np.arange(array.shape[1]*scale)[::scale]
-    y = np.arange(array.shape[0]*scale)[::scale]
-    x_in_grid, y_in_grid = np.meshgrid(x,y)
-    x_out, y_out = np.meshgrid(np.arange(max(x)+1),np.arange(max(y)+1))
-    array = np.ma.masked_invalid(array)
-    x_in = x_in_grid[~array.mask]
-    y_in = y_in_grid[~array.mask]
-    zi = griddata((x_in, y_in), array[~array.mask].reshape(-1),(x_out, y_out), method=method)
-    return zi
-
-def get_iv_df(ticker,option_type,tstamp=None,is_pivot=True,interp=True):
-    df = _get_iv_df(ticker,option_type,tstamp=tstamp,is_pivot=is_pivot)
-    if is_pivot is True and interp is True:
-        arr = df.to_numpy()
-        arr = myinterp(arr)
-        df = pd.DataFrame(data=arr,index=df.index,columns=df.columns)
-    return df
-
 def gex_test(ticker):
-    print("ok")
-
-def iv_test(ticker,option_type):
-    df = get_iv_df(ticker,option_type,is_pivot=True,interp=False)
-    df.to_csv(f"ok-{ticker}-{option_type}.csv")
-    arr = df.to_numpy()
-    arr[arr==0]=np.nan
-    print(np.nanmax(arr),np.nanmedian(arr),np.nanmin(arr),np.sum(np.isnan(arr)))
-    print(arr.shape)
-    df.to_csv(f"ok-{ticker}-{option_type}-interp.csv")
-    df = get_iv_df(ticker,option_type,is_pivot=True,interp=True)
-    arr = df.to_numpy()
-    print(np.nanmax(arr),np.nanmedian(arr),np.nanmin(arr),np.sum(np.isnan(arr)))
-    print(arr.shape)
-    print("---")
-    plt.imshow(arr)
-    plt.grid(True)
-    plt.colorbar()
-    plt.title(f'{ticker} {option_type}')
-    plt.savefig(f'ok-{ticker}-{option_type}.png')
+    get_gex_df(ticker)
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
