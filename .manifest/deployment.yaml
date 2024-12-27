@@ -14,8 +14,8 @@ spec:
       labels:
         k8s-app: fi-app
     spec:
-      imagePullSecrets: 
-      - name: registry-credentials
+      imagePullSecrets:
+      - name: ghcr-login-secret
       containers:
       - name: web
         image: ghcr.io/pangyuteng/fi.aigonewrong.com:main

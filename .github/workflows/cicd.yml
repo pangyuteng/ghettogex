@@ -61,4 +61,5 @@ jobs:
       - name: deploy to kube
         run: |
           echo Add other actions to build,
+          kubectl create secret docker-registry ghcr-login-secret --docker-server=https://ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.GITHUB_TOKEN }}
           kubectl apply -f .manifest
