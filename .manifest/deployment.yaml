@@ -18,7 +18,7 @@ spec:
       - name: registry-credentials
       containers:
       - name: web
-        image: docker.io/pangyuteng/private:fi-aigonewrong-main
+        image: docker.io/pangyuteng/private:main
         imagePullPolicy: Always
         env:
         - name: OK
