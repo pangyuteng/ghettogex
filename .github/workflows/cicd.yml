@@ -61,5 +61,4 @@ jobs:
       - name: deploy to kube
         run: |
           echo Add other actions to build,
-          kubectl get nodes
-          kubectl get pods -A
+          kubectl apply -f .manifest

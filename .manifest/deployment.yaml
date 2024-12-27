@@ -21,8 +21,8 @@ spec:
         image: ghcr.io/pangyuteng/fi.aigonewrong.com:main
         imagePullPolicy: Always
         env:
-        - name: FLASK_APP
-          value: "app.py"
+        - name: OK
+          value: HAHA
         command: ["python"]
         args: ["qapp.py", "5000"]
         ports:
