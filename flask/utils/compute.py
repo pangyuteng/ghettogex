@@ -181,13 +181,13 @@ def btcgex_test(ticker,tstamp=None):
         plt.plot([0,row.gex],[row.strike,row.strike], linewidth=2, color='blue')
 
     plt.axhline(btc_spot,color='red',linewidth=1)
-    plt.locator_params(axis='y', nbins=20)
-    plt.locator_params(axis='x', nbins=20)
+    #plt.locator_params(axis='y', nbins=20)
+    #plt.locator_params(axis='x', nbins=20)
     plt.xticks(rotation=45)
     plt.title(f'total_gex: {total_gex:1.3f} Bn\ncombined {BTC_MSTR_TICKER_LIST}')
     plt.grid(True)
-    plt.ylabel("GEX (Bn)")
-    plt.xlabel("BTC strike (spot in red)")
+    plt.ylabel("BTC strike (spot in red)")
+    plt.xlabel("GEX (Bn)")
     plt.tight_layout()
     plt.savefig("ok.png")
 
