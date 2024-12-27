@@ -143,6 +143,8 @@ def gex_test(ticker):
     print(gex_by_strike.shape)
     print(gex_by_expiration.shape)
     print(gex_df.shape)
+    gex_by_strike.plot()
+    plt.savefig(f'ok-{ticker}.png')
 
 def round_nearest(x, a):
     return np.round(x / a) * a
@@ -211,5 +213,6 @@ if __name__ == "__main__":
 
 python -m utils.compute MSTR C iv
 python -m utils.compute MSTR C gex
+python -m utils.compute null null btcgex
 
 """
