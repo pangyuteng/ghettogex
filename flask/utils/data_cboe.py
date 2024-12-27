@@ -15,23 +15,24 @@ from matplotlib import dates
 
 # Set plot style
 #plt.style.use("seaborn-dark")
-for param in ["figure.facecolor", "axes.facecolor", "savefig.facecolor"]:
-    plt.rcParams[param] = "#212946"
-for param in ["text.color", "axes.labelcolor", "xtick.color", "ytick.color"]:
-    plt.rcParams[param] = "0.9"
+# for param in ["figure.facecolor", "axes.facecolor", "savefig.facecolor"]:
+#     plt.rcParams[param] = "#212946"
+# for param in ["text.color", "axes.labelcolor", "xtick.color", "ytick.color"]:
+#     plt.rcParams[param] = "0.9"
 
 contract_size = 100
 
 
 def run(ticker):
     spot_price, option_data = scrape_data(ticker)
-    compute_total_gex(spot_price, option_data)
+    total_gex_bn = compute_total_gex(spot_price, option_data)
+    print(f"Total notional GEX: ${total_gex_bn} Bn")
     compute_gex_by_strike(spot_price, option_data)
     compute_gex_by_expiration(option_data)
-    print_gex_surface(spot_price, option_data)
+    compute_gex_surface(spot_price, option_data)
 
 
-MYFOLDER = os.environ.get("MYFOLDER","utils/tmp")
+MYFOLDER = os.environ.get("CACHE_FOLDER")
 def scrape_data(ticker,save_as_json=False):
     """Scrape data from CBOE website"""
     # Check if data is already downloaded
@@ -99,62 +100,64 @@ def compute_total_gex(spot, data):
     # For put option we assume negative gamma, i.e. dealers sell puts and buy calls
     data["GEX"] = data.apply(lambda x: -x.GEX if x.option_type == "P" else x.GEX, axis=1)
     total_gex_bn = round(data.GEX.sum() / 10 ** 9, 4)
-    print(f"Total notional GEX: ${total_gex_bn} Bn")
     return total_gex_bn
 
 
-def compute_gex_by_strike(spot, data, ticker=None):
+def compute_gex_by_strike(spot, data, ticker=None,save_png=False):
     """Compute and plot GEX by strike"""
     # Compute total GEX by strike
     gex_by_strike = data.groupby("strike")["GEX"].sum() / 10**9
 
     # Limit data to +- 15% from spot price
     limit_criteria = (gex_by_strike.index > spot * 0.85) & (gex_by_strike.index < spot * 1.15)
+    
+    if save_png:
+        # Plot GEX by strike
+        plt.bar(
+            gex_by_strike.loc[limit_criteria].index,
+            gex_by_strike.loc[limit_criteria],
+            color="#FE53BB",
+            alpha=0.5,
+        )
+        plt.grid(color="#2A3459")
+        plt.xticks(fontweight="heavy")
+        plt.yticks(fontweight="heavy")
+        plt.xlabel("Strike", fontweight="heavy")
+        plt.ylabel("Gamma Exposure (Bn$ / %)", fontweight="heavy")
+        plt.title(f"{ticker} GEX by strike", fontweight="heavy")
+        plt.show()
+        plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-by-strike.png"))
+        plt.close
 
-    # Plot GEX by strike
-    plt.bar(
-        gex_by_strike.loc[limit_criteria].index,
-        gex_by_strike.loc[limit_criteria],
-        color="#FE53BB",
-        alpha=0.5,
-    )
-    plt.grid(color="#2A3459")
-    plt.xticks(fontweight="heavy")
-    plt.yticks(fontweight="heavy")
-    plt.xlabel("Strike", fontweight="heavy")
-    plt.ylabel("Gamma Exposure (Bn$ / %)", fontweight="heavy")
-    plt.title(f"{ticker} GEX by strike", fontweight="heavy")
-    plt.show()
-    plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-by-strike.png"))
-    plt.close
+    return gex_by_strike, limit_criteria
 
-def compute_gex_by_expiration(data, ticker=None):
+def compute_gex_by_expiration(data, ticker=None,save_png=False):
     """Compute and plot GEX by expiration"""
     # Limit data to one year
     selected_date = datetime.today() + timedelta(days=7)
     data = data.loc[data.expiration < selected_date]
     # Compute GEX by expiration date
     gex_by_expiration = data.groupby("expiration")["GEX"].sum() / 10**9
+    if save_png:
+        # Plot GEX by expiration
+        plt.bar(
+            gex_by_expiration.index,
+            gex_by_expiration.values,
+            color="#FE53BB",
+            alpha=0.5,
+        )
+        plt.grid(color="#2A3459")
+        plt.xticks(rotation=45, fontweight="heavy")
+        plt.yticks(fontweight="heavy")
+        plt.xlabel("Expiration date", fontweight="heavy")
+        plt.ylabel("Gamma Exposure (Bn$ / %)", fontweight="heavy")
+        plt.title(f"{ticker} GEX by expiration", fontweight="heavy")
+        plt.show()
+        plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-by-expiration.png"))
+        plt.close
 
-    # Plot GEX by expiration
-    plt.bar(
-        gex_by_expiration.index,
-        gex_by_expiration.values,
-        color="#FE53BB",
-        alpha=0.5,
-    )
-    plt.grid(color="#2A3459")
-    plt.xticks(rotation=45, fontweight="heavy")
-    plt.yticks(fontweight="heavy")
-    plt.xlabel("Expiration date", fontweight="heavy")
-    plt.ylabel("Gamma Exposure (Bn$ / %)", fontweight="heavy")
-    plt.title(f"{ticker} GEX by expiration", fontweight="heavy")
-    plt.show()
-    plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-by-expiration.png"))
-    plt.close
 
-
-def print_gex_surface(spot, data, ticker=None):
+def compute_gex_surface(spot, data, ticker=None,save_png=False):
     """Plot 3D surface"""
     # Limit data to 1 year and +- 15% from ATM
     selected_date = datetime.today() + timedelta(days=365)
@@ -168,24 +171,24 @@ def print_gex_surface(spot, data, ticker=None):
     # Compute GEX by expiration and strike
     data = data.groupby(["expiration", "strike"])["GEX"].sum() / 10**6
     data = data.reset_index()
-
-    # Plot 3D surface
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
-    ax.plot_trisurf(
-        data["strike"],
-        dates.date2num(data["expiration"]),
-        data["GEX"],
-        cmap="seismic_r",
-    )
-    ax.yaxis.set_major_formatter(dates.AutoDateFormatter(ax.xaxis.get_major_locator()))
-    ax.set_ylabel("Expiration date", fontweight="heavy")
-    ax.set_xlabel("Strike Price", fontweight="heavy")
-    ax.set_zlabel("Gamma (M$ / %)", fontweight="heavy")
-    plt.title(f"ticker: {ticker}")
-    plt.show()
-    plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-surface.png"))
-    plt.close
+    if save_png:
+        # Plot 3D surface
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection="3d")
+        ax.plot_trisurf(
+            data["strike"],
+            dates.date2num(data["expiration"]),
+            data["GEX"],
+            cmap="seismic_r",
+        )
+        ax.yaxis.set_major_formatter(dates.AutoDateFormatter(ax.xaxis.get_major_locator()))
+        ax.set_ylabel("Expiration date", fontweight="heavy")
+        ax.set_xlabel("Strike Price", fontweight="heavy")
+        ax.set_zlabel("Gamma (M$ / %)", fontweight="heavy")
+        plt.title(f"ticker: {ticker}")
+        plt.show()
+        plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-surface.png"))
+        plt.close
 
 if __name__ == "__main__":
     ticker = sys.argv[1].upper()

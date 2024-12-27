@@ -56,7 +56,9 @@ def get_option_chain(ticker,ticker_obj):
 
 BTC_TICKER = "BTC-USD"
 INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX']
-BTC_TICKER_LIST = ['^CBTX','^MBTX','ARKB','GBTC','IBIT','MSTR']
+BTC_TICKER_LIST = ['^CBTX','^MBTX','ARKB','GBTC','IBIT']
+OTHER_TICKER_LIST = ['MSTR','TSLA','NVDA','COIN']
+BTC_MSTR_TICKER_LIST = ['^CBTX','^MBTX','ARKB','GBTC','IBIT','MSTR']
 def cache_main():
     now_et = now_in_new_york()
     logger.info(str(now_et))
@@ -66,6 +68,7 @@ def cache_main():
     ticker_list = [BTC_TICKER]
     ticker_list.extend(INDEX_TICKER_LIST)
     ticker_list.extend(BTC_TICKER_LIST)
+    ticker_list.extend(OTHER_TICKER_LIST)
     for ticker in ticker_list:
         logger.info(f'{ticker} underlying')
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
@@ -82,6 +85,7 @@ def cache_main():
     ticker_list = []
     ticker_list.extend(INDEX_TICKER_LIST)
     ticker_list.extend(BTC_TICKER_LIST)
+    ticker_list.extend(OTHER_TICKER_LIST)
     tickers = yf.Tickers(ticker_list,session=LimiterSession(per_second=5))
     for ticker in ticker_list:
         logger.info(f'{ticker} options')
@@ -90,7 +94,6 @@ def cache_main():
         csv_file = os.path.join(cache_folder,f"options-{ticker}-{time_stamp}.csv")
         ticker_obj = tickers.tickers[ticker]
         if not os.path.exists(csv_file):
-            #df = get_option_chain(ticker,ticker_obj)
             spot_price, df = scrape_data(ticker)
             df.to_csv(csv_file,index=False)
         else:
@@ -106,16 +109,27 @@ def get_cache_latest(ticker,tstamp=None):
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_str,date_str)
         json_file_list = sorted([os.path.abspath(str(x)) for x in pathlib.Path(cache_folder).rglob(f"underlying-{ticker}-*.json")])
         csv_file_list = sorted([os.path.abspath(str(x)) for x in pathlib.Path(cache_folder).rglob(f"options-{ticker}-*.csv")])
-        if len(csv_file_list) == 0 or len(json_file_list) == 0:
-            raise LookupError()
-        last_json_file = json_file_list[-1]
-        last_csv_file = csv_file_list[-1]
+        if ticker != BTC_TICKER:
+            if len(csv_file_list) == 0 or len(json_file_list) == 0:
+                raise LookupError()
+            last_json_file = json_file_list[-1]
+            last_csv_file = csv_file_list[-1]
+        else:
+            if len(json_file_list) == 0:
+                raise LookupError()
+            last_json_file = json_file_list[-1]
+            last_csv_file = None
     else:
         raise NotImplementedError()
 
+    if ticker != BTC_TICKER:
+        options_df = pd.read_csv(last_csv_file)
+    else:
+        options_df = None
+
     with open(last_json_file,'r') as f:
         underlying_dict = json.loads(f.read())
-    options_df = pd.read_csv(last_csv_file)
+
     return underlying_dict,options_df,last_json_file,last_csv_file
 
 if __name__== "__main__":
