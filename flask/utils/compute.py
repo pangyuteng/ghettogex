@@ -172,6 +172,7 @@ def btcgex_test(ticker,tstamp=None):
 
         except:
             traceback.print_exc()
+
     df = pd.DataFrame(mylist)
     df = df[['strike','gex']]
     df = df.groupby(['strike'],as_index=False).sum()
@@ -181,12 +182,12 @@ def btcgex_test(ticker,tstamp=None):
         plt.plot([0,row.gex],[row.strike,row.strike], linewidth=2, color='blue')
 
     plt.axhline(btc_spot,color='red',linewidth=1)
-    #plt.locator_params(axis='y', nbins=20)
-    #plt.locator_params(axis='x', nbins=20)
+    plt.locator_params(axis='y', nbins=20)
+    plt.locator_params(axis='x', nbins=20)
     plt.xticks(rotation=45)
-    plt.title(f'total_gex: {total_gex:1.3f} Bn\ncombined {BTC_MSTR_TICKER_LIST}')
+    plt.title(f'total_gex: {total_gex:1.3f} Bn\ncombined {BTC_MSTR_TICKER_LIST}\n spot: {btc_spot:1.2f}(red)')
     plt.grid(True)
-    plt.ylabel("BTC strike (spot in red)")
+    plt.ylabel("BTC strike")
     plt.xlabel("GEX (Bn)")
     plt.tight_layout()
     plt.savefig("ok.png")
