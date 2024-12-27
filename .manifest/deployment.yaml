@@ -19,8 +19,8 @@ spec:
         image: docker.io/pangyuteng/private:main
         imagePullPolicy: Always
         env:
-        - name: OK
-          value: HAHA
+        - name: CACHE_FOLDER
+          value: /mnt/hd1/data/fi
         command: ["python"]
         args: ["qapp.py", "80"]
         ports:

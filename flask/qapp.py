@@ -13,6 +13,8 @@ from quart import (
 from jinja2 import Environment, FileSystemLoader
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
+CACHE_FOLDER = os.environ.get("CACHE_FOLDER")
+
 app = Quart(__name__,
     static_url_path='', 
     static_folder='static',
@@ -35,6 +37,7 @@ async def ws_data():
             mysec = 5
             message = f"socket will send data every {mysec} seconds."
             tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
+            message += str(os.listdir(CACHE_FOLDER))
             mylist = []
             for n in range(100):
                 myitem = (np.random.rand(100)*2).astype(float).tolist()
