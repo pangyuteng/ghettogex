@@ -16,10 +16,39 @@
 
 <body>
 
-<div id="prices"></div>
 
-<div hx-ext="ws" ws-connect="/ws-prices">
+<div hx-ext="ws" ws-connect="/ws-random">
 </div>
+
+<div id="mydiv"></div>
+
+<script>
+
+    var z_data = [];
+    var data = [{
+        z: z_data,
+        type: 'surface'
+    }];
+
+    var layout = {
+    title: {
+        text: 'test-surface'
+    },
+    autosize: false,
+    width: 512,
+    height: 512,
+    margin: {
+        l: 50,
+        r: 50,
+        b: 50,
+        t: 50,
+    },
+    };
+    Plotly.newPlot('mydiv', data, layout);
+
+</script>
+
+<div id="updatePlot"></div>
 
 </body>
 </html>

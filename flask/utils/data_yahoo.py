@@ -55,7 +55,7 @@ def get_option_chain(ticker,ticker_obj):
     return df
 
 BTC_TICKER = "BTC-USD"
-INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX']
+INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX','^VIX']
 BTC_TICKER_LIST = ['^CBTX','^MBTX','ARKB','GBTC','IBIT']
 OTHER_TICKER_LIST = ['MSTR','TSLA','NVDA','COIN']
 BTC_MSTR_TICKER_LIST = ['^CBTX','^MBTX','ARKB','GBTC','IBIT','MSTR']
