@@ -113,7 +113,7 @@ def iv_test(ticker,option_type):
     plt.title(f'{ticker} {option_type}')
     plt.savefig(f'ok-{ticker}-{option_type}.png')
 
-def get_gex_df(ticker,tstamp=None):
+def get_gex_df(ticker,tstamp=None,save_png=False):
     
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
     if "SPX" in ticker:
@@ -132,20 +132,23 @@ def get_gex_df(ticker,tstamp=None):
 
     total_gex = compute_total_gex(spot,df)
     print(f'total gex {total_gex}')
-    compute_gex_by_strike(spot,df,ticker=ticker,save_png=True)
-    compute_gex_by_expiration(df,ticker=ticker,save_png=True)
-    compute_gex_surface(spot,df,ticker=ticker,save_png=True)
+    gex_by_strike, limit_criteria = compute_gex_by_strike(spot,df,ticker=ticker,save_png=save_png)
+    gex_by_expiration = compute_gex_by_expiration(df,ticker=ticker,save_png=save_png)
+    gex_df = compute_gex_surface(spot,df,ticker=ticker,save_png=save_png)
 
-    return df
+    return gex_by_strike, limit_criteria, gex_by_expiration, gex_df
 
 def gex_test(ticker):
-    get_gex_df(ticker)
+    gex_by_strike, limit_criteria, gex_by_expiration, gex_df = get_gex_df(ticker)
+    print(gex_by_strike.shape)
+    print(gex_by_expiration.shape)
+    print(gex_df.shape)
 
 def round_nearest(x, a):
     return np.round(x / a) * a
 
 ROUND_UP_UNIT = 500
-def btcgex_test(ticker,tstamp=None):
+def compute_btc_gex(tstamp=None,save_png=False):
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER,tstamp=tstamp)
     btc_spot = underlying_dict['previousClose']
     ticker_list = BTC_MSTR_TICKER_LIST
@@ -176,21 +179,23 @@ def btcgex_test(ticker,tstamp=None):
     df = pd.DataFrame(mylist)
     df = df[['strike','gex']]
     df = df.groupby(['strike'],as_index=False).sum()
-    df.to_csv("ok.csv",index=False)
     total_gex = df['gex'].sum()
-    for n,row in df.iterrows():
-        plt.plot([0,row.gex],[row.strike,row.strike], linewidth=2, color='blue')
+    if save_png:
+        df.to_csv("ok.csv",index=False)
+        for n,row in df.iterrows():
+            plt.plot([0,row.gex],[row.strike,row.strike], linewidth=2, color='blue')
 
-    plt.axhline(btc_spot,color='red',linewidth=1)
-    plt.locator_params(axis='y', nbins=20)
-    plt.locator_params(axis='x', nbins=20)
-    plt.xticks(rotation=45)
-    plt.title(f'total_gex: {total_gex:1.3f} Bn\ncombined {BTC_MSTR_TICKER_LIST}\n spot: {btc_spot:1.2f}(red)')
-    plt.grid(True)
-    plt.ylabel("BTC strike")
-    plt.xlabel("GEX (Bn)")
-    plt.tight_layout()
-    plt.savefig("ok.png")
+        plt.axhline(btc_spot,color='red',linewidth=1)
+        plt.locator_params(axis='y', nbins=20)
+        plt.locator_params(axis='x', nbins=20)
+        plt.xticks(rotation=45)
+        plt.title(f'total_gex: {total_gex:1.3f} Bn\ncombined {BTC_MSTR_TICKER_LIST}\n spot: {btc_spot:1.2f}(red)')
+        plt.grid(True)
+        plt.ylabel("BTC strike")
+        plt.xlabel("GEX (Bn)")
+        plt.tight_layout()
+        plt.savefig("ok.png")
+    return df
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
@@ -201,7 +206,7 @@ if __name__ == "__main__":
     if action == 'gex':
         gex_test(ticker)
     if action == 'btcgex':
-        btcgex_test(ticker)
+        compute_btc_gex(save_png=True)
 """
 
 python -m utils.compute MSTR C iv

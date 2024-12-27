@@ -156,6 +156,7 @@ def compute_gex_by_expiration(data, ticker=None,save_png=False):
         plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-by-expiration.png"))
         plt.close
 
+    return gex_by_expiration
 
 def compute_gex_surface(spot, data, ticker=None,save_png=False):
     """Plot 3D surface"""
@@ -189,6 +190,8 @@ def compute_gex_surface(spot, data, ticker=None,save_png=False):
         plt.show()
         plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-surface.png"))
         plt.close
+
+    return data
 
 if __name__ == "__main__":
     ticker = sys.argv[1].upper()
