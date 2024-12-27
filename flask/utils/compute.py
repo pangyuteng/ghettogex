@@ -70,32 +70,6 @@ def compute_iv(row,today):
     return iv
 
 
-def get_theo_iv_df(ticker,option_type,tstamp=None,is_pivot=True):
-    raise NotImplementedError("do need this i think, iv can be interpolated, unless you only have ask/bid/last price and no greeks for all strikes")
-    today = now_in_new_york().replace(tzinfo=None)
-    underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
-    if "SPX" in ticker:
-        df = options_df[options_df.option.apply(lambda x: "SPXW" in x)]
-    elif "NDX" in ticker:
-        df = options_df[options_df.option.apply(lambda x: "NDXP" in x)]
-    else:
-        df = options_df
-    df = df.copy(deep=True)
-    df.expiration = df.expiration.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d'))
-    df = df[df.option_type==option_type]
-    df['theo_iv'] = df.apply(lambda row: compute_iv(row,today), axis=1)
-
-    df = df.sort_values(by=['expiration', 'strike','iv'])
-    df = df[['expiration','strike','iv']]
-    if is_pivot:
-        try:
-            iv_df = df.pivot(index='expiration', columns='strike', values='iv')
-        except:
-            traceback.print_exc()
-        return iv_df
-    else:
-        return df
-
 def get_gex_df(ticker,tstamp=None):
     
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
@@ -138,11 +112,10 @@ def get_iv_df(ticker,option_type,tstamp=None,is_pivot=True,interp=True):
         df = pd.DataFrame(data=arr,index=df.index,columns=df.columns)
     return df
 
-if __name__ == "__main__":
-    # for ticker in INDEX_TICKER_LIST:
-    # for option_type in ["C","P"]:
-    ticker = sys.argv[1]
-    option_type = sys.argv[2]
+def gex_test(ticker):
+    print("ok")
+
+def iv_test(ticker,option_type):
     df = get_iv_df(ticker,option_type,is_pivot=True,interp=False)
     df.to_csv(f"ok-{ticker}-{option_type}.csv")
     arr = df.to_numpy()
@@ -161,8 +134,17 @@ if __name__ == "__main__":
     plt.title(f'{ticker} {option_type}')
     plt.savefig(f'ok-{ticker}-{option_type}.png')
 
+if __name__ == "__main__":
+    ticker = sys.argv[1]
+    option_type = sys.argv[2]
+    action = sys.argv[3]
+    if action == 'iv':
+        iv_test(ticker,option_type)
+    if action == 'gex':
+        gex_test(ticker)
 """
 
-python -m utils.compute MSTR C
+python -m utils.compute MSTR C iv
+python -m utils.compute MSTR C gex
 
 """
