@@ -27,11 +27,11 @@ spec:
         - containerPort: 80
           name: web
           protocol: TCP
-      volumeMounts:
+        volumeMounts:
         - name: nfs-volume
           mountPath: /mnt/hd1
-  volumes:
-    - name: nfs-volume
-      nfs: 
-        server: 192.168.68.147
-        path: /mnt/hd1
+      volumes:
+      - name: nfs-volume
+        nfs:
+          server: 192.168.68.147
+          path: /mnt/hd1
