@@ -119,6 +119,7 @@ def get_cache_latest(ticker,tstamp=None):
     return underlying_dict,options_df,last_json_file,last_csv_file
 
 if __name__== "__main__":
+    # os.getpid()
     logger.setLevel(logging.INFO)
     #fh = logging.FileHandler(os.path.join(CACHE_FOLDER,'log.txt'))
     #fh.setLevel(logging.INFO)
