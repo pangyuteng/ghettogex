@@ -3,6 +3,7 @@ import sys
 import argparse
 import tempfile
 import traceback
+import json
 
 from flask import (
     Flask, request, render_template, Response,
@@ -51,6 +52,7 @@ def overview():
     
     return render_template('overview.html',mylist=mylist)
 
+
 @app.route('/iv', methods=['GET'])
 def get_iv():
     try:
@@ -58,10 +60,19 @@ def get_iv():
         option_type = request.args.get('option_type')
         with tempfile.TemporaryDirectory() as temp_dir:
             iv_df = get_iv_df(ticker,option_type,tstamp=None)
-            iv_df.fillna('null', inplace=True)
-            csv_file = os.path.join(temp_dir,'iv.csv')
-            iv_df.to_csv(csv_file)
-            return send_file(csv_file,as_attachment=False)
+            data = []
+            for n,row in iv_df.iterrows():
+                myvalues = json.loads(row.to_json(orient='values'))
+                data.append(myvalues)
+            expirationTicks = list(iv_df.index)
+            strikeTicks = list(iv_df.columns)
+            mydict = dict(
+                data=data,
+                expirationTicks=expirationTicks,
+                strikeTicks=strikeTicks,
+            )
+            mydict = json.loads(json.dumps(mydict))
+            return jsonify(mydict)
     except:
         traceback.print_exc()
         return jsonify("error"),400
@@ -84,3 +95,4 @@ docker run -it -p 5000:5000 -u $(id -u):$(id -g) \
 python app.py
 
 """
+

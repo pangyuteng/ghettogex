@@ -5,6 +5,7 @@ import traceback
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.interpolate import griddata
 
 from py_vollib.ref_python.black_scholes_merton.implied_volatility import implied_volatility
 from .misc import now_in_new_york
@@ -21,7 +22,7 @@ from .data_cboe import (
     compute_gex_by_expiration,
 )
 
-def get_iv_df(ticker,option_type,tstamp=None,is_pivot=True):
+def _get_iv_df(ticker,option_type,tstamp=None,is_pivot=True):
     
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
     if "SPX" in ticker:
@@ -70,6 +71,7 @@ def compute_iv(row,today):
 
 
 def get_theo_iv_df(ticker,option_type,tstamp=None,is_pivot=True):
+    raise NotImplementedError("do need this i think, iv can be interpolated, unless you only have ask/bid/last price and no greeks for all strikes")
     today = now_in_new_york().replace(tzinfo=None)
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
     if "SPX" in ticker:
@@ -116,22 +118,48 @@ def get_gex_df(ticker,tstamp=None):
     compute_gex_by_expiration(df)
     return df
 
+
+def myinterp(array, scale=1, method='cubic'):
+    x = np.arange(array.shape[1]*scale)[::scale]
+    y = np.arange(array.shape[0]*scale)[::scale]
+    x_in_grid, y_in_grid = np.meshgrid(x,y)
+    x_out, y_out = np.meshgrid(np.arange(max(x)+1),np.arange(max(y)+1))
+    array = np.ma.masked_invalid(array)
+    x_in = x_in_grid[~array.mask]
+    y_in = y_in_grid[~array.mask]
+    zi = griddata((x_in, y_in), array[~array.mask].reshape(-1),(x_out, y_out), method=method)
+    return zi
+
+def get_iv_df(ticker,option_type,tstamp=None,is_pivot=True,interp=True):
+    df = _get_iv_df(ticker,option_type,tstamp=tstamp,is_pivot=is_pivot)
+    if is_pivot is True and interp is True:
+        arr = df.to_numpy()
+        arr = myinterp(arr)
+        df = pd.DataFrame(data=arr,index=df.index,columns=df.columns)
+    return df
+
 if __name__ == "__main__":
     # for ticker in INDEX_TICKER_LIST:
     # for option_type in ["C","P"]:
     ticker = sys.argv[1]
     option_type = sys.argv[2]
-
-    #df = get_iv_df(ticker,option_type,is_pivot=False)
-    df = get_theo_iv_df(ticker,option_type)
-    df.to_csv("ok.csv")
-    for x in sorted(df.expiration.unique()):
-        rowdf = df[df.expiration==x]
-        plt.scatter(rowdf.strike,rowdf.iv,label=x)
+    df = get_iv_df(ticker,option_type,is_pivot=True,interp=False)
+    df.to_csv(f"ok-{ticker}-{option_type}.csv")
+    arr = df.to_numpy()
+    arr[arr==0]=np.nan
+    print(np.nanmax(arr),np.nanmedian(arr),np.nanmin(arr),np.sum(np.isnan(arr)))
+    print(arr.shape)
+    df.to_csv(f"ok-{ticker}-{option_type}-interp.csv")
+    df = get_iv_df(ticker,option_type,is_pivot=True,interp=True)
+    arr = df.to_numpy()
+    print(np.nanmax(arr),np.nanmedian(arr),np.nanmin(arr),np.sum(np.isnan(arr)))
+    print(arr.shape)
+    print("---")
+    plt.imshow(arr)
     plt.grid(True)
-    plt.legend()
+    plt.colorbar()
     plt.title(f'{ticker} {option_type}')
-    plt.savefig(f'ok-{ticker}-{option_type}')
+    plt.savefig(f'ok-{ticker}-{option_type}.png')
 
 """
 
