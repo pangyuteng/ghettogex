@@ -11,7 +11,7 @@ services:
         ports:
           - 5000:5000
         working_dir: /opt/app
-        command: python qapp.py 5000 --debug
+        command: python app.py 5000 --debug
         healthcheck:
             test: curl -f http://localhost:5000/ping || exit 1
             interval: 30s

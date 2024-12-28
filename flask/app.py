@@ -15,7 +15,6 @@ from quart import (
 )
 
 from jinja2 import Environment, FileSystemLoader
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from utils.data_yahoo import (
     BTC_TICKER,
@@ -34,20 +33,21 @@ from utils.compute import (
 
 
 CACHE_FOLDER = os.environ.get("CACHE_FOLDER")
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(THIS_DIR,"templates")
 
 app = Quart(__name__,
     static_url_path='', 
     static_folder='static',
-    template_folder='qtemplates',
+    template_folder='templates',
 )
 
 @app.route("/ping")
 async def ping():
     return jsonify("pong")
 
-template_folder = os.path.join(THIS_DIR,"qtemplates")
 def render_html(html_file,**kwargs):
-    j2_env = Environment(loader=FileSystemLoader(template_folder))
+    j2_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
     return j2_env.get_template(html_file).render(**kwargs)
 
 @app.websocket('/ws-random')

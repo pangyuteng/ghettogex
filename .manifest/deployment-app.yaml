@@ -22,7 +22,7 @@ spec:
         - name: CACHE_FOLDER
           value: /mnt/hd1/data/fi
         command: ["python"]
-        args: ["qapp.py", "80"]
+        args: ["app.py", "80"]
         ports:
         - containerPort: 80
           name: web

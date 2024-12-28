@@ -18,7 +18,7 @@ https://github.com/pangyuteng/fi.aigonewrong.com/settings/actions/runners
 https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/configuring-the-self-hosted-runner-application-as-a-service
 
     
-+ [ ] setup bare miminal cicd to deploy to fi.aigonewrong.com
++ [x] setup bare miminal cicd to deploy to fi.aigonewrong.com
 
 
 kubectl create secret docker-registry ghcr-login-secret --docker-server=https://ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.GITHUB_TOKEN }}
@@ -31,7 +31,15 @@ kubectl create secret docker-registry registry-credentials --docker-server=docke
 kubectl apply -f registry-credentials.yml
 
 
-+ [ ] main page to show SPX, VIX and SPX gex
++ [x] main page to show SPX, VIX and SPX gex
+
++ [x] cleanup shit, moved scratch code to below
+
+```
+/mnt/hd1/code/public-misc/finance/options/iv-surface-plot
+/mnt/hd1/code/github/hello-cloud/kube-volume
+/mnt/hd1/code/github/papaya-flask-celery/render-pdf-gradio
+```
 
 + [ ] show gex given ticker
 
@@ -40,9 +48,4 @@ kubectl apply -f registry-credentials.yml
 https://polygon.io/options
 https://x.com/ag_trader
 i'll @ you if i make any (ugly) frontend/js progress.
-
-
-prototype shit moved:
-
-/mnt/hd1/code/public-misc/finance/options/iv-surface-plot/proto
 
