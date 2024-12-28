@@ -9,12 +9,19 @@ data.push({
     line: {color: 'rgb(200, 200, 244)'},
 })
 {% endfor %}
+
 data.push({
-    x: [{{min_gex}},{{max_gex}}],
-    y: [{{spot_price}}, {{spot_price}}],
+    x: [ {{ df.gex.min() }}, {{ df.gex.max() }} ],
+    y: [ {{ spot_price }}, {{ spot_price }} ],
     mode: 'lines',
-    line: {color: 'rgb(200, 200, 244)'},
+    line: {
+        color: 'rgb(244,10,10)',
+        dash: 'dot',
+        width: 1,
+        alpha: 0.2
+    }
 })
+
 var layout = { 
     title: {text: '{{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
     plot_bgcolor: '#2a2727',
