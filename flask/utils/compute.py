@@ -126,12 +126,13 @@ def get_gex_df(ticker,tstamp=None,save_png=False):
     df = df.reset_index()
     try:
         spot = df.loc[0,'spot_price']
-        print(spot,"spot")
     except:
         traceback.print_exc()
+        spot = np.nan
 
     total_gex = compute_total_gex(spot,df)
-    print(f'total gex {total_gex}')
+    if save_png:
+        print(total_gex)
     gex_by_strike, limit_criteria = compute_gex_by_strike(spot,df,ticker=ticker,save_png=save_png)
     gex_by_expiration = compute_gex_by_expiration(df,ticker=ticker,save_png=save_png)
     gex_df = compute_gex_surface(spot,df,ticker=ticker,save_png=save_png)
@@ -139,7 +140,7 @@ def get_gex_df(ticker,tstamp=None,save_png=False):
     return gex_by_strike, limit_criteria, gex_by_expiration, gex_df
 
 def gex_test(ticker):
-    gex_by_strike, limit_criteria, gex_by_expiration, gex_df = get_gex_df(ticker)
+    gex_by_strike, limit_criteria, gex_by_expiration, gex_df = get_gex_df(ticker,save_png=True)
     print(gex_by_strike.shape)
     print(gex_by_expiration.shape)
     print(gex_df.shape)
