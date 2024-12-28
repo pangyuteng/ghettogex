@@ -19,6 +19,7 @@ THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from utils.data_yahoo import (
     BTC_TICKER,
+    CBOEX_TICKER_LIST,
     INDEX_TICKER_LIST,
     BTC_TICKER_LIST,
     OTHER_TICKER_LIST,
@@ -85,7 +86,7 @@ async def ws_prices():
             mysec = 5
             tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
             mydict = {}
-            for ticker in INDEX_TICKER_LIST:
+            for ticker in CBOEX_TICKER_LIST:
                 underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker)
                 mydict[ticker] = underlying_dict
 

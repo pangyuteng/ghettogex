@@ -54,6 +54,7 @@ def get_option_chain(ticker,ticker_obj):
     df = pd.concat(mylist)
     return df
 
+CBOEX_TICKER_LIST = ['^SPX','^NDX','^VIX']
 BTC_TICKER = "BTC-USD"
 INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX','^VIX']
 BTC_TICKER_LIST = ['^CBTX','^MBTX','ARKB','GBTC','IBIT']
