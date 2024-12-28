@@ -5,6 +5,7 @@ import asyncio
 import datetime
 import numpy as np
 import pandas as pd
+from jinja2 import Environment, FileSystemLoader
 from quart import (
     Quart,
     websocket,
@@ -12,9 +13,19 @@ from quart import (
     request,
     jsonify,
     stream_with_context,
+    redirect,
+    url_for,
+)
+from quart_auth import (
+    QuartAuth,
+    AuthUser,
+    current_user,
+    login_required,
+    login_user,
+    logout_user,
+    Unauthorized,
 )
 
-from jinja2 import Environment, FileSystemLoader
 
 from utils.data_yahoo import (
     BTC_TICKER,
@@ -36,50 +47,62 @@ CACHE_FOLDER = os.environ.get("CACHE_FOLDER")
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(THIS_DIR,"templates")
 
+def render_html(html_file,**kwargs):
+    j2_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
+    return j2_env.get_template(html_file).render(**kwargs)
+
 app = Quart(__name__,
     static_url_path='', 
     static_folder='static',
     template_folder='templates',
 )
+app.config["QUART_AUTH_MODE"]="cookie"
+app.secret_key = "dLxWOjuwlk2z0n2I4NgxaQ" # import secrets ; secrets.token_urlsafe(16)
+auth_manager = QuartAuth(app)
 
 @app.route("/ping")
 async def ping():
     return jsonify("pong")
 
-def render_html(html_file,**kwargs):
-    j2_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
-    return j2_env.get_template(html_file).render(**kwargs)
+USER_ID = "abc"
 
-@app.websocket('/ws-random')
-async def ws_random():
-    try:
-        while True:
-            mysec = 5
-            message = f"socket will send data every {mysec} seconds."
-            tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
-            message += str(os.listdir(CACHE_FOLDER))
-            mylist = []
-            for n in range(100):
-                myitem = (np.random.rand(100)*2).astype(float).tolist()
-                mylist.append(myitem)
-            data_str = render_html("random_refresh.html",mylist=mylist,tstamp=tstamp,message=message)
-            await websocket.send(data_str)
-            await asyncio.sleep(mysec)
-    except asyncio.CancelledError:
-        print('Client disconnected')
-        raise
-    # no return, means connection is kept open.
+@app.route("/login",methods=["GET","POST"])
+async def login():
+    if request.method == "POST":
+        data = await request.form
+        username = data["username"]
+        login_user(AuthUser(username))
+        #return redirect(url_for("home"))
+        #return jsonify("login success!")
+        token = auth_manager.dump_token(username)
+        return {"token": token}
+    else:
+        return """
+        <form method="POST">
+        <input name="username">
+        <input name="password" type="password">
+        <input type="submit" value="login">
+        </form>
+        """
 
-@app.route("/random")
-async def home_random():
-    return await render_template("random_surf.html")
+@app.route("/logout")
+async def logout():
+    logout_user()
+    return jsonify("logout success!")
+
+@app.route("/private")
+@login_required
+async def private():
+    return jsonify(f"private {current_user.auth_id}")
 
 @app.route("/")
+@login_required
 async def home():
     footnote = f"Data is delayed. GEX for BTC-USD is aggregated from option data from following tickers {BTC_MSTR_TICKER_LIST}"
     return await render_template("index.html",footnote=footnote)
 
 @app.websocket('/ws-prices')
+@login_required
 async def ws_prices():
     try:
         while True:
@@ -103,6 +126,7 @@ async def ws_prices():
 
 
 @app.websocket('/ws-gex')
+@login_required
 async def ws_gex():
     try:
         while True:
@@ -127,9 +151,11 @@ async def ws_gex():
     except asyncio.CancelledError:
         print('Client disconnected')
         raise
-
-
-
+"""
+@app.errorhandler(Unauthorized)
+async def redirect_to_login(*_):
+    return redirect(url_for("login"))
+"""
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
