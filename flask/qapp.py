@@ -110,13 +110,15 @@ async def ws_gex():
             tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
 
             if ticker == BTC_TICKER:
-                df = compute_btc_gex().copy()
+                spot_price, df = compute_btc_gex()
+                df = df.copy()
             else:
-                gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker)
+                spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker)
                 df = gex_by_strike.copy()
 
             data_str = render_html("gex.html",
                 ticker=ticker,df=df,
+                spot_price=spot_price,
                 tstamp=tstamp,div_name=div_name)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)

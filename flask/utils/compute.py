@@ -125,22 +125,22 @@ def get_gex_df(ticker,tstamp=None,save_png=False):
     df.expiration = df.expiration.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d'))
     df = df.reset_index()
     try:
-        spot = df.loc[0,'spot_price']
+        spot_price = df.loc[0,'spot_price']
     except:
         traceback.print_exc()
-        spot = np.nan
+        spot_price = np.nan
 
-    total_gex = compute_total_gex(spot,df)
+    total_gex = compute_total_gex(spot_price,df)
     if save_png:
         print(total_gex)
-    gex_by_strike = compute_gex_by_strike(spot,df,ticker=ticker,save_png=save_png)
+    gex_by_strike = compute_gex_by_strike(spot_price,df,ticker=ticker,save_png=save_png)
     gex_by_expiration = compute_gex_by_expiration(df,ticker=ticker,save_png=save_png)
-    gex_df = compute_gex_surface(spot,df,ticker=ticker,save_png=save_png)
+    gex_df = compute_gex_surface(spot_price,df,ticker=ticker,save_png=save_png)
 
-    return gex_by_strike, gex_by_expiration, gex_df
+    return spot_price, gex_by_strike, gex_by_expiration, gex_df
 
 def gex_test(ticker):
-    gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker,save_png=True)
+    spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker,save_png=True)
     print(gex_by_strike)
     print(gex_by_strike.shape)
     print(gex_by_expiration.shape)
@@ -154,7 +154,7 @@ def round_nearest(x, a):
 ROUND_UP_UNIT = 500
 def compute_btc_gex(tstamp=None,save_png=False):
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER,tstamp=tstamp)
-    btc_spot = underlying_dict['previousClose']
+    btc_spot_price = underlying_dict['previousClose']
     ticker_list = BTC_MSTR_TICKER_LIST
     mylist = []
     for ticker in ticker_list:
@@ -169,7 +169,7 @@ def compute_btc_gex(tstamp=None,save_png=False):
             strike_list = gex_by_strike['strike'].values
             gex_list = gex_by_strike['gex'].values
             moneyness_list = strike_list/spot_price
-            btc_moneyness_list = round_nearest(moneyness_list*btc_spot, ROUND_UP_UNIT)
+            btc_moneyness_list = round_nearest(moneyness_list*btc_spot_price, ROUND_UP_UNIT)
             for strike,gex in zip(btc_moneyness_list,gex_list):
                 mylist.append(dict(
                     ticker=ticker,
@@ -189,17 +189,17 @@ def compute_btc_gex(tstamp=None,save_png=False):
         for n,row in df.iterrows():
             plt.plot([0,row.gex],[row.strike,row.strike], linewidth=2, color='blue')
 
-        plt.axhline(btc_spot,color='red',linewidth=1)
+        plt.axhline(btc_spot_price,color='red',linewidth=1)
         plt.locator_params(axis='y', nbins=20)
         plt.locator_params(axis='x', nbins=20)
         plt.xticks(rotation=45)
-        plt.title(f'total_gex: {total_gex:1.3f} Bn\ncombined {BTC_MSTR_TICKER_LIST}\n spot: {btc_spot:1.2f}(red)')
+        plt.title(f'total_gex: {total_gex:1.3f} Bn\ncombined {BTC_MSTR_TICKER_LIST}\n spot: {btc_spot_price:1.2f}(red)')
         plt.grid(True)
         plt.ylabel("BTC strike")
         plt.xlabel("GEX (Bn)")
         plt.tight_layout()
         plt.savefig("ok.png")
-    return df
+    return btc_spot_price, df
 
 if __name__ == "__main__":
     ticker = sys.argv[1]

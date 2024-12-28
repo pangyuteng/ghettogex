@@ -11,22 +11,34 @@
     <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js'></script>
 
     <style>
+
+
     </style>
 </head>
 
 <body>
 
-<div id="prices"></div>
 <div hx-ext="ws" ws-connect="/ws-prices"></div>
-
-<div id="div-SPX"></div>
 <div hx-ext="ws" ws-connect="/ws-gex?ticker=^SPX"></div>
-
-<div id="div-NDX"></div>
 <div hx-ext="ws" ws-connect="/ws-gex?ticker=^NDX"></div>
-
-<div id="div-BTC-USD"></div>
 <div hx-ext="ws" ws-connect="/ws-gex?ticker=BTC-USD"></div>
+
+<div class="container">
+    <div class="row justify-content-start">
+        <div id="prices"></div>
+    </div>
+    <div class="row justify-content-start">
+      <div class="col-12 col-md-4">
+        <div id="div-SPX"></div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div id="div-NDX"></div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div id="div-BTC-USD"></div>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>

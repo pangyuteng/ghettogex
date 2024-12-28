@@ -1,6 +1,4 @@
-<div id="{{div_name}}" style="height:512px; width:512px;" hx-swap-oob="true">
-{{ticker}}
-
+<div id="{{div_name}}" style="height:420px; width:420px;" hx-swap-oob="true">
 <script>
 var data = []
 {%for n,row in df.iterrows() %}
@@ -8,15 +6,27 @@ data.push({
     x: [0, {{row.gex}}],
     y: [{{row.strike}}, {{row.strike}}],
     mode: 'lines',
-    line: {color: 'rgb(164, 194, 244)'},
+    line: {color: 'rgb(200, 200, 244)'},
 })
 {% endfor %}
-
-var layout = {
-    title: {text: '{{ticker}}'},
-    bgcolor: '#E2E2E2',
+data.push({
+    x: [{{min_gex}},{{max_gex}}],
+    y: [{{spot_price}}, {{spot_price}}],
+    mode: 'lines',
+    line: {color: 'rgb(200, 200, 244)'},
+})
+var layout = { 
+    title: {text: '{{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
+    plot_bgcolor: '#2a2727',
+    paper_bgcolor: '#2a2727',
+    bgcolor: '#FFFFFF',
     bordercolor: '#FFFFFF',
-    showlegend: false
+    showlegend: false,
+    font: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: '#7f7f7f'
+    }
 };
 
 Plotly.newPlot("{{ticker}}-plot", data, layout);
