@@ -40,3 +40,9 @@ kubectl apply -f registry-credentials.yml
 https://polygon.io/options
 https://x.com/ag_trader
 i'll @ you if i make any (ugly) frontend/js progress.
+
+
+prototype shit moved:
+
+/mnt/hd1/code/public-misc/finance/options/iv-surface-plot/proto
+

@@ -6,14 +6,13 @@ pdfkit==1.0.0
 matplotlib>=3.5.3
 seaborn>=0.13.2
 yfinance==0.2.51
-requests_ratelimiter==0.7.0
+requests-ratelimiter==0.7.0
 pandas-market-calendars==4.4.2
 py-vollib==1.0.1
-#numba==0.51.2
-#py-vollib-vectorized==0.1.1
 flask==3.0.3
 charset-normalizer==3.4.0
 requests==2.32.3
 Quart>=0.19.6
 aiofiles>=24.1.0
 aiohttp>=3.10.8
+quart-auth>=0.11.0
