@@ -1,4 +1,4 @@
-<div id="{{div_name}}" style="height:420px; width:420px;" hx-swap-oob="true">
+<div id="{{div_name}}" hx-swap-oob="true">
 <script>
 var data = []
 {%for n,row in df.iterrows() %}
@@ -43,6 +43,6 @@ Plotly.newPlot("{{ticker}}-plot", data, layout);
 <span class="badge rounded-pill text-bg-dark">
 tstamp:{{ tstamp }}
 </span>
-<hr>
+
 </div>
 

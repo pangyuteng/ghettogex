@@ -75,7 +75,8 @@ async def home_random():
 
 @app.route("/")
 async def home():
-    return await render_template("index.html")
+    footnote = f"Data is delayed. GEX for BTC-USD is aggregated from option data from following tickers {BTC_MSTR_TICKER_LIST}"
+    return await render_template("index.html",footnote=footnote)
 
 @app.websocket('/ws-prices')
 async def ws_prices():

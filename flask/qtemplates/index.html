@@ -24,21 +24,36 @@
 <div hx-ext="ws" ws-connect="/ws-gex?ticker=BTC-USD"></div>
 
 <div class="container">
-    <div class="row justify-content-start">
+
+    <div class="row">
         <div id="prices"></div>
     </div>
-    <div class="row justify-content-start">
-      <div class="col-12 col-md-4">
+
+    <div class="row">
+
+      <div class="col">
         <div id="div-SPX"></div>
       </div>
-      <div class="col-12 col-md-4">
+
+      <div class="col">
         <div id="div-NDX"></div>
       </div>
-      <div class="col-12 col-md-4">
+
+      <div class="col">
         <div id="div-BTC-USD"></div>
       </div>
+
     </div>
-  </div>
+
+    <div class="row">
+        <div id="footnote">
+        <hr>
+        footnote: {{footnote}}
+        </div>
+    </div>
+
+</div>
+
 
 </body>
 </html>
