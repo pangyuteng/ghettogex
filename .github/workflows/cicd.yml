@@ -69,3 +69,5 @@ jobs:
         run: |
           echo Add other actions to build,
           kubectl apply -f .manifest
+          kubectl rollout restart deployment fi-app-deployment -n default
+          kubectl rollout restart deployment fi-cache-deployment -n default
