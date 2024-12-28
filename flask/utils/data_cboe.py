@@ -103,14 +103,19 @@ def compute_total_gex(spot, data):
     return total_gex_bn
 
 
-def compute_gex_by_strike(spot, data, ticker=None,save_png=False):
+def compute_gex_by_strike(spot, data, ticker=None,save_png=False,lim='default'):
     """Compute and plot GEX by strike"""
     # Compute total GEX by strike
     gex_by_strike = data.groupby("strike")["GEX"].sum() / 10**9
 
     # Limit data to +- 15% from spot price
-    limit_criteria = (gex_by_strike.index > spot * 0.85) & (gex_by_strike.index < spot * 1.15)
-    
+    if lim == 'large':
+        limit_criteria = (gex_by_strike.index > spot * 0.85) & (gex_by_strike.index < spot * 1.15)
+    elif lim == 'default':
+        limit_criteria = (gex_by_strike.index > spot * 0.95) & (gex_by_strike.index < spot * 1.05)
+    else:
+        limit_criteria = (gex_by_strike.index > spot * 0.95) & (gex_by_strike.index < spot * 1.05)
+
     if save_png:
         # Plot GEX by strike
         plt.bar(

@@ -7,12 +7,16 @@ var data = []
 data.push({
     x: [0, {{row.gex}}],
     y: [{{row.strike}}, {{row.strike}}],
-    mode: 'lines'
+    mode: 'lines',
+    line: {color: 'rgb(164, 194, 244)'},
 })
 {% endfor %}
 
 var layout = {
-    title: {text: '{{ticker}}'}
+    title: {text: '{{ticker}}'},
+    bgcolor: '#E2E2E2',
+    bordercolor: '#FFFFFF',
+    showlegend: false
 };
 
 Plotly.newPlot("{{ticker}}-plot", data, layout);

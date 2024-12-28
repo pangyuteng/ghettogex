@@ -165,7 +165,7 @@ def compute_btc_gex(tstamp=None,save_png=False):
         try:
             spot_price = row_df.loc[0,'spot_price']
             compute_total_gex(spot_price, row_df)
-            gex_by_strike = compute_gex_by_strike(spot_price,row_df)
+            gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large')
             strike_list = gex_by_strike['strike'].values
             gex_list = gex_by_strike['gex'].values
             moneyness_list = strike_list/spot_price
