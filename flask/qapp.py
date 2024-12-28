@@ -1,8 +1,10 @@
 import os
+import json
 import argparse
 import asyncio
 import datetime
 import numpy as np
+import pandas as pd
 from quart import (
     Quart,
     websocket,
@@ -106,17 +108,16 @@ async def ws_gex():
             mysec = 5
             div_name = "div-"+ticker.replace("^","")
             tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
-            mydict = {}
 
             if ticker == BTC_TICKER:
                 df = compute_btc_gex().copy()
             else:
-                gex_by_strike, limit_criteria, gex_by_expiration, gex_df = get_gex_df(ticker)
-                df = gex_df.copy()
+                gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker)
+                df = gex_by_strike.copy()
 
-            mydict[ticker] = df
-
-            data_str = render_html("gex.html",mydict=mydict,tstamp=tstamp,div_name=div_name)
+            data_str = render_html("gex.html",
+                ticker=ticker,df=df,
+                tstamp=tstamp,div_name=div_name)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
     except asyncio.CancelledError:

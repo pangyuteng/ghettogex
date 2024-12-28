@@ -133,19 +133,20 @@ def get_gex_df(ticker,tstamp=None,save_png=False):
     total_gex = compute_total_gex(spot,df)
     if save_png:
         print(total_gex)
-    gex_by_strike, limit_criteria = compute_gex_by_strike(spot,df,ticker=ticker,save_png=save_png)
+    gex_by_strike = compute_gex_by_strike(spot,df,ticker=ticker,save_png=save_png)
     gex_by_expiration = compute_gex_by_expiration(df,ticker=ticker,save_png=save_png)
     gex_df = compute_gex_surface(spot,df,ticker=ticker,save_png=save_png)
 
-    return gex_by_strike, limit_criteria, gex_by_expiration, gex_df
+    return gex_by_strike, gex_by_expiration, gex_df
 
 def gex_test(ticker):
-    gex_by_strike, limit_criteria, gex_by_expiration, gex_df = get_gex_df(ticker,save_png=True)
+    gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker,save_png=True)
+    print(gex_by_strike)
     print(gex_by_strike.shape)
     print(gex_by_expiration.shape)
     print(gex_df.shape)
     gex_by_strike.plot()
-    plt.savefig(f'ok-{ticker}.png')
+    plt.savefig(f'ok-hohoho-{ticker}.png')
 
 def round_nearest(x, a):
     return np.round(x / a) * a
@@ -164,9 +165,9 @@ def compute_btc_gex(tstamp=None,save_png=False):
         try:
             spot_price = row_df.loc[0,'spot_price']
             compute_total_gex(spot_price, row_df)
-            gex_by_strike, limit_criteria = compute_gex_by_strike(spot_price,row_df)
-            strike_list = gex_by_strike.loc[limit_criteria].index
-            gex_list = gex_by_strike.loc[limit_criteria].values
+            gex_by_strike = compute_gex_by_strike(spot_price,row_df)
+            strike_list = gex_by_strike['strike'].values
+            gex_list = gex_by_strike['gex'].values
             moneyness_list = strike_list/spot_price
             btc_moneyness_list = round_nearest(moneyness_list*btc_spot, ROUND_UP_UNIT)
             for strike,gex in zip(btc_moneyness_list,gex_list):

@@ -1,6 +1,24 @@
+<div id="{{div_name}}" style="height:512px; width:512px;" hx-swap-oob="true">
+{{ticker}}
 
-<div id="{{div_name}}" hx-swap-oob="true">
-{{mydict}}
+<script>
+var data = []
+{%for n,row in df.iterrows() %}
+data.push({
+    x: [0, {{row.gex}}],
+    y: [{{row.strike}}, {{row.strike}}],
+    mode: 'lines'
+})
+{% endfor %}
+
+var layout = {
+    title: {text: '{{ticker}}'}
+};
+
+Plotly.newPlot("{{ticker}}-plot", data, layout);
+</script>
+
+<div id="{{ticker}}-plot"></div>
 <span class="badge rounded-pill text-bg-dark">
 tstamp:{{ tstamp }}
 </span>

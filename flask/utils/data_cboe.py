@@ -129,7 +129,10 @@ def compute_gex_by_strike(spot, data, ticker=None,save_png=False):
         plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-by-strike.png"))
         plt.close
 
-    return gex_by_strike, limit_criteria
+    df = pd.DataFrame()
+    df['strike']=gex_by_strike.loc[limit_criteria].index
+    df['gex']=gex_by_strike.loc[limit_criteria].values
+    return df
 
 def compute_gex_by_expiration(data, ticker=None,save_png=False):
     """Compute and plot GEX by expiration"""
