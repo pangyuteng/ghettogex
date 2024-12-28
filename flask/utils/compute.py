@@ -117,11 +117,11 @@ def get_gex_df(ticker,tstamp=None,save_png=False):
     
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
     if "SPX" in ticker:
-        df = options_df[options_df.option.apply(lambda x: "SPXW" in x)]
+        df = options_df[options_df.option.apply(lambda x: "SPXW" in x)].copy(deep=True)
     elif "NDX" in ticker:
-        df = options_df[options_df.option.apply(lambda x: "NDXP" in x)]
+        df = options_df[options_df.option.apply(lambda x: "NDXP" in x)].copy(deep=True)
     else:
-        df = options_df
+        df = options_df.copy(deep=True)
     df.expiration = df.expiration.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d'))
     df = df.reset_index()
     try:

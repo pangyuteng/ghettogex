@@ -7,7 +7,9 @@ from quart import (
     Quart,
     websocket,
     render_template,
-    jsonify
+    request,
+    jsonify,
+    stream_with_context,
 )
 
 from jinja2 import Environment, FileSystemLoader
@@ -21,6 +23,12 @@ from utils.data_yahoo import (
     BTC_MSTR_TICKER_LIST,
     get_cache_latest
 )
+
+from utils.compute import (
+    get_gex_df,
+    compute_btc_gex
+)
+
 
 CACHE_FOLDER = os.environ.get("CACHE_FOLDER")
 
@@ -76,16 +84,46 @@ async def ws_prices():
             mydict = {}
             for ticker in INDEX_TICKER_LIST:
                 underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker)
-                mydict[ticker]=underlying_dict
+                mydict[ticker] = underlying_dict
+
             underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER)
-            mydict[BTC_TICKER]=underlying_dict
+            mydict[BTC_TICKER] = underlying_dict
+
             data_str = render_html("prices.html",mydict=mydict,tstamp=tstamp)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
     except asyncio.CancelledError:
         print('Client disconnected')
-        await websocket.send("ws-prices-error")
+        raise
     # no return, means connection is kept open.
+
+
+@app.websocket('/ws-gex')
+async def ws_gex():
+    try:
+        while True:
+            ticker = websocket.args.get("ticker")
+            mysec = 5
+            div_name = "div-"+ticker.replace("^","")
+            tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
+            mydict = {}
+
+            if ticker == BTC_TICKER:
+                df = compute_btc_gex().copy()
+            else:
+                gex_by_strike, limit_criteria, gex_by_expiration, gex_df = get_gex_df(ticker)
+                df = gex_df.copy()
+
+            mydict[ticker] = df
+
+            data_str = render_html("gex.html",mydict=mydict,tstamp=tstamp,div_name=div_name)
+            await websocket.send(data_str)
+            await asyncio.sleep(mysec)
+    except asyncio.CancelledError:
+        print('Client disconnected')
+        raise
+
+
 
 
 if __name__ == '__main__':

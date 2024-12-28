@@ -1,8 +1,12 @@
 
 <div id="prices" hx-swap-oob="true">
-previousClose (from yfinance) {{ tstamp }}<br>
 <table>
 <tr>
+<td>
+<span class="badge rounded-pill text-bg-secondary">
+tstamp:{{ tstamp }}
+</span>
+</td>
 {% for ticker,myitem in mydict.items() %}
 <td>
 {% if myitem.regularMarketPreviousClose < myitem.previousClose %} 
