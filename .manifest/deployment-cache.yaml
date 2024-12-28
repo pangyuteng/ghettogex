@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fi-cache-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fi-cache
+  template:
+    metadata:
+      labels:
+        app: fi-cache
+    spec:
+      imagePullSecrets:
+      - name: registry-credentials
+      containers:
+      - name: web
+        image: docker.io/pangyuteng/private:main
+        imagePullPolicy: Always
+        env:
+        - name: CACHE_FOLDER
+          value: /mnt/hd1/data/fi
+        command: ["python"]
+        args: ["-m", "utils.data_yahoo"]
+        ports:
+        - containerPort: 80
+          name: web
+          protocol: TCP
+        volumeMounts:
+        - name: nfs-volume
+          mountPath: /mnt/hd1
+      volumes:
+      - name: nfs-volume
+        nfs:
+          server: 192.168.68.147
+          path: /mnt/hd1
