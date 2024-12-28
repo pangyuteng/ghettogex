@@ -4,20 +4,22 @@
 <tr>
 {% for ticker,myitem in mydict.items() %}
 <td>
-{% if myitem.regularMarketPreviousClose < myitem.previousClose %} 
+{% if myitem.regularMarketOpen < myitem.previousClose %}
 <span class="badge rounded-pill text-bg-danger">
 {% else %}
 <span class="badge rounded-pill text-bg-success">
 {% endif %}
-{{ticker}}, {{myitem.previousClose}}
+{{ticker}} {{myitem.previousClose}}
 </span>
 </td>
 {% endfor %}
 
 <td>
+<div role="alert">
 <span class="badge rounded-pill text-bg-dark">
 tstamp:{{ tstamp }}
-</span>
+</span>        
+</div>
 </td>
 
 </tr>
