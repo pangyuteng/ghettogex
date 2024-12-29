@@ -184,10 +184,10 @@ class LivePrices:
                    streamer, equity, puts, calls, streamer_symbols,ticker)
 
         t_listen_candles = asyncio.create_task(self._update_candle())
-        t_listen_greeks = asyncio.create_task(self._update_event(EventType.GREEKS,"greeks"))
-        t_listen_profile = asyncio.create_task(self._update_event(EventType.PROFILE,"profile"))
-        t_listen_quote = asyncio.create_task(self._update_event(EventType.QUOTE,"quote"))
-        t_listen_summary = asyncio.create_task(self._update_event(EventType.SUMMARY,"summary"))
+        t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks"))
+        t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile"))
+        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote"))
+        t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary"))
         #t_listen_theo_price = asyncio.create_task(self._update_event(EventType.THEO_PRICE,"thoeprice"))
         #t_listen_time_and_sale = asyncio.create_task(self._update_event(EventType.TIME_AND_SALE,"timeandsale"))
         #t_listen_trade = asyncio.create_task(self._update_event(EventType.TRADE,"trade"))
@@ -212,10 +212,10 @@ class LivePrices:
     async def shutdown(self):
         logger.debug(f"sreamer.unsubscribe...{self.streamer_symbols}")
         await self.streamer.unsubscribe_candle([self.ticker] +self.streamer_symbols,CANDLE_TYPE)
-        await self.streamer.unsubscribe(EventType.GREEKS, self.streamer_symbols)
-        await self.streamer.unsubscribe(EventType.PROFILE, self.streamer_symbols)
-        await self.streamer.unsubscribe(EventType.QUOTE, [self.ticker]+self.streamer_symbols)
-        await self.streamer.unsubscribe(EventType.SUMMARY, self.streamer_symbols)
+        await self.streamer.unsubscribe(Greeks, self.streamer_symbols)
+        await self.streamer.unsubscribe(Profile, self.streamer_symbols)
+        await self.streamer.unsubscribe(Quote, [self.ticker]+self.streamer_symbols)
+        await self.streamer.unsubscribe(Summary, self.streamer_symbols)
         #await self.streamer.unsubscribe(EventType.THEO_PRICE, self.streamer_symbols)
         #await self.streamer.unsubscribe(EventType.TIME_AND_SALE, self.streamer_symbols)
         #await self.streamer.unsubscribe(EventType.TRADE, self.streamer_symbols)
@@ -224,13 +224,13 @@ class LivePrices:
         logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
     async def _update_candle(self):
-        async for e in self.streamer.listen(EventType.CANDLE):
+        async for e in self.streamer.listen(Candle):
             streamer_symbol = e.eventSymbol.replace("{="+CANDLE_TYPE+",tho=true}","")
             self.candle[streamer_symbol] = e
             if self.save_to_json:
-                await save_data_to_json(self.ticker,streamer_symbol,EventType.CANDLE,e)
+                await save_data_to_json(self.ticker,streamer_symbol,Candle,e)
             if self.save_to_postres:
-                await persist_to_postgres(self.ticker,streamer_symbol,EventType.CANDLE,e)
+                await persist_to_postgres(self.ticker,streamer_symbol,Candle,e)
     async def _update_event(self,event_type,attribue_name):
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
@@ -300,5 +300,7 @@ if __name__ == "__main__":
         output = asyncio.run(background_subscribe(ticker,session))
 
 """
+
+python -m utils.data_tasty SPY background_subscribe
 
 """
