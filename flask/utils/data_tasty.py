@@ -157,6 +157,7 @@ class LivePrices:
         equity = Equity.get_equity(session, ticker)
         chain = get_option_chain(session, ticker)
         expiration = sorted(list(chain.keys()))[0]
+        print(expiration,'!!')
         options = [o for o in chain[expiration]]
         # the `streamer_symbol` property is the symbol used by the streamer
         streamer_symbols = [o.streamer_symbol for o in options]
@@ -165,6 +166,7 @@ class LivePrices:
         # subscribe to quotes and greeks for all options on that date
         start_time = now_in_new_york()
         start_time = datetime.datetime(start_time.year,start_time.month,start_time.day,9,30,0)
+        start_time = datetime.datetime(2024,12,27,9,30,0)
         await streamer.subscribe_candle([ticker] + streamer_symbols, CANDLE_TYPE, start_time)
         await streamer.subscribe(Greeks, streamer_symbols)
         await streamer.subscribe(Profile, streamer_symbols)
