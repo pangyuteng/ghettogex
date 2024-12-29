@@ -96,8 +96,8 @@ async def persist_to_postgres(ticker,streamer_symbol,event_type,event):
         event_dict['contractType']=contractType
         event_dict['strike']=strike
 
-    if "{=" in event_dict["eventSymbol"]:
-        event_dict['eventSymbol'] = streamer_symbol
+    if "{=" in event_dict["event_symbol"]: # eventSymbol
+        event_dict['event_symbol'] = streamer_symbol
 
     cols = list(event_dict.keys())
     vals = [postgres_friendly(event_dict[x]) for x in cols]
@@ -108,11 +108,11 @@ async def persist_to_postgres(ticker,streamer_symbol,event_type,event):
     await apostgres_execute(query_str,query_args,is_commit=True)
 
 
-# sample eventSymbol ".TSLA240927C105"
+# sample event_symbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
 
-def parse_symbol(eventSymbol):
-    matched = re.match(PATTERN,eventSymbol)
+def parse_symbol(event_symbol):
+    matched = re.match(PATTERN,event_symbol)
     ticker = matched.group(1)
     expiration = datetime.datetime.strptime(matched.group(2),'%y%m%d').date()
     contract_type = matched.group(3)
@@ -229,19 +229,19 @@ class LivePrices:
             streamer_symbol = e.event_symbol.replace("{="+CANDLE_TYPE+",tho=true}","")
             self.candle[streamer_symbol] = e
             if self.save_to_json:
-                await save_data_to_json(self.ticker,streamer_symbol,Candle,e)
+                await save_data_to_json(self.ticker,streamer_symbol,'candle',e)
             if self.save_to_postres:
-                await persist_to_postgres(self.ticker,streamer_symbol,Candle,e)
+                await persist_to_postgres(self.ticker,streamer_symbol,'candle',e)
     async def _update_event(self,event_type,attribue_name):
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
-            print("_update_event",e.eventSymbol)
+            print("_update_event",e.event_symbol)
             print(attribue_name)
-            myparam[e.eventSymbol] = e
+            myparam[e.event_symbol] = e
             if self.save_to_json:
-                await save_data_to_json(self.ticker,e.eventSymbol,event_type,e)
+                await save_data_to_json(self.ticker,e.event_symbol,event_type,e)
             if self.save_to_postres:
-                await persist_to_postgres(self.ticker,e.eventSymbol,event_type,e)
+                await persist_to_postgres(self.ticker,e.event_symbol,event_type,e)
 
 def get_cancel_file(ticker):
     return os.path.join(CACHE_TASTY_FOLDER,f"cancel-{ticker}.txt")
