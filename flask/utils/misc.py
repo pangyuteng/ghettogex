@@ -1,3 +1,6 @@
+import os
+CACHE_FOLDER = os.environ.get("CACHE_FOLDER")
+
 import pytz
 import datetime
 import pandas_market_calendars as mcal

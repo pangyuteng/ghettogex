@@ -37,7 +37,7 @@ from tastytrade.dxfeed import EventType
 #from tastytrade import today_in_new_york, now_in_new_york
 
 from postgres_utils import apostgres_execute
-from .misc import is_market_open, now_in_new_york
+from .misc import now_in_new_york, is_market_open, CACHE_FOLDER
 
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)

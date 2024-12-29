@@ -45,8 +45,6 @@ from utils.compute import (
     compute_btc_gex
 )
 
-
-CACHE_FOLDER = os.environ.get("CACHE_FOLDER")
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(THIS_DIR,"templates")
 

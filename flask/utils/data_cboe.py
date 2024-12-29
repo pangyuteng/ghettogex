@@ -20,6 +20,9 @@ from matplotlib import dates
 # for param in ["text.color", "axes.labelcolor", "xtick.color", "ytick.color"]:
 #     plt.rcParams[param] = "0.9"
 
+from .misc import CACHE_FOLDER
+TMP_FOLDER = os.path.join(CACHE_FOLDER,"tmp")
+
 contract_size = 100
 
 
@@ -31,12 +34,10 @@ def run(ticker):
     compute_gex_by_expiration(option_data)
     compute_gex_surface(spot_price, option_data)
 
-
-MYFOLDER = os.environ.get("CACHE_FOLDER")
 def scrape_data(ticker,save_as_json=False):
     """Scrape data from CBOE website"""
     # Check if data is already downloaded
-    json_file = os.path.join(MYFOLDER,f"{ticker}.json")
+    json_file = os.path.join(TMP_FOLDER,f"{ticker}.json")
     #if os.path.exists(json_file):
     if save_as_json:
         with open(json_file,"r") as f:
@@ -131,7 +132,7 @@ def compute_gex_by_strike(spot, data, ticker=None,save_png=False,lim='default'):
         plt.ylabel("Gamma Exposure (Bn$ / %)", fontweight="heavy")
         plt.title(f"{ticker} GEX by strike", fontweight="heavy")
         plt.show()
-        plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-by-strike.png"))
+        plt.savefig(os.path.join(TMP_FOLDER,f"{ticker}-gex-by-strike.png"))
         plt.close
 
     df = pd.DataFrame()
@@ -161,7 +162,7 @@ def compute_gex_by_expiration(data, ticker=None,save_png=False):
         plt.ylabel("Gamma Exposure (Bn$ / %)", fontweight="heavy")
         plt.title(f"{ticker} GEX by expiration", fontweight="heavy")
         plt.show()
-        plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-by-expiration.png"))
+        plt.savefig(os.path.join(TMP_FOLDER,f"{ticker}-gex-by-expiration.png"))
         plt.close
 
     return gex_by_expiration
@@ -196,7 +197,7 @@ def compute_gex_surface(spot, data, ticker=None,save_png=False):
         ax.set_zlabel("Gamma (M$ / %)", fontweight="heavy")
         plt.title(f"ticker: {ticker}")
         plt.show()
-        plt.savefig(os.path.join(MYFOLDER,f"{ticker}-gex-surface.png"))
+        plt.savefig(os.path.join(TMP_FOLDER,f"{ticker}-gex-surface.png"))
         plt.close
 
     return data

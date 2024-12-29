@@ -10,10 +10,9 @@ import pathlib
 import pandas as pd
 import yfinance as yf
 from requests_ratelimiter import LimiterSession
-from .data_cboe import scrape_data
-from .misc import now_in_new_york, is_market_open
 
-CACHE_FOLDER = os.environ.get("CACHE_FOLDER","utils/tmp")
+from .data_cboe import scrape_data
+from .misc import now_in_new_york, is_market_open, CACHE_FOLDER
 
 def get_option_chain(ticker,ticker_obj):
     mylist = []
