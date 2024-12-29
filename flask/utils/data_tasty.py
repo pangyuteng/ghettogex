@@ -225,6 +225,7 @@ class LivePrices:
 
     async def _update_candle(self):
         async for e in self.streamer.listen(Candle):
+            print("_update_candle",e.event_symbol)
             streamer_symbol = e.event_symbol.replace("{="+CANDLE_TYPE+",tho=true}","")
             self.candle[streamer_symbol] = e
             if self.save_to_json:
@@ -234,6 +235,8 @@ class LivePrices:
     async def _update_event(self,event_type,attribue_name):
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
+            print("_update_event",e.eventSymbol)
+            print(attribue_name)
             myparam[e.eventSymbol] = e
             if self.save_to_json:
                 await save_data_to_json(self.ticker,e.eventSymbol,event_type,e)
@@ -258,10 +261,13 @@ async def background_subscribe(ticker,session):
 
         while True:
             if not is_market_open():
+                print("market not open -------------------------------")
                 await live_prices.shutdown()
                 logger.info(f"canceling!")
                 logger.info("market is closed!")
                 break
+            else:
+                print("market open -------------------------------")
             # Print or process the quotes in real time
             if live_prices.ticker in live_prices.quote.keys():
                 logger.info(f"Current quote: {live_prices.quote[live_prices.ticker]}")
