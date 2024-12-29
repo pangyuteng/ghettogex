@@ -23,9 +23,9 @@
 <body>
 
 <div hx-ext="ws" ws-connect="/ws-prices"></div>
-<div hx-ext="ws" ws-connect="/ws-gex?ticker=^SPX"></div>
-<div hx-ext="ws" ws-connect="/ws-gex?ticker=^NDX"></div>
-<div hx-ext="ws" ws-connect="/ws-gex?ticker=BTC-USD"></div>
+<div hx-ext="ws" ws-connect="/ticker/ws-gex-strike?ticker=^SPX"></div>
+<div hx-ext="ws" ws-connect="/ticker/ws-gex-strike?ticker=^NDX"></div>
+<div hx-ext="ws" ws-connect="/ticker/ws-gex-strike?ticker=BTC-USD"></div>
 
 <div class="container">
 
@@ -53,7 +53,7 @@
         <div>
         <hr>
         footnotes:
-        <li>xaxis: naive GEX($B) based on open interest, yaxis: strike, red-dashed-line: underlying-spot</li>
+        <li>x-axis: naive GEX($B) based on open interest, y-axis: strike, red-dashed-line: underlying-spot</li>
         <li>data computed from delayed quotes.</li>
         <li>GEX for BTC-USD is aggregated from option data from following tickers {{ticker_list}}</li>
         <li>contact&tip:<a target="_blank" href='https://aigonewrong.com'>aigonewrong.com</a></li>

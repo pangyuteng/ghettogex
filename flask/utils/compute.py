@@ -1,3 +1,5 @@
+import logging
+logger = logging.getLogger(__file__)
 import sys
 import pathlib
 import datetime
@@ -156,7 +158,7 @@ def compute_btc_gex(tstamp=None,save_png=False):
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER,tstamp=tstamp)
     btc_spot_price = underlying_dict['previousClose']
     ticker_list = BTC_MSTR_TICKER_LIST
-    mylist = []
+    gex_by_strike_list = []
     for ticker in ticker_list:
         underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
         row_df = options_df
@@ -165,13 +167,18 @@ def compute_btc_gex(tstamp=None,save_png=False):
         try:
             spot_price = row_df.loc[0,'spot_price']
             compute_total_gex(spot_price, row_df)
-            gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large')
+            gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large',save_png=save_png)
+            logger.info(f'{gex_by_strike.shape}')
+            gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=save_png)
+            logger.info(f'{gex_by_expiration.shape}')
+            gex_df = compute_gex_surface(spot_price,row_df,ticker=ticker,save_png=save_png)
+            logger.info(f'{gex_df.shape}')
             strike_list = gex_by_strike['strike'].values
             gex_list = gex_by_strike['gex'].values
             moneyness_list = strike_list/spot_price
             btc_moneyness_list = round_nearest(moneyness_list*btc_spot_price, ROUND_UP_UNIT)
             for strike,gex in zip(btc_moneyness_list,gex_list):
-                mylist.append(dict(
+                gex_by_strike_list.append(dict(
                     ticker=ticker,
                     strike=strike,
                     gex=gex,
@@ -180,7 +187,7 @@ def compute_btc_gex(tstamp=None,save_png=False):
         except:
             traceback.print_exc()
 
-    df = pd.DataFrame(mylist)
+    df = pd.DataFrame(gex_by_strike_list)
     df = df[['strike','gex']]
     df = df.groupby(['strike'],as_index=False).sum()
     total_gex = df['gex'].sum()

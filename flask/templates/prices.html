@@ -12,6 +12,7 @@
 
 {% for ticker,myitem in mydict.items() %}
 <td>
+<a target="_" href="/ticker/overview?ticker={{ticker}}">
 {% if not market_open %}
 <span class="badge rounded-pill text-bg-secondary">
 {% elif myitem.previousClose > myitem.regularMarketOpen %}
@@ -19,9 +20,9 @@
 {% else %}
 <span class="badge rounded-pill text-bg-danger">
 {% endif %}
-
 {{ticker}} {{myitem.previousClose}}
 </span>
+</a>
 </td>
 {% endfor %}
 

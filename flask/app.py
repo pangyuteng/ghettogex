@@ -102,10 +102,9 @@ async def logout():
     logout_user()
     return redirect(url_for("login"))
 
-@app.route("/private")
-@login_required
-async def private():
-    return jsonify(f"private {current_user.auth_id}")
+@app.errorhandler(Unauthorized)
+async def redirect_to_login(*_):
+    return redirect(url_for("login"))
 
 @app.route("/")
 async def home():
@@ -137,10 +136,15 @@ async def ws_prices():
         raise
     # no return, means connection is kept open.
 
-
-@app.websocket('/ws-gex')
+@app.route("/ticker/overview")
 @login_required
-async def ws_gex():
+async def overview():
+    ticker = request.args.get("ticker")
+    return await render_template("overview.html",ticker=ticker)
+
+@app.websocket('/ticker/ws-gex-strike')
+@login_required
+async def ws_gex_strike():
     try:
         while True:
             ticker = websocket.args.get("ticker")
@@ -155,7 +159,7 @@ async def ws_gex():
                 spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker)
                 df = gex_by_strike.copy()
 
-            data_str = render_html("gex.html",
+            data_str = render_html("gex-strike.html",
                 ticker=ticker,df=df,
                 spot_price=spot_price,
                 tstamp=tstamp,div_name=div_name)
@@ -165,9 +169,33 @@ async def ws_gex():
         print('Client disconnected')
         raise
 
-@app.errorhandler(Unauthorized)
-async def redirect_to_login(*_):
-    return redirect(url_for("login"))
+@app.websocket('/ticker/ws-gex-surf')
+@login_required
+async def ws_gex_surf():
+    try:
+        while True:
+            ticker = websocket.args.get("ticker")
+            mysec = 5
+            div_name = "div-"+ticker.replace("^","")
+            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
+
+            if ticker == BTC_TICKER:
+                spot_price, df = compute_btc_gex()
+                df = df.copy()
+            else:
+                spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker)
+                df = gex_by_strike.copy()
+
+            data_str = render_html("gex_surf.html",
+                ticker=ticker,df=df,
+                spot_price=spot_price,
+                tstamp=tstamp,div_name=div_name)
+            await websocket.send(data_str)
+            await asyncio.sleep(mysec)
+    except asyncio.CancelledError:
+        print('Client disconnected')
+        raise
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
