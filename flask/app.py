@@ -27,7 +27,7 @@ from quart_auth import (
     Unauthorized,
 )
 
-
+from utils.misc import check_password
 from utils.data_yahoo import (
     BTC_TICKER,
     CBOEX_TICKER_LIST,
@@ -68,7 +68,7 @@ auth_manager = QuartAuth(app)
 async def ping():
     return jsonify("pong")
 
-USER_ID = "abc"
+EXPECTED_HASH = "$2b$12$XwjiaKcS34vUvQx1A.eA7.bXKNj3LoRAb4mfooiiz6BctaoESGTCC"
 
 @app.route("/login",methods=["GET","POST"])
 async def login():
@@ -77,8 +77,12 @@ async def login():
             data = await request.json
             form = await request.form
             username = form["username"]
-            login_user(AuthUser(username))
-            return redirect(url_for("home"))
+            password = form["password"]
+            if check_password(password, EXPECTED_HASH):
+                login_user(AuthUser(username))
+                return redirect(url_for("home"))
+            else:
+                return jsonify("failed"), 400
             #token = auth_manager.dump_token(username)
             #return {"token": token}
         except:

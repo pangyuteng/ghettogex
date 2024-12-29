@@ -1,6 +1,7 @@
 import pytz
 import datetime
 import pandas_market_calendars as mcal
+import bcrypt
 
 nyse = mcal.get_calendar('NYSE')
 def is_market_open(tstamp=None):
@@ -26,3 +27,12 @@ def now_in_new_york():
     eastern = pytz.timezone('US/Eastern')
     now_et = now_utc.astimezone(eastern)
     return now_et
+
+def get_hashed_password(plain_text_password):
+    # Hash a password for the first time
+    #   (Using bcrypt, the salt is saved into the hash itself)
+    return bcrypt.hashpw(plain_text_password.encode('utf-8'), bcrypt.gensalt())
+
+def check_password(plain_text_password, hashed_password_str):
+    # Check hashed password. Using bcrypt, the salt is saved into the hash itself
+    return bcrypt.checkpw(plain_text_password.encode('utf-8'), hashed_password_str.encode('utf-8'))
