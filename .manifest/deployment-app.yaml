@@ -29,9 +29,9 @@ spec:
           protocol: TCP
         volumeMounts:
         - name: nfs-volume
-          mountPath: /mnt/hd1
+          mountPath: /mnt/hd1/data
       volumes:
       - name: nfs-volume
         nfs:
           server: 192.168.68.147
-          path: /mnt/hd1
+          path: /mnt/hd1/data
