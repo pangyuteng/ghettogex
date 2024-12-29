@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+import traceback
 import asyncio
 import datetime
 import numpy as np
@@ -57,6 +58,7 @@ app = Quart(__name__,
     template_folder='templates',
 )
 app.config["QUART_AUTH_MODE"]="cookie"
+app.config["QUART_AUTH_COOKIE_SECURE"]=False
 app.secret_key = "dLxWOjuwlk2z0n2I4NgxaQ" # import secrets ; secrets.token_urlsafe(16)
 auth_manager = QuartAuth(app)
 
@@ -69,14 +71,18 @@ USER_ID = "abc"
 @app.route("/login",methods=["GET","POST"])
 async def login():
     if request.method == "POST":
-        data = await request.form
-        username = data["username"]
-        login_user(AuthUser(username))
-        #return redirect(url_for("home"))
-        #return jsonify("login success!")
-        token = auth_manager.dump_token(username)
-        return {"token": token}
+        try:
+            data = await request.json
+            form = await request.form
+            username = form["username"]
+            login_user(AuthUser(username))
+            return redirect(url_for("home"))
+            #token = auth_manager.dump_token(username)
+            #return {"token": token}
+        except:
+            app.logger.error(traceback.format_exc())
     else:
+        return await render_template("login.html")
         return """
         <form method="POST">
         <input name="username">
@@ -88,7 +94,7 @@ async def login():
 @app.route("/logout")
 async def logout():
     logout_user()
-    return jsonify("logout success!")
+    return redirect(url_for("login"))
 
 @app.route("/private")
 @login_required
@@ -96,10 +102,11 @@ async def private():
     return jsonify(f"private {current_user.auth_id}")
 
 @app.route("/")
-@login_required
 async def home():
-    footnote = f"Data is delayed. GEX for BTC-USD is aggregated from option data from following tickers {BTC_MSTR_TICKER_LIST}"
-    return await render_template("index.html",footnote=footnote)
+    if not await current_user.is_authenticated:
+        return redirect(url_for("login"))
+    else:
+        return await render_template("index.html",ticker_list=BTC_MSTR_TICKER_LIST)
 
 @app.websocket('/ws-prices')
 @login_required
@@ -151,11 +158,10 @@ async def ws_gex():
     except asyncio.CancelledError:
         print('Client disconnected')
         raise
-"""
+
 @app.errorhandler(Unauthorized)
 async def redirect_to_login(*_):
     return redirect(url_for("login"))
-"""
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -165,5 +171,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-
+asdf
 """
