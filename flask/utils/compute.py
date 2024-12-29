@@ -168,11 +168,12 @@ def compute_btc_gex(tstamp=None,save_png=False):
             spot_price = row_df.loc[0,'spot_price']
             compute_total_gex(spot_price, row_df)
             gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large',save_png=save_png)
-            logger.info(f'{gex_by_strike.shape}')
+            print("----")
+            print(f'{gex_by_strike.shape}')
             gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=save_png)
-            logger.info(f'{gex_by_expiration.shape}')
+            print(f'{gex_by_expiration.shape}')
             gex_df = compute_gex_surface(spot_price,row_df,ticker=ticker,save_png=save_png)
-            logger.info(f'{gex_df.shape}')
+            print(f'{gex_df.shape}')
             strike_list = gex_by_strike['strike'].values
             gex_list = gex_by_strike['gex'].values
             moneyness_list = strike_list/spot_price
