@@ -144,8 +144,8 @@ class LivePrices:
     calls: list[Option]
     streamer_symbols: list[str]
     ticker: str
-    save_to_postres: bool=True
-    save_to_json: bool=False
+    save_to_postres: bool=False
+    save_to_json: bool=True
     @classmethod
     async def create(
         cls,
@@ -225,7 +225,7 @@ class LivePrices:
 
     async def _update_candle(self):
         async for e in self.streamer.listen(Candle):
-            streamer_symbol = e.eventSymbol.replace("{="+CANDLE_TYPE+",tho=true}","")
+            streamer_symbol = e.event_symbol.replace("{="+CANDLE_TYPE+",tho=true}","")
             self.candle[streamer_symbol] = e
             if self.save_to_json:
                 await save_data_to_json(self.ticker,streamer_symbol,Candle,e)
