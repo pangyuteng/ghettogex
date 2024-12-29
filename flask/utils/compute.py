@@ -170,20 +170,28 @@ def compute_btc_gex(tstamp=None,save_png=False):
             gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large',save_png=save_png)
             print(f"---- {ticker}")
             print(f'{gex_by_strike.shape}')
-            gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=save_png)
-            print(f'{gex_by_expiration.shape}')
-            gex_df = compute_gex_surface(spot_price,row_df,ticker=ticker,save_png=save_png)
-            print(f'{gex_df.shape}')
             strike_list = gex_by_strike['strike'].values
             gex_list = gex_by_strike['gex'].values
             moneyness_list = strike_list/spot_price
             btc_moneyness_list = round_nearest(moneyness_list*btc_spot_price, ROUND_UP_UNIT)
+            
             for strike,gex in zip(btc_moneyness_list,gex_list):
                 gex_by_strike_list.append(dict(
                     ticker=ticker,
                     strike=strike,
                     gex=gex,
                 ))
+
+            # TODO :
+            # normalize expiration to year ??
+            # then sum up gex per (strike,expiration)
+            expiration_list = []
+            gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=save_png)
+            print(f'{gex_by_expiration.shape}')
+            gex_df = compute_gex_surface(spot_price,row_df,ticker=ticker,save_png=save_png)
+            print(f'{gex_df.shape}')
+            print(gex_df.columns)
+            print(gex_df.index)
 
         except:
             traceback.print_exc()
