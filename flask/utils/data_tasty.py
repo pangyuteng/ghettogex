@@ -34,27 +34,10 @@ from tastytrade.dxfeed import (
 from tastytrade.instruments import Equity, Option, OptionType
 from tastytrade.session import Session
 from tastytrade.dxfeed import EventType
-from tastytrade import today_in_new_york, now_in_new_york
+#from tastytrade import today_in_new_york, now_in_new_york
 
 from postgres_utils import apostgres_execute
-
-nyse = mcal.get_calendar('NYSE')
-def market_is_open(tstamp=None):
-
-    if tstamp is None:
-        tstamp = now_in_new_york()
-    today = tstamp.strftime("%Y-%m-%d")
-    early = nyse.schedule(start_date=today, end_date=today)
-    if len(early) == 0:
-        return False
-    hour_list = [
-        list(early.to_dict()['market_open'].values())[0],
-        list(early.to_dict()['market_close'].values())[0]
-    ]
-    if tstamp > min(hour_list) and tstamp < max(hour_list):
-        return True
-    else:
-        return False
+from .misc import is_market_open, now_in_new_york
 
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
@@ -275,7 +258,7 @@ async def background_subscribe(ticker,session):
         live_prices = await LivePrices.create(session,ticker)
 
         while True:
-            if not market_is_open():
+            if not is_market_open():
                 await live_prices.shutdown()
                 logger.info(f"canceling!")
                 logger.info("market is closed!")

@@ -8,32 +8,12 @@ import pytz
 import datetime
 import pathlib
 import pandas as pd
-import pandas_market_calendars as mcal
 import yfinance as yf
 from requests_ratelimiter import LimiterSession
 from .data_cboe import scrape_data
-from .misc import now_in_new_york
+from .misc import now_in_new_york, is_market_open
+
 CACHE_FOLDER = os.environ.get("CACHE_FOLDER","utils/tmp")
-
-
-nyse = mcal.get_calendar('NYSE')
-def market_is_open(tstamp=None):
-    if tstamp is None:
-        tstamp = now_in_new_york()
-    today = tstamp.strftime("%Y-%m-%d")
-    early = nyse.schedule(start_date=today, end_date=today)
-    if len(early) == 0:
-        return False
-    hour_list = [
-        list(early.to_dict()['market_open'].values())[0],
-        list(early.to_dict()['market_close'].values())[0]
-    ]
-    eastern = pytz.timezone('US/Eastern')
-    logger.debug(f'{tstamp},{hour_list[0].astimezone(eastern)},{hour_list[1].astimezone(eastern)}')
-    if tstamp > min(hour_list) and tstamp < max(hour_list):
-        return True
-    else:
-        return False
 
 def get_option_chain(ticker,ticker_obj):
     mylist = []
@@ -146,7 +126,7 @@ if __name__== "__main__":
     #logger.addHandler(fh)
     logger.addHandler(ch)
     while True:
-        if market_is_open():
+        if is_market_open():
             cache_main()
         else:
             logger.info('market closed...')

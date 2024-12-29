@@ -9,7 +9,7 @@ import seaborn as sns
 from scipy.interpolate import griddata
 
 from py_vollib.ref_python.black_scholes_merton.implied_volatility import implied_volatility
-from .misc import now_in_new_york
+
 from .data_yahoo import (
     CACHE_FOLDER,
     BTC_TICKER,

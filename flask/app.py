@@ -35,7 +35,9 @@ from utils.data_yahoo import (
     BTC_TICKER_LIST,
     OTHER_TICKER_LIST,
     BTC_MSTR_TICKER_LIST,
-    get_cache_latest
+    get_cache_latest,
+    is_market_open,
+    now_in_new_york,
 )
 
 from utils.compute import (
@@ -114,7 +116,7 @@ async def ws_prices():
     try:
         while True:
             mysec = 5
-            tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
+            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
             mydict = {}
             for ticker in CBOEX_TICKER_LIST:
                 underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker)
@@ -123,7 +125,7 @@ async def ws_prices():
             underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER)
             mydict[BTC_TICKER] = underlying_dict
 
-            data_str = render_html("prices.html",mydict=mydict,tstamp=tstamp)
+            data_str = render_html("prices.html",mydict=mydict,tstamp=tstamp,market_open=is_market_open())
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
     except asyncio.CancelledError:
@@ -140,7 +142,7 @@ async def ws_gex():
             ticker = websocket.args.get("ticker")
             mysec = 5
             div_name = "div-"+ticker.replace("^","")
-            tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S.%f")
+            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
 
             if ticker == BTC_TICKER:
                 spot_price, df = compute_btc_gex()
@@ -171,5 +173,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf
+asdf asdf
 """
