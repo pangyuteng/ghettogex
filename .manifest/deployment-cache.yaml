@@ -21,6 +21,8 @@ spec:
         env:
         - name: CACHE_FOLDER
           value: /mnt/hd1/data/fi
+        - name: CACHE_TASTY_FOLDER
+          value: /mnt/hd1/data/tastyfi
         command: ["python"]
         args: ["-m", "utils.data_yahoo"]
         ports:

@@ -33,16 +33,13 @@ from tastytrade.dxfeed import (
 )
 from tastytrade.instruments import Equity, Option, OptionType
 from tastytrade.session import Session
-from tastytrade.dxfeed import EventType
-#from tastytrade import today_in_new_york, now_in_new_york
+from tastytrade.streamer import EventType
+from tastytrade.utils import today_in_new_york
 
-from postgres_utils import apostgres_execute
-from .misc import now_in_new_york, is_market_open, CACHE_FOLDER
+from .misc import now_in_new_york, is_market_open, CACHE_FOLDER, CACHE_TASTY_FOLDER
 
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
-
-shared_dir = os.environ.get("SHARED_DIR")
 
 def is_test_func():
     return False if os.environ.get('IS_TEST') == 'FALSE' else True
@@ -75,7 +72,7 @@ def get_session(remember_me=True):
 async def save_data_to_json(ticker,streamer_symbols,event_type,event):
     tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
     daystamp = now_in_new_york().strftime("%Y-%m-%d")
-    workdir = os.path.join(shared_dir,ticker,daystamp,streamer_symbols,event_type)
+    workdir = os.path.join(CACHE_TASTY_FOLDER,ticker,daystamp,streamer_symbols,event_type)
     await aiofiles.os.makedirs(workdir,exist_ok=True)
     uid = uuid.uuid4().hex
     json_file = os.path.join(workdir,f'{tstamp}-uid-{uid}.json')
@@ -164,15 +161,15 @@ class LivePrices:
         # the `streamer_symbol` property is the symbol used by the streamer
         streamer_symbols = [o.streamer_symbol for o in options]
 
-        streamer = await DXLinkStreamer.create(session)
+        streamer = await DXLinkStreamer(session)
         # subscribe to quotes and greeks for all options on that date
         start_time = now_in_new_york()
         start_time = datetime.datetime(start_time.year,start_time.month,start_time.day,9,30,0)
         await streamer.subscribe_candle([ticker] + streamer_symbols, CANDLE_TYPE, start_time)
-        await streamer.subscribe(EventType.GREEKS, streamer_symbols)
-        await streamer.subscribe(EventType.PROFILE, streamer_symbols)
-        await streamer.subscribe(EventType.QUOTE, [ticker] + streamer_symbols)
-        await streamer.subscribe(EventType.SUMMARY, streamer_symbols)
+        await streamer.subscribe(Greeks, streamer_symbols)
+        await streamer.subscribe(Profile, streamer_symbols)
+        await streamer.subscribe(Quote, [ticker] + streamer_symbols)
+        await streamer.subscribe(Summary, streamer_symbols)
         #await streamer.subscribe(EventType.THEO_PRICE, streamer_symbols)
         #await streamer.subscribe(EventType.TIME_AND_SALE, streamer_symbols)
         #await streamer.subscribe(EventType.TRADE, streamer_symbols)
@@ -242,10 +239,10 @@ class LivePrices:
                 await persist_to_postgres(self.ticker,e.eventSymbol,event_type,e)
 
 def get_cancel_file(ticker):
-    return os.path.join(shared_dir,f"cancel-{ticker}.txt")
+    return os.path.join(CACHE_TASTY_FOLDER,f"cancel-{ticker}.txt")
 
 def get_running_file(ticker):
-    return os.path.join(shared_dir,f"running-{ticker}.txt")
+    return os.path.join(CACHE_TASTY_FOLDER,f"running-{ticker}.txt")
 
 async def background_subscribe(ticker,session):
     try:
@@ -301,17 +298,5 @@ if __name__ == "__main__":
         output = asyncio.run(background_subscribe(ticker,session))
 
 """
-cd ..
-
-docker run -it -u $(id -u):$(id -g) -p 80:80 \
-
-docker run -it -p 80:80 \
-    --env-file .env \
-    -v ghetto-gex-live_shared:/shared \
-    -v $PWD:/opt/app \
-    -w /opt/app hello-tastytrade:latest bash
-
-export SHARED_DIR=/shared
-python data_utils.py SPX background_subscribe
 
 """
