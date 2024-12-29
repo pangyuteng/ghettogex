@@ -308,5 +308,6 @@ if __name__ == "__main__":
 """
 
 python -m utils.data_tasty SPY background_subscribe
+python -m utils.data_tasty SPX background_subscribe
 
 """
