@@ -1,6 +1,8 @@
 """
 source https://github.com/Matteo-Ferrara/gex-tracker
 """
+import logging
+logger = logging.getLogger(__file__)
 import sys
 import traceback
 import json
@@ -29,7 +31,7 @@ contract_size = 100
 def run(ticker):
     spot_price, option_data = scrape_data(ticker)
     total_gex_bn = compute_total_gex(spot_price, option_data)
-    print(f"Total notional GEX: ${total_gex_bn} Bn")
+    logger.info(f"Total notional GEX: ${total_gex_bn} Bn")
     compute_gex_by_strike(spot_price, option_data)
     compute_gex_by_expiration(option_data)
     compute_gex_surface(spot_price, option_data)
@@ -50,7 +52,6 @@ def scrape_data(ticker,save_as_json=False):
                 url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/_{ticker}.json"
             else:
                 url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
-            print(url)
             data = requests.get(url)
             if save_as_json:
                 with open(json_file,"w") as f:

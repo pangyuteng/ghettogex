@@ -100,14 +100,14 @@ def iv_test(ticker,option_type):
     df.to_csv(f"ok-{ticker}-{option_type}.csv")
     arr = df.to_numpy()
     arr[arr==0]=np.nan
-    print(np.nanmax(arr),np.nanmedian(arr),np.nanmin(arr),np.sum(np.isnan(arr)))
-    print(arr.shape)
+    logger.debug(np.nanmax(arr),np.nanmedian(arr),np.nanmin(arr),np.sum(np.isnan(arr)))
+    logger.debug(arr.shape)
     df.to_csv(f"ok-{ticker}-{option_type}-interp.csv")
     df = get_iv_df(ticker,option_type,is_pivot=True,interp=True)
     arr = df.to_numpy()
-    print(np.nanmax(arr),np.nanmedian(arr),np.nanmin(arr),np.sum(np.isnan(arr)))
-    print(arr.shape)
-    print("---")
+    logger.debug(np.nanmax(arr),np.nanmedian(arr),np.nanmin(arr),np.sum(np.isnan(arr)))
+    logger.debug(arr.shape)
+    logger.debug("---")
     plt.imshow(arr)
     plt.grid(True)
     plt.colorbar()
@@ -133,7 +133,7 @@ def get_gex_df(ticker,tstamp=None,save_png=False):
 
     total_gex = compute_total_gex(spot_price,df)
     if save_png:
-        print(total_gex)
+        logger.debug(total_gex)
     gex_by_strike = compute_gex_by_strike(spot_price,df,ticker=ticker,save_png=save_png)
     gex_by_expiration = compute_gex_by_expiration(df,ticker=ticker,save_png=save_png)
     gex_df = compute_gex_surface(spot_price,df,ticker=ticker,save_png=save_png)
@@ -142,10 +142,10 @@ def get_gex_df(ticker,tstamp=None,save_png=False):
 
 def gex_test(ticker):
     spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker,save_png=True)
-    print(gex_by_strike)
-    print(gex_by_strike.shape)
-    print(gex_by_expiration.shape)
-    print(gex_df.shape)
+    logger.debug(gex_by_strike)
+    logger.debug(gex_by_strike.shape)
+    logger.debug(gex_by_expiration.shape)
+    logger.debug(gex_df.shape)
     gex_by_strike.plot()
     plt.savefig(f'ok-hohoho-{ticker}.png')
 
@@ -167,7 +167,7 @@ def compute_btc_gex(tstamp=None,save_png=False):
             spot_price = row_df.loc[0,'spot_price']
             compute_total_gex(spot_price, row_df)
             gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large',save_png=save_png)
-            print(f"---- {ticker}")
+            logger.debug(f"---- {ticker}")
             strike_list = gex_by_strike['strike'].values
             gex_list = gex_by_strike['gex'].values
             moneyness_list = strike_list/spot_price
@@ -186,9 +186,9 @@ def compute_btc_gex(tstamp=None,save_png=False):
             expiration_list = []
             gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=save_png)
             gex_df = compute_gex_surface(spot_price,row_df,ticker=ticker,save_png=save_png)
-            print(f'{gex_df.shape}')
-            print(gex_df.columns)
-            print(gex_df.index)
+            logger.debug(f'{gex_df.shape}')
+            logger.debug(gex_df.columns)
+            logger.debug(gex_df.index)
 
         except:
             traceback.print_exc()

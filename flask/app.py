@@ -130,7 +130,7 @@ async def ws_prices():
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
     except asyncio.CancelledError:
-        print('Client disconnected')
+        app.logger.error('Client disconnected')
         raise
     # no return, means connection is kept open.
 
@@ -164,7 +164,7 @@ async def ws_gex_strike():
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
     except asyncio.CancelledError:
-        print('Client disconnected')
+        app.logger.error('Client disconnected')
         raise
 
 @app.websocket('/ticker/ws-gex-surf')
@@ -191,7 +191,7 @@ async def ws_gex_surf():
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
     except asyncio.CancelledError:
-        print('Client disconnected')
+        app.logger.error('Client disconnected')
         raise
 
 

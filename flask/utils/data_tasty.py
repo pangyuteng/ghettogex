@@ -54,10 +54,10 @@ def get_session(remember_me=True):
     
     daystamp = now_in_new_york().strftime("%Y-%m-%d")
     token_file = f'/tmp/.tastytoken-{daystamp}.json'
-    print(token_file)
+    logger.debug(token_file)
     if not os.path.exists(token_file):
         password = os.environ.get('TASTYTRADE_PASSWORD')
-        print(username)
+        logger.debug(username)
         session = Session(username,password,remember_me=remember_me,is_test=is_test)
         # #use of remember_token locks the account!
         # TODO: need to read tasty api
@@ -65,11 +65,11 @@ def get_session(remember_me=True):
         #    f.write(json.dumps({"remember_token":session.remember_token}))
         return session
     else:
-        print('loading token file...')
+        logger.debug('loading token file...')
         with open(token_file,'r') as f:
             content = json.loads(f.read())
             remember_token = content["remember_token"]
-            print("remember_token",remember_token)
+            logger.debug(f"remember_token {remember_token}")
             return Session(username,remember_token=remember_token,is_test=is_test)
 
 async def save_data_to_json(ticker,streamer_symbols,event_type,event):

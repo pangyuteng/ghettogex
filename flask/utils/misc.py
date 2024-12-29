@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__file__)
+
 import os
 CACHE_FOLDER = os.environ.get("CACHE_FOLDER")
 
