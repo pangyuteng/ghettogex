@@ -29,7 +29,10 @@ contract_size = 100
 
 
 def run(ticker):
-    spot_price, option_data = scrape_data(ticker)
+    info = scrape_underlying_data(ticker)
+    print(info)
+    spot_price, option_data = scrape_options_data(ticker)
+    print(spot_price)
     total_gex_bn = compute_total_gex(spot_price, option_data)
     logger.info(f"Total notional GEX: ${total_gex_bn} Bn")
     compute_gex_by_strike(spot_price, option_data)
@@ -205,5 +208,5 @@ def compute_gex_surface(spot, data, ticker=None,save_png=False):
     return data
 
 if __name__ == "__main__":
-    ticker = sys.argv[1].upper()
-    #run(ticker)
+    ticker = sys.argv[1]
+    run(ticker)

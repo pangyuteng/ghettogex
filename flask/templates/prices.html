@@ -15,10 +15,14 @@
 <a target="_" href="/ticker/overview?ticker={{ticker}}">
 {% if not market_open %}
 <span class="badge rounded-pill text-bg-secondary">
-{% elif myitem.lastPrice > myitem.previousClose %}
-<span class="badge rounded-pill text-bg-success">
+{% elif 'data' in myitem %}
+    {% if myitem.data.close > myitem.data.prev_day_close %}
+    <span class="badge rounded-pill text-bg-success">
+    {% else %}
+    <span class="badge rounded-pill text-bg-danger">
+    {% endif %}
 {% else %}
-<span class="badge rounded-pill text-bg-danger">
+<span class="badge rounded-pill text-bg-secondary">
 {% endif %}
 {{ticker}} {{myitem.last_price}}
 </span>

@@ -155,7 +155,7 @@ def round_nearest(x, a):
 ROUND_UP_UNIT = 500
 def compute_btc_gex(tstamp=None,save_png=False):
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER,tstamp=tstamp)
-    btc_spot_price = underlying_dict['previousClose']
+    btc_spot_price = underlying_dict['last_price']
     ticker_list = BTC_MSTR_TICKER_LIST
     gex_by_strike_list = []
     for ticker in ticker_list:
