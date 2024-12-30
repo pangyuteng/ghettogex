@@ -67,16 +67,17 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
-async def main(ticker,tstamp):
+async def main(ticker,tstamp,pq_file):
     date_stamp_str = tstamp.strftime("%Y-%m-%d")
     ticker_folder = f"/mnt/hd1/data/tastyfi/{ticker}/{date_stamp_str}"
     print(f"started at {time.strftime('%X')}")
     json_file_list = [str(x) for x in pathlib.Path(ticker_folder).rglob(f"*.json")]
-    # candle quote
-    # candle  greeks  profile  quote  summary  trade
+    print('file count',len(json_file_list))
+    json_file_list = json_file_list[:1000]
     print(f"find done. {time.strftime('%X')}")
+
     data_list = []
-    chunk_n = int(len(json_file_list)/1000)
+    chunk_n = 100 #int(len(json_file_list)/1000)
     list_of_list = list(chunks(json_file_list, chunk_n))
     for mylist in list_of_list:
         func_list = [get_json(x) for x in mylist]
@@ -85,7 +86,7 @@ async def main(ticker,tstamp):
     print(f"parse done {time.strftime('%X')}")
     print("saving...")
     df = pd.DataFrame(data_list)
-    df.to_parquet(f'{ticker}-{date_stamp_str}.parquet.gzip',compression='gzip')
+    df.to_parquet(pq_file,compression='gzip')
     print(f"finished at {time.strftime('%X')}")
 
 
@@ -93,11 +94,17 @@ def hola_tasty():
 
     ticker = 'SPX'
     tstamp = datetime.datetime(2024,12,30)
-    
+    date_stamp_str = tstamp.strftime("%Y-%m-%d")
     print(ticker,tstamp)
+    pq_file = f'{ticker}-{date_stamp_str}.parquet.gzip'
+    if not os.path.exists(pq_file):
+        asyncio.run(main(ticker,tstamp,pq_file))
+    else:
+        df = pd.read_parquet(pq_file)
+        print(df.shape)
 
-    asyncio.run(main(ticker,tstamp))
-
+    # candle quote
+    # candle  greeks  profile  quote  summary  trade
 
 if __name__ == "__main__":
     hola_tasty()
