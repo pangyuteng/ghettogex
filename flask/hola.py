@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 import pathlib
 import datetime
 import json
@@ -78,9 +79,10 @@ async def main(ticker,tstamp,pq_file):
     print(f"find done. {time.strftime('%X')}")
 
     data_list = []
+    """
     for json_file in tqdm(json_file_list):
         try:
-            mydict = get_json(json_file)
+            mydict = await get_json(json_file)
             data_list.append(mydict)
         except:
             print(json_file)
@@ -92,7 +94,7 @@ async def main(ticker,tstamp,pq_file):
         func_list = [get_json(x) for x in mylist]
         ret_list = await asyncio.gather(*func_list)
         data_list.extend(ret_list)
-    """
+    
     print(f"parse done {time.strftime('%X')}")
     print("saving...")
     df = pd.DataFrame(data_list)
