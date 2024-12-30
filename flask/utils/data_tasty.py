@@ -157,7 +157,7 @@ class LivePrices:
         equity = Equity.get_equity(session, ticker)
         chain = get_option_chain(session, ticker)
         expirations = sorted(list(chain.keys()))
-        expirations = expirations[:3]
+        expirations = [expirations[0]]
         options = []
         for expiration in expirations:
             options.extend([o for o in chain[expiration]])
