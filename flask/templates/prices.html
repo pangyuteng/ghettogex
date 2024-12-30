@@ -15,12 +15,12 @@
 <a target="_" href="/ticker/overview?ticker={{ticker}}">
 {% if not market_open %}
 <span class="badge rounded-pill text-bg-secondary">
-{% elif myitem.previousClose > myitem.regularMarketOpen %}
+{% elif myitem.ask > myitem.previousClose %}
 <span class="badge rounded-pill text-bg-success">
 {% else %}
 <span class="badge rounded-pill text-bg-danger">
 {% endif %}
-{{ticker}} {{myitem.previousClose}}
+{{ticker}} {{myitem.ask}}
 </span>
 </a>
 </td>
