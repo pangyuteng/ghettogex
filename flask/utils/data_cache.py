@@ -62,7 +62,8 @@ def cache_main():
         logger.info(f'{ticker} options')
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
         os.makedirs(cache_folder,exist_ok=True)
-        csv_file = os.path.join(cache_folder,f"options-{ticker}-{time_stamp}.csv")
+        # cboe updates OI everyday, thus cache just with date_stamp and not time_stamp
+        csv_file = os.path.join(cache_folder,f"options-{ticker}-{date_stamp}.csv")
         if not os.path.exists(csv_file):
             spot_price, df = scrape_options_data(ticker)
             df.to_csv(csv_file,index=False)

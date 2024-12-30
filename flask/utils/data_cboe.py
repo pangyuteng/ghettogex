@@ -61,7 +61,10 @@ def scrape_underlying_data(ticker):
     return mydict 
 
 def scrape_options_data(ticker):
-    """Scrape data from CBOE website"""
+    """
+        Scrape data from CBOE website
+        finding: CBOE provides end-of-day options data 
+    """
     mydict = {}
     try:
         if ticker.startswith("^"):
@@ -223,3 +226,7 @@ def compute_gex_surface(spot, data, ticker=None,save_png=False):
 if __name__ == "__main__":
     ticker = sys.argv[1]
     run(ticker)
+
+"""
+
+"""
