@@ -178,8 +178,8 @@ class LivePrices:
         await streamer.subscribe(Quote, [ticker] + streamer_symbols)
         await streamer.subscribe(Summary, streamer_symbols)
         #await streamer.subscribe(EventType.THEO_PRICE, streamer_symbols)
-        #await streamer.subscribe(EventType.TIME_AND_SALE, streamer_symbols)
-        #await streamer.subscribe(EventType.TRADE, streamer_symbols)
+        await streamer.subscribe(TimeAndSale, streamer_symbols)
+        await streamer.subscribe(Trade, streamer_symbols)
         #await streamer.subscribe(EventType.UNDERLYING, [ticker])
 
         puts = [o for o in options if o.option_type == OptionType.PUT]
@@ -193,20 +193,21 @@ class LivePrices:
         t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile"))
         t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote"))
         t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary"))
+        t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale"))
+        t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade"))
         #t_listen_theo_price = asyncio.create_task(self._update_event(EventType.THEO_PRICE,"thoeprice"))
-        #t_listen_time_and_sale = asyncio.create_task(self._update_event(EventType.TIME_AND_SALE,"timeandsale"))
-        #t_listen_trade = asyncio.create_task(self._update_event(EventType.TRADE,"trade"))
         #t_listen_underlying = asyncio.create_task(self._update_event(EventType.UNDERLYING,"underlying"))
 
         asyncio.gather(t_listen_candles,
                        t_listen_greeks,
                        t_listen_profile,
                        t_listen_quote,
-                       t_listen_summary)
+                       t_listen_summary,
+                       t_listen_time_and_sale,
+                       t_listen_trade,
+                       )
                        #t_listen_underlying,
-                       #t_listen_trade,
                        #t_listen_theo_price,
-                       #t_listen_time_and_sale,
 
         # wait we have quotes and greeks for each option
         while len(self.quote) < 1 or len(self.candle) < 1 or len(self.greeks) < 1 or len(self.summary) < 1 or len(self.trade) < 1:
@@ -221,9 +222,9 @@ class LivePrices:
         await self.streamer.unsubscribe(Profile, self.streamer_symbols)
         await self.streamer.unsubscribe(Quote, [self.ticker]+self.streamer_symbols)
         await self.streamer.unsubscribe(Summary, self.streamer_symbols)
+        await self.streamer.unsubscribe(TimeAndSale, self.streamer_symbols)
+        await self.streamer.unsubscribe(Trade, self.streamer_symbols)
         #await self.streamer.unsubscribe(EventType.THEO_PRICE, self.streamer_symbols)
-        #await self.streamer.unsubscribe(EventType.TIME_AND_SALE, self.streamer_symbols)
-        #await self.streamer.unsubscribe(EventType.TRADE, self.streamer_symbols)
         #await self.streamer.unsubscribe(EventType.Underlying, [self.ticker])
         await self.streamer.close()
         logger.debug(f"sreamer closed...{self.streamer_symbols}")
