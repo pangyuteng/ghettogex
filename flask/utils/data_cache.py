@@ -1,5 +1,6 @@
 import logging
 logger = logging.getLogger(__file__)
+import traceback
 import os
 import sys
 import json
@@ -11,7 +12,7 @@ import pandas as pd
 import yfinance as yf
 from requests_ratelimiter import LimiterSession
 
-from .data_cboe import scrape_data
+from .data_cboe import scrape_options_data,scrape_underlying_data
 from .misc import now_in_new_york, is_market_open, CACHE_FOLDER
 
 def get_option_chain(ticker,ticker_obj):
@@ -32,6 +33,10 @@ def get_option_chain(ticker,ticker_obj):
         return pd.DataFrame([])
     df = pd.concat(mylist)
     return df
+
+def test_yahoo_scrape(ticker):
+    ticker_obj = yf.Ticker(ticker,session=LimiterSession(per_second=5))
+    get_option_chain(ticker,ticker_obj)
 
 CBOEX_TICKER_LIST = ['^SPX','^NDX','^VIX']
 BTC_TICKER = "BTC-USD"
@@ -54,9 +59,19 @@ def cache_main():
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
         os.makedirs(cache_folder,exist_ok=True)
         json_file = os.path.join(cache_folder,f"underlying-{ticker}-{time_stamp}.json")
-        if not os.path.exists(json_file):
-            ticker_obj = yf.Ticker(ticker,session=LimiterSession(per_second=5))
-            info_dict = ticker_obj.info
+        last_price = None
+        #if not os.path.exists(json_file):
+        if True:
+            try:
+                if ticker == BTC_TICKER:
+                    pass
+                else:
+                    info_dict = scrape_underlying_data(ticker)
+                    last_price = info_dict['data']['close']
+            except:
+                traceback.print_exc()
+
+            info_dict['last_price']=last_price
             with open(json_file,'w') as f:
                 f.write(json.dumps(info_dict))
         else:
@@ -66,15 +81,13 @@ def cache_main():
     ticker_list.extend(INDEX_TICKER_LIST)
     ticker_list.extend(BTC_TICKER_LIST)
     ticker_list.extend(OTHER_TICKER_LIST)
-    tickers = yf.Tickers(ticker_list,session=LimiterSession(per_second=5))
     for ticker in ticker_list:
         logger.info(f'{ticker} options')
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
         os.makedirs(cache_folder,exist_ok=True)
         csv_file = os.path.join(cache_folder,f"options-{ticker}-{time_stamp}.csv")
-        ticker_obj = tickers.tickers[ticker]
         if not os.path.exists(csv_file):
-            spot_price, df = scrape_data(ticker)
+            spot_price, df = scrape_options_data(ticker)
             df.to_csv(csv_file,index=False)
         else:
             logger.info('options found')
@@ -125,6 +138,7 @@ if __name__== "__main__":
     #logger.addHandler(fh)
     logger.addHandler(ch)
     while True:
+        cache_main()
         if is_market_open():
             cache_main()
         else:

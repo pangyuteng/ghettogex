@@ -36,37 +36,46 @@ def run(ticker):
     compute_gex_by_expiration(option_data)
     compute_gex_surface(spot_price, option_data)
 
-def scrape_data(ticker,save_as_json=False):
+def scrape_underlying_data(ticker):
     """Scrape data from CBOE website"""
-    # Check if data is already downloaded
-    json_file = os.path.join(TMP_FOLDER,f"{ticker}.json")
-    #if os.path.exists(json_file):
-    if save_as_json:
-        with open(json_file,"r") as f:
-            data = pd.DataFrame.from_dict(json.loads(f.read()))
-    else:
-        # Request data and save it to file
-        try:
-            if ticker.startswith("^"):
-                ticker = ticker.replace("^","")
-                url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/_{ticker}.json"
-            else:
-                url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
-            data = requests.get(url)
-            if save_as_json:
-                with open(json_file,"w") as f:
-                    f.write(json.dumps(data.json()))
+    # Request data and save it to file
+    try:
+        if ticker.startswith("^"):
+            ticker = ticker.replace("^","")
+            url = f"https://cdn.cboe.com/api/global/delayed_quotes/quotes/_{ticker}.json"
+        else:
+            url = f"https://cdn.cboe.com/api/global/delayed_quotes/quotes/{ticker}.json"
+        data = requests.get(url)
+    except ValueError:
+        traceback.print_exc()
+        data = {}
+    return data.json()
 
-        except ValueError:
-            traceback.print_exc()
-            data = requests.get(
-                f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
-            )
-            if save_as_json:
-                with open(json_file,"w") as f:
-                    f.write(json.dumps(data.json()))
-        # Convert json to pandas DataFrame
-        data = pd.DataFrame.from_dict(data.json())
+def scrape_options_data(ticker):
+    """Scrape data from CBOE website"""
+    # Request data and save it to file
+    try:
+        if ticker.startswith("^"):
+            ticker = ticker.replace("^","")
+            url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/_{ticker}.json"
+        else:
+            url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
+        data = requests.get(url)
+        if save_as_json:
+            with open(json_file,"w") as f:
+                f.write(json.dumps(data.json()))
+
+    except ValueError:
+        traceback.print_exc()
+        data = requests.get(
+            f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
+        )
+        
+        if save_as_json:
+            with open(json_file,"w") as f:
+                f.write(json.dumps(data.json()))
+    # Convert json to pandas DataFrame
+    data = pd.DataFrame.from_dict(data.json())
 
     spot_price = data.loc["current_price", "data"]
     option_data = pd.DataFrame(data.loc["options", "data"])
@@ -205,4 +214,4 @@ def compute_gex_surface(spot, data, ticker=None,save_png=False):
 
 if __name__ == "__main__":
     ticker = sys.argv[1].upper()
-    run(ticker)
+    #run(ticker)
