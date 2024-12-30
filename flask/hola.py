@@ -75,7 +75,6 @@ async def main(ticker,tstamp,pq_file):
     print(f"started at {time.strftime('%X')}")
     json_file_list = [str(x) for x in pathlib.Path(ticker_folder).rglob(f"*.json")]
     print('file count',len(json_file_list))
-    #json_file_list = json_file_list[:1000]
     print(f"find done. {time.strftime('%X')}")
 
     data_list = []
@@ -114,9 +113,12 @@ def hola_tasty():
     else:
         df = pd.read_parquet(pq_file)
         print(df.shape)
-
-    # candle quote
-    # candle  greeks  profile  quote  summary  trade
+    for x in ['candle','quote']:
+        tmpdf = df[(df.strike.isnull())&(df.ticker==ticker)&(df.event_type==x)]
+        print(x,tmpdf.shape)
+    for x in ['greeks','profile','trade','summary']:
+        tmpdf = df[(df.strike.notnull())&(df.ticker==ticker)&(df.event_type==x)]
+        print(x,tmpdf.shape)
 
 if __name__ == "__main__":
     hola_tasty()
