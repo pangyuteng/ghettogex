@@ -112,24 +112,25 @@ def hola_tasty():
     ticker = 'SPX'
     tstamp = datetime.datetime(2024,12,30)
     date_stamp_str = tstamp.strftime("%Y-%m-%d")
-    print(ticker,tstamp)
+
+    if ticker == 'SPX':
+        ticker_variants = ["SPX","SPXW"]
+    else:
+        ticker_variants = [ticker]
+
     pq_file = f'{ticker}-{date_stamp_str}.parquet.gzip'
     if not os.path.exists(pq_file):
         df = asyncio.run(main(ticker,tstamp,pq_file))
     else:
         df = pd.read_parquet(pq_file)
-    print(df.shape)
-    print(df.columns)
-    print(df.tstamp)
-    #df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
-    # df.ticker in SPX or SPXW
+    df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
 
     for x in ['candle','quote']:
-        tmpdf = df[(df.event_type==x)&(df.strike.isnull())]
+        tmpdf = df[(df.event_type==x)&(df.strike.isnull())&(df.streamer_symbol==ticker)]
         print(x,tmpdf.shape)
+
     for x in ['greeks','profile','trade','summary']:
-        #tmpdf = df[(df.strike.notnull())&(df.ticker==ticker)&(df.event_type==x)]
-        tmpdf = df[(df.event_type==x)&(df.strike.notnull())]
+        tmpdf = df[(df.event_type==x)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
         print(x,tmpdf.shape)
 
     """
