@@ -162,6 +162,14 @@ def hola_tasty():
     df['gexCandleBidAskVolume'] = \
         df['gamma'].astype(float) * df['bidvolume'].astype(float) * 100 * price_close * price_close * 0.01 * df['factor_bid'] + \
         df['gamma'].astype(float) * df['askvolume'].astype(float) * 100 * price_close * price_close * 0.01 * df['factor_ask']
+
+    gex_df = df[ (df.strike > price_close*min_prct) & (df.strike < price_close*max_prct) ]
+    naive_gex = gex_df.gexCandleVolume[gex_df.gexCandleVolume.notnull()].sum()
+    bidask_gex = gex_df.gexCandleBidAskVolume[gex_df.gexCandleBidAskVolume.notnull()].sum()
+    # rename 
+    df['naive_gex'] = df.gexCandleVolume
+    df['bidask_gex'] = df.gexCandleBidAskVolume
+
     """
 
 if __name__ == "__main__":
