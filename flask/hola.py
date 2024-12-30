@@ -52,10 +52,10 @@ async def get_json(json_file):
         content = json.loads(await f.read())
     event_dict.update(content)
     if streamer_symbol.startswith("."):
-        ticker,expiration,contractType,strike = parse_symbol(streamer_symbol)
+        ticker,expiration,contract_type,strike = parse_symbol(streamer_symbol)
         event_dict['ticker']=ticker
         event_dict['expiration']=expiration
-        event_dict['contractType']=contractType
+        event_dict['contract_type']=contract_type
         event_dict['strike']=strike
     else:
         event_dict['ticker']=streamer_symbol
