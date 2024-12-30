@@ -90,10 +90,10 @@ def postgres_friendly(value):
 async def persist_to_postgres(ticker,streamer_symbol,event_type,event):
     event_dict = dict(event)
     if streamer_symbol.startswith("."):
-        ticker,expiration,contractType,strike = parse_symbol(streamer_symbol)
+        ticker,expiration,contract_type,strike = parse_symbol(streamer_symbol)
         event_dict['ticker']=ticker
         event_dict['expiration']=expiration
-        event_dict['contractType']=contractType
+        event_dict['contract_type']=contract_type
         event_dict['strike']=strike
 
     if "{=" in event_dict["event_symbol"]: # eventSymbol
