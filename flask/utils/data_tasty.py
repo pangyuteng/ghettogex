@@ -177,10 +177,10 @@ class LivePrices:
         await streamer.subscribe(Profile, streamer_symbols)
         await streamer.subscribe(Quote, [ticker] + streamer_symbols)
         await streamer.subscribe(Summary, streamer_symbols)
-        #await streamer.subscribe(EventType.THEO_PRICE, streamer_symbols)
+        #await streamer.subscribe(TheoPrice, streamer_symbols)
         await streamer.subscribe(TimeAndSale, streamer_symbols)
         await streamer.subscribe(Trade, streamer_symbols)
-        #await streamer.subscribe(EventType.UNDERLYING, [ticker])
+        #await streamer.subscribe(Underlying, [ticker])
 
         puts = [o for o in options if o.option_type == OptionType.PUT]
         calls = [o for o in options if o.option_type == OptionType.CALL]
@@ -195,8 +195,8 @@ class LivePrices:
         t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary"))
         t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale"))
         t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade"))
-        #t_listen_theo_price = asyncio.create_task(self._update_event(EventType.THEO_PRICE,"thoeprice"))
-        #t_listen_underlying = asyncio.create_task(self._update_event(EventType.UNDERLYING,"underlying"))
+        #t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice"))
+        #t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying"))
 
         asyncio.gather(t_listen_candles,
                        t_listen_greeks,
@@ -224,8 +224,8 @@ class LivePrices:
         await self.streamer.unsubscribe(Summary, self.streamer_symbols)
         await self.streamer.unsubscribe(TimeAndSale, self.streamer_symbols)
         await self.streamer.unsubscribe(Trade, self.streamer_symbols)
-        #await self.streamer.unsubscribe(EventType.THEO_PRICE, self.streamer_symbols)
-        #await self.streamer.unsubscribe(EventType.Underlying, [self.ticker])
+        #await self.streamer.unsubscribe(TheoPrice, self.streamer_symbols)
+        #await self.streamer.unsubscribe(Underlying, [self.ticker])
         await self.streamer.close()
         logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
@@ -244,7 +244,7 @@ class LivePrices:
             if self.save_to_json:
                 await save_data_to_json(self.ticker,e.event_symbol,attribue_name,e)
             if self.save_to_postres:
-                await persist_to_postgres(self.ticker,e.event_symbol,event_type,e)
+                await persist_to_postgres(self.ticker,e.event_symbol,attribue_name,e)
 
 def get_cancel_file(ticker):
     return os.path.join(CACHE_TASTY_FOLDER,f"cancel-{ticker}.txt")
