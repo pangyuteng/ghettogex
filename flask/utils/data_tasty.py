@@ -252,7 +252,7 @@ def get_cancel_file(ticker):
 def get_running_file(ticker):
     return os.path.join(CACHE_TASTY_FOLDER,f"running-{ticker}.txt")
 
-async def background_subscribe(ticker,session):
+async def background_subscribe(ticker):
     try:
 
         running_file = get_running_file(ticker)
@@ -260,6 +260,14 @@ async def background_subscribe(ticker,session):
         if not os.path.exists(running_file):
             pathlib.Path(running_file).touch()
 
+        while True:
+            if not is_market_open():
+                logger.info("market is closed!")
+                await asyncio.sleep(1)
+            else:
+                break
+        
+        session = get_session()
         live_prices = await LivePrices.create(session,ticker)
 
         while True:
@@ -305,8 +313,7 @@ if __name__ == "__main__":
     action = sys.argv[2]
     
     if action == "background_subscribe":
-        session = get_session()
-        output = asyncio.run(background_subscribe(ticker,session))
+        output = asyncio.run(background_subscribe(ticker))
 
 """
 
