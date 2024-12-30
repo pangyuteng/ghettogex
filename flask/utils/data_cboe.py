@@ -49,9 +49,12 @@ def scrape_underlying_data(ticker):
             url = f"https://cdn.cboe.com/api/global/delayed_quotes/quotes/_{ticker}.json"
         else:
             url = f"https://cdn.cboe.com/api/global/delayed_quotes/quotes/{ticker}.json"
-        data = requests.get(url)
-        mydict = data.json()
-        mydict['last_price'] = mydict['data']['close']
+        resp = requests.get(url)
+        if resp.status_code == 200:
+            mydict = resp.json()
+            mydict['last_price'] = mydict['data']['close']
+        else:
+            raise ValueError(resp.status_code)
     except ValueError:
         traceback.print_exc()
     
@@ -66,19 +69,29 @@ def scrape_options_data(ticker):
             url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/_{ticker}.json"
         else:
             url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
-        data = requests.get(url)
-        mydict = data.json()
+        resp = requests.get(url)
+        if resp.status_code == 200:
+            mydict = resp.json()
+        else:
+            raise ValueError(resp.status_code)
     except ValueError:
         traceback.print_exc()
+
     # Convert json to pandas DataFrame
-    data = pd.DataFrame.from_dict(mydict)
-    spot_price = data.loc["current_price", "data"]
-    option_data = pd.DataFrame(data.loc["options", "data"])
-    option_data['spot_price']=spot_price
-
-    return spot_price, fix_option_data(option_data)
-
-
+    try:
+        if len(mydict) == 0:
+            raise ValueError("empty dict!")
+        data = pd.DataFrame.from_dict(mydict)
+        spot_price = data.loc["current_price", "data"]
+        option_data = pd.DataFrame(data.loc["options", "data"])
+        option_data['spot_price']=spot_price
+        return spot_price, fix_option_data(option_data)
+    except:
+        traceback.print_exc()
+        print(mydict,'!!!')
+        print("sleeping then will raise error")
+        time.sleep(10)
+        raise ValueError()
 
 
 def fix_option_data(data):
