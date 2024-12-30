@@ -73,11 +73,11 @@ async def main(ticker,tstamp,pq_file):
     print(f"started at {time.strftime('%X')}")
     json_file_list = [str(x) for x in pathlib.Path(ticker_folder).rglob(f"*.json")]
     print('file count',len(json_file_list))
-    json_file_list = json_file_list[:1000]
+    #json_file_list = json_file_list[:1000]
     print(f"find done. {time.strftime('%X')}")
 
     data_list = []
-    chunk_n = 100 #int(len(json_file_list)/1000)
+    chunk_n = 100
     list_of_list = list(chunks(json_file_list, chunk_n))
     for mylist in list_of_list:
         func_list = [get_json(x) for x in mylist]
