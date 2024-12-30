@@ -35,7 +35,7 @@ def run(ticker):
     print(spot_price)
     total_gex_bn = compute_total_gex(spot_price, option_data)
     logger.info(f"Total notional GEX: ${total_gex_bn} Bn")
-    compute_gex_by_strike(spot_price, option_data)
+    compute_gex_by_strike(spot_price, option_data,save_png=True)
     compute_gex_by_expiration(option_data)
     compute_gex_surface(spot_price, option_data)
 
