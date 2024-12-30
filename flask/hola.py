@@ -78,12 +78,21 @@ async def main(ticker,tstamp,pq_file):
     print(f"find done. {time.strftime('%X')}")
 
     data_list = []
+    for json_file in tqdm(json_file_list):
+        try:
+            mydict = get_json(json_file)
+            data_list.append(mydict)
+        except:
+            print(json_file)
+            traceback.print_exc()
+    """
     chunk_n = 1000
     list_of_list = list(chunks(json_file_list, chunk_n))
     for mylist in tqdm(list_of_list):
         func_list = [get_json(x) for x in mylist]
         ret_list = await asyncio.gather(*func_list)
         data_list.extend(ret_list)
+    """
     print(f"parse done {time.strftime('%X')}")
     print("saving...")
     df = pd.DataFrame(data_list)
