@@ -8,35 +8,10 @@ import time
 import pytz
 import datetime
 import pathlib
-import pandas as pd
-import yfinance as yf
-from requests_ratelimiter import LimiterSession
-
+from .data_coin import scrape_btcusd
 from .data_cboe import scrape_options_data,scrape_underlying_data
 from .misc import now_in_new_york, is_market_open, CACHE_FOLDER
 
-def get_option_chain(ticker,ticker_obj):
-    mylist = []
-    for expiration in ticker_obj.options:
-        call_df = ticker_obj.option_chain(expiration).calls
-        call_df['ticker']=ticker
-        call_df['option_type']='call'
-        call_df['expiration']=expiration
-        mylist.append(call_df)
-
-        put_df = ticker_obj.option_chain(expiration).puts
-        put_df['ticker']=ticker
-        put_df['option_type']='put'
-        put_df['expiration']=expiration
-        mylist.append(put_df)
-    if len(mylist) == 0:
-        return pd.DataFrame([])
-    df = pd.concat(mylist)
-    return df
-
-def test_yahoo_scrape(ticker):
-    ticker_obj = yf.Ticker(ticker,session=LimiterSession(per_second=5))
-    get_option_chain(ticker,ticker_obj)
 
 CBOEX_TICKER_LIST = ['^SPX','^NDX','^VIX']
 BTC_TICKER = "BTC-USD"
@@ -59,21 +34,21 @@ def cache_main():
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
         os.makedirs(cache_folder,exist_ok=True)
         json_file = os.path.join(cache_folder,f"underlying-{ticker}-{time_stamp}.json")
-        last_price = None
-        #if not os.path.exists(json_file):
-        if True:
+        if not os.path.exists(json_file):
             try:
                 if ticker == BTC_TICKER:
-                    pass
+                    info_dict = scrape_btcusd()
                 else:
                     info_dict = scrape_underlying_data(ticker)
-                    last_price = info_dict['data']['close']
+
+                assert('last_price' in info_dict.keys())
+
+                with open(json_file,'w') as f:
+                    f.write(json.dumps(info_dict))
+
             except:
                 traceback.print_exc()
 
-            info_dict['last_price']=last_price
-            with open(json_file,'w') as f:
-                f.write(json.dumps(info_dict))
         else:
             logger.info('underlying found')
 
@@ -149,6 +124,6 @@ if __name__== "__main__":
 
 """
 
-python -m utils.data_yahoo
+python -m utils.data_cache
 
 """

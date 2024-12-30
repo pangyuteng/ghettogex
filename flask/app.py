@@ -28,7 +28,7 @@ from quart_auth import (
 )
 
 from utils.misc import check_password
-from utils.data_yahoo import (
+from utils.data_cache import (
     BTC_TICKER,
     CBOEX_TICKER_LIST,
     INDEX_TICKER_LIST,

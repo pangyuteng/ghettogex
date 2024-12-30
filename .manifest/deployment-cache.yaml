@@ -24,7 +24,7 @@ spec:
         - name: CACHE_TASTY_FOLDER
           value: /mnt/hd1/data/tastyfi
         command: ["python"]
-        args: ["-m", "utils.data_yahoo"]
+        args: ["-m", "utils.data_cache"]
         ports:
         - containerPort: 80
           name: web

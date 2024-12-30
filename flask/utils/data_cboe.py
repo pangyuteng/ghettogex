@@ -39,6 +39,7 @@ def run(ticker):
 def scrape_underlying_data(ticker):
     """Scrape data from CBOE website"""
     # Request data and save it to file
+    mydict = {}
     try:
         if ticker.startswith("^"):
             ticker = ticker.replace("^","")
@@ -46,14 +47,16 @@ def scrape_underlying_data(ticker):
         else:
             url = f"https://cdn.cboe.com/api/global/delayed_quotes/quotes/{ticker}.json"
         data = requests.get(url)
+        mydict = data.json()
+        mydict['last_price'] = mydict['data']['close']
     except ValueError:
         traceback.print_exc()
-        data = {}
-    return data.json()
+    
+    return mydict 
 
 def scrape_options_data(ticker):
     """Scrape data from CBOE website"""
-    # Request data and save it to file
+    mydict = {}
     try:
         if ticker.startswith("^"):
             ticker = ticker.replace("^","")
@@ -61,22 +64,11 @@ def scrape_options_data(ticker):
         else:
             url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
         data = requests.get(url)
-        if save_as_json:
-            with open(json_file,"w") as f:
-                f.write(json.dumps(data.json()))
-
+        mydict = data.json()
     except ValueError:
         traceback.print_exc()
-        data = requests.get(
-            f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker}.json"
-        )
-        
-        if save_as_json:
-            with open(json_file,"w") as f:
-                f.write(json.dumps(data.json()))
     # Convert json to pandas DataFrame
-    data = pd.DataFrame.from_dict(data.json())
-
+    data = pd.DataFrame.from_dict(mydict)
     spot_price = data.loc["current_price", "data"]
     option_data = pd.DataFrame(data.loc["options", "data"])
     option_data['spot_price']=spot_price
