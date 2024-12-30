@@ -8,6 +8,7 @@ import re
 import asyncio
 import aiofiles
 import time
+from tqdm import tqdm
 
 def hola_cboe():
     ticker = '^SPX'
@@ -77,9 +78,9 @@ async def main(ticker,tstamp,pq_file):
     print(f"find done. {time.strftime('%X')}")
 
     data_list = []
-    chunk_n = 100
+    chunk_n = 1000
     list_of_list = list(chunks(json_file_list, chunk_n))
-    for mylist in list_of_list:
+    for mylist in tqdm(list_of_list):
         func_list = [get_json(x) for x in mylist]
         ret_list = await asyncio.gather(*func_list)
         data_list.extend(ret_list)
