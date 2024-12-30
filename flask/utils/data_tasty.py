@@ -239,11 +239,9 @@ class LivePrices:
     async def _update_event(self,event_type,attribue_name):
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
-            print("_update_event",e.event_symbol)
-            print(attribue_name)
             myparam[e.event_symbol] = e
             if self.save_to_json:
-                await save_data_to_json(self.ticker,e.event_symbol,event_type,e)
+                await save_data_to_json(self.ticker,e.event_symbol,attribue_name,e)
             if self.save_to_postres:
                 await persist_to_postgres(self.ticker,e.event_symbol,event_type,e)
 
