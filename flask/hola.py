@@ -62,6 +62,11 @@ async def get_json(json_file):
     event_dict["tstamp"]=tstamp
     return event_dict
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 async def main(ticker,tstamp):
     date_stamp_str = tstamp.strftime("%Y-%m-%d")
     ticker_folder = f"/mnt/hd1/data/tastyfi/{ticker}/{date_stamp_str}"
@@ -70,8 +75,13 @@ async def main(ticker,tstamp):
     # candle quote
     # candle  greeks  profile  quote  summary  trade
     print(f"find done. {time.strftime('%X')}")
-    func_list = [get_json(x) for x in json_file_list]
-    data_list = await asyncio.gather(*func_list)
+    data_list = []
+    chunk_n = int(len(json_file_list)/1000)
+    list_of_list = list(chunks(json_file_list, chunk_n))
+    for mylist in list_of_list:
+        func_list = [get_json(x) for x in mylist]
+        ret_list = await asyncio.gather(*func_list)
+        data_list.extend(ret_list)
     print(f"parse done {time.strftime('%X')}")
     print("saving...")
     df = pd.DataFrame(data_list)
