@@ -156,11 +156,16 @@ class LivePrices:
 
         equity = Equity.get_equity(session, ticker)
         chain = get_option_chain(session, ticker)
-        expiration = sorted(list(chain.keys()))[0]
-        print(expiration,'!!')
-        options = [o for o in chain[expiration]]
+        expirations = sorted(list(chain.keys()))
+        expirations = expirations[:3]
+        options = []
+        for expiration in expirations:
+            options.extend([o for o in chain[expiration]])
+            print(expiration,'!!',len(options))
         # the `streamer_symbol` property is the symbol used by the streamer
         streamer_symbols = [o.streamer_symbol for o in options]
+        print(len(streamer_symbols))
+        #sys.exit(1)
         print("??oooooooooooooooooo?")
         streamer = await DXLinkStreamer(session)
         print("??????????")
@@ -225,7 +230,6 @@ class LivePrices:
 
     async def _update_candle(self):
         async for e in self.streamer.listen(Candle):
-            print("_update_candle",e.event_symbol)
             streamer_symbol = e.event_symbol.replace("{="+CANDLE_TYPE+",tho=true}","")
             self.candle[streamer_symbol] = e
             if self.save_to_json:
