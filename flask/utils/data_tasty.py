@@ -107,7 +107,6 @@ async def persist_to_postgres(ticker,streamer_symbol,event_type,event):
     query_args = vals
     await apostgres_execute(query_str,query_args,is_commit=True)
 
-
 # sample event_symbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
 
