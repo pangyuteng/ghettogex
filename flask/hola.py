@@ -29,9 +29,8 @@ def hola_cboe():
         break
     for csv_file in csv_file_list:
         df = pd.read_csv(csv_file)
-        print(csv_file,df.spot_price[0])
-        print(csv_file,df.open_interest.sum())
-        break
+        print(csv_file,df.spot_price[0],df.open_interest.sum())
+
 
 # sample streamer_symbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
@@ -301,5 +300,5 @@ def hola_tasty():
 
     
 if __name__ == "__main__":
-    hola_tasty()
-    
+    #hola_tasty()
+    hola_cboe()
