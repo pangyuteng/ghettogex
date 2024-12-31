@@ -28,11 +28,11 @@ def hola_cboe():
         print(csv_file,df.open_interest.sum())
         break
 
-# sample eventSymbol ".TSLA240927C105"
+# sample streamer_symbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
 
-def parse_symbol(eventSymbol):
-    matched = re.match(PATTERN,eventSymbol)
+def parse_symbol(streamer_symbol):
+    matched = re.match(PATTERN,streamer_symbol)
     ticker = matched.group(1)
     expiration = datetime.datetime.strptime(matched.group(2),'%y%m%d').date()
     contract_type = matched.group(3)
@@ -119,33 +119,57 @@ def hola_tasty():
         ticker_variants = [ticker]
 
     pq_file = f'{ticker}-{date_stamp_str}.parquet.gzip'
+    print(pq_file)
     if not os.path.exists(pq_file):
         df = asyncio.run(main(ticker,tstamp,pq_file))
     else:
         df = pd.read_parquet(pq_file)
     df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
+    df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
 
-    for x in ['candle','quote']:
-        tmpdf = df[(df.event_type==x)&(df.strike.isnull())&(df.streamer_symbol==ticker)]
-        print(x,tmpdf.shape)
+    def get_gex(tstamp_reduced):
+        
+        # ['candle','quote']
+        # underlying spot price via candle events
+        udf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type=='candle')&(df.strike.isnull())&(df.streamer_symbol==ticker)]
+        udf = udf.sort_values(['tstamp']).reset_index()
+        spot_price = float(udf.iloc[-1].close)
+        print(tstamp_reduced,spot_price)
 
-    for x in ['greeks','profile','trade','summary']:
-        tmpdf = df[(df.event_type==x)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
-        print(x,tmpdf.shape)
+        # ['greeks','profile','trade','summary']
+        # sum options volumes via candle events
+        event_type = 'candle'
+        cdf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type==event_type)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
+        cdf = cdf[["streamer_symbol","strike","ticker", "expiration", "contract_type","volume","ask_volume","bid_volume"]]
+        cdf = cdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).sum()
+        print(event_type,cdf.shape)
+
+        event_type = 'greeks'
+        gdf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type==event_type)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
+        gdf = gdf[["tstamp","streamer_symbol","strike","ticker", "expiration", "contract_type","gamma"]]
+        gdf = gdf.sort_values(['tstamp']).reset_index()
+        gdf = gdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last()
+        print(event_type,gdf.shape)
+        return {}
+
+    for tstamp_reduced in sorted(df.tstamp_reduced.unique()):
+        gex_df = get_gex(tstamp_reduced)
+
+
 
     """
-    candle_df = candle_df[["eventsymbol","strike","ticker", "expiration", "contracttype","volume","askvolume","bidvolume"]]
-    candle_df = candle_df.groupby(["eventsymbol","strike","ticker", "expiration", "contracttype"]).sum()
+    candle_df = candle_df[["streamer_symbol","strike","ticker", "expiration", "contract_type","volume","askvolume","bidvolume"]]
+    candle_df = candle_df.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).sum()
 
-    greeks_df = greeks_df[["eventsymbol","strike","ticker", "expiration", "contracttype","gamma"]]
-    greeks_df = greeks_df.groupby(["eventsymbol","strike","ticker", "expiration", "contracttype"]).last()
+    greeks_df = greeks_df[["streamer_symbol","strike","ticker", "expiration", "contract_type","gamma"]]
+    greeks_df = greeks_df.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last()
 
     candle_df.reset_index(inplace=True)
     greeks_df.reset_index(inplace=True)
     
-    df = greeks_df.merge(candle_df,how='left',on=["eventsymbol","strike","ticker", "expiration", "contracttype"])
+    df = greeks_df.merge(candle_df,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"])
 
-    df['contract_type_int'] = df.contracttype.apply(lambda x: 1 if x=='C' else -1)
+    df['contract_type_int'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
     df['gexCandleVolume'] = df['gamma'].astype(float) * df['volume'].astype(float) * 100 * price_close * price_close * 0.01 * df['contract_type_int']
 
     # Open Interest, but note we are using volume.
@@ -156,10 +180,10 @@ def hola_tasty():
     #Ask volume refers to transactions that happen at the ask price
 
     # i think below is what we want:
-    # contract_type_int 1 , contracttype C, factor_bid: 1 factor_ask: 1
-    # contract_type_int -1 , contracttype P, factor_bid: -1 factor_ask: 1
-    df['factor_bid'] = df.contracttype.apply(lambda x: 1 if x=='C' else -1)
-    df['factor_ask'] = df.contracttype.apply(lambda x: -1 if x=='P' else 1)
+    # contract_type_int 1 , contract_type C, factor_bid: 1 factor_ask: 1
+    # contract_type_int -1 , contract_type P, factor_bid: -1 factor_ask: 1
+    df['factor_bid'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
+    df['factor_ask'] = df.contract_type.apply(lambda x: -1 if x=='P' else 1)
     df['gexCandleBidAskVolume'] = \
         df['gamma'].astype(float) * df['bidvolume'].astype(float) * 100 * price_close * price_close * 0.01 * df['factor_bid'] + \
         df['gamma'].astype(float) * df['askvolume'].astype(float) * 100 * price_close * price_close * 0.01 * df['factor_ask']
