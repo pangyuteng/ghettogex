@@ -123,7 +123,7 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants,mean_price):
         spot_price = float(udf.iloc[-1].close)
         # print(tstamp_reduced,spot_price)
 
-    # ['greeks','profile','trade','summary']
+    # ['candle','greeks','profile','trade','summary']
     # sum options volumes via candle events
     event_type = 'candle'
     cdf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type==event_type)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
@@ -138,11 +138,20 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants,mean_price):
     gdf = gdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last()
     gdf = gdf.reset_index()
 
+    event_type = 'summary'
+    sdf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type==event_type)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
+    sdf = sdf.sort_values(['tstamp'])
+    sdf = sdf[["streamer_symbol","strike","ticker", "expiration", "contract_type","open_interest"]]
+    sdf = sdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last()
+    sdf = sdf.reset_index()
+
     idf = gdf.merge(cdf,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"]).copy(deep=True)
+    idf = idf.merge(sdf,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"]).copy(deep=True)
+
     idf['contract_type_int'] = idf.contract_type.apply(lambda x: 1 if x=='C' else -1)
     idf['gex_volume'] = idf['gamma'].astype(np.float64) * idf['volume'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['contract_type_int']
+    idf['gex_oi'] = idf['gamma'].astype(np.float64) * idf['open_interest'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['contract_type_int']
 
-    # Open Interest, but note we are using volume.
     # https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
     # A crude approximation is that the dealers are long the calls and short the puts,
 
@@ -165,24 +174,27 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants,mean_price):
 
     idf['gex_bid_ask_volume'] = idf['gex_bid_ask_volume']/10**9
     idf['gex_volume'] = idf['gex_volume']/10**9
+    idf['gex_oi'] = idf['gex_oi']/10**9
+    
     tmpdf = idf[ (idf.strike > spot_price*min_prct) & (idf.strike < spot_price*max_prct) ]
-    naive_gex = tmpdf.gex_volume[tmpdf.gex_volume.notnull()].sum()
-    bidask_gex = tmpdf.gex_bid_ask_volume[tmpdf.gex_bid_ask_volume.notnull()].sum()
+    naive_oi_gex = tmpdf.gex_oi[tmpdf.gex_oi.notnull()].sum()
+    naive_vol_gex = tmpdf.gex_volume[tmpdf.gex_volume.notnull()].sum()
+    bidask_vol_gex = tmpdf.gex_bid_ask_volume[tmpdf.gex_bid_ask_volume.notnull()].sum()
 
     idf = gdf.merge(cdf,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"])
     
     sec_png_file = os.path.join('tmp/pngs',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
-    if bidask_gex != 0.0:
-        tmpdf = tmpdf[["strike","gex_volume"]]
+    if bidask_vol_gex != naive_oi_gex:
+        tmpdf = tmpdf[["strike","gex_oi"]]
         tmpdf = tmpdf.groupby(["strike"]).sum().reset_index()
         
         for n,row in tmpdf.iterrows():
-            plt.plot([0,row.gex_volume],[row.strike,row.strike],color='blue')
+            plt.plot([0,row.gex_oi],[row.strike,row.strike],color='blue')
         plt.axhline(spot_price,color='red')
         plt.xlim(-1,1) # $1BN on each side
         plt.ylim(mean_price*0.96,mean_price*1.04) # use mean price +/- 10%
         plt.grid(True)
-        plt.title(f"{ticker} {spot_price}\ntotal GEX {naive_gex:1.2f}\n{tstamp_reduced.strftime('%Y-%m-%d-%H-%M-%S')}")
+        plt.title(f"{ticker} {spot_price}\ntotal GEX {naive_oi_gex:1.2f}\n{tstamp_reduced.strftime('%Y-%m-%d-%H-%M-%S')}")
         plt.ylabel("strike")
         plt.xlabel("Spot Gamma Exposure ($ BN per 1% move)")
         plt.savefig(sec_png_file)
@@ -191,8 +203,9 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants,mean_price):
     return dict(
         tstamp_reduced=tstamp_reduced,
         spot_price=spot_price,
-        naive_gex=naive_gex,
-        bidask_gex=bidask_gex,
+        naive_oi_gex=naive_oi_gex,
+        naive_vol_gex=naive_vol_gex,
+        bidask_vol_gex=bidask_vol_gex,
     )
 
 def hola_tasty():
@@ -220,6 +233,8 @@ def hola_tasty():
 
         df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
         df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
+
+        df['open_interest'] = pd.to_numeric(df['open_interest'], errors='coerce')
         df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
         df['bid_volume'] = pd.to_numeric(df['bid_volume'], errors='coerce')
         df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
@@ -285,20 +300,20 @@ def hola_tasty():
         clip.write_videofile(video_file, fps=fps)
         print(os.path.exists(video_file))
 
-        gex_df = gex_df[gex_df.bidask_gex!=0]
+        gex_df = gex_df[gex_df.naive_oi_gex!=0]
         gex_df['tstamp'] = gex_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
         plt.subplot(311)
         plt.plot(gex_df.tstamp,gex_df.spot_price)
         plt.grid(True)
         plt.subplot(312)
-        plt.plot(gex_df.tstamp,gex_df.bidask_gex)
+        plt.plot(gex_df.tstamp,gex_df.naive_oi_gex)
         plt.grid(True)
         plt.subplot(313)
-        plt.plot(gex_df.tstamp,gex_df.naive_gex)
+        plt.plot(gex_df.tstamp,gex_df.naive_oi_gex)
         plt.grid(True)
         plt.savefig(gex_png_file)
 
     
 if __name__ == "__main__":
-    #hola_tasty()
-    hola_cboe()
+    hola_tasty()
+    #hola_cboe()
