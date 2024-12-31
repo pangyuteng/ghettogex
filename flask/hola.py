@@ -11,6 +11,7 @@ import asyncio
 import aiofiles
 import time
 from tqdm import tqdm
+import matplotlibt.pyplot as plt
 
 def hola_cboe():
     ticker = '^SPX'
@@ -190,6 +191,7 @@ def hola_tasty():
         df = pd.read_parquet(pq_file)
 
     gex_csv_file = f'{ticker}-{date_stamp_str}-gex.csv'
+    gex_png_file = f'{ticker}-{date_stamp_str}-gex.png'
     if not os.path.exists(gex_csv_file):
         df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
         df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
@@ -215,15 +217,15 @@ def hola_tasty():
         gex_df.to_csv(gex_csv_file,index=False)
     else:
         gex_df = pd.read_csv(gex_csv_file)
-    print(gex_df.shape)
-    gex_df.tstamp = gex_df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S'))
+
+    gex_df.tstamp = gex_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
     plt.subplot(131)
-    plt.plot(gex_df.tstamp_reduced,gex_df.spot_price)
+    plt.plot(gex_df.tstamp,gex_df.spot_price)
     plt.subplot(132)
-    plt.plot(gex_df.tstamp_reduced,gex_df.bidask_gex)
+    plt.plot(gex_df.tstamp,gex_df.bidask_gex)
     plt.subplot(133)
-    plt.plot(gex_df.tstamp_reduced,gex_df.naive_gex)
-    plt.savefig("gex.csv")
+    plt.plot(gex_df.tstamp,gex_df.naive_gex)
+    plt.savefig(gex_png_file)
 
 if __name__ == "__main__":
     hola_tasty()
