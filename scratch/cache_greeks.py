@@ -269,7 +269,7 @@ async def main(ticker):
         sub_list.append(live_prices)
     
     # sleep for 10 minutes to gather data.
-    await asyncio.sleep(60*10)
+    await asyncio.sleep(60*30)
 
     for live_prices in sub_list:
         await live_prices.shutdown()
@@ -286,6 +286,6 @@ if __name__ == "__main__":
 
 """
 
-python hola_tastytrade_single.py SPX
+python cache_greeks.py SPX
 
 """
