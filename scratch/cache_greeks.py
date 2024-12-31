@@ -286,6 +286,6 @@ if __name__ == "__main__":
 
 """
 
-python -m utils.data_tasty SPY background_subscribe
+python hola_tastytrade_single.py SPX
 
 """
