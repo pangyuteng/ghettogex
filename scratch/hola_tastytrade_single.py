@@ -55,7 +55,6 @@ def is_market_open(tstamp=None):
     else:
         return False
 
-
 CACHE_TASTY_FOLDER = "tmp"
 os.makedirs(CACHE_TASTY_FOLDER,exist_ok=True)
 
@@ -258,7 +257,6 @@ class LivePrices:
             if self.save_to_postres:
                 await persist_to_postgres(self.ticker,e.event_symbol,attribue_name,e)
 
-
 async def main(ticker):        
     greek_only = True
     session = get_session()
@@ -289,6 +287,5 @@ if __name__ == "__main__":
 """
 
 python -m utils.data_tasty SPY background_subscribe
-python -m utils.data_tasty SPX background_subscribe
 
 """
