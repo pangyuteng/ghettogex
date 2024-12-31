@@ -163,7 +163,7 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants):
     tmpdf = idf[ (idf.strike > spot_price*min_prct) & (idf.strike < spot_price*max_prct) ]
     naive_gex = tmpdf.gex_volume[tmpdf.gex_volume.notnull()].sum()
     bidask_gex = tmpdf.gex_bid_ask_volume[tmpdf.gex_bid_ask_volume.notnull()].sum()
-    print(naive_gex,bidask_gex)
+
     return dict(
         tstamp_reduced=tstamp_reduced,
         spot_price=spot_price,
@@ -213,46 +213,17 @@ def hola_tasty():
                 pass
         gex_df = pd.DataFrame(mylist)
         gex_df.to_csv(gex_csv_file,index=False)
-
-    """
-    candle_df = candle_df[["streamer_symbol","strike","ticker", "expiration", "contract_type","volume","askvolume","bidvolume"]]
-    candle_df = candle_df.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).sum()
-
-    greeks_df = greeks_df[["streamer_symbol","strike","ticker", "expiration", "contract_type","gamma"]]
-    greeks_df = greeks_df.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last()
-
-    candle_df.reset_index(inplace=True)
-    greeks_df.reset_index(inplace=True)
-    
-    df = greeks_df.merge(candle_df,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"])
-
-    df['contract_type_int'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
-    df['gex_volume'] = df['gamma'].astype(float) * df['volume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
-
-    # Open Interest, but note we are using volume.
-    # https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
-    #Bid Price - highest price that buyers are willing to pay for
-    #Ask Price - lowest price that sellers are willing to sell at
-    #Bid volume refers to transactions that happen at the bid price
-    #Ask volume refers to transactions that happen at the ask price
-
-    # i think below is what we want:
-    # contract_type_int 1 , contract_type C, factor_bid: 1 factor_ask: 1
-    # contract_type_int -1 , contract_type P, factor_bid: -1 factor_ask: 1
-    df['factor_bid'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
-    df['factor_ask'] = df.contract_type.apply(lambda x: -1 if x=='P' else 1)
-    df['gex_bid_ask_volume'] = \
-        df['gamma'].astype(float) * df['bidvolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['factor_bid'] + \
-        df['gamma'].astype(float) * df['askvolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['factor_ask']
-
-    gex_df = df[ (df.strike > spot_price*min_prct) & (df.strike < spot_price*max_prct) ]
-    naive_gex = gex_df.gex_volume[gex_df.gex_volume.notnull()].sum()
-    bidask_gex = gex_df.gex_bid_ask_volume[gex_df.gex_bid_ask_volume.notnull()].sum()
-    # rename 
-    df['naive_gex'] = df.gex_volume
-    df['bidask_gex'] = df.gex_bid_ask_volume
-
-    """
+    else:
+        gex_df = pd.read_csv(gex_csv_file)
+    print(gex_df.shape)
+    gex_df.tstamp = gex_df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S'))
+    plt.subplot(131)
+    plt.plot(gex_df.tstamp_reduced,gex_df.spot_price)
+    plt.subplot(132)
+    plt.plot(gex_df.tstamp_reduced,gex_df.bidask_gex)
+    plt.subplot(133)
+    plt.plot(gex_df.tstamp_reduced,gex_df.naive_gex)
+    plt.savefig("gex.csv")
 
 if __name__ == "__main__":
     hola_tasty()
