@@ -116,7 +116,6 @@ if __name__== "__main__":
     #logger.addHandler(fh)
     logger.addHandler(ch)
     while True:
-        cache_main()
         if is_market_open():
             cache_main()
         else:
