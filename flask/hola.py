@@ -164,8 +164,8 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants,mean_price):
         idf['gamma'].astype(np.float64) * idf['ask_volume'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['factor_ask_volume'] + \
         idf['gamma'].astype(np.float64) * idf['bid_volume'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['factor_bid_volume']
 
-    idf['gex_bid_ask_volume'] = idf['gex_bid_ask_volume']/1e9
-    idf['gex_volume'] = idf['gex_volume']/1e9
+    idf['gex_bid_ask_volume'] = idf['gex_bid_ask_volume']/10**9
+    idf['gex_volume'] = idf['gex_volume']/10**9
     tmpdf = idf[ (idf.strike > spot_price*min_prct) & (idf.strike < spot_price*max_prct) ]
     naive_gex = tmpdf.gex_volume[tmpdf.gex_volume.notnull()].sum()
     bidask_gex = tmpdf.gex_bid_ask_volume[tmpdf.gex_bid_ask_volume.notnull()].sum()
