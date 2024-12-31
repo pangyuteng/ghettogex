@@ -4,6 +4,7 @@ import traceback
 import pathlib
 import datetime
 import json
+import numpy as np
 import pandas as pd
 import re
 import asyncio
@@ -126,6 +127,11 @@ def hola_tasty():
         df = pd.read_parquet(pq_file)
     df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
     df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
+    df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
+    df['bid_volume'] = pd.to_numeric(df['bid_volume'], errors='coerce')
+    df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
+    df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
+    df['close'] = pd.to_numeric(df['close'], errors='coerce')
 
     def get_gex(tstamp_reduced):
         
@@ -133,26 +139,31 @@ def hola_tasty():
         # underlying spot price via candle events
         udf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type=='candle')&(df.strike.isnull())&(df.streamer_symbol==ticker)]
         udf = udf.sort_values(['tstamp']).reset_index()
-        spot_price = float(udf.iloc[-1].close)
-        print(tstamp_reduced,spot_price)
+        spot_price = np.nan
+        if len(udf) > 0:
+            spot_price = float(udf.iloc[-1].close)
+            # print(tstamp_reduced,spot_price)
 
         # ['greeks','profile','trade','summary']
         # sum options volumes via candle events
         event_type = 'candle'
         cdf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type==event_type)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
         cdf = cdf[["streamer_symbol","strike","ticker", "expiration", "contract_type","volume","ask_volume","bid_volume"]]
-        cdf = cdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).sum()
-        print(event_type,cdf.shape)
+        cdf = cdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).sum().reset_index()
+        # print(cdf.columns)
+        # print(event_type,cdf.shape)
 
         event_type = 'greeks'
         gdf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type==event_type)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
-        gdf = gdf[["tstamp","streamer_symbol","strike","ticker", "expiration", "contract_type","gamma"]]
-        gdf = gdf.sort_values(['tstamp']).reset_index()
-        gdf = gdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last()
-        print(event_type,gdf.shape)
-        p_gdf = gdf[gdf.contract_type=='P']
-        c_gdf = gdf[gdf.contract_type=='C']
-        print(f"            {c_gdf.ask_volume.sum()} {c_gdf.bid_volume.sum()} {p_gdf.ask_volume.sum()} {p_gdf.bid_volume.sum()}")
+        gdf = gdf.sort_values(['tstamp'])
+        gdf = gdf[["streamer_symbol","strike","ticker", "expiration", "contract_type","gamma"]]
+        gdf = gdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last().reset_index()
+        # print(event_type,gdf.shape)
+        # print(gdf.columns)
+
+        p_cdf = cdf[cdf.contract_type=='P']
+        c_cdf = cdf[cdf.contract_type=='C']
+        print(f"            {c_cdf.ask_volume.sum()} {c_cdf.bid_volume.sum()} {p_cdf.ask_volume.sum()} {p_cdf.bid_volume.sum()}")
         return {}
 
     for tstamp_reduced in sorted(df.tstamp_reduced.unique()):
@@ -161,6 +172,7 @@ def hola_tasty():
         except KeyboardInterrupt:
             sys.exit(1)
         except:
+            traceback.print_exc()
             pass
 
 
