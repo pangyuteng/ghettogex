@@ -108,6 +108,69 @@ async def main(ticker,tstamp,pq_file):
     print(f"finished at {time.strftime('%X')}")
     return df
 
+min_prct,max_prct = 0.96,1.04
+def get_gex(df,tstamp_reduced,ticker,ticker_variants):
+    
+    # ['candle','quote']
+    # underlying spot price via candle events
+    udf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type=='candle')&(df.strike.isnull())&(df.streamer_symbol==ticker)]
+    udf = udf.sort_values(['tstamp']).reset_index()
+    spot_price = np.nan
+    if len(udf) > 0:
+        spot_price = float(udf.iloc[-1].close)
+        # print(tstamp_reduced,spot_price)
+
+    # ['greeks','profile','trade','summary']
+    # sum options volumes via candle events
+    event_type = 'candle'
+    cdf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type==event_type)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
+    cdf = cdf[["streamer_symbol","strike","ticker", "expiration", "contract_type","volume","ask_volume","bid_volume"]]
+    cdf = cdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).sum()
+    cdf = cdf.reset_index()
+
+    event_type = 'greeks'
+    gdf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type==event_type)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
+    gdf = gdf.sort_values(['tstamp'])
+    gdf = gdf[["streamer_symbol","strike","ticker", "expiration", "contract_type","gamma"]]
+    gdf = gdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last()
+    gdf = gdf.reset_index()
+
+    idf = gdf.merge(cdf,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"])
+    idf['contract_type_int'] = idf.contract_type.apply(lambda x: 1 if x=='C' else -1)
+    idf['gex_volume'] = idf['gamma'].astype(float) * idf['volume'].astype(float) * 100 * spot_price * spot_price * 0.01 * idf['contract_type_int']
+
+    # Open Interest, but note we are using volume.
+    # https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
+    # A crude approximation is that the dealers are long the calls and short the puts,
+
+    #Ask Price - lowest price that sellers are willing to sell at
+    #Bid Price - highest price that buyers are willing to pay for
+    #Ask volume refers to transactions that happen at the ask price
+    #Bid volume refers to transactions that happen at the bid price
+
+    #assumption is dealer long call, 1, (near ask)
+    #assumption is dealer short put, -1 (near bid)
+
+    # i think below is what we want:
+    # contract_type_int 1 , contract_type C, factor_bid: 1 factor_ask: 1
+    # contract_type_int -1 , contract_type P, factor_bid: -1 factor_ask: 1
+    idf['factor_bid_volume'] = idf.contract_type.apply(lambda x: -1 if x=='P' else 1)
+    idf['factor_ask_volume'] = idf.contract_type.apply(lambda x: 1 if x=='C' else -1)
+    idf['gex_bid_ask_volume'] = \
+        idf['gamma'].astype(float) * idf['ask_volume'].astype(float) * 100 * spot_price * spot_price * 0.01 * idf['factor_ask_volume'] + \
+        idf['gamma'].astype(float) * idf['bid_volume'].astype(float) * 100 * spot_price * spot_price * 0.01 * idf['factor_bid_volume']
+
+    tmpdf = idf[ (idf.strike > spot_price*min_prct) & (idf.strike < spot_price*max_prct) ]
+    naive_gex = tmpdf.gex_volume[tmpdf.gex_volume.notnull()].sum()
+    bidask_gex = tmpdf.gex_bid_ask_volume[tmpdf.gex_bid_ask_volume.notnull()].sum()
+    print(naive_gex,bidask_gex)
+    return dict(
+        tstamp_reduced=tstamp_reduced,
+        spot_price=spot_price,
+        naive_gex=naive_gex,
+        bidask_gex=bidask_gex,
+    )
+
 def hola_tasty():
 
     ticker = 'SPX'
@@ -125,57 +188,31 @@ def hola_tasty():
         df = asyncio.run(main(ticker,tstamp,pq_file))
     else:
         df = pd.read_parquet(pq_file)
-    df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
-    df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
-    df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
-    df['bid_volume'] = pd.to_numeric(df['bid_volume'], errors='coerce')
-    df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
-    df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
-    df['close'] = pd.to_numeric(df['close'], errors='coerce')
 
-    def get_gex(tstamp_reduced):
-        
-        # ['candle','quote']
-        # underlying spot price via candle events
-        udf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type=='candle')&(df.strike.isnull())&(df.streamer_symbol==ticker)]
-        udf = udf.sort_values(['tstamp']).reset_index()
-        spot_price = np.nan
-        if len(udf) > 0:
-            spot_price = float(udf.iloc[-1].close)
-            # print(tstamp_reduced,spot_price)
-
-        # ['greeks','profile','trade','summary']
-        # sum options volumes via candle events
-        event_type = 'candle'
-        cdf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type==event_type)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
-        cdf = cdf[["streamer_symbol","strike","ticker", "expiration", "contract_type","volume","ask_volume","bid_volume"]]
-        cdf = cdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).sum().reset_index()
-        # print(cdf.columns)
-        # print(event_type,cdf.shape)
-
-        event_type = 'greeks'
-        gdf = df[(df.tstamp_reduced==tstamp_reduced)&(df.event_type==event_type)&(df.strike.notnull())&(df.ticker.apply(lambda x: x in ticker_variants))]
-        gdf = gdf.sort_values(['tstamp'])
-        gdf = gdf[["streamer_symbol","strike","ticker", "expiration", "contract_type","gamma"]]
-        gdf = gdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last().reset_index()
-        # print(event_type,gdf.shape)
-        # print(gdf.columns)
-
-        p_cdf = cdf[cdf.contract_type=='P']
-        c_cdf = cdf[cdf.contract_type=='C']
-        print(f" {spot_price}  {gdf.sum()}         {c_cdf.ask_volume.sum()} {c_cdf.bid_volume.sum()} {p_cdf.ask_volume.sum()} {p_cdf.bid_volume.sum()}")
-        return {}
-
-    for tstamp_reduced in sorted(df.tstamp_reduced.unique()):
-        try:
-            gex_df = get_gex(tstamp_reduced)
-        except KeyboardInterrupt:
-            sys.exit(1)
-        except:
-            traceback.print_exc()
-            pass
+    gex_csv_file = f'{ticker}-{date_stamp_str}-gex.csv'
+    if not os.path.exists(gex_csv_file):
+        df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
+        df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
+        df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
+        df['bid_volume'] = pd.to_numeric(df['bid_volume'], errors='coerce')
+        df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
+        df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
+        df['close'] = pd.to_numeric(df['close'], errors='coerce')
 
 
+        mylist = []
+        for tstamp_reduced in sorted(df.tstamp_reduced.unique()):
+            try:
+                row_dict = get_gex(df,tstamp_reduced,ticker,ticker_variants)
+                print(row_dict)
+                mylist.append(row_dict)
+            except KeyboardInterrupt:
+                sys.exit(1)
+            except:
+                traceback.print_exc()
+                pass
+        gex_df = pd.DataFrame(mylist)
+        gex_df.to_csv(gex_csv_file,index=False)
 
     """
     candle_df = candle_df[["streamer_symbol","strike","ticker", "expiration", "contract_type","volume","askvolume","bidvolume"]]
@@ -190,7 +227,7 @@ def hola_tasty():
     df = greeks_df.merge(candle_df,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"])
 
     df['contract_type_int'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
-    df['gexCandleVolume'] = df['gamma'].astype(float) * df['volume'].astype(float) * 100 * price_close * price_close * 0.01 * df['contract_type_int']
+    df['gex_volume'] = df['gamma'].astype(float) * df['volume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['contract_type_int']
 
     # Open Interest, but note we are using volume.
     # https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
@@ -204,16 +241,16 @@ def hola_tasty():
     # contract_type_int -1 , contract_type P, factor_bid: -1 factor_ask: 1
     df['factor_bid'] = df.contract_type.apply(lambda x: 1 if x=='C' else -1)
     df['factor_ask'] = df.contract_type.apply(lambda x: -1 if x=='P' else 1)
-    df['gexCandleBidAskVolume'] = \
-        df['gamma'].astype(float) * df['bidvolume'].astype(float) * 100 * price_close * price_close * 0.01 * df['factor_bid'] + \
-        df['gamma'].astype(float) * df['askvolume'].astype(float) * 100 * price_close * price_close * 0.01 * df['factor_ask']
+    df['gex_bid_ask_volume'] = \
+        df['gamma'].astype(float) * df['bidvolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['factor_bid'] + \
+        df['gamma'].astype(float) * df['askvolume'].astype(float) * 100 * spot_price * spot_price * 0.01 * df['factor_ask']
 
-    gex_df = df[ (df.strike > price_close*min_prct) & (df.strike < price_close*max_prct) ]
-    naive_gex = gex_df.gexCandleVolume[gex_df.gexCandleVolume.notnull()].sum()
-    bidask_gex = gex_df.gexCandleBidAskVolume[gex_df.gexCandleBidAskVolume.notnull()].sum()
+    gex_df = df[ (df.strike > spot_price*min_prct) & (df.strike < spot_price*max_prct) ]
+    naive_gex = gex_df.gex_volume[gex_df.gex_volume.notnull()].sum()
+    bidask_gex = gex_df.gex_bid_ask_volume[gex_df.gex_bid_ask_volume.notnull()].sum()
     # rename 
-    df['naive_gex'] = df.gexCandleVolume
-    df['bidask_gex'] = df.gexCandleBidAskVolume
+    df['naive_gex'] = df.gex_volume
+    df['bidask_gex'] = df.gex_bid_ask_volume
 
     """
 
