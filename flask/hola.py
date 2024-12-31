@@ -170,7 +170,7 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants):
 
     idf = gdf.merge(cdf,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"])
     
-    sec_png_file = os.path.join('tmp',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
+    sec_png_file = os.path.join('tmp/pngs',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
     if bidask_gex != 0.0:
         tmpdf = tmpdf[["strike","gamma"]]
         tmpdf = tmpdf.groupby(["strike"]).sum().reset_index()
@@ -204,9 +204,10 @@ def hola_tasty():
     else:
         ticker_variants = [ticker]
 
-    pq_file = f'{ticker}-{date_stamp_str}.parquet.gzip'
-    gex_csv_file = f'{ticker}-{date_stamp_str}-gex.csv'
-    gex_png_file = f'{ticker}-{date_stamp_str}-gex.png'
+    os.makedirs('tmp/ani',exist_ok=True)
+    pq_file = f'tmp/{ticker}-{date_stamp_str}.parquet.gzip'
+    gex_csv_file = f'tmp/{ticker}-{date_stamp_str}-gex.csv'
+    gex_png_file = f'tmp/{ticker}-{date_stamp_str}-gex.png'
 
     if not os.path.exists(gex_csv_file):
 
@@ -223,7 +224,6 @@ def hola_tasty():
         df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
         df['close'] = pd.to_numeric(df['close'], errors='coerce')
 
-        os.makedirs('tmp',exist_ok=True)
         mylist = []
         for tstamp_reduced in sorted(df.tstamp_reduced.unique()):
             try:
@@ -237,11 +237,48 @@ def hola_tasty():
                 pass
         gex_df = pd.DataFrame(mylist)
         gex_df.to_csv(gex_csv_file,index=False)
-    else:
-        gex_df = pd.read_csv(gex_csv_file)
 
     if not os.path.exists(gex_png_file):
-        print("?????")
+        print("generaing gif")
+        gex_df = pd.read_csv(gex_csv_file)
+        
+
+        df = pd.read_parquet(pq_file)
+        df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
+        df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
+
+        png_file_list = []
+        for tstamp_reduced in sorted(df.tstamp_reduced.unique()):  
+            sec_png_file = os.path.join('tmp/pngs',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
+            if os.path.exists(sec_png_file):
+                png_file_list.append(sec_png_file)
+
+        print('found pngs')
+        print(len(png_file_list))
+
+        file_list = []
+        file_list.extend(png_file_list)
+        fps = 10
+        duration = (len(png_file_list))/10
+        print(duration)
+        time_list = list(np.arange(0,duration,1./fps))
+        print(len(time_list))
+        img_dict = {a:f for a,f in zip(time_list,file_list)}
+
+        def make_frame(t):
+            fpath= img_dict[t]
+            im = PIL.Image.open(fpath)
+            arr = np.asarray(im)
+            return arr
+        work_dir = 'tmp'
+        gif_path = os.path.join(work_dir,f'ani.gif')
+        video_file = os.path.join(work_dir,f"ani.mp4")
+        print(video_file)
+        clip = editor.VideoClip(make_frame, duration=duration)
+        clip.write_gif(gif_path, fps=fps)
+        clip.write_videofile(video_file, fps=fps)
+        print(os.path.exists(video_file))
+
         gex_df = gex_df[gex_df.bidask_gex!=0]
         gex_df['tstamp'] = gex_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
         plt.subplot(311)
@@ -255,35 +292,6 @@ def hola_tasty():
         plt.grid(True)
         plt.savefig(gex_png_file)
 
-        df = pd.read_parquet(pq_file)
-        df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
-        df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
-
-        png_file_list = []
-        for tstamp_reduced in sorted(df.tstamp_reduced.unique()):  
-            sec_png_file = os.path.join('tmp',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
-            if os.path.exists(sec_png_file):
-                png_file_list.append(sec_png_file)
-    
-        print(len(png_file_list))
-        print("?????asfasd")
-    sys.exit(1)
-
-    fps = 2
-    time_list = list(np.arange(0,duration,1./fps))
-    img_dict = {a:f for a,f in zip(time_list,looped_frame_list)}
-
-    def make_frame(t):
-        fpath= img_dict[t]
-        im = PIL.Image.open(fpath)
-        arr = np.asarray(im)
-        return arr
-
-    gif_path = os.path.join(work_dir,f'ani.gif')
-    video_file = os.path.join(work_dir,f"ani.mp4")
-    clip = editor.VideoClip(make_frame, duration=duration)
-    clip.write_gif(gif_path, fps=fps)
-    clip.write_videofile(video_file, fps=fps)
     
 if __name__ == "__main__":
     hola_tasty()

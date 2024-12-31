@@ -2,3 +2,4 @@
 .github
 .manifest
 .env
+flask/tmp/
