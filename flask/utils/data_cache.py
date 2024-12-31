@@ -116,13 +116,16 @@ if __name__== "__main__":
     #logger.addHandler(fh)
     logger.addHandler(ch)
     while True:
+        now_et = now_in_new_york()
         if is_market_open():
             logger.info('market open, will update when market closed...')
-        else:
-            time.sleep(60*60)
+        elif now_et.hour > 19: # cache after market close.
             cache_main()
+        else:
+            pass
+        # TODO: add celery
         logger.info('sleeping...')
-        time.sleep(5)
+        time.sleep(30)
 
 
 """

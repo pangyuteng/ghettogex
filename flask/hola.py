@@ -18,7 +18,7 @@ from moviepy import editor
 
 def hola_cboe():
     ticker = '^SPX'
-    ticker_folder = f"/mnt/hd1/data/fi/{ticker}/2024/2024-12-30"
+    ticker_folder = f"/mnt/hd1/data/fi/{ticker}/2024"
     csv_file_list = sorted([str(x) for x in pathlib.Path(ticker_folder).rglob("*.csv")])
     json_file_list = sorted([str(x) for x in pathlib.Path(ticker_folder).rglob("*.json")])
 
@@ -315,5 +315,12 @@ def hola_tasty():
 
     
 if __name__ == "__main__":
-    hola_tasty()
-    #hola_cboe()
+
+    action = sys.argv[1]
+
+    if action == "tasty":
+        hola_tasty()
+    elif action == "cboe":
+        hola_cboe()
+    else:
+        print("na")
