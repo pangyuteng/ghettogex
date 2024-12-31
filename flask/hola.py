@@ -218,13 +218,17 @@ def hola_tasty():
     else:
         gex_df = pd.read_csv(gex_csv_file)
 
-    gex_df.tstamp = gex_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
-    plt.subplot(131)
+    gex_df = gex_df[gex_df.bidask_gex!=0]
+    gex_df['tstamp'] = gex_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
+    plt.subplot(311)
     plt.plot(gex_df.tstamp,gex_df.spot_price)
-    plt.subplot(132)
+    plt.grid(True)
+    plt.subplot(312)
     plt.plot(gex_df.tstamp,gex_df.bidask_gex)
-    plt.subplot(133)
+    plt.grid(True)
+    plt.subplot(313)
     plt.plot(gex_df.tstamp,gex_df.naive_gex)
+    plt.grid(True)
     plt.savefig(gex_png_file)
 
 if __name__ == "__main__":
