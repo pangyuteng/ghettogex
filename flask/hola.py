@@ -138,7 +138,7 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants,mean_price):
     gdf = gdf[["streamer_symbol","strike","ticker", "expiration", "contract_type","gamma"]]
     gdf = gdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last()
     gdf = gdf.reset_index()
-    print(gdf.expiration.unique())
+
     idf = gdf.merge(cdf,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"])
     idf['contract_type_int'] = idf.contract_type.apply(lambda x: 1 if x=='C' else -1)
     idf['gex_volume'] = idf['gamma'].astype(np.float64) * idf['volume'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['contract_type_int']
@@ -178,11 +178,10 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants,mean_price):
         tmpdf = tmpdf.groupby(["strike"]).sum().reset_index()
         
         for n,row in tmpdf.iterrows():
-            print(tstamp_reduced,row.strike,row.gex_volume)
             plt.plot([0,row.gex_volume],[row.strike,row.strike],color='blue')
         plt.axhline(spot_price,color='red')
-        plt.xlim(-2,2)
-        plt.ylim(mean_price*0.9,mean_price*1.1) # use final spot +/- 10%
+        plt.xlim(-2,2) # $2BN on each side
+        plt.ylim(mean_price*0.96,mean_price*1.04) # use mean price +/- 10%
         plt.grid(True)
         plt.title(f"{ticker} {spot_price}\n{tstamp_reduced.strftime('%Y-%m-%d-%H-%M-%S')}")
         plt.ylabel("strike")
