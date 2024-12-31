@@ -11,7 +11,7 @@ import asyncio
 import aiofiles
 import time
 from tqdm import tqdm
-import matplotlibt.pyplot as plt
+import matplotlib.pyplot as plt
 
 def hola_cboe():
     ticker = '^SPX'
