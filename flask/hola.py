@@ -182,6 +182,7 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants):
         plt.xlim(-0.5,0.5)
         plt.ylim(5800,6100)
         plt.grid(True)
+        plt.title(f"{ticker} {spot_price}\n{tstamp_reduced.strftime('%Y-%m-%d-%H-%M-%S')}")
         plt.savefig(sec_png_file)
         plt.close()
 
