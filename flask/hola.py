@@ -113,7 +113,7 @@ async def main(ticker,tstamp,pq_file):
     return df
 
 min_prct,max_prct = 0.96,1.04
-def get_gex(df,tstamp_reduced,ticker,ticker_variants):
+def get_gex(df,tstamp_reduced,ticker,ticker_variants,mean_price):
     
     # ['candle','quote']
     # underlying spot price via candle events
@@ -138,10 +138,10 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants):
     gdf = gdf[["streamer_symbol","strike","ticker", "expiration", "contract_type","gamma"]]
     gdf = gdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last()
     gdf = gdf.reset_index()
-
+    print(gdf.expiration.unique())
     idf = gdf.merge(cdf,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"])
     idf['contract_type_int'] = idf.contract_type.apply(lambda x: 1 if x=='C' else -1)
-    idf['gex_volume'] = idf['gamma'].astype(float) * idf['volume'].astype(float) * 100 * spot_price * spot_price * 0.01 * idf['contract_type_int']
+    idf['gex_volume'] = idf['gamma'].astype(np.float64) * idf['volume'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['contract_type_int']
 
     # Open Interest, but note we are using volume.
     # https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
@@ -161,9 +161,11 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants):
     idf['factor_bid_volume'] = idf.contract_type.apply(lambda x: -1 if x=='P' else 1)
     idf['factor_ask_volume'] = idf.contract_type.apply(lambda x: 1 if x=='C' else -1)
     idf['gex_bid_ask_volume'] = \
-        idf['gamma'].astype(float) * idf['ask_volume'].astype(float) * 100 * spot_price * spot_price * 0.01 * idf['factor_ask_volume'] + \
-        idf['gamma'].astype(float) * idf['bid_volume'].astype(float) * 100 * spot_price * spot_price * 0.01 * idf['factor_bid_volume']
+        idf['gamma'].astype(np.float64) * idf['ask_volume'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['factor_ask_volume'] + \
+        idf['gamma'].astype(np.float64) * idf['bid_volume'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['factor_bid_volume']
 
+    idf['gex_bid_ask_volume'] = idf['gex_bid_ask_volume']/1e9
+    idf['gex_volume'] = idf['gex_volume']/1e9
     tmpdf = idf[ (idf.strike > spot_price*min_prct) & (idf.strike < spot_price*max_prct) ]
     naive_gex = tmpdf.gex_volume[tmpdf.gex_volume.notnull()].sum()
     bidask_gex = tmpdf.gex_bid_ask_volume[tmpdf.gex_bid_ask_volume.notnull()].sum()
@@ -172,17 +174,19 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants):
     
     sec_png_file = os.path.join('tmp/pngs',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
     if bidask_gex != 0.0:
-        tmpdf = tmpdf[["strike","gamma"]]
+        tmpdf = tmpdf[["strike","gex_volume"]]
         tmpdf = tmpdf.groupby(["strike"]).sum().reset_index()
         
         for n,row in tmpdf.iterrows():
-            print(tstamp_reduced,row.strike,row.gamma)
-            plt.plot([0,row.gamma],[row.strike,row.strike],color='blue')
+            print(tstamp_reduced,row.strike,row.gex_volume)
+            plt.plot([0,row.gex_volume],[row.strike,row.strike],color='blue')
         plt.axhline(spot_price,color='red')
-        plt.xlim(-0.5,0.5)
-        plt.ylim(5800,6100)
+        plt.xlim(-2,2)
+        plt.ylim(mean_price*0.9,mean_price*1.1) # use final spot +/- 10%
         plt.grid(True)
         plt.title(f"{ticker} {spot_price}\n{tstamp_reduced.strftime('%Y-%m-%d-%H-%M-%S')}")
+        plt.ylabel("strike")
+        plt.xlabel("Spot Gamma Exposure ($ BN per 1% move)")
         plt.savefig(sec_png_file)
         plt.close()
 
@@ -204,7 +208,7 @@ def hola_tasty():
     else:
         ticker_variants = [ticker]
 
-    os.makedirs('tmp/ani',exist_ok=True)
+    os.makedirs('tmp/pngs',exist_ok=True)
     pq_file = f'tmp/{ticker}-{date_stamp_str}.parquet.gzip'
     gex_csv_file = f'tmp/{ticker}-{date_stamp_str}-gex.csv'
     gex_png_file = f'tmp/{ticker}-{date_stamp_str}-gex.png'
@@ -224,10 +228,14 @@ def hola_tasty():
         df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
         df['close'] = pd.to_numeric(df['close'], errors='coerce')
 
+        udf = df[(df.event_type=='candle')&(df.strike.isnull())&(df.streamer_symbol==ticker)]
+        mean_price = udf.close.mean(skipna=True)
+        print('mean_price',mean_price)
+
         mylist = []
         for tstamp_reduced in sorted(df.tstamp_reduced.unique()):
             try:
-                row_dict = get_gex(df,tstamp_reduced,ticker,ticker_variants)
+                row_dict = get_gex(df,tstamp_reduced,ticker,ticker_variants,mean_price)
                 print(row_dict)
                 mylist.append(row_dict)
             except KeyboardInterrupt:
