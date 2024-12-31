@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import re
+import datetime
 import pathlib
 import pandas as pd
 from tqdm import tqdm
@@ -43,23 +44,31 @@ def process(json_file):
     event_dict["tstamp"]=tstamp
     return event_dict
 
+def plot_iv(pq_file):
+    df = pd.read_parquet(pq_file)
+    print(df.columns)
+
 def main():
 
     CACHE_TASTY_FOLDER = "tmp"
     ticker = 'SPX'
-    root_folder = os.path.join(CACHE_TASTY_FOLDER,ticker)
+    pq_file = f'{ticker}.parquet.gzip'
 
-    json_file_list = [str(x) for x in pathlib.Path(root_folder).rglob("*.json")]
-    json_file_list = [x for x in json_file_list if 'greeks' in x]
+    if not os.path.exists(pq_file):
+        root_folder = os.path.join(CACHE_TASTY_FOLDER,ticker)
+        json_file_list = [str(x) for x in pathlib.Path(root_folder).rglob("*.json")]
+        json_file_list = [x for x in json_file_list if 'greeks' in x]
 
-    print(len(json_file_list))
+        print(len(json_file_list))
+        mylist = []
+        for json_file in tqdm(json_file_list):
+            myitem = process(json_file)
+            mylist.append(myitem)
+        
+        df = pd.DataFrame(mylist)
+        df.to_parquet(pq_file,compression='gzip',index=False)
 
-    for json_file in tqdm(json_file_list):
-        myitem = process(json_file)
-        mylist.append(myitem)
-
-    df = pd.DataFrame(mylist)
-    df.to_csv("ok.csv",index=False)
+    plot_iv(pq_file)
 
 if __name__ == "__main__":
     main()
