@@ -163,7 +163,7 @@ def hola_tasty():
 
         p_cdf = cdf[cdf.contract_type=='P']
         c_cdf = cdf[cdf.contract_type=='C']
-        print(f" {spot_price}           {c_cdf.ask_volume.sum()} {c_cdf.bid_volume.sum()} {p_cdf.ask_volume.sum()} {p_cdf.bid_volume.sum()}")
+        print(f" {spot_price}  {gdf.sum()}         {c_cdf.ask_volume.sum()} {c_cdf.bid_volume.sum()} {p_cdf.ask_volume.sum()} {p_cdf.bid_volume.sum()}")
         return {}
 
     for tstamp_reduced in sorted(df.tstamp_reduced.unique()):
