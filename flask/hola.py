@@ -150,10 +150,18 @@ def hola_tasty():
         gdf = gdf.sort_values(['tstamp']).reset_index()
         gdf = gdf.groupby(["streamer_symbol","strike","ticker", "expiration", "contract_type"]).last()
         print(event_type,gdf.shape)
+        p_gdf = gdf[gdf.contract_type=='P']
+        c_gdf = gdf[gdf.contract_type=='C']
+        print(f"            {c_gdf.ask_volume.sum()} {c_gdf.bid_volume.sum()} {p_gdf.ask_volume.sum()} {p_gdf.bid_volume.sum()}")
         return {}
 
     for tstamp_reduced in sorted(df.tstamp_reduced.unique()):
-        gex_df = get_gex(tstamp_reduced)
+        try:
+            gex_df = get_gex(tstamp_reduced)
+        except KeyboardInterrupt:
+            sys.exit(1)
+        except:
+            pass
 
 
 
