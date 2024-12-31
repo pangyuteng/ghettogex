@@ -12,6 +12,9 @@ import aiofiles
 import time
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import PIL
+from moviepy import editor
+
 
 def hola_cboe():
     ticker = '^SPX'
@@ -165,6 +168,23 @@ def get_gex(df,tstamp_reduced,ticker,ticker_variants):
     naive_gex = tmpdf.gex_volume[tmpdf.gex_volume.notnull()].sum()
     bidask_gex = tmpdf.gex_bid_ask_volume[tmpdf.gex_bid_ask_volume.notnull()].sum()
 
+    idf = gdf.merge(cdf,how='left',on=["streamer_symbol","strike","ticker", "expiration", "contract_type"])
+    
+    sec_png_file = os.path.join('tmp',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
+    if bidask_gex != 0.0:
+        tmpdf = tmpdf[["strike","gamma"]]
+        tmpdf = tmpdf.groupby(["strike"]).sum().reset_index()
+        
+        for n,row in tmpdf.iterrows():
+            print(tstamp_reduced,row.strike,row.gamma)
+            plt.plot([0,row.gamma],[row.strike,row.strike],color='blue')
+        plt.axhline(spot_price,color='red')
+        plt.xlim(-0.5,0.5)
+        plt.ylim(5800,6100)
+        plt.grid(True)
+        plt.savefig(sec_png_file)
+        plt.close()
+
     return dict(
         tstamp_reduced=tstamp_reduced,
         spot_price=spot_price,
@@ -184,15 +204,16 @@ def hola_tasty():
         ticker_variants = [ticker]
 
     pq_file = f'{ticker}-{date_stamp_str}.parquet.gzip'
-    print(pq_file)
-    if not os.path.exists(pq_file):
-        df = asyncio.run(main(ticker,tstamp,pq_file))
-    else:
-        df = pd.read_parquet(pq_file)
-
     gex_csv_file = f'{ticker}-{date_stamp_str}-gex.csv'
     gex_png_file = f'{ticker}-{date_stamp_str}-gex.png'
+
     if not os.path.exists(gex_csv_file):
+
+        if not os.path.exists(pq_file):
+            df = asyncio.run(main(ticker,tstamp,pq_file))
+        else:
+            df = pd.read_parquet(pq_file)
+
         df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
         df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
         df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
@@ -201,7 +222,7 @@ def hola_tasty():
         df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
         df['close'] = pd.to_numeric(df['close'], errors='coerce')
 
-
+        os.makedirs('tmp',exist_ok=True)
         mylist = []
         for tstamp_reduced in sorted(df.tstamp_reduced.unique()):
             try:
@@ -218,19 +239,51 @@ def hola_tasty():
     else:
         gex_df = pd.read_csv(gex_csv_file)
 
-    gex_df = gex_df[gex_df.bidask_gex!=0]
-    gex_df['tstamp'] = gex_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
-    plt.subplot(311)
-    plt.plot(gex_df.tstamp,gex_df.spot_price)
-    plt.grid(True)
-    plt.subplot(312)
-    plt.plot(gex_df.tstamp,gex_df.bidask_gex)
-    plt.grid(True)
-    plt.subplot(313)
-    plt.plot(gex_df.tstamp,gex_df.naive_gex)
-    plt.grid(True)
-    plt.savefig(gex_png_file)
+    if not os.path.exists(gex_png_file):
+        print("?????")
+        gex_df = gex_df[gex_df.bidask_gex!=0]
+        gex_df['tstamp'] = gex_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
+        plt.subplot(311)
+        plt.plot(gex_df.tstamp,gex_df.spot_price)
+        plt.grid(True)
+        plt.subplot(312)
+        plt.plot(gex_df.tstamp,gex_df.bidask_gex)
+        plt.grid(True)
+        plt.subplot(313)
+        plt.plot(gex_df.tstamp,gex_df.naive_gex)
+        plt.grid(True)
+        plt.savefig(gex_png_file)
 
+        df = pd.read_parquet(pq_file)
+        df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
+        df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
+
+        png_file_list = []
+        for tstamp_reduced in sorted(df.tstamp_reduced.unique()):  
+            sec_png_file = os.path.join('tmp',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
+            if os.path.exists(sec_png_file):
+                png_file_list.append(sec_png_file)
+    
+        print(len(png_file_list))
+        print("?????asfasd")
+    sys.exit(1)
+
+    fps = 2
+    time_list = list(np.arange(0,duration,1./fps))
+    img_dict = {a:f for a,f in zip(time_list,looped_frame_list)}
+
+    def make_frame(t):
+        fpath= img_dict[t]
+        im = PIL.Image.open(fpath)
+        arr = np.asarray(im)
+        return arr
+
+    gif_path = os.path.join(work_dir,f'ani.gif')
+    video_file = os.path.join(work_dir,f"ani.mp4")
+    clip = editor.VideoClip(make_frame, duration=duration)
+    clip.write_gif(gif_path, fps=fps)
+    clip.write_videofile(video_file, fps=fps)
+    
 if __name__ == "__main__":
     hola_tasty()
     

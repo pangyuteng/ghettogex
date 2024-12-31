@@ -1,4 +1,6 @@
 .env
 __pycache__
 flask/ok*
-*.gzip
+flask/SPX-2024-12-30.parquet.gzip
+flask/SPX-2024-12-30-gex.csv
+flask/SPX-2024-12-30-gex.png

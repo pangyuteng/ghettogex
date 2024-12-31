@@ -37,8 +37,11 @@ kubectl apply -f registry-credentials.yml
 
 ```
 /mnt/hd1/code/public-misc/finance/options/iv-surface-plot
+https://github.com/pangyuteng/public-misc/tree/main/finance/options/iv-surface-plot
 /mnt/hd1/code/github/hello-cloud/kube-volume
-/mnt/hd1/code/github/papaya-flask-celery/render-pdf-gradio
+https://github.com/pangyuteng/hello-cloud/tree/main/kube-volume
+papaya-flask-celery/render-pdf-gradio
+https://github.com/pangyuteng/papaya-flask-celery/tree/master/render-pdf-gradio
 ```
 
 + [ ] show gex given ticker
