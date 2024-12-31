@@ -35,7 +35,7 @@ def cache_main():
         logger.info(f'{ticker} underlying')
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
         os.makedirs(cache_folder,exist_ok=True)
-        json_file = os.path.join(cache_folder,f"underlying-{ticker}-{time_stamp}.json")
+        json_file = os.path.join(cache_folder,f"underlying-{ticker}-{date_stamp}.json")
         if not os.path.exists(json_file):
             try:
                 if ticker == BTC_TICKER:
@@ -117,9 +117,10 @@ if __name__== "__main__":
     logger.addHandler(ch)
     while True:
         if is_market_open():
-            cache_main()
+            logger.info('market open, will update when market closed...')
         else:
-            logger.info('market closed...')
+            time.sleep(60*60)
+            cache_main()
         logger.info('sleeping...')
         time.sleep(5)
 
