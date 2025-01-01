@@ -5,6 +5,9 @@ import json
 import pathlib
 import pandas as pd
 
+import matplotlib.pyplot as plt
+from cache_greeks import parse_symbol
+
 
 def get_uw_df():
 
@@ -15,10 +18,7 @@ def get_uw_df():
     #underlying_symbol strike option_type underlying_price side size,premium,volume,open_interest,side
     return pd.read_parquet(pq_file)
 
-uw_df = get_uw_df()
-print('uw',uw_df.shape)
-
-def main(folder):
+def compare_contract(folder,uw_df):
     summary_folder = os.path.join(folder,'summary')
     timeandsale_folder = os.path.join(folder,'timeandsale')
 
@@ -75,10 +75,9 @@ def main(folder):
     return item
 
 
-import matplotlib.pyplot as plt
-from cache_greeks import parse_symbol
-
-if __name__ == "__main__":
+def compare_main():
+    uw_df = get_uw_df()
+    print('uw',uw_df.shape)
 
     csv_file = "merged.csv"
     if not os.path.exists(csv_file):
@@ -86,7 +85,7 @@ if __name__ == "__main__":
         folder_list = sorted([os.path.join(day_root_folder,x) for x in os.listdir(day_root_folder) if x.startswith('.SPXW')])
         mylist = []
         for folder in folder_list:
-            myitem = main(folder)
+            myitem = compare_contract(folder,uw_df)
             mylist.append(myitem)
 
         df = pd.DataFrame(mylist)
@@ -113,4 +112,27 @@ if __name__ == "__main__":
     #event_type,event_symbol,event_count,
     #tt_ask_size,tt_bid_size,
     #uw_option_chain_id,uw_count,uw_ask_size,uw_bid_size
-    
+
+def get_summary(contract,tstamp):
+    pass
+def cache_oi(contract,tstamp,is_init):
+    prior_tstamp = tstamp
+    if is_init:
+        # grab and save prior OI
+        get_summary(contract,tstamp)
+    else:
+        prior_tstamp = ''
+        get_summary(contract,prior_tstamp)
+        get_summary(contract,tstamp)
+        pass
+def get_oi(contract,tstamp):
+    pass
+def cache_gex(contract,tstamp):
+    pass
+def get_gex(ticker,tstamp):
+    pass
+
+if __name__ == "__main__":
+    # compare_main()
+    tstamp = ''
+    compute_gex()

@@ -3,3 +3,5 @@ SPX.parquet.gzip
 uw.parquet.gzip
 uw.csv
 merged.csv
+compare.png
+diff.png
