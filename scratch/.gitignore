@@ -2,3 +2,4 @@ tmp
 SPX.parquet.gzip
 uw.parquet.gzip
 uw.csv
+merged.csv
