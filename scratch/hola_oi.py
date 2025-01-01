@@ -34,6 +34,7 @@ def main(folder):
     #print("summary file count and unique OI")
     #print(len(json_file_list),set(oi_list))
 
+    tt_cols = ['type','aggressor_side','size','open_interest','event_symbol','json_file']
     mylist = []
     json_file_list = sorted([str(x) for x in sorted(pathlib.Path(timeandsale_folder).rglob("*.json"))])
     for json_file in json_file_list:
@@ -41,11 +42,9 @@ def main(folder):
             content = json.loads(f.read())
             content['json_file']=json_file
             content['open_interest']=open_interest
-            key_list = ['type','aggressor_side','size','open_interest','event_symbol','json_file']
-            item = {x:content[x] for x in key_list}
+            item = {x:content[x] for x in tt_cols}
             mylist.append(item)
-    tt_df = pd.DataFrame(mylist)
-    bb
+    tt_df = pd.DataFrame(mylist,columns=tt_cols)
     event_symbol = os.path.basename(folder)
     ticker,expiration,contract_type,strike = parse_symbol(event_symbol)
 
@@ -56,10 +55,12 @@ def main(folder):
         event_type='summary',
         event_symbol=event_symbol,
         event_count=len(tt_df),
-        aggressor_side_unique=tt_df.aggressor_side.unique(),
+        aggressor_side_BUY_count=int((tt_df.aggressor_side=='BUY').sum()),
+        aggressor_side_SELL_count=int((tt_df.aggressor_side=='SELL').sum()),
         uw_option_chain_id=uw_symbol,
         uw_count=len(tmp_uw_df),
-        uw_side_unique=tmp_uw_df.side.unique(),
+        uw_side_ask=int((tmp_uw_df.side=='ask').sum()),
+        uw_side_bid=int((tmp_uw_df.side=='bid').sum()),
     )
     print(item)
     return item
@@ -78,5 +79,6 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(mylist)
     df.to_csv("ok.csv",index=False)
+
 
 
