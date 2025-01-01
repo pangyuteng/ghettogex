@@ -107,6 +107,7 @@ if __name__ == "__main__":
     plt.xlabel("(unusualwhales bid/ask sum)")
     plt.grid(True)
     plt.title("size sum diff for SPX 2024-12-31 expiry contracts \n on date 2024-12-31 between unusual whales vs dxLink")
+    plt.tight_layout()
     plt.savefig("diff.png")
     plt.close()
     #event_type,event_symbol,event_count,
