@@ -132,7 +132,12 @@ def cache_gex(contract,tstamp):
 def get_gex(ticker,tstamp):
     pass
 
+def cache_one_day_gex(ticker):
+    sec_tstamp_list = pd.date_range(start="2024-12-31-09-30-00",end="2024-12-31-16-30-00",freq='s')
+    for sec_tstamp in sec_tstamp_list:
+        print(sec_tstamp)
+
 if __name__ == "__main__":
     # compare_main()
-    tstamp = ''
-    compute_gex()
+    ticker = "SPX"
+    cache_one_day_gex(ticker)
