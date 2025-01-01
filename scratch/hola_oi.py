@@ -1,37 +1,82 @@
 
 import os
+import sys
 import json
 import pathlib
 import pandas as pd
 
-folder_list = [
-    "tmp/SPX/2024-12-31/.SPXW241231C5920",
-    "tmp/SPX/2024-12-31/.SPXW241231P5920",
-]
 
-#for x in folder_list
-folder = folder_list[0]
-summary_folder = os.path.join(folder,'summary')
-timeandsale_folder = os.path.join(folder,'timeandsale')
+def get_uw_df():
 
-open_interest = None
-json_file_list = sorted([str(x) for x in sorted(pathlib.Path(summary_folder).rglob("*.json"))])
-for json_file in json_file_list:
-    with open(json_file,'r') as f:
-        content = json.loads(f.read())
-        #print(json_file,content['open_interest'])
-        open_interest = content['open_interest']
+    pq_file = "uw.parquet.gzip"
+    if not os.path.exists(pq_file):
+        df = pd.read_csv("/mnt/hd2/data/finance/bot-eod/bot-eod-report-2024-12-31.csv")
+        df.to_parquet(pq_file,compression='gzip',index=False)
+    #underlying_symbol strike option_type underlying_price side size,premium,volume,open_interest,side
+    return pd.read_parquet(pq_file)
 
-mylist = []
-json_file_list = sorted([str(x) for x in sorted(pathlib.Path(timeandsale_folder).rglob("*.json"))])
-for json_file in json_file_list:
-    with open(json_file,'r') as f:
-        content = json.loads(f.read())
-        content['json_file']=json_file
-        content['open_interest']=open_interest
-        key_list = ['type','aggressor_side','size','open_interest','json_file']
-        item = {x:content[x] for x in key_list}
-        mylist.append(item)
-        print(json_file)
-df = pd.DataFrame(mylist)
-df.to_csv("ok.csv",index=False)
+uw_df = get_uw_df()
+print('uw',uw_df.shape)
+
+def main(folder):
+    summary_folder = os.path.join(folder,'summary')
+    timeandsale_folder = os.path.join(folder,'timeandsale')
+
+    open_interest = None
+    json_file_list = sorted([str(x) for x in sorted(pathlib.Path(summary_folder).rglob("*.json"))])
+    
+    oi_list = []
+    for json_file in json_file_list:
+        with open(json_file,'r') as f:
+            content = json.loads(f.read())
+            open_interest = content['open_interest']
+            oi_list.append(open_interest)
+    #print("summary file count and unique OI")
+    #print(len(json_file_list),set(oi_list))
+
+    mylist = []
+    json_file_list = sorted([str(x) for x in sorted(pathlib.Path(timeandsale_folder).rglob("*.json"))])
+    for json_file in json_file_list:
+        with open(json_file,'r') as f:
+            content = json.loads(f.read())
+            content['json_file']=json_file
+            content['open_interest']=open_interest
+            key_list = ['type','aggressor_side','size','open_interest','event_symbol','json_file']
+            item = {x:content[x] for x in key_list}
+            mylist.append(item)
+    tt_df = pd.DataFrame(mylist)
+    bb
+    event_symbol = os.path.basename(folder)
+    ticker,expiration,contract_type,strike = parse_symbol(event_symbol)
+
+    uw_symbol = f"{ticker}{expiration.strftime('%y%m%d')}{contract_type}0{int(strike)}000"
+    tmp_uw_df = uw_df[uw_df.option_chain_id==uw_symbol]
+
+    item = dict(
+        event_type='summary',
+        event_symbol=event_symbol,
+        event_count=len(tt_df),
+        aggressor_side_unique=tt_df.aggressor_side.unique(),
+        uw_option_chain_id=uw_symbol,
+        uw_count=len(tmp_uw_df),
+        uw_side_unique=tmp_uw_df.side.unique(),
+    )
+    print(item)
+    return item
+
+
+from cache_greeks import parse_symbol
+
+if __name__ == "__main__":
+
+    day_root_folder = "/mnt/hd1/data/tastyfi/SPX/2024-12-31"
+    folder_list = sorted([os.path.join(day_root_folder,x) for x in os.listdir(day_root_folder) if x.startswith('.SPXW')])
+    mylist = []
+    for folder in folder_list:
+        myitem = main(folder)
+        mylist.append(myitem)
+
+    df = pd.DataFrame(mylist)
+    df.to_csv("ok.csv",index=False)
+
+
