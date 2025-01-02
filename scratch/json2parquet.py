@@ -131,3 +131,29 @@ if __name__ == "__main__":
         df = asyncio.run(main(ticker,tstamp,pq_file))
     else:
         df = pd.read_parquet(pq_file)
+    df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
+    df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
+    print(df.shape)
+    tstamp_list = pd.date_range(start="2024-12-31 09:30:00",end="2024-12-31 16:30:00",freq='s')
+
+    # df['open_interest'] = pd.to_numeric(df['open_interest'], errors='coerce')
+    # df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
+    # df['bid_volume'] = pd.to_numeric(df['bid_volume'], errors='coerce')
+    # df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
+    # df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
+    # df['close'] = pd.to_numeric(df['close'], errors='coerce')
+    
+    for tstamp in tstamp_list:
+        print(tstamp)
+
+        u_df = df[(df.event_type=='candle')&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
+        print(len(u_df))
+
+        c_df = df[(c_df.event_type=="candle")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
+        print(len(cdf))
+
+        s_df = df[(df.event_type=="summary")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
+        print(len(s_df))
+
+        ts_df = df[(df.event_type=="timeandsale")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
+        print(len(ts_df))
