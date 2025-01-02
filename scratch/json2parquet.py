@@ -149,8 +149,8 @@ if __name__ == "__main__":
         u_df = df[(df.event_type=='candle')&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
         print(len(u_df))
 
-        c_df = df[(c_df.event_type=="candle")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
-        print(len(cdf))
+        c_df = df[(df.event_type=="candle")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
+        print(len(c_df))
 
         s_df = df[(df.event_type=="summary")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
         print(len(s_df))
