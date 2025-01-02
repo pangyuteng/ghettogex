@@ -96,6 +96,11 @@ async def main(ticker,tstamp,pq_file):
     print(f"finished at {time.strftime('%X')}")
     return df
 
+
+#async def get_oi(event_symbol):
+def get_oi(event_symbol,df):
+    # tstamp,event_symbol,oi
+
 if __name__ == "__main__":
 
     ticker = 'SPX'
@@ -148,6 +153,7 @@ if __name__ == "__main__":
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
         open_interest_dict[event_symbol]={}
+
         for tstamp_idx,tstamp in enumerate(tstamp_list):
 
             u_df = df[(df.event_type=='candle')&(df.strike.isnull())&(df.tstamp_reduced==tstamp)]
