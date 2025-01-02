@@ -139,7 +139,7 @@ if __name__ == "__main__":
     df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
     df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
     df['close'] = pd.to_numeric(df['close'], errors='coerce')
-    df['size'] = pd.to_numeric(df['size'], errors='coerce')
+    #df['order_size'] = pd.to_numeric(df['size'], errors='coerce')
 
     def get_side_int(x):
         if x == "BUY":
@@ -148,9 +148,9 @@ if __name__ == "__main__":
             return -1
         else:
             return np.nan
-    df['side_int'] = df.aggressor_side.apply(lambda x: get_side_int(x))
+    df['order_side'] = df.aggressor_side.apply(lambda x: get_side_int(x))
     
-    event_symbol_list = event_symbol_list
+    event_symbol_list = [".SPXW241231P5700"]
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
         print(len(tstamp_list))
@@ -163,4 +163,18 @@ if __name__ == "__main__":
         print(len(s_df))
         ts_df = df[(df.event_type=="timeandsale")&(df.event_symbol==event_symbol)&(df.strike.notnull())]
         print(len(ts_df))
+        if len(s_df) > 0:
+            open_interest = s_df['open_interest'].to_numpy()[0]
+        else:
+            open_interest = 0
+
+        print(event_symbol,open_interest)
+        print(len(ts_df))
+
+        if len(ts_df) > 0:
+            print(ts_df['size'])
+            ts_df.to_csv("ok.csv")
+            #bid_ask_size_list = ts_df['order_size']*df['order_side']
+            #print(bid_ask_size_list)
+        
         
