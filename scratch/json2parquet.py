@@ -16,21 +16,6 @@ import PIL
 from moviepy import editor
 
 
-def hola_cboe():
-    ticker = '^SPX'
-    ticker_folder = f"/mnt/hd1/data/fi/{ticker}/2024"
-    csv_file_list = sorted([str(x) for x in pathlib.Path(ticker_folder).rglob("*.csv")])
-    json_file_list = sorted([str(x) for x in pathlib.Path(ticker_folder).rglob("*.json")])
-
-    for json_file in json_file_list:
-        with open(json_file,'r') as f:
-            content = json.loads(f.read())
-        print(json_file,content['last_price'])
-        break
-    for csv_file in csv_file_list:
-        df = pd.read_csv(csv_file)
-        print(csv_file,df.spot_price[0],df.open_interest.sum())
-
 
 # sample streamer_symbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
@@ -124,6 +109,7 @@ if __name__ == "__main__":
 
     os.makedirs('tmp/pngs',exist_ok=True)
     pq_file = f'tmp/{ticker}-{date_stamp_str}.parquet.gzip'
+    oi_csv_file = 'tmp/oi.csv'
     gex_csv_file = f'tmp/{ticker}-{date_stamp_str}-gex.csv'
     gex_png_file = f'tmp/{ticker}-{date_stamp_str}-gex.png'
 
@@ -134,27 +120,67 @@ if __name__ == "__main__":
         df = asyncio.run(main(ticker,tstamp,pq_file))
     else:
         df = pd.read_parquet(pq_file)
+
+    options_df = df[df.strike.notnull()]
+    event_symbol_list = sorted(list(options_df.event_symbol.unique()))
+
     df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
     df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
 
-    # df['open_interest'] = pd.to_numeric(df['open_interest'], errors='coerce')
-    # df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
-    # df['bid_volume'] = pd.to_numeric(df['bid_volume'], errors='coerce')
-    # df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
-    # df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
-    # df['close'] = pd.to_numeric(df['close'], errors='coerce')
+    df['open_interest'] = pd.to_numeric(df['open_interest'], errors='coerce')
+    df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
+    df['bid_volume'] = pd.to_numeric(df['bid_volume'], errors='coerce')
+    df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
+    df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
+    df['close'] = pd.to_numeric(df['close'], errors='coerce')
+    df['size'] = pd.to_numeric(df['size'], errors='coerce')
+
+    def get_side_int(x):
+        if x == "BUY":
+            return 1
+        elif x == "SELL":
+            return -1
+        else:
+            return np.nan
+    df['side_int'] = df.aggressor_side.apply(lambda x: get_side_int(x))
     
-    for tstamp in tstamp_list:
-        print(tstamp)
+    open_interest_dict = {}
+    oi_list = []
+    for event_symbol in tqdm(event_symbol_list):
+        open_interest_dict[event_symbol]={}
+        for tstamp_idx,tstamp in enumerate(tstamp_list):
 
-        u_df = df[(df.event_type=='candle')&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
-        print(len(u_df))
+            u_df = df[(df.event_type=='candle')&(df.strike.isnull())&(df.tstamp_reduced==tstamp)]
+            #print(len(u_df))
 
-        c_df = df[(df.event_type=="candle")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
-        print(len(c_df))
+            c_df = df[(df.event_type=="candle")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
+            #print(len(c_df))
 
-        s_df = df[(df.event_type=="summary")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
-        print(len(s_df))
+            s_df = df[(df.event_type=="summary")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
+            #print(len(s_df))
 
-        ts_df = df[(df.event_type=="timeandsale")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
-        print(len(ts_df))
+            ts_df = df[(df.event_type=="timeandsale")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
+            #print(len(ts_df))
+        
+            if tstamp_idx == 0:
+                oi_list = s_df['open_interest'].to_list()
+                if len(oi_list) > 0:
+                    open_interest = oi_list[0]
+                else:
+                    open_interest = 0
+                    print(event_symbol,tstamp,"???")
+                open_interest_dict[event_symbol][tstamp] = open_interest
+            else:
+                prior_tstamp = tstamp_list[tstamp_idx-1]
+                prior_open_interest = open_interest_dict[event_symbol][prior_tstamp]
+                size_sum = (ts_df.size*ts_df.side_int).sum()
+                open_interest = prior_open_interest+size_sum
+                open_interest_dict[event_symbol][tstamp] = open_interest
+
+            item = dict(
+                event_symbol=event_symbol,
+                tstamp=tstamp,
+                open_interest=open_interest,
+            )
+            oi_list.append(item)
+    oi_list.to_csv(oi_csv_file,index=False)
