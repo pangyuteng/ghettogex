@@ -100,6 +100,7 @@ async def main(ticker,tstamp,pq_file):
 #async def get_oi(event_symbol):
 def get_oi(event_symbol,df):
     # tstamp,event_symbol,oi
+    pass
 
 if __name__ == "__main__":
 
@@ -149,44 +150,18 @@ if __name__ == "__main__":
             return np.nan
     df['side_int'] = df.aggressor_side.apply(lambda x: get_side_int(x))
     
-    open_interest_dict = {}
+    event_symbol_list = event_symbol_list[:2]
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
-        open_interest_dict[event_symbol]={}
+        print(len(tstamp_list))
+        print(event_symbol)
 
-        for tstamp_idx,tstamp in enumerate(tstamp_list):
-
-            u_df = df[(df.event_type=='candle')&(df.strike.isnull())&(df.tstamp_reduced==tstamp)]
-            #print(len(u_df))
-
-            c_df = df[(df.event_type=="candle")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
-            #print(len(c_df))
-
-            s_df = df[(df.event_type=="summary")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
-            #print(len(s_df))
-
-            ts_df = df[(df.event_type=="timeandsale")&(df.strike.notnull())&(df.tstamp_reduced==tstamp)]
-            #print(len(ts_df))
+        u_df = df[(df.event_type=='candle')&(df.event_symbol==ticker)&(df.strike.isnull())]
+        print(len(u_df))
+        c_df = df[(df.event_type=="candle")&(df.event_symbol==event_symbol)&(df.strike.notnull())]
+        print(len(c_df))
+        s_df = df[(df.event_type=="summary")&(df.event_symbol==event_symbol)&(df.strike.notnull())]
+        print(len(s_df))
+        ts_df = df[(df.event_type=="timeandsale")&(df.event_symbol==event_symbol)&(df.strike.notnull())]
+        print(len(ts_df))
         
-            if tstamp_idx == 0:
-                oi_list = s_df['open_interest'].to_list()
-                if len(oi_list) > 0:
-                    open_interest = oi_list[0]
-                else:
-                    open_interest = 0
-                    print(event_symbol,tstamp,"???")
-                open_interest_dict[event_symbol][tstamp] = open_interest
-            else:
-                prior_tstamp = tstamp_list[tstamp_idx-1]
-                prior_open_interest = open_interest_dict[event_symbol][prior_tstamp]
-                size_sum = (ts_df.size*ts_df.side_int).sum()
-                open_interest = prior_open_interest+size_sum
-                open_interest_dict[event_symbol][tstamp] = open_interest
-
-            item = dict(
-                event_symbol=event_symbol,
-                tstamp=tstamp,
-                open_interest=open_interest,
-            )
-            oi_list.append(item)
-    oi_list.to_csv(oi_csv_file,index=False)

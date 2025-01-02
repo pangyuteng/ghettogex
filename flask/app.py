@@ -111,6 +111,11 @@ async def home():
     else:
         return await render_template("index.html",ticker_list=BTC_MSTR_TICKER_LIST)
 
+@app.route("/about")
+@login_required
+async def about():
+    return await render_template("about.html")
+
 @app.websocket('/ws-prices')
 @login_required
 async def ws_prices():
