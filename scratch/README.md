@@ -1,5 +1,15 @@
 
 
+```
+
+
+docker run -it -u $(id -u):$(id -g) \
+    -w $PWD -v /mnt:/mnt \
+    fi-flask:latest bash
+
+
+```
+
 
 
 
