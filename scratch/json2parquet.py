@@ -150,12 +150,11 @@ if __name__ == "__main__":
             return np.nan
     df['side_int'] = df.aggressor_side.apply(lambda x: get_side_int(x))
     
-    event_symbol_list = event_symbol_list[:2]
+    event_symbol_list = event_symbol_list
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
         print(len(tstamp_list))
         print(event_symbol)
-
         u_df = df[(df.event_type=='candle')&(df.event_symbol==ticker)&(df.strike.isnull())]
         print(len(u_df))
         c_df = df[(df.event_type=="candle")&(df.event_symbol==event_symbol)&(df.strike.notnull())]
