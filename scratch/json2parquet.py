@@ -135,7 +135,7 @@ if __name__ == "__main__":
     df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
     print(df.shape)
     tstamp_list = pd.date_range(start="2024-12-31 09:30:00",end="2024-12-31 16:30:00",freq='s')
-
+    tstamp_list = pd.date_range(start="2024-12-31 09:30",end="2024-12-31 16:30",freq='m')
     # df['open_interest'] = pd.to_numeric(df['open_interest'], errors='coerce')
     # df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
     # df['bid_volume'] = pd.to_numeric(df['bid_volume'], errors='coerce')
