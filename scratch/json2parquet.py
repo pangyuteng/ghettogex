@@ -127,15 +127,16 @@ if __name__ == "__main__":
     gex_csv_file = f'tmp/{ticker}-{date_stamp_str}-gex.csv'
     gex_png_file = f'tmp/{ticker}-{date_stamp_str}-gex.png'
 
+    tstamp_list = pd.date_range(start="2024-12-31 09:30:00",end="2024-12-31 16:30:00",freq='s')
+    tstamp_list = sorted(list(set([x.replace(second=0) for x in tstamp_list])))
+
     if not os.path.exists(pq_file):
         df = asyncio.run(main(ticker,tstamp,pq_file))
     else:
         df = pd.read_parquet(pq_file)
     df.tstamp = df.tstamp.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d-%H-%M-%S.%f'))
-    df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
-    print(df.shape)
-    tstamp_list = pd.date_range(start="2024-12-31 09:30:00",end="2024-12-31 16:30:00",freq='s')
-    tstamp_list = pd.date_range(start="2024-12-31 09:30",end="2024-12-31 16:30",freq='m')
+    df['tstamp_reduced'] = df.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
+
     # df['open_interest'] = pd.to_numeric(df['open_interest'], errors='coerce')
     # df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
     # df['bid_volume'] = pd.to_numeric(df['bid_volume'], errors='coerce')
