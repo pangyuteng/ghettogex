@@ -2,11 +2,14 @@
 import os
 import sys
 import json
+import traceback
 import pathlib
+import datetime
+from datetime import timedelta
 import pandas as pd
-
+from tqdm import tqdm
 import matplotlib.pyplot as plt
-from cache_greeks import parse_symbol
+
 
 
 def get_uw_df():
@@ -19,6 +22,8 @@ def get_uw_df():
     return pd.read_parquet(pq_file)
 
 def compare_contract(folder,uw_df):
+    from cache_greeks import parse_symbol
+
     summary_folder = os.path.join(folder,'summary')
     timeandsale_folder = os.path.join(folder,'timeandsale')
 
@@ -113,29 +118,123 @@ def compare_main():
     #tt_ask_size,tt_bid_size,
     #uw_option_chain_id,uw_count,uw_ask_size,uw_bid_size
 
-def get_summary(contract,tstamp):
-    pass
-def cache_oi(contract,tstamp,is_init):
-    prior_tstamp = tstamp
+
+# /mnt/hd1/data/tastyfi/SPX/2024-12-31/.SPXW241231C8000/timeandsale/2024-12-31-12-39-16.502402-uid-63d71db356f94b28adf09584d5235d1f.json
+TASTY_CACHE_ROOT = "/mnt/hd1/data/tastyfi"
+def get_timeandsale(ticker,event_symbol,tstamp):
+    cols = ['aggressor_side', 'ask_price', 'bid_price', 'buyer', 'event_flags', 'event_symbol', 'event_time', 'exchange_code', 'exchange_sale_conditions', 'extended_trading_hours', 'index', 'price', 'seller', 'sequence', 'size', 'spread_leg', 'time', 'time_nano_part', 'trade_through_exempt', 'type', 'valid_tick']
+    date_tstamp = tstamp.strftime("%Y-%m-%d")
+    time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M-%S")
+    timeandsale_folder = os.path.join(TASTY_CACHE_ROOT,ticker,date_tstamp,event_symbol,"timeandsale")
+    json_file_list = sorted([str(x) for x in pathlib.Path(timeandsale_folder).rglob(f"*{time_tstamp}*.json")])
+    mylist = []
+    for json_file in json_file_list:
+        with open(json_file,'r') as f:
+            mydict = json.loads(f.read())
+        mylist.append(mydict)
+    df = pd.DataFrame(mylist,columns=cols)
+    return df
+
+# /mnt/hd1/data/tastyfi/SPX/2024-12-31/.SPXW241231C1000/summary/2024-12-31-09-30-05.627393-uid-0fed1aa873fb4206b872a7819852906f.json
+def get_summary(ticker,event_symbol,tstamp):
+    date_tstamp = tstamp.strftime("%Y-%m-%d")
+    time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M-%S")
+    summary_folder = os.path.join(TASTY_CACHE_ROOT,ticker,date_tstamp,event_symbol,"summary")
+
+    file_list = sorted([str(x) for x in pathlib.Path(summary_folder).rglob("*.json")])
+    if len(file_list) > 0:
+        json_file = file_list[0] # get first one
+        with open(json_file,'r') as f:
+            content = json.loads(f.read())
+        return content
+    else:
+        return None
+
+# oi/$TICKER/YYYY-MM-DD/YYYY-MM-DD-HH-MM-SS.csv
+# gex/$TICKER/YYYY-MM-DD/YYYY-MM-DD-HH-MM-SS.csv
+TEST_CACHE_ROOT = "/mnt/hd1/data/test-cache"
+def get_oi_file(ticker,event_symbol,tstamp):
+    
+    date_tstamp = tstamp.strftime("%Y-%m-%d")
+    time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M-%S")
+    json_file = os.path.join(TEST_CACHE_ROOT,ticker,date_tstamp,event_symbol,f"oi-{time_tstamp}.json")
+    return json_file
+
+def get_oi(ticker,event_symbol,tstamp):
+    oi_json_file = get_oi_file(ticker,event_symbol,tstamp)
+    if not os.path.exists(oi_json_file):
+        return None
+    try:
+        with open(oi_json_file,'r') as f:
+            content = json.loads(f.read())
+    except:
+        traceback.print_exc()
+        print(oi_json_file)
+        sys.exit(1)
+    return content
+
+def cache_oi(ticker,event_symbol,tstamp,is_init):
+    oi_json_file = get_oi_file(ticker,event_symbol,tstamp)
+    os.makedirs(os.path.dirname(oi_json_file),exist_ok=True)
     if is_init:
         # grab and save prior OI
-        get_summary(contract,tstamp)
+        summary = get_summary(ticker,event_symbol,tstamp)
+        oi_dict = {"open_interest":summary["open_interest"]}
+        with open(oi_json_file,"w") as f:
+            f.write(json.dumps(oi_dict))
     else:
-        prior_tstamp = ''
-        get_summary(contract,prior_tstamp)
-        get_summary(contract,tstamp)
-        pass
-def get_oi(contract,tstamp):
-    pass
-def cache_gex(contract,tstamp):
-    pass
-def get_gex(ticker,tstamp):
+        prior_tstamp = tstamp-timedelta(seconds=1)
+        prior_oi = get_oi(ticker,event_symbol,prior_tstamp)
+        ts_df = get_timeandsale(ticker,event_symbol,tstamp)
+        # dilemma, OI have no bid side OI or ask side OI...
+        if len(ts_df) == 0:
+            oi_dict = {"open_interest":prior_oi["open_interest"]}
+            with open(oi_json_file,"w") as f:
+                f.write(json.dumps(oi_dict))
+        else:
+            open_interest = prior_oi["open_interest"]
+            ts_ask_size = ts_df[ts_df.aggressor_side=='BUY']['size'].sum()
+            ts_bid_size = ts_df[ts_df.aggressor_side=='SELL']['size'].sum()
+            # TODO: BAD ASSUMPTION
+            updated_open_interest = int(open_interest+ts_ask_size-ts_bid_size)
+            oi_dict = {"open_interest":updated_open_interest}
+            with open(oi_json_file,"w") as f:
+                f.write(json.dumps(oi_dict))
+
+def cache_gex(event_symbol,tstamp,oi_dict):
+    #print("cache_gex",event_symbol,tstamp,len(oi_dict))
     pass
 
+def get_gex(ticker,tstamp):
+    return None
+    pass
+    #print("get_gex",ticker,tstamp)
+
 def cache_one_day_gex(ticker):
-    sec_tstamp_list = pd.date_range(start="2024-12-31-09-30-00",end="2024-12-31-16-30-00",freq='s')
-    for sec_tstamp in sec_tstamp_list:
-        print(sec_tstamp)
+    root_folder = "/mnt/hd1/data/tastyfi"
+    tstamp = datetime.datetime(2024,12,31)
+    date_stamp_str = tstamp.strftime("%Y-%m-%d")
+    day_root_folder = os.path.join(root_folder,ticker,date_stamp_str)
+    underlyling_folder = os.path.join(root_folder,ticker,date_stamp_str,ticker)
+    print(len(os.listdir(underlyling_folder)))
+    event_symbol_list = sorted([x for x in os.listdir(day_root_folder) if x.startswith('.SPXW')])
+    print(len(event_symbol_list))
+
+    sec_tstamp_list = pd.date_range(start="2024-12-31 09:30:00",end="2024-12-31 16:30:00",freq='s')
+    for tstamp in tqdm(sec_tstamp_list):
+        oi_dict = {}
+        for event_symbol in event_symbol_list:
+            is_init = True if tstamp == sec_tstamp_list[0] else False
+            oi = get_oi(ticker,event_symbol,tstamp)
+            if oi is None:
+                cache_oi(ticker,event_symbol,tstamp,is_init)
+                oi = get_oi(ticker,event_symbol,tstamp)
+            if oi is None:
+                raise ValueError()
+            oi_dict['event_symbol']=oi
+        gex = get_gex(ticker,tstamp)
+        if gex is None:
+            cache_gex(ticker,tstamp,oi_dict)
 
 if __name__ == "__main__":
     # compare_main()

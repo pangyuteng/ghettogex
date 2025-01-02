@@ -20,7 +20,6 @@
 open interest folder structure
 
 oi/$TICKER/YYYY-MM-DD/YYYY-MM-DD-HH-MM-SS.csv
-
 gex/$TICKER/YYYY-MM-DD/YYYY-MM-DD-HH-MM-SS.csv
 
 ```
