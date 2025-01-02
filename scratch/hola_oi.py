@@ -121,10 +121,13 @@ def compare_main():
 
 # /mnt/hd1/data/tastyfi/SPX/2024-12-31/.SPXW241231C8000/timeandsale/2024-12-31-12-39-16.502402-uid-63d71db356f94b28adf09584d5235d1f.json
 TASTY_CACHE_ROOT = "/mnt/hd1/data/tastyfi"
-def get_timeandsale(ticker,event_symbol,tstamp):
+def get_timeandsale(ticker,event_symbol,tstamp,freq):
     cols = ['aggressor_side', 'ask_price', 'bid_price', 'buyer', 'event_flags', 'event_symbol', 'event_time', 'exchange_code', 'exchange_sale_conditions', 'extended_trading_hours', 'index', 'price', 'seller', 'sequence', 'size', 'spread_leg', 'time', 'time_nano_part', 'trade_through_exempt', 'type', 'valid_tick']
     date_tstamp = tstamp.strftime("%Y-%m-%d")
-    time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M-%S")
+    if freq == 's':
+        time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M-%S")
+    if freq == 'm':
+        time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M")
     timeandsale_folder = os.path.join(TASTY_CACHE_ROOT,ticker,date_tstamp,event_symbol,"timeandsale")
     json_file_list = sorted([str(x) for x in pathlib.Path(timeandsale_folder).rglob(f"*{time_tstamp}*.json")])
     mylist = []
@@ -136,9 +139,12 @@ def get_timeandsale(ticker,event_symbol,tstamp):
     return df
 
 # /mnt/hd1/data/tastyfi/SPX/2024-12-31/.SPXW241231C1000/summary/2024-12-31-09-30-05.627393-uid-0fed1aa873fb4206b872a7819852906f.json
-def get_summary(ticker,event_symbol,tstamp):
+def get_summary(ticker,event_symbol,tstamp,freq):
     date_tstamp = tstamp.strftime("%Y-%m-%d")
-    time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M-%S")
+    if freq == 's':
+        time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M-%S")
+    if freq == 'm':
+        time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M")
     summary_folder = os.path.join(TASTY_CACHE_ROOT,ticker,date_tstamp,event_symbol,"summary")
 
     file_list = sorted([str(x) for x in pathlib.Path(summary_folder).rglob("*.json")])
@@ -153,15 +159,19 @@ def get_summary(ticker,event_symbol,tstamp):
 # oi/$TICKER/YYYY-MM-DD/YYYY-MM-DD-HH-MM-SS.csv
 # gex/$TICKER/YYYY-MM-DD/YYYY-MM-DD-HH-MM-SS.csv
 TEST_CACHE_ROOT = "/mnt/hd1/data/test-cache"
-def get_oi_file(ticker,event_symbol,tstamp):
+def get_oi_file(ticker,event_symbol,tstamp,freq):
     
     date_tstamp = tstamp.strftime("%Y-%m-%d")
-    time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M-%S")
+    if freq == 's':
+        time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M-%S")
+    if freq == 'm':
+        time_tstamp = tstamp.strftime("%Y-%m-%d-%H-%M")
+
     json_file = os.path.join(TEST_CACHE_ROOT,ticker,date_tstamp,event_symbol,f"oi-{time_tstamp}.json")
     return json_file
 
-def get_oi(ticker,event_symbol,tstamp):
-    oi_json_file = get_oi_file(ticker,event_symbol,tstamp)
+def get_oi(ticker,event_symbol,tstamp,freq):
+    oi_json_file = get_oi_file(ticker,event_symbol,tstamp,freq)
     if not os.path.exists(oi_json_file):
         return None
     try:
@@ -173,19 +183,19 @@ def get_oi(ticker,event_symbol,tstamp):
         sys.exit(1)
     return content
 
-def cache_oi(ticker,event_symbol,tstamp,is_init):
+def cache_oi(ticker,event_symbol,tstamp,is_init,freq):
     oi_json_file = get_oi_file(ticker,event_symbol,tstamp)
     os.makedirs(os.path.dirname(oi_json_file),exist_ok=True)
     if is_init:
         # grab and save prior OI
-        summary = get_summary(ticker,event_symbol,tstamp)
+        summary = get_summary(ticker,event_symbol,tstamp,freq)
         oi_dict = {"open_interest":summary["open_interest"]}
         with open(oi_json_file,"w") as f:
             f.write(json.dumps(oi_dict))
     else:
         prior_tstamp = tstamp-timedelta(seconds=1)
-        prior_oi = get_oi(ticker,event_symbol,prior_tstamp)
-        ts_df = get_timeandsale(ticker,event_symbol,tstamp)
+        prior_oi = get_oi(ticker,event_symbol,prior_tstamp,freq)
+        ts_df = get_timeandsale(ticker,event_symbol,tstamp,freq)
         # dilemma, OI have no bid side OI or ask side OI...
         if len(ts_df) == 0:
             oi_dict = {"open_interest":prior_oi["open_interest"]}
@@ -201,11 +211,11 @@ def cache_oi(ticker,event_symbol,tstamp,is_init):
             with open(oi_json_file,"w") as f:
                 f.write(json.dumps(oi_dict))
 
-def cache_gex(event_symbol,tstamp,oi_dict):
+def cache_gex(event_symbol,tstamp,oi_dict,freq):
     #print("cache_gex",event_symbol,tstamp,len(oi_dict))
     pass
 
-def get_gex(ticker,tstamp):
+def get_gex(ticker,tstamp,freq):
     return None
     pass
     #print("get_gex",ticker,tstamp)
@@ -220,21 +230,27 @@ def cache_one_day_gex(ticker):
     event_symbol_list = sorted([x for x in os.listdir(day_root_folder) if x.startswith('.SPXW')])
     print(len(event_symbol_list))
 
-    sec_tstamp_list = pd.date_range(start="2024-12-31 09:30:00",end="2024-12-31 16:30:00",freq='s')
-    for tstamp in tqdm(sec_tstamp_list):
+    #freq = 's'
+    freq = 'm'
+    if freq =='s':
+        tstamp_list = pd.date_range(start="2024-12-31 09:30:00",end="2024-12-31 16:30:00",freq='s')
+    if freq == 'm':
+        tstamp_list = pd.date_range(start="2024-12-31 09:30",end="2024-12-31 16:30",freq='m')
+
+    for tstamp in tqdm(tstamp_list):
         oi_dict = {}
         for event_symbol in event_symbol_list:
-            is_init = True if tstamp == sec_tstamp_list[0] else False
-            oi = get_oi(ticker,event_symbol,tstamp)
+            is_init = True if tstamp == tstamp_list[0] else False
+            oi = get_oi(ticker,event_symbol,tstamp,freq)
             if oi is None:
                 cache_oi(ticker,event_symbol,tstamp,is_init)
-                oi = get_oi(ticker,event_symbol,tstamp)
+                oi = get_oi(ticker,event_symbol,tstamp,freq)
             if oi is None:
                 raise ValueError()
             oi_dict['event_symbol']=oi
-        gex = get_gex(ticker,tstamp)
+        gex = get_gex(ticker,tstamp,freq)
         if gex is None:
-            cache_gex(ticker,tstamp,oi_dict)
+            cache_gex(ticker,tstamp,oi_dict,freq)
 
 if __name__ == "__main__":
     # compare_main()
