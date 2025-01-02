@@ -139,16 +139,6 @@ if __name__ == "__main__":
     df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
     df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
     df['close'] = pd.to_numeric(df['close'], errors='coerce')
-    #df['order_size'] = pd.to_numeric(df['size'], errors='coerce')
-
-    def get_side_int(x):
-        if x == "BUY":
-            return 1
-        elif x == "SELL":
-            return -1
-        else:
-            return np.nan
-    df['order_side'] = df.aggressor_side.apply(lambda x: get_side_int(x))
     
     event_symbol_list = [".SPXW241231P5700"]
     oi_list = []
@@ -172,8 +162,13 @@ if __name__ == "__main__":
         print(len(ts_df))
 
         if len(ts_df) > 0:
-            print(ts_df['size'])
-            ts_df.to_csv("ok.csv")
+            timeandsale_cols = [
+                'tstamp','event_symbol','event_type','aggressor_side','size',
+                'expiration','contract_type','strike','uid','json_file']
+            tmp_df = ts_df.copy(deep=True).reset_index()
+            tmp_df = tmp_df[timeandsale_cols]
+            #"BUY","SELL":
+            tmp_df.to_csv("ok.csv")
             #bid_ask_size_list = ts_df['order_size']*df['order_side']
             #print(bid_ask_size_list)
         
