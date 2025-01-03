@@ -142,7 +142,7 @@ if __name__ == "__main__":
     df['size'] = pd.to_numeric(df['size'], errors='coerce')
     df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size']) #"BUY","SELL":
 
-    event_symbol_list = [".SPXW241231P5700"]
+    #event_symbol_list = [".SPXW241231P5700"]
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
         print(len(tstamp_list))
