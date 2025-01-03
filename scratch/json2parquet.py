@@ -154,7 +154,7 @@ if __name__ == "__main__":
         price_cols =         ['tstamp_reduced','event_symbol','mid_price']
         groupby_price_cols = ['tstamp_reduced','event_symbol']
         q_df = q_df[price_cols]
-        q_df = q_df.groupby(p_cols).last().reset_index()
+        q_df = q_df.groupby(groupby_price_cols).last().reset_index()
         price_list.append(q_df)    
 
     price_df = pd.concat(price_list)
