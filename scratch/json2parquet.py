@@ -139,15 +139,9 @@ if __name__ == "__main__":
     df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
     df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
     df['close'] = pd.to_numeric(df['close'], errors='coerce')
-    def aggressor_side2int(x):
-        if x == "BUY":
-            return 1
-        if x == "SELL":
-            return -1
-        else:
-            return None
-    df['aggressor_side_int'] = df.aggressor_side.apply(lambda x: aggressor_side2int(x))
-    
+    df['size'] = pd.to_numeric(df['size'], errors='coerce')
+    df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size']) #"BUY","SELL":
+
     event_symbol_list = [".SPXW241231P5700"]
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
@@ -170,15 +164,21 @@ if __name__ == "__main__":
         print(len(ts_df))
 
         if len(ts_df) > 0:
-            timeandsale_cols = [
-                'tstamp','event_symbol','event_type','aggressor_side','aggressor_side_int','size',
-                'expiration','contract_type','strike','uid','json_file']
+            # create new df
+            tmp_cols = [
+                'tstamp_reduced','tstamp','event_symbol','event_type','size_signed', # 'aggressor_side','size','uid','json_file'
+                'expiration','contract_type','strike'
+            ]
             tmp_df = ts_df.copy(deep=True).reset_index()
-            tmp_df = tmp_df[timeandsale_cols]
-            #"BUY","SELL":
-            tmp_df = tmp_df.sort_values(["tstamp"],reverse=False)
-            tmp_df.to_csv("ok.csv")
-            #bid_ask_size_list = ts_df['order_size']*df['order_side']
-            #print(bid_ask_size_list)
+            tmp_df = tmp_df[tmp_cols]
+            tmp_df = tmp_df.sort_values(["tstamp"],ascending=True)
+            tmp_df['latest_open_interest'] = open_interest+tmp_df.size_signed.cumsum()
+            oi_cols = ['tstamp_reduced','event_symbol','expiration','contract_type','strike','latest_open_interest']
+            tmp_df = tmp_df[oi_cols]
+            tmp_df = tmp_df.groupby(oi_cols).last().reset_index()
+            oi_list.append(tmp_df)
+
+    oi_pd = pd.concat(oi_list)
+    oi_pd.to_csv("oi.csv",index=False)
         
-        
+            
