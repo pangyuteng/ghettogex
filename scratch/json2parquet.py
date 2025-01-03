@@ -141,11 +141,27 @@ if __name__ == "__main__":
     df['close'] = pd.to_numeric(df['close'], errors='coerce')
     df['size'] = pd.to_numeric(df['size'], errors='coerce')
     df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size']) #"BUY","SELL":
+    df['bid_price'] = pd.to_numeric(df['bid_price'], errors='coerce')
+    df['ask_price'] = pd.to_numeric(df['ask_price'], errors='coerce')
+    df['mid_price'] = df['bid_price']+df['ask_price']
 
-    #event_symbol_list = [".SPXW241231P5700"]
+    price_list = []
+    for tstamp in tqdm(tstamp_list):
+        if False: # TODO: unsure why no data?
+            u_df = df[(df.tstamp_reduced==tstamp)&(df.event_type=='candle')&(df.event_symbol==ticker)&(df.strike.isnull())]
+            price_list.append(u_df)
+        q_df = df[(df.tstamp_reduced==tstamp)&(df.event_type=='quote')&(df.event_symbol==ticker)&(df.strike.isnull())]
+        price_cols =         ['tstamp_reduced','event_symbol','mid_price']
+        groupby_price_cols = ['tstamp_reduced','event_symbol']
+        q_df = q_df[price_cols]
+        q_df = q_df.groupby(p_cols).last().reset_index()
+        price_list.append(q_df)    
+
+    price_df = pd.concat(price_list)
+    price_df.to_csv("spot_price.csv",index=False)
+    sys.exit(1)
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
-        print(len(tstamp_list))
         print(event_symbol)
         u_df = df[(df.event_type=='candle')&(df.event_symbol==ticker)&(df.strike.isnull())]
         print(len(u_df))
@@ -173,9 +189,10 @@ if __name__ == "__main__":
             tmp_df = tmp_df[tmp_cols]
             tmp_df = tmp_df.sort_values(["tstamp"],ascending=True)
             tmp_df['latest_open_interest'] = open_interest+tmp_df.size_signed.cumsum()
-            oi_cols = ['tstamp_reduced','event_symbol','expiration','contract_type','strike','latest_open_interest']
+            oi_cols =         ['tstamp_reduced','event_symbol','expiration','contract_type','strike','latest_open_interest']
+            groupby_oi_cols = ['tstamp_reduced','event_symbol','expiration','contract_type','strike']
             tmp_df = tmp_df[oi_cols]
-            tmp_df = tmp_df.groupby(oi_cols).last().reset_index()
+            tmp_df = tmp_df.groupby(groupby_oi_cols).last().reset_index()
             oi_list.append(tmp_df)
 
     oi_pd = pd.concat(oi_list)
