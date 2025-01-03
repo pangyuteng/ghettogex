@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     price_df = pd.concat(price_list)
     price_df.to_csv("spot_price.csv",index=False)
-    sys.exit(1)
+
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
         print(event_symbol)
