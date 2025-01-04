@@ -97,6 +97,7 @@ async def aggregate_json2parquet(ticker,tstamp,pq_file):
     return df
 
 oi_csv_file = "oi.csv"
+greeks_csv_file = "greeks.csv"
 spot_csv_file = "spot_price.csv"
 def cache_oi(ticker,tstamp):
     date_stamp_str = tstamp.strftime("%Y-%m-%d")
@@ -147,10 +148,22 @@ def cache_oi(ticker,tstamp):
         groupby_price_cols = ['tstamp_reduced','event_symbol']
         q_df = q_df[price_cols]
         q_df = q_df.groupby(groupby_price_cols).last().reset_index()
-        price_list.append(q_df)    
+        price_list.append(q_df)
 
     price_df = pd.concat(price_list)
     price_df.to_csv(spot_csv_file,index=False)
+
+    greeks_list = []
+    for tstamp in tqdm(tstamp_list):
+        g_df = df[(df.tstamp_reduced==tstamp)&(df.event_type=='greeks')&(df.ticker==ticker)&(df.strike.notnull())]
+        greeks_cols =         ['tstamp_reduced','event_symbol','event_type','expiration','contract_type','strike','gamma']
+        groupby_greeks_cols = ['tstamp_reduced','event_symbol','event_type','expiration','contract_type','strike']
+        g_df = g_df[greeks_cols]
+        g_df = g_df.groupby(groupby_greeks_cols).last().reset_index()
+        print(tstamp,len(g_df))
+        greeks_list.append(g_df)
+    greeks_df = pd.concat(greeks_list)
+    greeks_df.to_csv(greeks_csv_file,index=False)
 
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
@@ -180,7 +193,6 @@ def cache_oi(ticker,tstamp):
             tmp_df = ts_df.copy(deep=True).reset_index()
             tmp_df = tmp_df[tmp_cols]
             tmp_df = tmp_df.sort_values(["tstamp"],ascending=True)
-            tmp_df['latest_open_interest'] = open_interest+tmp_df.size_signed.cumsum()
             oi_cols =         ['tstamp_reduced','event_symbol','expiration','contract_type','strike','latest_open_interest']
             groupby_oi_cols = ['tstamp_reduced','event_symbol','expiration','contract_type','strike']
             tmp_df = tmp_df[oi_cols]
@@ -188,6 +200,11 @@ def cache_oi(ticker,tstamp):
             oi_list.append(tmp_df)
 
     oi_pd = pd.concat(oi_list)
+
+    # idf['contract_type_int'] = idf.contract_type.apply(lambda x: 1 if x=='C' else -1)
+    # idf['gex_volume'] = idf['gamma'].astype(np.float64) * idf['volume'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['contract_type_int']
+    # idf['gex_oi'] = idf['gamma'].astype(np.float64) * idf['open_interest'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['contract_type_int']
+
     oi_pd.to_csv(oi_csv_file,index=False)
 
 def gen_ani(ticker,tstamp):

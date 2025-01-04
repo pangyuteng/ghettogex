@@ -166,7 +166,8 @@ def compute_btc_gex(tstamp=None,save_png=False):
         try:
             spot_price = row_df.loc[0,'spot_price']
             compute_total_gex(spot_price, row_df)
-            gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large',save_png=save_png)
+            gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large',save_png=False)
+            print(ticker,gex_by_strike.shape)
             logger.debug(f"---- {ticker}")
             strike_list = gex_by_strike['strike'].values
             gex_list = gex_by_strike['gex'].values
@@ -184,15 +185,17 @@ def compute_btc_gex(tstamp=None,save_png=False):
             # normalize expiration to year ??
             # then sum up gex per (strike,expiration)
             expiration_list = []
-            gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=save_png)
-            gex_df = compute_gex_surface(spot_price,row_df,ticker=ticker,save_png=save_png)
-            logger.debug(f'{gex_df.shape}')
-            logger.debug(gex_df.columns)
-            logger.debug(gex_df.index)
+            gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=False)
+            print(ticker,gex_by_expiration.shape,'!!!!!!!!!!!!1')
+            gex_surface_df = compute_gex_surface(spot_price,row_df,ticker=ticker,save_png=False)
+            print(gex_by_expiration.shape,'!!!!!!22222222222221')
+            logger.debug(f'{gex_surface_df.shape}')
+            logger.debug(gex_surface_df.columns)
+            logger.debug(gex_surface_df.index)
 
         except:
             traceback.print_exc()
-
+    sys.exit(1)
     df = pd.DataFrame(gex_by_strike_list)
     df = df[['strike','gex']]
     df = df.groupby(['strike'],as_index=False).sum()

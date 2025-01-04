@@ -28,13 +28,18 @@ docker run -it -u $(id -u):$(id -g) \
 ```
 
 # TODO:
-+ compute OI in vectorized mode per event_symbol
-+ async above per event_symbol
-+ verify visualize second-level OI and visualize gex
-+ revive hello-tastytrade/dxlink-sub, to save to both json and postgres via kube.
-+ automate daily download from UW, and parse data to put to postgres???
-+ subscribe for a few expirations per ticker, then OI ultimately have a break down between sell/buy-side.
-
++ [o] obtain intraday OI and gex from dxlink sub
++ [x] see json2parquet.py compute OI in vectorized mode per event_symbol
++ [x] see json2parquet.py async above per event_symbol
++ [ ] investigate/compute intraday naive? GEX with with dxlink sub data.
++ [ ] verify visualize second-level OI and visualize GEX
++ [ ] revive hello-tastytrade/dxlink-sub, to save to both json and postgres via kube.
++ [o] manual 2024-Q4 historical EOD download from UW.
++ [ ] enable (end of day) GEX surface plots with plotly js 
++ [ ] ?automate daily download from UW, and parse data to put to postgres???
++ [ ] subscribe for a few expirations per ticker, then OI ultimately have a break down between sell/buy-side.
+--
++ [ ] sidwap btc to L BTC and back to btc than coldstorage.
 
 open interest folder structure (THIS TURNED OUT TO BE A NIGHTMARE, DONT SAVE SMALL FILES SYNC, IO BOTTLENECK!)
 
