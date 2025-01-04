@@ -194,9 +194,12 @@ def cache_oi(ticker,tstamp):
             tmp_df = ts_df.copy(deep=True).reset_index()
             tmp_df = tmp_df[tmp_cols]
             tmp_df = tmp_df.sort_values(["tstamp"],ascending=True)
-            oi_cols =         ['tstamp_reduced','event_symbol','expiration','contract_type','strike','latest_open_interest']
+            tmp_df['open_interest'] = open_interest
+            tmp_df['latest_open_interest'] = tmp_df.size_signed.cumsum()+open_interest
+            oi_cols =         ['tstamp_reduced','event_symbol','expiration','contract_type','strike','open_interest','latest_open_interest']
             groupby_oi_cols = ['tstamp_reduced','event_symbol','expiration','contract_type','strike']
             tmp_df = tmp_df[oi_cols]
+            #open_interest
             tmp_df = tmp_df.groupby(groupby_oi_cols).last().reset_index()
             oi_list.append(tmp_df)
 
