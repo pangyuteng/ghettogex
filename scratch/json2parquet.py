@@ -137,6 +137,20 @@ def cache_oi(ticker,tstamp):
     df['bid_price'] = pd.to_numeric(df['bid_price'], errors='coerce')
     df['ask_price'] = pd.to_numeric(df['ask_price'], errors='coerce')
     df['mid_price'] = (df['bid_price']+df['ask_price'])/2
+    df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
+
+
+    greeks_list = []
+    for tstamp in tqdm(tstamp_list):
+        g_df = df[(df.tstamp_reduced==tstamp)&(df.event_type=='greeks')&(df.ticker.apply(lambda x: x in ticker_variants))&(df.strike.notnull())]
+        greeks_cols =         ['tstamp_reduced','event_symbol','event_type','expiration','contract_type','strike','gamma']
+        groupby_greeks_cols = ['tstamp_reduced','event_symbol','event_type','expiration','contract_type','strike']
+        g_df = g_df[greeks_cols]
+        g_df = g_df.groupby(groupby_greeks_cols).last().reset_index()
+        print(tstamp,len(g_df))
+        greeks_list.append(g_df)
+    greeks_df = pd.concat(greeks_list)
+    greeks_df.to_csv(greeks_csv_file,index=False)
 
     price_list = []
     for tstamp in tqdm(tstamp_list):
@@ -149,21 +163,8 @@ def cache_oi(ticker,tstamp):
         q_df = q_df[price_cols]
         q_df = q_df.groupby(groupby_price_cols).last().reset_index()
         price_list.append(q_df)
-
     price_df = pd.concat(price_list)
     price_df.to_csv(spot_csv_file,index=False)
-
-    greeks_list = []
-    for tstamp in tqdm(tstamp_list):
-        g_df = df[(df.tstamp_reduced==tstamp)&(df.event_type=='greeks')&(df.ticker==ticker)&(df.strike.notnull())]
-        greeks_cols =         ['tstamp_reduced','event_symbol','event_type','expiration','contract_type','strike','gamma']
-        groupby_greeks_cols = ['tstamp_reduced','event_symbol','event_type','expiration','contract_type','strike']
-        g_df = g_df[greeks_cols]
-        g_df = g_df.groupby(groupby_greeks_cols).last().reset_index()
-        print(tstamp,len(g_df))
-        greeks_list.append(g_df)
-    greeks_df = pd.concat(greeks_list)
-    greeks_df.to_csv(greeks_csv_file,index=False)
 
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
