@@ -190,13 +190,15 @@ def cache_oi(ticker,tstamp):
     oi_pd = pd.concat(oi_list)
     oi_pd.to_csv(oi_csv_file,index=False)
 
-def main(ticker,tstamp):
+def gen_ani(ticker,tstamp):
     cache_oi(ticker,tstamp)
     spot_df = pd.read_csv(spot_csv_file)
     oi_df = pd.read_csv(oi_csv_file)
+    spot_df.tstamp_reduced = spot_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
+    oi_df.tstamp_reduced = oi_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
     png_file_list = []
     for tstamp_reduced in sorted(oi_df.tstamp_reduced.unique()):
-        sec_png_file = os.path.join('tmp/pngs',tstamp_reduced+".png")
+        sec_png_file = os.path.join('tmp/pngs',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
         item_df = oi_df[oi_df.tstamp_reduced==tstamp_reduced]
         plt.figure()
         for n,row in item_df.iterrows():
@@ -212,7 +214,7 @@ def main(ticker,tstamp):
             spot_price = item_df.mid_price.to_list()[-1]
         else:
             spot_price = np.nan
-        #plt.axhline(spot_price)
+        plt.axhline(spot_price,color='red',linestyle='--')
         print(tstamp_reduced,spot_price)
         plt.grid(True)
         message = f"{tstamp_reduced}"
@@ -250,8 +252,9 @@ def main(ticker,tstamp):
     print(os.path.exists(video_file))
 
 
+def main(ticker,tstamp):
+    gen_ani(ticker,tstamp)
 
-        
 if __name__ == "__main__":
 
     ticker = 'SPX'
