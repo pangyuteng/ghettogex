@@ -64,7 +64,7 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
-async def main(ticker,tstamp,pq_file):
+async def aggregate_json2parquet(ticker,tstamp,pq_file):
     date_stamp_str = tstamp.strftime("%Y-%m-%d")
     ticker_folder = f"/mnt/hd1/data/tastyfi/{ticker}/{date_stamp_str}"
     print(f"started at {time.strftime('%X')}")
@@ -96,17 +96,12 @@ async def main(ticker,tstamp,pq_file):
     print(f"finished at {time.strftime('%X')}")
     return df
 
-
-#async def get_oi(event_symbol):
-def get_oi(event_symbol,df):
-    # tstamp,event_symbol,oi
-    pass
-
-if __name__ == "__main__":
-
-    ticker = 'SPX'
-    tstamp = datetime.datetime(2024,12,31)
+oi_csv_file = "oi.csv"
+spot_csv_file = "spot_price.csv"
+def cache_oi(ticker,tstamp):
     date_stamp_str = tstamp.strftime("%Y-%m-%d")
+    if all([os.path.exists(x) for x in [oi_csv_file,spot_csv_file]]):
+        return
 
     if ticker == 'SPX':
         ticker_variants = ["SPX","SPXW"]
@@ -115,15 +110,12 @@ if __name__ == "__main__":
 
     os.makedirs('tmp/pngs',exist_ok=True)
     pq_file = f'tmp/{ticker}-{date_stamp_str}.parquet.gzip'
-    oi_csv_file = 'tmp/oi.csv'
-    gex_csv_file = f'tmp/{ticker}-{date_stamp_str}-gex.csv'
-    gex_png_file = f'tmp/{ticker}-{date_stamp_str}-gex.png'
 
     tstamp_list = pd.date_range(start="2024-12-31 09:30:00",end="2024-12-31 16:30:00",freq='s')
     tstamp_list = sorted(list(set([x.replace(second=0) for x in tstamp_list])))
 
     if not os.path.exists(pq_file):
-        df = asyncio.run(main(ticker,tstamp,pq_file))
+        df = asyncio.run(aggregate_json2parquet(ticker,tstamp,pq_file))
     else:
         df = pd.read_parquet(pq_file)
 
@@ -143,7 +135,7 @@ if __name__ == "__main__":
     df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size']) #"BUY","SELL":
     df['bid_price'] = pd.to_numeric(df['bid_price'], errors='coerce')
     df['ask_price'] = pd.to_numeric(df['ask_price'], errors='coerce')
-    df['mid_price'] = df['bid_price']+df['ask_price']
+    df['mid_price'] = (df['bid_price']+df['ask_price'])/2
 
     price_list = []
     for tstamp in tqdm(tstamp_list):
@@ -158,7 +150,7 @@ if __name__ == "__main__":
         price_list.append(q_df)    
 
     price_df = pd.concat(price_list)
-    price_df.to_csv("spot_price.csv",index=False)
+    price_df.to_csv(spot_csv_file,index=False)
 
     oi_list = []
     for event_symbol in tqdm(event_symbol_list):
@@ -196,6 +188,72 @@ if __name__ == "__main__":
             oi_list.append(tmp_df)
 
     oi_pd = pd.concat(oi_list)
-    oi_pd.to_csv("oi.csv",index=False)
+    oi_pd.to_csv(oi_csv_file,index=False)
+
+def main(ticker,tstamp):
+    cache_oi(ticker,tstamp)
+    spot_df = pd.read_csv(spot_csv_file)
+    oi_df = pd.read_csv(oi_csv_file)
+    png_file_list = []
+    for tstamp_reduced in sorted(oi_df.tstamp_reduced.unique()):
+        sec_png_file = os.path.join('tmp/pngs',tstamp_reduced+".png")
+        item_df = oi_df[oi_df.tstamp_reduced==tstamp_reduced]
+        plt.figure()
+        for n,row in item_df.iterrows():
+            if row.contract_type == 'P':
+                color = 'blue'
+                factor = -1
+            else:
+                color = 'orange'
+                factor = 1
+            plt.plot([0,factor*row.latest_open_interest],[row.strike,row.strike],color=color)
+        item_df = spot_df[spot_df.tstamp_reduced==tstamp_reduced]
+        if len(item_df)>0:
+            spot_price = item_df.mid_price.to_list()[-1]
+        else:
+            spot_price = np.nan
+        #plt.axhline(spot_price)
+        print(tstamp_reduced,spot_price)
+        plt.grid(True)
+        message = f"{tstamp_reduced}"
+        plt.title(message)
+        plt.xlim(-30000,30000)
+        plt.ylim(5500,6100)
+        plt.ylabel("strike")
+        plt.xlabel("oi")
+        plt.savefig(sec_png_file)
+        plt.close()
+        png_file_list.append(sec_png_file)
+
+    file_list = []
+    file_list.extend(png_file_list)
+    fps = 10
+    duration = (len(png_file_list))/10
+    print(duration)
+    time_list = list(np.arange(0,duration,1./fps))
+    print(len(time_list))
+    img_dict = {a:f for a,f in zip(time_list,file_list)}
+
+    def make_frame(t):
+        fpath= img_dict[t]
+        im = PIL.Image.open(fpath)
+        arr = np.asarray(im)
+        return arr
+
+    work_dir = 'tmp'
+    gif_path = os.path.join(work_dir,f'ani.gif')
+    video_file = os.path.join(work_dir,f"ani.mp4")
+    print(video_file)
+    clip = editor.VideoClip(make_frame, duration=duration)
+    clip.write_gif(gif_path, fps=fps)
+    clip.write_videofile(video_file, fps=fps)
+    print(os.path.exists(video_file))
+
+
+
         
-            
+if __name__ == "__main__":
+
+    ticker = 'SPX'
+    tstamp = datetime.datetime(2024,12,31)
+    main(ticker,tstamp)
