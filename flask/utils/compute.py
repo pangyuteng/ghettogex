@@ -197,7 +197,7 @@ def compute_btc_gex(tstamp=None,save_png=False):
 
         except:
             traceback.print_exc()
-    sys.exit(1)
+    #sys.exit(1)
     df = pd.DataFrame(gex_by_strike_list)
     df = df[['strike','gex']]
     df = df.groupby(['strike'],as_index=False).sum()
