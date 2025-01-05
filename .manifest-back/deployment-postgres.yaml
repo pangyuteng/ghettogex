@@ -16,20 +16,14 @@ spec:
       - name: web
         image: docker.io/pangyuteng/fi-postgres:main
         imagePullPolicy: Always
-        env:
-        - name: CACHE_FOLDER
-          value: /mnt/hd1/data/fi
-        - name: CACHE_TASTY_FOLDER
-          value: /mnt/hd1/data/tastyfi
-        command: ["python"]
-        args: ["-m", "utils.data_cache"]
         ports:
-        - containerPort: 80
+        - containerPort: 5432
           name: web
           protocol: TCP
         volumeMounts:
         - name: nfs-volume
-          mountPath: /mnt/hd1/data
+          mountPath: /var/lib/postgresql/data
+          subPath: pgdata
       volumes:
       - name: nfs-volume
         nfs:
