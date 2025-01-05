@@ -8,3 +8,6 @@ cd ..
 kubectl apply -f .manifest-back
 
 ```
+
+
+kubectl rollout restart deployment fi-app-postgres -n default

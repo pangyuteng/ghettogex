@@ -18,6 +18,13 @@ spec:
       - name: fi-postgres
         image: docker.io/pangyuteng/private:fi-postgres-edge
         imagePullPolicy: Always
+        env:
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          value: password
+        - name: POSTGRES_DB
+          value: postgres
         ports:
         - containerPort: 5432
           name: web
