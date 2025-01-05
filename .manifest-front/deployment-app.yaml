@@ -16,7 +16,7 @@ spec:
       - name: registry-credentials
       containers:
       - name: web
-        image: docker.io/pangyuteng/private:main
+        image: docker.io/pangyuteng/private:fi-flask-main
         imagePullPolicy: Always
         env:
         - name: CACHE_FOLDER

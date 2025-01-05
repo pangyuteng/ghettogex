@@ -62,7 +62,7 @@ jobs:
         with:
           context: flask
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: fi-flask-${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: deploy to kube
