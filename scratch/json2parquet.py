@@ -239,6 +239,7 @@ def gen_ani(ticker,tstamp):
     
     max_strike,min_strike = np.max(merged_df.spot_price)*1.05,np.min(merged_df.spot_price)*.95
     max_gex = np.max(np.abs(merged_df.gex))
+    max_gex = 3.5
     png_file_list = []
     for tstamp_reduced in sorted(gex_df.tstamp_reduced.unique()):
         sec_png_file = os.path.join('tmp/pngs',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
@@ -258,12 +259,12 @@ def gen_ani(ticker,tstamp):
         plt.axhline(spot_price,color='blue',linestyle='--')
         print(tstamp_reduced,spot_price)
         plt.grid(True)
-        message = f"{tstamp_reduced}"
+        message = f"tstamp: {tstamp_reduced}\nspx: {spot_price}"
         plt.title(message)
         plt.xlim(-max_gex,max_gex)
         plt.ylim(min_strike,max_strike)
         plt.ylabel("strike")
-        plt.xlabel("oi")
+        plt.xlabel("naive oi gex ($Bn per 1% move)")
         plt.savefig(sec_png_file)
         plt.close()
         png_file_list.append(sec_png_file)
