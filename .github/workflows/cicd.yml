@@ -56,10 +56,9 @@ jobs:
             docker.io/pangyuteng/private
             ghcr.io/${{ github.repository }}
           tags: |
-            #type=raw,value=mytag-{{branch}}-{{sha}}
-            type=edge,value=fi-flask-{{branch}}-edge
+            type=edge,branch=main
           flavor: |
-            prefix=fi-flask
+            prefix=fi-flask-
 
       - name: Build and push Docker images
         id: push
