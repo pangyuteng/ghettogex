@@ -266,12 +266,12 @@ def gen_ani(ticker,tstamp):
         plt.ylabel("strike")
         plt.xlabel("naive oi gex ($Bn per 1% move)")
         foot_note = """
-        gamma: from greeks event updated every minute
-        prior day open interest: from summary from 1st event at market open.
-        oi changes (size,side): from timeandsale
-        underlying spot price: from quote event
+        gamma - via greeks event
+        prior day open interest - via  summary event
+        oi changes (size,side) - via timeandsale event
+        underlying spot price -via quote event
         """
-        plt.text(0,(min_strike+max_strike)/2,foot_note)
+        plt.text(-max_gex,max_strike,foot_note)
         plt.tight_layout()
         plt.savefig(sec_png_file)
         plt.close()
