@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: docker.io/pangyuteng/fi-postgres:main
+        image: docker.io/pangyuteng/private:fi-postgres-prod
         imagePullPolicy: Always
         ports:
         - containerPort: 5432
