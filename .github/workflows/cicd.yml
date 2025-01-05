@@ -50,11 +50,14 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        uses: docker/metadata-action@v5
         with:
           images: |
             docker.io/pangyuteng/private
             ghcr.io/${{ github.repository }}
+          tags: |
+            #type=raw,value=mytag-{{branch}}-{{sha}}
+            type=edge,value=fi-flask-{{branch}}-edge
 
       - name: Build and push Docker images
         id: push
@@ -62,7 +65,7 @@ jobs:
         with:
           context: flask
           push: true
-          tags: fi-flask-${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: deploy to kube
