@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fi-redis-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fi-redis
+  template:
+    metadata:
+      labels:
+        app: fi-redis
+    spec:
+      containers:
+      - name: web
+        image: redis:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 6379
+          name: web
+          protocol: TCP

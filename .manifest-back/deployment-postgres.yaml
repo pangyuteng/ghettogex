@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fi-postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fi-postgres
+  template:
+    metadata:
+      labels:
+        app: fi-postgres
+    spec:
+      containers:
+      - name: web
+        image: docker.io/pangyuteng/fi-postgres:main
+        imagePullPolicy: Always
+        env:
+        - name: CACHE_FOLDER
+          value: /mnt/hd1/data/fi
+        - name: CACHE_TASTY_FOLDER
+          value: /mnt/hd1/data/tastyfi
+        command: ["python"]
+        args: ["-m", "utils.data_cache"]
+        ports:
+        - containerPort: 80
+          name: web
+          protocol: TCP
+        volumeMounts:
+        - name: nfs-volume
+          mountPath: /mnt/hd1/data
+      volumes:
+      - name: nfs-volume
+        nfs:
+          server: 192.168.68.147
+          path: /mnt/hd1/data

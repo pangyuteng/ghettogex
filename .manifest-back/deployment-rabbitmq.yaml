@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fi-rabbitmq-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fi-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: fi-rabbitmq
+    spec:
+      containers:
+      - name: web
+        image: rabbitmq:management
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5672
+          name: web
+          protocol: TCP
+        - containerPort: 15672
+          name: web
+          protocol: TCP
