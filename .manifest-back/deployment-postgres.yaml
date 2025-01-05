@@ -12,9 +12,11 @@ spec:
       labels:
         app: fi-postgres
     spec:
+      imagePullSecrets:
+      - name: registry-credentials
       containers:
       - name: web
-        image: docker.io/pangyuteng/private:fi-postgres-prod
+        image: docker.io/pangyuteng/private:fi-postgres-edge
         imagePullPolicy: Always
         ports:
         - containerPort: 5432
