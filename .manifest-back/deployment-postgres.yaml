@@ -15,7 +15,7 @@ spec:
       imagePullSecrets:
       - name: registry-credentials
       containers:
-      - name: web
+      - name: fi-postgres
         image: docker.io/pangyuteng/private:fi-postgres-edge
         imagePullPolicy: Always
         ports:

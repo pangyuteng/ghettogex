@@ -13,10 +13,9 @@ spec:
         app: fi-redis
     spec:
       containers:
-      - name: web
+      - name: fi-redis
         image: redis:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 6379
-          name: web
           protocol: TCP
