@@ -259,7 +259,7 @@ def gen_ani(ticker,tstamp):
         plt.axhline(spot_price,color='blue',linestyle='--')
         print(tstamp_reduced,spot_price)
         plt.grid(True)
-        message = f"tstamp: {tstamp_reduced}\nspx: {spot_price}"
+        message = f"ticker: {ticker}\ntstamp: {tstamp_reduced}\nprice: {spot_price:1.2f}"
         plt.title(message)
         plt.xlim(-max_gex,max_gex)
         plt.ylim(min_strike,max_strike)
