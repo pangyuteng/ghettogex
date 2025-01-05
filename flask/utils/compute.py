@@ -185,13 +185,15 @@ def compute_btc_gex(tstamp=None,save_png=False):
             # normalize expiration to year ??
             # then sum up gex per (strike,expiration)
             expiration_list = []
-            gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=False)
-            print(ticker,gex_by_expiration.shape,'!!!!!!!!!!!!1')
-            gex_surface_df = compute_gex_surface(spot_price,row_df,ticker=ticker,save_png=False)
-            print(gex_by_expiration.shape,'!!!!!!22222222222221')
-            logger.debug(f'{gex_surface_df.shape}')
-            logger.debug(gex_surface_df.columns)
-            logger.debug(gex_surface_df.index)
+            print(options_df.shape)
+            print(sorted(options_df.expiration.unique()))
+            # gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=False)
+            # print(ticker,gex_by_expiration.shape,'!!!!!!!!!!!!1')
+            # gex_surface_df = compute_gex_surface(spot_price,row_df,ticker=ticker,save_png=False)
+            # print(gex_by_expiration.shape,'!!!!!!22222222222221')
+            # logger.debug(f'{gex_surface_df.shape}')
+            # logger.debug(gex_surface_df.columns)
+            # logger.debug(gex_surface_df.index)
 
         except:
             traceback.print_exc()

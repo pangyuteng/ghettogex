@@ -214,34 +214,54 @@ def cache_oi(ticker,tstamp):
 def gen_ani(ticker,tstamp):
     cache_oi(ticker,tstamp)
     spot_df = pd.read_csv(spot_csv_file)
+    spot_df = spot_df.rename(columns={'mid_price':'spot_price'})
+    spot_df = spot_df[['tstamp_reduced','spot_price']]
+
     oi_df = pd.read_csv(oi_csv_file)
+    greeks_df = pd.read_csv(greeks_csv_file)
+
     spot_df.tstamp_reduced = spot_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
     oi_df.tstamp_reduced = oi_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
+    oi_df = oi_df[['tstamp_reduced','event_symbol','expiration','contract_type','strike','latest_open_interest']]
+
+    greeks_df.tstamp_reduced = greeks_df.tstamp_reduced.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S'))
+    greeks_df = greeks_df[['tstamp_reduced','event_symbol','expiration','contract_type','strike','gamma']]
+    
+    merged_df = spot_df.merge(oi_df,how='left',on=['tstamp_reduced'])
+    merged_df = merged_df.merge(greeks_df,how='left',on=['tstamp_reduced','event_symbol','expiration','contract_type','strike'])
+    merged_df['contract_type_int'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
+    merged_df['latest_open_interest'] = pd.to_numeric(merged_df['latest_open_interest'], errors='coerce')
+    merged_df['gamma'] = pd.to_numeric(merged_df['gamma'], errors='coerce')
+    merged_df['strike'] = pd.to_numeric(merged_df['strike'], errors='coerce')
+    merged_df['gex'] = merged_df.gamma * merged_df.latest_open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int / 1e9
+    merged_df = merged_df[['tstamp_reduced','strike','spot_price','gex']]
+    gex_df = merged_df.groupby(['tstamp_reduced','strike','spot_price']).sum().reset_index()
+    
+    max_strike,min_strike = np.max(merged_df.spot_price)*1.05,np.min(merged_df.spot_price)*.95
+    max_gex = np.max(np.abs(merged_df.gex))
     png_file_list = []
-    for tstamp_reduced in sorted(oi_df.tstamp_reduced.unique()):
+    for tstamp_reduced in sorted(gex_df.tstamp_reduced.unique()):
         sec_png_file = os.path.join('tmp/pngs',tstamp_reduced.strftime("%Y-%m-%d-%H-%M-%S")+".png")
-        item_df = oi_df[oi_df.tstamp_reduced==tstamp_reduced]
-        plt.figure()
-        for n,row in item_df.iterrows():
-            if row.contract_type == 'P':
-                color = 'blue'
-                factor = -1
-            else:
-                color = 'orange'
-                factor = 1
-            plt.plot([0,factor*row.latest_open_interest],[row.strike,row.strike],color=color)
-        item_df = spot_df[spot_df.tstamp_reduced==tstamp_reduced]
-        if len(item_df)>0:
-            spot_price = item_df.mid_price.to_list()[-1]
+        item_df = gex_df[gex_df.tstamp_reduced==tstamp_reduced]
+        if len(item_df) > 0:
+            spot_price = item_df.spot_price.to_list()[-1]
         else:
             spot_price = np.nan
-        plt.axhline(spot_price,color='red',linestyle='--')
+        plt.figure()
+        for n,row in item_df.iterrows():
+            if row.gex > 0:
+                color = 'green'
+            else:
+                color = 'red'
+            plt.plot([0,row.gex],[row.strike,row.strike],color=color)
+
+        plt.axhline(spot_price,color='blue',linestyle='--')
         print(tstamp_reduced,spot_price)
         plt.grid(True)
         message = f"{tstamp_reduced}"
         plt.title(message)
-        plt.xlim(-30000,30000)
-        plt.ylim(5500,6100)
+        plt.xlim(-max_gex,max_gex)
+        plt.ylim(min_strike,max_strike)
         plt.ylabel("strike")
         plt.xlabel("oi")
         plt.savefig(sec_png_file)
