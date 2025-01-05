@@ -271,7 +271,7 @@ def gen_ani(ticker,tstamp):
         oi changes (size,side): from timeandsale
         underlying spot price: from quote event
         """
-        plt.text(0,(min_strike+max_strike)/2)
+        plt.text(0,(min_strike+max_strike)/2,foot_note)
         plt.tight_layout()
         plt.savefig(sec_png_file)
         plt.close()
