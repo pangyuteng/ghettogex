@@ -204,11 +204,6 @@ def cache_oi(ticker,tstamp):
             oi_list.append(tmp_df)
 
     oi_pd = pd.concat(oi_list)
-
-    # idf['contract_type_int'] = idf.contract_type.apply(lambda x: 1 if x=='C' else -1)
-    # idf['gex_volume'] = idf['gamma'].astype(np.float64) * idf['volume'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['contract_type_int']
-    # idf['gex_oi'] = idf['gamma'].astype(np.float64) * idf['open_interest'].astype(np.float64) * 100 * spot_price * spot_price * 0.01 * idf['contract_type_int']
-
     oi_pd.to_csv(oi_csv_file,index=False)
 
 def gen_ani(ticker,tstamp):
@@ -264,15 +259,16 @@ def gen_ani(ticker,tstamp):
         plt.xlim(-max_gex,max_gex)
         plt.ylim(min_strike,max_strike)
         plt.ylabel("strike")
-        plt.xlabel("naive oi gex ($Bn per 1% move)")
+        plt.xlabel("naive gex ($Bn per 1% move)")
+        plt.tight_layout()
         foot_note = """
         gamma - via greeks event
         prior day open interest - via  summary event
         oi changes (size,side) - via timeandsale event
         underlying spot price -via quote event
         """
-        plt.text(-max_gex,max_strike,foot_note)
-        plt.tight_layout()
+        plt.text(-2,(min_strike+max_strike)/2,foot_note)
+
         plt.savefig(sec_png_file)
         plt.close()
         png_file_list.append(sec_png_file)
