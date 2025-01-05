@@ -1,0 +1,110 @@
+services:
+    redis:
+        image: redis:latest
+        hostname: redis
+        ports:
+            - 6379:6379
+        restart: always
+    rabbitmq:
+        image: rabbitmq:management
+        hostname: rabbitmq
+        ports:
+            - 5672:5672
+            - 15672:15672
+        restart: always
+    flask:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: hello-tastytrade
+        environment:
+            POSTGRES_URI: postgres://postgres:postgres@postgres:5432/postgres
+            AMQP_URI: amqp://rabbitmq:5672
+            REDIS_URI: redis://redis:6379/1
+        restart: always
+        ports:
+            - 80:5000
+        working_dir: /opt/app
+        command: python app.py 5000
+        depends_on:
+            postgres:
+                condition: service_healthy
+        healthcheck:
+            test: curl -f http://localhost:5000 || exit 1
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
+    worker:
+        environment:
+            POSTGRES_URI: postgres://postgres:postgres@postgres:5432/postgres
+            AMQP_URI: amqp://rabbitmq:5672
+            REDIS_URI: redis://redis:6379/1
+            C_FORCE_ROOT: "true"
+        image: hello-tastytrade
+        links:
+            - flask
+        restart: always
+        command: bash worker.sh
+        depends_on:
+            - redis
+            - rabbitmq
+            - luigi
+        healthcheck:
+            test: kill -0 $$(cat /tmp/celeryworker.pid)
+            interval: 60s
+            timeout: 10s
+            retries: 5
+            start_period: 40s
+    beat:
+        environment:
+            POSTGRES_URI: postgres://postgres:postgres@postgres:5432/postgres
+            AMQP_URI: amqp://rabbitmq:5672
+            REDIS_URI: redis://redis:6379/1
+            C_FORCE_ROOT: "true"
+        image: hello-tastytrade
+        restart: always
+        command: bash beat.sh
+        depends_on:
+            - redis
+            - rabbitmq
+        healthcheck:
+            test: kill -0 $$(cat /tmp/celeryworker.pid)
+            interval: 60s
+            timeout: 10s
+            retries: 5
+            start_period: 40s
+    luigi:
+        image: hello-tastytrade
+        ports:
+            - 8082:8082
+        restart: always
+        command: luigid
+        healthcheck:
+            test: curl -f http://localhost:8082 || exit 1
+            interval: 30s
+            timeout: 10s
+            retries: 3
+    postgres:
+        build:
+            context: postgres
+            dockerfile: Dockerfile
+        image: hello-postgres
+        restart: always
+        ports:
+            - 5432:5432
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: postgres
+        user: postgres
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready"]
+            interval: 1s
+            timeout: 5s
+            retries: 10
+    adminer:
+        image: adminer
+        restart: always
+        ports:
+           - 8080:8080

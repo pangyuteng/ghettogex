@@ -10,4 +10,4 @@ kubectl apply -f .manifest-back
 ```
 
 
-kubectl rollout restart deployment fi-app-postgres -n default
+kubectl rollout restart deployment fi-postgres-deployment -n default
