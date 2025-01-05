@@ -58,6 +58,8 @@ jobs:
           tags: |
             #type=raw,value=mytag-{{branch}}-{{sha}}
             type=edge,value=fi-flask-{{branch}}-edge
+          flavor: |
+            prefix=fi-flask
 
       - name: Build and push Docker images
         id: push
