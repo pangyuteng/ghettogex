@@ -247,9 +247,11 @@ class LivePrices:
                 await persist_to_postgres(self.ticker,e.event_symbol,attribue_name,e)
 
 def get_cancel_file(ticker):
+    ticker = ticker.replace("/","^")
     return os.path.join(CACHE_TASTY_FOLDER,f"cancel-{ticker}.txt")
 
 def get_running_file(ticker):
+    ticker = ticker.replace("/","^")
     return os.path.join(CACHE_TASTY_FOLDER,f"running-{ticker}.txt")
 
 async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
@@ -319,7 +321,12 @@ if __name__ == "__main__":
 
 """
 
-python -m utils.data_tasty SPY background_subscribe
+docker run -it --env-file=.env \
+    -w $PWD -v /mnt:/mnt \
+    fi-flask:latest bash
+
+
+python -m utils.data_tasty /ES background_subscribe
 python -m utils.data_tasty SPX background_subscribe
 
 """

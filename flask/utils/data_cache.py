@@ -18,9 +18,11 @@ from .misc import now_in_new_york, is_market_open, CACHE_FOLDER
 CBOEX_TICKER_LIST = ['^SPX','^NDX','^VIX']
 BTC_TICKER = "BTC-USD"
 INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX','^VIX']
-BTC_TICKER_LIST = ['^CBTX','^MBTX','ARKB','GBTC','IBIT']
+# https://etfdb.com/themes/bitcoin-etfs/#complete-list__overview&sort_name=assets_under_management&sort_order=desc&page=1
+BTC_TICKER_LIST = ['IBIT','GBTC','FBTC','ARKB','BTC','BITO','BITX','HODL','BITU','^CBTX','^MBTX']
 OTHER_TICKER_LIST = ['MSTR','TSLA','NVDA','COIN']
-BTC_MSTR_TICKER_LIST = ['^CBTX','^MBTX','ARKB','GBTC','IBIT','MSTR']
+BTC_MSTR_TICKER_LIST = list(BTC_TICKER_LIST)
+BTC_MSTR_TICKER_LIST.append("MSTR")
 def cache_main():
     now_et = now_in_new_york()
     logger.info(str(now_et))
