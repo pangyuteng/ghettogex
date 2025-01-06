@@ -143,14 +143,16 @@ class LivePrices:
     calls: list[Option]
     streamer_symbols: list[str]
     ticker: str
-    save_to_postres: bool=False
     save_to_json: bool=True
+    save_to_postres: bool=False
     @classmethod
     async def create(
         cls,
         session: Session,
         ticker: str = 'SPY',
-        expiration: datetime.date = today_in_new_york()
+        expiration: datetime.date = today_in_new_york(),
+        save_to_json: bool = True,
+        save_to_postres: bool = False,
         ):
 
         equity = Equity.get_equity(session, ticker)
@@ -185,7 +187,8 @@ class LivePrices:
         calls = [o for o in options if o.option_type == OptionType.CALL]
 
         self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
-                   streamer, equity, puts, calls, streamer_symbols,ticker)
+                   streamer, equity, puts, calls, streamer_symbols,ticker,
+                   save_to_json=save_to_json,save_to_postres=save_to_postres)
 
         t_listen_candles = asyncio.create_task(self._update_candle())
         t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks"))
