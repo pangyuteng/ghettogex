@@ -172,7 +172,7 @@ def compute_btc_gex(tstamp=None,save_png=False):
             compute_total_gex(spot_price, row_df)
             gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large',save_png=False)
             gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=False)
-            gex_surface_df = compute_gex_surface(spot_price,row_df,ticker=ticker,lim='large',save_png=True)
+            gex_surface_df = compute_gex_surface(spot_price,row_df,ticker=ticker,lim='large',save_png=False)
             logger.debug(f"---- {ticker}")
             strike_list = gex_by_strike['strike'].values
             gex_list = gex_by_strike['gex'].values
@@ -181,7 +181,6 @@ def compute_btc_gex(tstamp=None,save_png=False):
             
             for strike,gex in zip(btc_moneyness_list,gex_list):
                 gex_by_strike_list.append(dict(
-                    ticker=ticker,
                     strike=strike,
                     gex=gex,
                 ))
@@ -209,13 +208,15 @@ def compute_btc_gex(tstamp=None,save_png=False):
     
     # sum via expiration
     if len(gex_by_expiration_list)>0:
-        expiration_df = pd.concat(gex_by_expiration_list)
+        expiration_df = pd.DataFrame(gex_by_expiration_list)
     else:
         expiration_df = pd.DataFrame([],columns=['expiration','gex'])
     expiration_df = expiration_df.groupby(['expiration'],as_index=False).sum()
 
-    strike_df = pd.DataFrame(gex_by_strike_list)
-    strike_df = strike_df[['strike','gex']]
+    if len(gex_by_strike_list)>0:
+        expiration_df = pd.DataFrame(gex_by_strike_list)
+    else:
+        expiration_df = pd.DataFrame([],columns=['strike','gex'])
     strike_df = strike_df.groupby(['strike'],as_index=False).sum()
     total_gex = strike_df['gex'].sum()
     if save_png:
