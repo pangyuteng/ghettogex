@@ -214,9 +214,9 @@ def compute_btc_gex(tstamp=None,save_png=False):
     expiration_df = expiration_df.groupby(['expiration'],as_index=False).sum()
 
     if len(gex_by_strike_list)>0:
-        expiration_df = pd.DataFrame(gex_by_strike_list)
+        strike_df = pd.DataFrame(gex_by_strike_list)
     else:
-        expiration_df = pd.DataFrame([],columns=['strike','gex'])
+        strike_df = pd.DataFrame([],columns=['strike','gex'])
     strike_df = strike_df.groupby(['strike'],as_index=False).sum()
     total_gex = strike_df['gex'].sum()
     if save_png:
