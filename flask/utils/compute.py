@@ -203,7 +203,7 @@ def compute_btc_gex(tstamp=None,save_png=False):
     if len(gex_surface_list)>0:
         surf_df = pd.concat(gex_surface_list)
     else:
-        surf_df = pd.DataFrame([],columns['expiration','strike','gex'])
+        surf_df = pd.DataFrame([],columns=['expiration','strike','gex'])
     print(surf_df.columns)
     surf_df = surf_df.groupby(['expiration','strike'],as_index=False).sum()
     
