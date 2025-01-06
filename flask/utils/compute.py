@@ -152,7 +152,7 @@ def gex_test(ticker):
 def round_nearest(x, a):
     return np.round(x / a) * a
 
-ROUND_UP_UNIT = 5000
+ROUND_UP_UNIT = 2500
 def compute_btc_gex(tstamp=None,save_png=False):
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER,tstamp=tstamp)
     btc_spot_price = underlying_dict['last_price']
