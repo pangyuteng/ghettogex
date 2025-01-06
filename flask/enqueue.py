@@ -5,16 +5,15 @@ import os
 import sys
 import traceback
 import datetime
-import psycopg2
-import psycopg2.extensions
-from psycopg2.extras import DictCursor
+import psycopg
+#import psycopg.extensions
+#from psycopg.extras import DictCursor
 from select import select
 import argparse
 import json
 import time
-from . import app,celeryconfig
-
 import celery
+
 from tasks import task_foo
 LISTEM_TABLE_ = []
 
@@ -35,9 +34,11 @@ class Enqueue():
         self.queue_dict={}
                 
     def _connect(self):
-        self.postgres_conn = psycopg2.connect(self.postgresuri)
-        self.postgres_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-        self.curs = self.postgres_conn.cursor(cursor_factory=DictCursor)
+        print(self.postgresuri)
+        self.postgres_conn = psycopg.connect(self.postgresuri)
+        #self.postgres_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        #self.curs = self.postgres_conn.cursor(cursor_factory=DictCursor)
+        self.curs = self.postgres_conn.cursor()
         logger.info('connecting to postgres')
         
     def _listen(self):
