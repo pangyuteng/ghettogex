@@ -32,7 +32,7 @@ beat_schedule = {
     },
     'trigger_gex_cache': {
         'task': 'tasks.trigger_gex_cache',
-        'schedule': crontab(minute='*'),
+        'schedule': 1, # every second!
         'options': {'queue': 'default'},
         'args': [],
     },

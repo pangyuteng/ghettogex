@@ -38,11 +38,10 @@ class Subscription(luigi.Task):
     def output(self): # an output that never exists
         return AlwaysRunTarget()
     def run(self):
-        if not market_is_open():
-            logger.info(f"market closed no need to trigger background_subscribe")
-            return
+        # if not market_is_open():
+        #     logger.info(f"market closed no need to trigger background_subscribe")
+        #     return
         output = asyncio.run(background_subscribe(ticker,save_to_postres=True,save_to_json=True))
-
 
 @celery_app.task
 def trigger_subscription(*args,**kwargs):
@@ -72,6 +71,22 @@ def manage_subscriptions(*args,**kwargs):
             ticker = row['ticker']
             logger.info(f"trigger subscriptions apply_async {ticker}")
             trigger_subscription.apply_async(args=[ticker])
+
+@celery_app.task
+def trigger_gex_cache(*args,**kwargs):
+    query_str = "select * from watchlist"
+    query_args = ()
+
+    if market_is_open() is False:
+        pass
+    else:
+        fetched = postgres_execute(query_str,query_args,is_commit=False)
+        if fetched is None:
+            return
+        fetched = [dict(x) for x in fetched]
+        for row in fetched:
+            ticker = row['ticker']
+            logger.info(f"trigger_gex_cache {ticker}")
 
 """
 @celery_app.task
