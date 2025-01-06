@@ -158,16 +158,21 @@ def compute_btc_gex(tstamp=None,save_png=False):
     btc_spot_price = underlying_dict['last_price']
     ticker_list = BTC_MSTR_TICKER_LIST
     gex_by_strike_list = []
+    gex_by_expiration_list = []
+    gex_surface_list = []
     for ticker in ticker_list:
         underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
-        row_df = options_df
+        row_df = options_df.copy(deep=True)
         row_df.expiration = row_df.expiration.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d'))
         row_df = row_df.reset_index()
+        print(ticker)
+        print(row_df.shape)
         try:
             spot_price = row_df.loc[0,'spot_price']
             compute_total_gex(spot_price, row_df)
             gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large',save_png=False)
-            print(ticker,gex_by_strike.shape)
+            gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=False)
+            gex_surface_df = compute_gex_surface(spot_price,row_df,ticker=ticker,lim='large',save_png=True)
             logger.debug(f"---- {ticker}")
             strike_list = gex_by_strike['strike'].values
             gex_list = gex_by_strike['gex'].values
@@ -181,30 +186,37 @@ def compute_btc_gex(tstamp=None,save_png=False):
                     gex=gex,
                 ))
 
-            # TODO :
-            # normalize expiration to year ??
-            # then sum up gex per (strike,expiration)
-            expiration_list = []
-            print(options_df.shape)
-            print(sorted(options_df.expiration.unique()))
-            # gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=False)
-            # print(ticker,gex_by_expiration.shape,'!!!!!!!!!!!!1')
-            # gex_surface_df = compute_gex_surface(spot_price,row_df,ticker=ticker,save_png=False)
-            # print(gex_by_expiration.shape,'!!!!!!22222222222221')
-            # logger.debug(f'{gex_surface_df.shape}')
-            # logger.debug(gex_surface_df.columns)
-            # logger.debug(gex_surface_df.index)
+            for expiration,gex in zip(gex_by_expiration['expiration'],gex_by_expiration['GEX']):
+                gex_by_expiration_list.append(dict(
+                    expiration=expiration,
+                    gex=gex,
+                ))
 
+            moneyness = gex_surface_df.strike/spot_price
+            btc_strike = round_nearest(moneyness*btc_spot_price, ROUND_UP_UNIT)
+            gex_surface_df.strike = btc_strike
+            gex_surface_list.append(gex_surface_df)
+            
         except:
             traceback.print_exc()
-    #sys.exit(1)
-    df = pd.DataFrame(gex_by_strike_list)
-    df = df[['strike','gex']]
-    df = df.groupby(['strike'],as_index=False).sum()
-    total_gex = df['gex'].sum()
+    # sum via group by 
+    surf_df = pd.concat(gex_surface_list)
+    print(surf_df.columns)
+    surf_df = surf_df.groupby(['expiration','strike'],as_index=False).sum()
+    
+    # sum via
+    expiration_df = pd.DataFrame(gex_by_expiration_list)
+    expiration_df = expiration_df.groupby(['expiration'],as_index=False).sum()
+
+    strike_df = pd.DataFrame(gex_by_strike_list)
+    strike_df = strike_df[['strike','gex']]
+    strike_df = strike_df.groupby(['strike'],as_index=False).sum()
+    total_gex = strike_df['gex'].sum()
     if save_png:
-        df.to_csv("ok.csv",index=False)
-        for n,row in df.iterrows():
+        surf_df.to_csv("tmp/strike-expiration.csv",index=False)
+        expiration_df.to_csv("tmp/expiration.csv",index=False)
+        strike_df.to_csv("tmp/strike.csv",index=False)
+        for n,row in strike_df.iterrows():
             plt.plot([0,row.gex],[row.strike,row.strike], linewidth=2, color='blue')
 
         plt.axhline(btc_spot_price,color='red',linewidth=1)
@@ -214,10 +226,10 @@ def compute_btc_gex(tstamp=None,save_png=False):
         plt.title(f'total_gex: {total_gex:1.3f} Bn\ncombined {BTC_MSTR_TICKER_LIST}\n spot: {btc_spot_price:1.2f}(red)')
         plt.grid(True)
         plt.ylabel("BTC strike")
-        plt.xlabel("GEX (Bn)")
+        plt.xlabel("GEX ($Bn / % move)")
         plt.tight_layout()
-        plt.savefig("ok.png")
-    return btc_spot_price, df
+        plt.savefig("tmp/strike.png")
+    return btc_spot_price, strike_df, expiration_df, surf_df
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
