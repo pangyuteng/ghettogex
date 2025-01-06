@@ -25,7 +25,7 @@ import asyncio
 from dataclasses import dataclass
 
 import pandas_market_calendars as mcal
-
+import tastytrade
 from tastytrade import DXLinkStreamer
 from tastytrade.instruments import get_option_chain
 from tastytrade.dxfeed import (
@@ -304,8 +304,10 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
             os.remove(running_file)
 
 if __name__ == "__main__":
+    log_level = logging.INFO # logging.DEBUG
+    tastytrade.logger.setLevel(log_level)
     logging.basicConfig(
-        level=logging.INFO,#level=logging.DEBUG,
+        level=log_level,
         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
     )

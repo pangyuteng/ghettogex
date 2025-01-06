@@ -19,6 +19,7 @@ from celery import Celery
 
 from utils.postgres_utils import postgres_execute
 from utils.data_tasty import background_subscribe, is_market_open
+import tastytrade
 
 celery_app = Celery('tasks')
 import celeryconfig
@@ -39,6 +40,7 @@ class Subscription(luigi.Task):
         if not is_market_open():
             logger.info(f"market closed no need to trigger background_subscribe")
             return
+        tastytrade.logger.setLevel(logging.INFO)
         output = asyncio.run(background_subscribe(self.ticker,save_to_postres=True,save_to_json=True))
 
 @celery_app.task
