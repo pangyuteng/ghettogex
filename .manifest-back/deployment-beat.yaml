@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: fi-beat-deployment
 spec:
-  replicas: 6
+  replicas: 1
   selector:
     matchLabels:
       app: fi-beat
@@ -28,7 +28,7 @@ spec:
         - name: POSTGRES_URI
           value: postgres://postgres:postgres@fi-postgres:5432/postgres
         - name: C_FORCE_ROOT
-          value: true
+          value: "true"
         volumeMounts:
         - name: nfs-volume
           mountPath: /mnt/hd1/data

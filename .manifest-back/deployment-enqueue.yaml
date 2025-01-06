@@ -27,8 +27,6 @@ spec:
           value: redis://fi-redis:6379/1
         - name: POSTGRES_URI
           value: postgres://postgres:postgres@fi-postgres:5432/postgres
-        - name: C_FORCE_ROOT
-          value: true
         volumeMounts:
         - name: nfs-volume
           mountPath: /mnt/hd1/data
