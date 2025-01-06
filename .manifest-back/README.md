@@ -11,3 +11,7 @@ kubectl apply -f .manifest-back
 
 
 kubectl rollout restart deployment fi-postgres-deployment -n default
+
+kubectl rollout restart deployment fi-enqueue-deployment -n default
+kubectl rollout restart deployment fi-beat-deployment -n default
+kubectl rollout restart deployment fi-worker-deployment -n default
