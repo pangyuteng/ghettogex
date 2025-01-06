@@ -3,13 +3,14 @@ source https://github.com/Matteo-Ferrara/gex-tracker
 """
 import logging
 logger = logging.getLogger(__file__)
+import os
 import sys
+import time
 import traceback
 import json
-import os
 import re
 from datetime import timedelta, datetime
-
+import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
@@ -83,13 +84,15 @@ def scrape_options_data(ticker):
 
     # Convert json to pandas DataFrame
     try:
-        if len(mydict) == 0:
-            raise ValueError("empty dict!")
-        data = pd.DataFrame.from_dict(mydict)
-        spot_price = data.loc["current_price", "data"]
-        option_data = pd.DataFrame(data.loc["options", "data"])
-        option_data['spot_price']=spot_price
-        return spot_price, fix_option_data(option_data)
+        if len(mydict) > 0:
+            data = pd.DataFrame.from_dict(mydict)
+            spot_price = data.loc["current_price", "data"]
+            option_data = pd.DataFrame(data.loc["options", "data"])
+            option_data['spot_price']=spot_price
+            return spot_price, fix_option_data(option_data)
+        else:
+            spot_price = np.nan
+            return spot_price, pd.DataFrame([],columns=['option_type','strike','expiration','open_interest','gamma'])
     except:
         traceback.print_exc()
         print(mydict,'!!!')

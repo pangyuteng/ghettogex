@@ -19,12 +19,12 @@ CBOEX_TICKER_LIST = ['^SPX','^NDX','^VIX']
 BTC_TICKER = "BTC-USD"
 INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX','^VIX']
 # https://etfdb.com/themes/bitcoin-etfs/#complete-list__overview&sort_name=assets_under_management&sort_order=desc&page=1
-BTC_TICKER_LIST = ['IBIT','GBTC','FBTC','ARKB','BTC','BITO','BITX','HODL','BITU','^CBTX','^MBTX']
+BTC_TICKER_LIST = ['IBIT','GBTC','FBTC','ARKB','BTC','BITO','BITX','BITU','^CBTX','^MBTX']
 OTHER_TICKER_LIST = ['MSTR','TSLA','NVDA','COIN']
 BTC_MSTR_TICKER_LIST = list(BTC_TICKER_LIST)
 BTC_MSTR_TICKER_LIST.append("MSTR")
 def cache_main():
-    now_et = now_in_new_york()
+    now_et = now_in_new_york()-datetime.timedelta(days=1)
     logger.info(str(now_et))
     year_stamp = datetime.datetime.strftime(now_et,'%Y')
     date_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d')
@@ -119,6 +119,8 @@ if __name__== "__main__":
     logger.addHandler(ch)
     while True:
         now_et = now_in_new_york()
+        cache_main()
+        sys.exit(1)
         if is_market_open():
             logger.info('market open, will update when market closed...')
         elif now_et.hour > 19: # cache after market close.
