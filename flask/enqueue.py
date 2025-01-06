@@ -5,9 +5,9 @@ import os
 import sys
 import traceback
 import datetime
-import psycopg
-#import psycopg.extensions
-#from psycopg.extras import DictCursor
+import psycopg2
+import psycopg2.extensions
+from psycopg2.extras import DictCursor
 from select import select
 import argparse
 import json
@@ -15,7 +15,7 @@ import time
 import celery
 
 from tasks import task_foo
-LISTEM_TABLE_LIST = ["quotes","summary","greeks","timeandsale"]
+LISTEM_TABLE_LIST = ["watchlist","quotes","summary","greeks","timeandsale"]
 
 class Enqueue():
     """
@@ -34,10 +34,9 @@ class Enqueue():
         self.queue_dict={}
                 
     def _connect(self):
-        print(self.postgresuri)
-        self.postgres_conn = psycopg.connect(self.postgresuri)
-        #self.postgres_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-        #self.curs = self.postgres_conn.cursor(cursor_factory=DictCursor)
+        self.postgres_conn = psycopg2.connect(self.postgresuri)
+        self.postgres_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        self.curs = self.postgres_conn.cursor(cursor_factory=DictCursor)
         self.curs = self.postgres_conn.cursor()
         logger.info('connecting to postgres')
         
@@ -92,7 +91,6 @@ class Enqueue():
         pid = notify.pid
         table_name = notify.channel
         payload = notify.payload
-
         if self.is_log:
             logger.info('pid: %r \n channel: %r \n payload: %r \n' % (notify.pid,notify.channel,notify.payload))
         try:
