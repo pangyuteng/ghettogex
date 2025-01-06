@@ -156,7 +156,7 @@ async def ws_gex_strike():
             tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
 
             if ticker == BTC_TICKER:
-                btc_spot_price, strike_df, expiration_df, surf_df = compute_btc_gex()
+                spot_price, strike_df, expiration_df, surf_df = compute_btc_gex()
                 df = strike_df.copy()
             else:
                 spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker)
