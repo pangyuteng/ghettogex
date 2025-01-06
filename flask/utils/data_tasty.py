@@ -27,11 +27,11 @@ from dataclasses import dataclass
 import pandas_market_calendars as mcal
 import tastytrade
 from tastytrade import DXLinkStreamer
-from tastytrade.instruments import get_option_chain
+from tastytrade.instruments import get_option_chain, get_future_option_chain
 from tastytrade.dxfeed import (
     Candle, Greeks, Profile, Quote, Summary, TheoPrice, TimeAndSale, Trade, Underlying, 
 )
-from tastytrade.instruments import Equity, Option, OptionType
+from tastytrade.instruments import Equity, Option, Future, FutureOption, OptionType
 from tastytrade.session import Session
 from tastytrade.streamer import EventType
 from tastytrade.utils import today_in_new_york
@@ -155,9 +155,14 @@ class LivePrices:
         save_to_json: bool = True,
         save_to_postres: bool = False,
         ):
+        print("ticker",ticker)
+        if "/" in ticker:
+            equity = Future.get_future(session, ticker)
+            chain = get_future_option_chain(session, ticker)
+        else:
+            equity = Equity.get_equity(session, ticker)
+            chain = get_option_chain(session, ticker)
 
-        equity = Equity.get_equity(session, ticker)
-        chain = get_option_chain(session, ticker)
         expirations = sorted(list(chain.keys()))
         expirations = [expirations[0]]
         options = []
@@ -326,7 +331,7 @@ docker run -it --env-file=.env \
     fi-flask:latest bash
 
 
-python -m utils.data_tasty /ES background_subscribe
+python -m utils.data_tasty "/ES" background_subscribe
 python -m utils.data_tasty SPX background_subscribe
 
 """
