@@ -15,8 +15,6 @@ import threading
 import luigi
 from celery import Celery
 
-# from postgres_utils import postgres_execute
-# from data_utils import background_subscribe, get_session, market_is_open
 # from gex_utils import persist_spot_gex
 
 from utils.postgres_utils import postgres_execute
@@ -38,7 +36,7 @@ class Subscription(luigi.Task):
     def output(self): # an output that never exists
         return AlwaysRunTarget()
     def run(self):
-        # if not market_is_open():
+        # if not is_market_open():
         #     logger.info(f"market closed no need to trigger background_subscribe")
         #     return
         output = asyncio.run(background_subscribe(ticker,save_to_postres=True,save_to_json=True))
@@ -77,7 +75,7 @@ def trigger_gex_cache(*args,**kwargs):
     query_str = "select * from watchlist"
     query_args = ()
 
-    if market_is_open() is False:
+    if is_market_open() is False:
         pass
     else:
         fetched = postgres_execute(query_str,query_args,is_commit=False)
@@ -94,7 +92,7 @@ def trigger_gex_cache(*args,**kwargs):
     query_str = "select * from watchlist"
     query_args = ()
 
-    if market_is_open() is False:
+    if is_market_open() is False:
         pass
     else:
         fetched = postgres_execute(query_str,query_args,is_commit=False)
