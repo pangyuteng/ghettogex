@@ -125,8 +125,8 @@ def parse_symbol(event_symbol):
 # amazing stuff!!!
 # https://tastyworks-api.readthedocs.io/en/latest/data-streamer.html#advanced-usage
 # commit https://github.com/tastyware/tastytrade/blob/97e1bc6632cfd4a15721da816085eb906a02bcb0/docs/data-streamer.rst#L76
-# # interval '15s', '5m', '1h', '3d',
-CANDLE_TYPE = '5s'
+# # interval '5s' '15s', '5m', '1h', '3d',
+CANDLE_TYPE = '1s'
 @dataclass
 class LivePrices:
     candle: dict[str, Candle]
