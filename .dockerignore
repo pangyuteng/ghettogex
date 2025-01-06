@@ -2,4 +2,5 @@
 .github
 .manifest
 .env
-flask/tmp/
+flask/tmp
+scratch
