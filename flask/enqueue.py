@@ -15,7 +15,7 @@ import time
 import celery
 
 from tasks import task_foo
-LISTEM_TABLE_LIST = ["quotes","summary","greeks","tradeandsale"]
+LISTEM_TABLE_LIST = ["quotes","summary","greeks","timeandsale"]
 
 class Enqueue():
     """
