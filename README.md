@@ -31,6 +31,14 @@ kubectl create secret docker-registry registry-credentials --docker-server=docke
 kubectl apply -f registry-credentials.yml
 
 
+IS_TEST=
+TASTYTRADE_USERNAME=
+TASTYTRADE_PASSWORD=
+
+kubectl create secret generic tasty-env --from-env-file=.tasty
+
+kubectl get secret tasty-env -o yaml
+
 + [x] main page to show SPX, VIX and SPX gex
 
 + [x] cleanup shit, moved scratch code to below

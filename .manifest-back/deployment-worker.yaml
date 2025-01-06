@@ -33,6 +33,21 @@ spec:
           value: postgres://postgres:postgres@fi-postgres:5432/postgres
         - name: C_FORCE_ROOT
           value: "true"
+        - name: IS_TEST
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: IS_TEST
+        - name: TASTYTRADE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: TASTYTRADE_USERNAME
+        - name: TASTYTRADE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: TASTYTRADE_PASSWORD
         volumeMounts:
         - name: nfs-volume
           mountPath: /mnt/hd1/data
