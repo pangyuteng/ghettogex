@@ -24,7 +24,7 @@ OTHER_TICKER_LIST = ['MSTR','TSLA','NVDA','COIN']
 BTC_MSTR_TICKER_LIST = list(BTC_TICKER_LIST)
 BTC_MSTR_TICKER_LIST.append("MSTR")
 def cache_main():
-    now_et = now_in_new_york()-datetime.timedelta(days=1)
+    now_et = now_in_new_york()
     logger.info(str(now_et))
     year_stamp = datetime.datetime.strftime(now_et,'%Y')
     date_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d')
@@ -119,8 +119,6 @@ if __name__== "__main__":
     logger.addHandler(ch)
     while True:
         now_et = now_in_new_york()
-        cache_main()
-        sys.exit(1)
         if is_market_open():
             logger.info('market open, will update when market closed...')
         elif now_et.hour > 19: # cache after market close.
