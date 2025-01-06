@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fi-luigi-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fi-luigi
+  template:
+    metadata:
+      labels:
+        app: fi-luigi
+    spec:
+      imagePullSecrets:
+      - name: registry-credentials
+      containers:
+      - name: fi-luigi
+        image: docker.io/pangyuteng/private:fi-flask-edge
+        imagePullPolicy: Always
+        command: ["luigid"]
+        ports:
+        - containerPort: 8082
+          name: web
+          protocol: TCP
+        volumeMounts:
+        - name: nfs-volume
+          mountPath: /var/lib/postgresql/data
+          subPath: pgdata
+      volumes:
+      - name: nfs-volume
+        nfs:
+          server: 192.168.68.147
+          path: /mnt/hd1/data

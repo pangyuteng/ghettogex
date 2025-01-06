@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fi-beat-deployment
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: fi-beat
+  template:
+    metadata:
+      labels:
+        app: fi-beat
+    spec:
+      imagePullSecrets:
+      - name: registry-credentials
+      containers:
+      - name: fi-beat
+        image: docker.io/pangyuteng/private:fi-flask-edge
+        imagePullPolicy: Always
+        command: ["bash"]
+        args: ["beat.sh"]
+        env:
+        - name: AMQP_URI
+          value: amqp://fi-rabbitmq:5672
+        - name: REDIS_URI
+          value: redis://fi-redis:6379/1
+        - name: POSTGRES_URI
+          value: postgres://postgres:postgres@fi-postgres:5432/postgres
+        - name: C_FORCE_ROOT
+          value: true
+        volumeMounts:
+        - name: nfs-volume
+          mountPath: /mnt/hd1/data
+      volumes:
+      - name: nfs-volume
+        nfs:
+          server: 192.168.68.147
+          path: /mnt/hd1/data

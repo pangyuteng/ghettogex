@@ -1,12 +1,4 @@
 import logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        #logging.FileHandler("/tmp/enqueue.debug.log"),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger(__file__)
 
 import os
@@ -23,27 +15,18 @@ import time
 from . import app,celeryconfig
 
 import celery
-from tasks import task_foo,task_bar
+from tasks import task_foo
 LISTEM_TABLE_ = []
 
-class EnqueueCore():
+class Enqueue():
     """
     ref. https://gist.github.com/pangyuteng/7de87d413655f4961b57c1b99274a91e
     """
     timeout = 3 # sec for postgres
-    def __init__(self, environment, db_id, cfg):
+    def __init__(self):
         """The dsn is passed here. This class requires the psycopg2 driver."""
 
-        self.postgresurl = os.environ.get()
-        
-        if db_id == 'postgres':
-            self. = self.secret_helper._result['ibisDBurl']
-        else:
-            raise NotImplementedError()
-            
-        self.environment = environment
-        self.db_id = db_id
-        self.cfg = cfg
+        self.postgresuri = os.environ.get("POSTGRES_URI")
         
         self.postgres_conn = None
         self._connect()
@@ -52,7 +35,7 @@ class EnqueueCore():
         self.queue_dict={}
                 
     def _connect(self):
-        self.postgres_conn = psycopg2.connect(self.postgresurl)
+        self.postgres_conn = psycopg2.connect(self.postgresuri)
         self.postgres_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         self.curs = self.postgres_conn.cursor(cursor_factory=DictCursor)
         logger.info('connecting to postgres')
@@ -113,8 +96,7 @@ class EnqueueCore():
             logger.info('pid: %r \n channel: %r \n payload: %r \n' % (notify.pid,notify.channel,notify.payload))
         try:
             payload = json.loads(json.dumps(payload, indent=4, sort_keys=True, default=str))
-            ...
-            ..task_... .apply_async(args=(payload,),
+            task_foo.apply_async(args=(payload,),
                 queue=None,routing_key=None,
                 priority=None,countdown=None
             )
@@ -124,12 +106,16 @@ class EnqueueCore():
 
 
 if __name__ == "__main__":
-    logger.addHandler("start_enqueue.py cli")
-    environment = sys.argv[1]
-    db_id = sys.argv[2]
-    pidfile = sys.argv[3]
-
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler("/tmp/enqueue.debug.log"),
+            logging.StreamHandler()
+        ]
+    )
+    pidfile = '/tmp/enqueue.pid'
     with open(pidfile,'w') as f:
         f.write(str(os.getpid()))
-    inst = EnqueueCore(environment,db_id,cfg)
+    inst = Enqueue()
     inst.run()

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fi-luigi
+spec:
+  selector:
+    app: fi-luigi
+  type: ClusterIP
+  ports:
+  - protocol: TCP
+    port: 8082
+    targetPort: 8082

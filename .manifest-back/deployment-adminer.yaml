@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fi-adminer-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fi-adminer
+  template:
+    metadata:
+      labels:
+        app: fi-adminer
+    spec:
+      containers:
+      - name: fi-adminer
+        image: adminer
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: web
+          protocol: TCP

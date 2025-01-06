@@ -251,7 +251,7 @@ def get_cancel_file(ticker):
 def get_running_file(ticker):
     return os.path.join(CACHE_TASTY_FOLDER,f"running-{ticker}.txt")
 
-async def background_subscribe(ticker):
+async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
     try:
 
         running_file = get_running_file(ticker)
@@ -267,7 +267,7 @@ async def background_subscribe(ticker):
                 break
         
         session = get_session()
-        live_prices = await LivePrices.create(session,ticker)
+        live_prices = await LivePrices.create(session,ticker,save_to_postres=save_to_postres,save_to_json=save_to_json)
 
         while True:
             if not is_market_open():
