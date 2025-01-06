@@ -36,10 +36,10 @@ class Subscription(luigi.Task):
     def output(self): # an output that never exists
         return AlwaysRunTarget()
     def run(self):
-        # if not is_market_open():
-        #     logger.info(f"market closed no need to trigger background_subscribe")
-        #     return
-        output = asyncio.run(background_subscribe(ticker,save_to_postres=True,save_to_json=True))
+        if not is_market_open():
+            logger.info(f"market closed no need to trigger background_subscribe")
+            return
+        output = asyncio.run(background_subscribe(self.ticker,save_to_postres=True,save_to_json=True))
 
 @celery_app.task
 def trigger_subscription(*args,**kwargs):
