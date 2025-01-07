@@ -17,11 +17,15 @@ def compute_gex(ticker,tstamp,persist_to_postgres=True):
             tmpticker = ticker+"W"
         else:
             tmpticker = ticker
+        if col_name == 'event_symbol':
+            key = f'underlying_{table_name}'
+        else:
+            key = table_name
         fetched = postgres_execute("select * from "+table_name+" where "+col_name+" = %s and tstamp >= %s and tstamp < %s + interval '1 second' ",(tmpticker,tstamp,tstamp))
         if fetched is None:
             fetched = []
-        mydict[table_name]=len(fetched)
-
+        mydict[key]=len(fetched)
+    
     print(ticker,tstamp,mydict)
 
 def mainone(ticker,tstamp):
@@ -31,7 +35,11 @@ def mainone(ticker,tstamp):
 def main(ticker):
     tstamp_list = pd.date_range(start="2025-01-06 16:45:03",end="2025-01-06 20:59:57",freq='s')
     for tstamp in tstamp_list:
-        compute_gex(ticker,tstamp)
+        try:
+            compute_gex(ticker,tstamp)
+        except KeyboardInterrupt:
+            sys.exit(1)
+
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
