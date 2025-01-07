@@ -24,19 +24,19 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     # the first minute, grab everything
     if first_minute:
         query_str = """
-        (select 'underlying_candle' as event_type,event_symbol,close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp from candle
+        (select 'underlying_candle' as event_type,event_symbol,close as spot_price,null::float as close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
         where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
         ) union all (
-        select 'candle' as event_type,event_symbol,close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp from candle
+        select 'candle' as event_type,event_symbol,null::float as spot_price,close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
         where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s
         ) union all (
-        select 'summary' as event_type,event_symbol,null::float as close,open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp from summary
+        select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as close,open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
         where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
         ) union all (
-        select 'greeks' as event_type,event_symbol,null::float as close,null::int as open_interest, gamma,null::int as size,null as aggressor_side,tstamp from greeks
+        select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as close,null::int as open_interest, gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
         where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
         ) union all (
-        select 'timeandsale' as event_type,event_symbol,null::float as close,null::int as open_interest, null::float as gamma,size,aggressor_side,tstamp from timeandsale
+        select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as close,null::int as open_interest, null::float as gamma,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
         where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
         )
         """
@@ -50,10 +50,11 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
         )
 
         fetched = postgres_execute(query_str,query_args)
+        columns = ['event_type','event_symbol','spot_price','open_interest','gamma','size','aggressor_side','ticker','expiration','contract_type','strike','tstamp']
         if fetched is None:
-            df = pd.DataFrame([])
+            df = pd.DataFrame([],columns=columns)
         else:
-            df = pd.DataFrame(fetched)
+            df = pd.DataFrame(fetched,columns=columns)
             df.to_csv(f"tmp/fetched-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv",index=False)
         print(len(df))
     else:
