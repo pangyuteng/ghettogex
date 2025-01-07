@@ -3,44 +3,76 @@ logger = logging.getLogger(__file__)
 import os
 import sys
 import traceback
+import pytz
 import datetime
 import pandas as pd
 from .postgres_utils import postgres_execute
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
+from .misc import timedelta_from_market_open
 
-def compute_gex(ticker,tstamp,persist_to_postgres=True):
-    
-    mydict = {}
-    table_list = [('quote','event_symbol'),('candle','event_symbol'),('candle','ticker'),('summary','ticker'),('greeks','ticker'),('timeandsale','ticker')]
-    for table_name, col_name in table_list:
-        try:
-            if col_name == 'ticker' and ticker in ['SPX']:
-                tmpticker = ticker+"W"
-            else:
-                tmpticker = ticker
-            if col_name == 'event_symbol':
-                key = f'underlying_{table_name}'
-            else:
-                key = table_name
-            fetched = postgres_execute("select * from "+table_name+" where "+col_name+" = %s and tstamp >= %s and tstamp < %s + interval '1 second' ",(tmpticker,tstamp,tstamp))
-            if fetched is None:
-                fetched = []
-            mydict[key]=len(fetched)
-        except KeyboardInterrupt:
-            sys.exit(1)
-        
-    print(ticker,tstamp,mydict)
+
+def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
+    utc_tstamp = et_tstamp.astimezone(tz="UTC")
+    max_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=1)
+
+    delta, market_open_tstamp_et = timedelta_from_market_open(et_tstamp)
+    if delta < datetime.timedelta(minutes=1):
+        first_minute = True
+    else:
+        first_minute = False
+
+    # the first minute, grab everything
+    if first_minute:
+        query_str = """
+        (select 'underlying_candle' as event_type,event_symbol,close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp from candle
+        where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+        ) union all (
+        select 'candle' as event_type,event_symbol,close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp from candle
+        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s
+        ) union all (
+        select 'summary' as event_type,event_symbol,null::float as close,open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp from summary
+        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+        ) union all (
+        select 'greeks' as event_type,event_symbol,null::float as close,null::int as open_interest, gamma,null::int as size,null as aggressor_side,tstamp from greeks
+        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+        ) union all (
+        select 'timeandsale' as event_type,event_symbol,null::float as close,null::int as open_interest, null::float as gamma,size,aggressor_side,tstamp from timeandsale
+        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+        )
+        """
+
+        query_args = (
+            market_open_tstamp_et,max_utc_tstamp,ticker,
+            market_open_tstamp_et,max_utc_tstamp,ticker,
+            market_open_tstamp_et,max_utc_tstamp,ticker,
+            market_open_tstamp_et,max_utc_tstamp,ticker,
+            market_open_tstamp_et,max_utc_tstamp,ticker,
+        )
+
+        fetched = postgres_execute(query_str,query_args)
+        if fetched is None:
+            df = pd.DataFrame([])
+        else:
+            df = pd.DataFrame(fetched)
+            df.to_csv(f"tmp/fetched-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv",index=False)
+        print(len(df))
+    else:
+        #fetched = postgres_execute("select * from "+table_name+" where "+col_name+" = %s and tstamp >= %s and tstamp < %s",(tmpticker,utc_tstamp,max_utc_tstamp))
+        pass
+
     # observations
     # + greeks needs to be updated if no greeks and options candle exists
     # + spot needs to be updated if candle, and you got underlying quotes.
     # + summary event seems to be only once a day?
     
-def mainone(ticker,tstamp):
+def mainone(ticker,tstamp_str):
+    eastern = pytz.timezone('US/Eastern')
     tstamp = datetime.datetime.strptime(tstamp_str,"%Y-%m-%d-%H-%M-%S")
+    tstamp = tstamp.replace(tzinfo=eastern)
     compute_gex(ticker,tstamp)
 
 def main(ticker):
-    tstamp_list = pd.date_range(start="2025-01-06 16:45:03",end="2025-01-06 20:59:57",freq='s')
+    tstamp_list = pd.date_range(start="2025-01-07 09:30:00",end="2025-01-07 09:31:30",freq='s',tz=pytz.timezone('US/Eastern'))
     for tstamp in tstamp_list:
         try:
             compute_gex(ticker,tstamp)
@@ -50,11 +82,10 @@ def main(ticker):
             traceback.print_exc()
             pass
 
-
 if __name__ == "__main__":
     ticker = sys.argv[1]
     tstamp_str = sys.argv[2]
-    mainone(ticker,tstamp_str)
+    #mainone(ticker,tstamp_str)
     main(ticker)
 
 """
@@ -65,6 +96,12 @@ order by tstamp asc limit 10
 select * from candle 
 where event_symbol = 'SPX'
 order by tstamp desc limit 10
+
+SELECT * from candle
+WHERE event_symbol = 'SPX'
+and tstamp >= '2025-01-07 14:31:00' and tstamp < '2025-01-07 14:32:00'
+-- 66 rows
+
 
 kubectl port-forward --address 0.0.0.0 fi-postgres-deployment-554bc784bf-xrgkg 5432:5432
 

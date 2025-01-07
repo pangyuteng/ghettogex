@@ -30,6 +30,16 @@ def is_market_open(tstamp=None):
     else:
         return False
 
+def timedelta_from_market_open(now_tstamp_et):
+    if now_tstamp_et is None:
+        tstamp = now_in_new_york()
+    today = now_tstamp_et.strftime("%Y-%m-%d")
+    early = nyse.schedule(start_date=today, end_date=today)
+    if len(early) == 0:
+        return None
+    market_open_tstamp = list(early.to_dict()['market_open'].values())[0]
+    return now_tstamp_et - market_open_tstamp, market_open_tstamp
+
 def now_in_new_york():
     now_utc = datetime.datetime.now(pytz.utc)
     eastern = pytz.timezone('US/Eastern')
