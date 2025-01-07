@@ -22,6 +22,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
         first_minute = False
 
     # the first minute, grab everything
+    columns = ['event_type','event_symbol','close','spot_price','open_interest','gamma','size','aggressor_side','ticker','expiration','contract_type','strike','tstamp']
     if first_minute:
         query_str = """
         (select 'underlying_candle' as event_type,event_symbol,close as spot_price,null::float as close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
@@ -50,7 +51,6 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
         )
 
         fetched = postgres_execute(query_str,query_args)
-        columns = ['event_type','event_symbol','spot_price','open_interest','gamma','size','aggressor_side','ticker','expiration','contract_type','strike','tstamp']
         if fetched is None:
             df = pd.DataFrame([],columns=columns)
         else:
@@ -91,7 +91,6 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
         )
 
         fetched = postgres_execute(query_str,query_args)
-        columns = ['event_type','event_symbol','spot_price','close','open_interest','gamma','size','aggressor_side','ticker','expiration','contract_type','strike','tstamp']
         if fetched is None:
             df = pd.DataFrame([],columns=columns)
         else:
