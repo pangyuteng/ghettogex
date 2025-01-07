@@ -16,7 +16,7 @@ def compute_gex(ticker,tstamp,persist_to_postgres=True):
         fetched = postgres_execute("select * from "+table_name+" where "+col_name+" = %s and tstamp >= %s and tstamp < %s + interval '1 second' ",(ticker,tstamp,tstamp))
         mydict[table_name]=len(fetched)
 
-    print(ticker,stamp,mydict)
+    print(ticker,tstamp,mydict)
 
 def mainone(ticker,tstamp):
     tstamp = datetime.datetime.strptime(tstamp_str,"%Y-%m-%d-%H-%M-%S")
