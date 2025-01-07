@@ -69,7 +69,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
         where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
         ) union all (
         select 'candle' as event_type,event_symbol,null::float as spot_price,close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
-        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s
+        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
         ) union all (
         select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as close,open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
         where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
