@@ -91,7 +91,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
         )
 
         fetched = postgres_execute(query_str,query_args)
-        columns = ['event_type','event_symbol','spot_price','open_interest','gamma','size','aggressor_side','ticker','expiration','contract_type','strike','tstamp']
+        columns = ['event_type','event_symbol','spot_price','close','open_interest','gamma','size','aggressor_side','ticker','expiration','contract_type','strike','tstamp']
         if fetched is None:
             df = pd.DataFrame([],columns=columns)
         else:
