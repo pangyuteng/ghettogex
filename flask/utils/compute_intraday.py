@@ -55,8 +55,6 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             df = pd.DataFrame([],columns=columns)
         else:
             df = pd.DataFrame(fetched,columns=columns)
-            df = df.sort_values(['event_type','tstamp'])
-            df.to_csv(f"tmp/fetched-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv",index=False)
         
         if len(df) == 0:
             return None
@@ -95,12 +93,13 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             df = pd.DataFrame([],columns=columns)
         else:
             df = pd.DataFrame(fetched,columns=columns)
-            df = df.sort_values(['event_type','tstamp'])
-            df.to_csv(f"tmp/fetched-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv",index=False)
+
         if len(df) == 0:
             return None
 
     print(first_minute,et_tstamp,len(df))
+    df = df.sort_values(['event_type','tstamp'])
+    df.to_csv(f"tmp/fetched-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv",index=False)
     
     # observations
     # + greeks needs to be updated if no greeks and options candle exists
