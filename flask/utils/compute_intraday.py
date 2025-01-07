@@ -11,23 +11,30 @@ from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 def compute_gex(ticker,tstamp,persist_to_postgres=True):
     
     mydict = {}
-    table_list = [('candle','event_symbol'),('candle','ticker'),('summary','ticker'),('greeks','ticker'),('timeandsale','ticker')]
+    table_list = [('quote','event_symbol'),('candle','event_symbol'),('candle','ticker'),('summary','ticker'),('greeks','ticker'),('timeandsale','ticker')]
     for table_name, col_name in table_list:
-        if col_name == 'ticker' and ticker in ['SPX']:
-            tmpticker = ticker+"W"
-        else:
-            tmpticker = ticker
-        if col_name == 'event_symbol':
-            key = f'underlying_{table_name}'
-        else:
-            key = table_name
-        fetched = postgres_execute("select * from "+table_name+" where "+col_name+" = %s and tstamp >= %s and tstamp < %s + interval '1 second' ",(tmpticker,tstamp,tstamp))
-        if fetched is None:
-            fetched = []
-        mydict[key]=len(fetched)
-    
+        try:
+            if col_name == 'ticker' and ticker in ['SPX']:
+                tmpticker = ticker+"W"
+            else:
+                tmpticker = ticker
+            if col_name == 'event_symbol':
+                key = f'underlying_{table_name}'
+            else:
+                key = table_name
+            fetched = postgres_execute("select * from "+table_name+" where "+col_name+" = %s and tstamp >= %s and tstamp < %s + interval '1 second' ",(tmpticker,tstamp,tstamp))
+            if fetched is None:
+                fetched = []
+            mydict[key]=len(fetched)
+        except KeyboardInterrupt:
+            sys.exit(1)
+        
     print(ticker,tstamp,mydict)
-
+    # observations
+    # + greeks needs to be updated if no greeks and options candle exists
+    # + spot needs to be updated if candle, and you got underlying quotes.
+    # + summary event seems to be only once a day?
+    
 def mainone(ticker,tstamp):
     tstamp = datetime.datetime.strptime(tstamp_str,"%Y-%m-%d-%H-%M-%S")
     compute_gex(ticker,tstamp)
@@ -39,6 +46,9 @@ def main(ticker):
             compute_gex(ticker,tstamp)
         except KeyboardInterrupt:
             sys.exit(1)
+        except:
+            traceback.print_exc()
+            pass
 
 
 if __name__ == "__main__":
