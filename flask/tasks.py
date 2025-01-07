@@ -18,7 +18,9 @@ from celery import Celery
 # from gex_utils import persist_spot_gex
 
 from utils.postgres_utils import postgres_execute
-from utils.data_tasty import background_subscribe, is_market_open
+from utils.data_tasty import background_subscribe, is_market_open, now_in_new_york
+from utils.compute_intraday import compute_gex
+
 import tastytrade
 
 celery_app = Celery('tasks')
@@ -76,7 +78,7 @@ def manage_subscriptions(*args,**kwargs):
 def trigger_gex_cache(*args,**kwargs):
     query_str = "select * from watchlist"
     query_args = ()
-
+    tstamp = datetime.datetime.now().replace(microsecond=0)
     if is_market_open() is False:
         pass
     else:
@@ -87,57 +89,51 @@ def trigger_gex_cache(*args,**kwargs):
         for row in fetched:
             ticker = row['ticker']
             logger.info(f"trigger_gex_cache {ticker}")
-
-"""
-@celery_app.task
-def trigger_gex_cache(*args,**kwargs):
-    query_str = "select * from watchlist"
-    query_args = ()
-
-    if is_market_open() is False:
-        pass
-    else:
-        fetched = postgres_execute(query_str,query_args,is_commit=False)
-        if fetched is None:
-            return
-        fetched = [dict(x) for x in fetched]
-        for row in fetched:
-            ticker = row['ticker']
-            min_tstamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')
-            # persist some data, then finally full data.
-            for countdown in [1,5,10,60]:
-                compute_spot_gex.apply_async(args=[ticker,min_tstamp],countdown=countdown)
+            compute_gex(ticker,tstamp,persist_to_postgres=True)
 
 
-class SpotGexTarget(luigi.Target):
+# TODO: you can implement backfill via luigi
+class GexTarget(luigi.Target):
+    ticker = luigi.parameter.Parameter()
+    tstamp = luigi.parameter.DateSecondParameter()
     def __init__(self,ticker,tstamp):
         super().__init__()
         self.ticker = ticker
         self.tstamp = tstamp
     def exists(self):
-        return False
+        # TODO
+        raise NotImplementedError()
+        query_str = "select * from gex_net where ticker = %s and tstamp = %s"
+        query_args = (self,ticker,self.tstamp)
+        fetched = postgres_execute(query_str,query_args,is_commit=False)
+        if fetched is None:
+            return
+        fetched = [dict(x) for x in fetched]
+        if len(fetched)>0:
+            return True
+        else:
+            return False
 
 class ComputeSpotGex(luigi.Task):
     ticker = luigi.parameter.Parameter()
-    tstamp = luigi.parameter.Parameter() # min is smallest unit - decided by me
+    tstamp = luigi.parameter.DateSecondParameter()
     def output(self):
-        return AlwaysRunTarget()
+        return GexTarget(self.tstamp,self.tstamp)
+    def requires():
+        # TODO
+        raise NotImplementedError()
+        prior_tstamp = self.tstamp-datetime.timedelta(second=1)
+        return ComputeSpotGex(self.ticker,prior_tstamp)
     def run(self):
-        min_tstamp = datetime.datetime.strptime(self.tstamp,'%Y-%m-%d-%H-%M')
-        persist_spot_gex(self.ticker,min_tstamp)
+        # TODO
+        raise NotImplementedError()
+        compute_gex(self.ticker,tstamp,persist_to_postgres=True)
 
-@celery_app.task
-def compute_spot_gex(*args,**kwargs):
-    ticker = args[0]
-    tstamp = args[1]
-    task = ComputeSpotGex(ticker=ticker,tstamp=tstamp)
-    ret_code = luigi.build([task])
+
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
     trigger_subscription(ticker)
-
-"""
 
 """ 
 
