@@ -55,11 +55,52 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             df = pd.DataFrame([],columns=columns)
         else:
             df = pd.DataFrame(fetched,columns=columns)
+            df = df.sort_values(['event_type','tstamp'])
             df.to_csv(f"tmp/fetched-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv",index=False)
-        print(len(df))
+        print(first_minute,len(df))
+        if len(df) == 0:
+            return None
+
+        #spot_price = 
+
     else:
-        #fetched = postgres_execute("select * from "+table_name+" where "+col_name+" = %s and tstamp >= %s and tstamp < %s",(tmpticker,utc_tstamp,max_utc_tstamp))
-        pass
+        query_str = """
+        (select 'underlying_candle' as event_type,event_symbol,close as spot_price,null::float as close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
+        where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+        ) union all (
+        select 'candle' as event_type,event_symbol,null::float as spot_price,close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
+        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s
+        ) union all (
+        select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as close,open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
+        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+        ) union all (
+        select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as close,null::int as open_interest, gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
+        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+        ) union all (
+        select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as close,null::int as open_interest, null::float as gamma,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
+        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+        )
+        """
+
+        query_args = (
+            utc_tstamp,max_utc_tstamp,ticker,
+            utc_tstamp,max_utc_tstamp,ticker,
+            utc_tstamp,max_utc_tstamp,ticker,
+            utc_tstamp,max_utc_tstamp,ticker,
+            utc_tstamp,max_utc_tstamp,ticker,
+        )
+
+        fetched = postgres_execute(query_str,query_args)
+        columns = ['event_type','event_symbol','spot_price','open_interest','gamma','size','aggressor_side','ticker','expiration','contract_type','strike','tstamp']
+        if fetched is None:
+            df = pd.DataFrame([],columns=columns)
+        else:
+            df = pd.DataFrame(fetched,columns=columns)
+            df = df.sort_values(['event_type','tstamp'])
+            df.to_csv(f"tmp/fetched-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv",index=False)
+        print(first_minute,len(df))
+        if len(df) == 0:
+            return None
 
     # observations
     # + greeks needs to be updated if no greeks and options candle exists
@@ -73,7 +114,8 @@ def mainone(ticker,tstamp_str):
     compute_gex(ticker,tstamp)
 
 def main(ticker):
-    tstamp_list = pd.date_range(start="2025-01-07 09:30:00",end="2025-01-07 09:31:30",freq='s',tz=pytz.timezone('US/Eastern'))
+    #tstamp_list = pd.date_range(start="2025-01-07 09:30:00",end="2025-01-07 09:31:30",freq='s',tz=pytz.timezone('US/Eastern'))
+    tstamp_list = pd.date_range(start="2025-01-07 09:30:00",end="2025-01-07 14:50:30",freq='s',tz=pytz.timezone('US/Eastern'))
     for tstamp in tstamp_list:
         try:
             compute_gex(ticker,tstamp)
