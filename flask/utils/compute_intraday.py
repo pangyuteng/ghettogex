@@ -13,7 +13,13 @@ def compute_gex(ticker,tstamp,persist_to_postgres=True):
     mydict = {}
     table_list = [('candle','event_symbol'),('candle','ticker'),('summary','ticker'),('greeks','ticker'),('timeandsale','ticker')]
     for table_name, col_name in table_list:
-        fetched = postgres_execute("select * from "+table_name+" where "+col_name+" = %s and tstamp >= %s and tstamp < %s + interval '1 second' ",(ticker,tstamp,tstamp))
+        if col_name == 'ticker' and ticker in ['SPX']:
+            tmpticker = ticker+"W"
+        else:
+            tmpticker = ticker
+        fetched = postgres_execute("select * from "+table_name+" where "+col_name+" = %s and tstamp >= %s and tstamp < %s + interval '1 second' ",(tmpticker,tstamp,tstamp))
+        if fetched is None:
+            fetched = []
         mydict[table_name]=len(fetched)
 
     print(ticker,tstamp,mydict)
