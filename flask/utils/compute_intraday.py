@@ -116,7 +116,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
 
     df.to_csv(csv_file,index=False)
     if first_minute:
-        hola(df=df)
+        hola(df=df,et_tstamp=et_tstamp)
     else:
         raise NotImplementedError()
 
@@ -144,7 +144,8 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     # + spot needs to be updated if candle, and you got underlying quotes.
     # + summary event seems to be only once a day?
 
-def hola(df=None):
+def hola(df=None,et_tstamp=None):
+    csv_file = f"tmp/gex-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv"
     if df is None:
         df = pd.read_csv("tmp/fetched-2025-01-07-09-30-32.csv")
         df['spot_price'] = pd.to_numeric(df['spot_price'], errors='coerce')
@@ -203,10 +204,13 @@ def hola(df=None):
         merged_df['spot_price']=spot_price
         merged_df['open_interest']=merged_df.open_interest+merged_df.size_signed
         print(np.sum(merged_df['open_interest']))
-        merged_df.to_csv(f"gex-{}.csv",index=False)
-        merged_df['gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
-        print(len(merged_df),merged_df.gex.sum())
-
+        try:
+            merged_df['gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
+            print(len(merged_df),merged_df.gex.sum())
+            merged_df.to_csv(csv_file,index=False)
+        except:
+            merged_df.to_csv(csv_file+'.err.csv',index=False)
+            traceback.print_exc()
     else:
         raise NotImplementedError()
 
@@ -232,8 +236,8 @@ if __name__ == "__main__":
     ticker = sys.argv[1]
     tstamp_str = sys.argv[2]
     #mainone(ticker,tstamp_str)
-    #main(ticker)
-    hola()
+    main(ticker)
+    #hola()
 
 """
 select * from candle 
