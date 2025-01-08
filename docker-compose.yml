@@ -24,5 +24,5 @@ volumes:
   mynfs:
     driver_opts:
       type: "nfs"
-      o: "addr=192.168.68.147,rw" # adjust the ip address
+      o: "addr=192.168.68.141,rw" # adjust the ip address
       device: ":/mnt/hd1/data" # makesure on your nfs already have this folder

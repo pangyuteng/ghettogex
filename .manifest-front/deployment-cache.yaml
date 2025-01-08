@@ -35,5 +35,5 @@ spec:
       volumes:
       - name: nfs-volume
         nfs:
-          server: 192.168.68.147
+          server: 192.168.68.141
           path: /mnt/hd1/data
