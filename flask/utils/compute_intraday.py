@@ -64,11 +64,9 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             df = pd.DataFrame([],columns=columns)
         else:
             df = pd.DataFrame(fetched,columns=columns)
-        
+        print(first_minute,et_tstamp,len(df))
         if len(df) == 0:
             return None
-
-        #spot_price = 
 
     else:
         query_str = """
@@ -102,12 +100,12 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             df = pd.DataFrame([],columns=columns)
         else:
             df = pd.DataFrame(fetched,columns=columns)
-
+        print(first_minute,et_tstamp,len(df))
         if len(df) == 0:
             return None
 
     #if first_minute:
-    print(first_minute,et_tstamp,len(df))
+    
     df = df.sort_values(['event_type','tstamp'])
     # 'ticker','expiration','contract_type','strike','tstamp'
     underlying_candle_df = df[df.event_type=='underlying_candle']
