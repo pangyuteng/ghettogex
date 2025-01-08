@@ -238,7 +238,9 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
 
             table_cols = ['ticker','strike','tstamp','naive_gex']
             strike_gex_df = agg_df[table_cols]
-            strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).sum().reset_index()
+            strike_gex_df = strike_gex_df.groupby(['ticker','tstamp']).agg(
+                naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
+            ).reset_index()
             col_str = ','.join(table_cols)
             ps_str = ','.join(["%s"]*len(table_cols))
             query_str = "INSERT INTO gex_strike ("+col_str+") VALUES ("+ps_str+")"
@@ -246,9 +248,12 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
                 query_args = [getattr(row,x,None) for x in table_cols]
                 postgres_execute(query_str,query_args,is_commit=True)
 
-            table_cols = ['ticker','tstamp','naive_gex']
+            table_cols = ['ticker','tstamp','spot_price','naive_gex']
             net_gex_df = agg_df[table_cols]
-            net_gex_df = net_gex_df.groupby(['ticker','tstamp']).sum().reset_index()
+            net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
+                spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
+                naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
+            ).reset_index()
             col_str = ','.join(table_cols)
             ps_str = ','.join(["%s"]*len(table_cols))
             query_str = "INSERT INTO gex_net ("+col_str+") VALUES ("+ps_str+")"
