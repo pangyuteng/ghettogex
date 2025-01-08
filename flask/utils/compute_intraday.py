@@ -144,6 +144,7 @@ def compute_gex_core(df,to_numeric=False):
 def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     gex_df = None
     csv_file = f"tmp/naive_gex-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv"
+    csv_file = None
 
     utc_tstamp = et_tstamp.astimezone(tz="UTC")
     max_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=1)
@@ -177,7 +178,8 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             if persist_to_postgres and qc_pass:
 
                 agg_df = agg_df[event_agg_columns]
-                #agg_df.to_csv(csv_file,index=False)
+                if csv_file:
+                    agg_df.to_csv(csv_file,index=False)
 
                 col_str = ','.join(event_agg_columns)
                 ps_str = ','.join(["%s"]*len(event_agg_columns))
@@ -185,34 +187,26 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
 
                 for n,row in agg_df.iterrows():
                     query_args = [getattr(row,x,None) for x in event_agg_columns]
-                    print(query_str)
-                    print(query_args)
                     postgres_execute(query_str,query_args,is_commit=True)
 
                 table_cols = ['ticker','strike','tstamp','naive_gex']
                 strike_gex_df = agg_df[table_cols]
                 strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).sum().reset_index()
-                print(strike_gex_df.shape)
                 col_str = ','.join(table_cols)
                 ps_str = ','.join(["%s"]*len(table_cols))
                 query_str = "INSERT INTO gex_strike ("+col_str+") VALUES ("+ps_str+")"
                 for n,row in strike_gex_df.iterrows():
                     query_args = [getattr(row,x,None) for x in table_cols]
-                    print(query_str)
-                    print(query_args)
                     postgres_execute(query_str,query_args,is_commit=True)
 
                 table_cols = ['ticker','tstamp','naive_gex']
                 net_gex_df = agg_df[table_cols]
                 net_gex_df = net_gex_df.groupby(['ticker','tstamp']).sum().reset_index()
-                print(net_gex_df.shape)
                 col_str = ','.join(table_cols)
                 ps_str = ','.join(["%s"]*len(table_cols))
                 query_str = "INSERT INTO gex_net ("+col_str+") VALUES ("+ps_str+")"
                 for n,row in net_gex_df.iterrows():
                     query_args = [getattr(row,x,None) for x in table_cols]
-                    print(query_str)
-                    print(query_args)
                     postgres_execute(query_str,query_args,is_commit=True)
 
         else:
