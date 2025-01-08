@@ -168,15 +168,14 @@ def hola(df=None):
         else:
             spot_price = np.nan
 
-        
         candle_df = df[df.event_type=='candle']
         print('candle',candle_df.shape)
         print(len(candle_df.event_symbol.unique()))
-        
+
         summary_df = df[df.event_type=='summary']
         print('summary',summary_df.shape)
         print(len(summary_df.event_symbol.unique()))
-        
+
         greeks_df = df[df.event_type=='greeks']
         print('greeks',greeks_df.shape)
         print(len(greeks_df.event_symbol.unique()))
@@ -197,16 +196,17 @@ def hola(df=None):
         size_df = size_df.groupby(['event_symbol']).sum().reset_index()
         print(size_df.columns)
 
-        
         print('spot_price',spot_price)
         merged_df = oi_df.merge(greeks_df,how='left',on=['event_symbol'])
         merged_df = merged_df.merge(size_df,how='left',on=['event_symbol'])
         merged_df['contract_type_int'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
         merged_df['spot_price']=spot_price
         merged_df['open_interest']=merged_df.open_interest+merged_df.size_signed
-
-        merged_df['gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int / 1e9
+        print(np.sum(merged_df['open_interest']))
+        merged_df.to_csv(f"gex-{}.csv",index=False)
+        merged_df['gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
         print(len(merged_df),merged_df.gex.sum())
+
     else:
         raise NotImplementedError()
 
@@ -232,8 +232,8 @@ if __name__ == "__main__":
     ticker = sys.argv[1]
     tstamp_str = sys.argv[2]
     #mainone(ticker,tstamp_str)
-    main(ticker)
-    #hola()
+    #main(ticker)
+    hola()
 
 """
 select * from candle 
