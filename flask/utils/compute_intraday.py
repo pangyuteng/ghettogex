@@ -13,19 +13,19 @@ from .misc import timedelta_from_market_open
 
 def get_events_df(ticker,max_utc_tstamp,market_open_tstamp_et):
     query_str = """
-    (select 'underlying_candle' as event_type,event_symbol,close as spot_price,null::float as close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
+    (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
     where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
     ) union all (
-    select 'candle' as event_type,event_symbol,null::float as spot_price,close as price,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
+    select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
     where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
     ) union all (
-    select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as close,open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
+    select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
     where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
     ) union all (
-    select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as close,null::int as open_interest, gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
+    select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
     where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
     ) union all (
-    select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as close,null::int as open_interest, null::float as gamma,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
+    select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
     where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
     )
     """
@@ -43,8 +43,8 @@ def get_events_df(ticker,max_utc_tstamp,market_open_tstamp_et):
     # the first minute, grab everything
     columns = [
         'event_type','event_symbol',
-        'close','spot_price',
-        'open_interest','gamma',
+        'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
+        'open_interest','price','volatility','delta','gamma','theta','rho','vega',
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
 
@@ -55,20 +55,14 @@ def get_events_df(ticker,max_utc_tstamp,market_open_tstamp_et):
 
     return df
 
-
-
-
-# df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
-# df['bid_volume'] = pd.to_numeric(df['bid_volume'], errors='coerce')
-# df['ask_volume'] = pd.to_numeric(df['ask_volume'], errors='coerce')
-# df['volatility'] = pd.to_numeric(df['volatility'], errors='coerce')
-# df['delta'] = pd.to_numeric(df['delta'], errors='coerce')
-# df['theta'] = pd.to_numeric(df['theta'], errors='coerce')
-# df['rho'] = pd.to_numeric(df['rho'], errors='coerce')
-# df['vega'] = pd.to_numeric(df['vega'], errors='coerce')
-# 'volume','bid_volume','ask_volume',
-# 'price','volatility','delta',,'theta','rho','vega',
-
+# event: candle
+# volume, bid_volume,ask_volume, --> sum, open,high,low,close
+# event: summary
+# open_interest
+# event: greeks
+# price	volatility	delta	gamma	theta	rho	vega
+# event: timeandsale
+# size, aggressor_side
 
 # aggressor_side_int =
 # latest_open_interest = 
@@ -105,7 +99,18 @@ def compute_gex_core(df,to_numeric=False):
     summary_df = df[df.event_type=='summary']
     greeks_df = df[df.event_type=='greeks']
     timeandsale_df = df[df.event_type=='timeandsale']
-    
+
+    candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
+    candle_df = candle_df.groupby(['event_symbol']).agg(
+        open=pd.NamedAgg(column="open", aggfunc="last"),
+        high=pd.NamedAgg(column="high", aggfunc="last"),
+        low=pd.NamedAgg(column="low", aggfunc="last"),
+        close=pd.NamedAgg(column="close", aggfunc="last"),
+        volume=pd.NamedAgg(column="volume", aggfunc="sum"),
+        bid_volume=pd.NamedAgg(column="bid_volume", aggfunc="sum"),
+        ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="sum"),
+    ).reset_index()
+
     oi_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest']]
     oi_df = oi_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
     
@@ -117,6 +122,8 @@ def compute_gex_core(df,to_numeric=False):
 
     merged_df = oi_df.merge(greeks_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
+    merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
+
     merged_df['contract_type_int'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['spot_price']=spot_price
     merged_df['open_interest']=merged_df.open_interest+merged_df.size_signed
@@ -150,33 +157,41 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     # the first minute, grab everything
     columns = [
         'event_type','event_symbol',
-        'close','spot_price',
-        'open_interest','gamma',
+        'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
+        'open_interest','price','volatility','delta','gamma','theta','rho','vega',
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
     if first_minute:
-        event_df = get_events_df(ticker,max_utc_tstamp,market_open_tstamp_et)
-        gex_df, qc_pass = compute_gex_core(event_df)
-        print(first_minute,et_tstamp,qc_pass,len(event_df),len(gex_df))
-        if persist_to_postgres and qc_pass:
-            gex_df.to_csv(csv_file,index=False)
-            
+        query_str = "SELECT * FROM gex_strike WHERE ticker = %s and tstamp = %s"
+        query_args = (ticker,utc_tstamp)
+        fetched = postgres_execute(query_str,query_args)
+        if len(fetched) == 0:
+            event_df = get_events_df(ticker,max_utc_tstamp,market_open_tstamp_et)
+            gex_df, qc_pass = compute_gex_core(event_df)
+            print(first_minute,et_tstamp,qc_pass,len(event_df),len(gex_df),gex_df.gex.sum())
+            if persist_to_postgres and qc_pass:
+                gex_df.to_csv(csv_file,index=False)
+                # query_str = "INSERT INTO gex_strike (ticker,tstamp,strike,naive_gex) VLUES (%s,%s,%s,%s)"
+                # query_args = (row.ticker,row.tstamp,...)
+                #postgres_execute(query_str,query_args,is_commit=True)
+        else:
+            print(fetched,'??')
     else:
         raise NotImplementedError()
         query_str = """
-        (select 'underlying_candle' as event_type,event_symbol,close as spot_price,null::float as close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
+        (select 'underlying_candle' as event_type,event_symbol,close as spot_price,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
         where tstamp >= %s and tstamp < %s and event_symbol = %s
         ) union all (
-        select 'candle' as event_type,event_symbol,null::float as spot_price,close,null::int as open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
+        select 'candle' as event_type,event_symbol,null::float as spot_price,close,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
         where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
         ) union all (
-        select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as close,open_interest,null::float as gamma,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
+        select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
         where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
         ) union all (
-        select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as close,null::int as open_interest, gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
+        select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
         where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
         ) union all (
-        select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as close,null::int as open_interest, null::float as gamma,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
+        select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
         where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
         )
         """
@@ -205,8 +220,8 @@ def mainone(ticker,tstamp_str):
     compute_gex(ticker,tstamp)
 
 def main(ticker):
-    #tstamp_list = pd.date_range(start="2025-01-07 09:30:00",end="2025-01-07 14:50:30",freq='s',tz=pytz.timezone('US/Eastern'))
-    tstamp_list = pd.date_range(start="2025-01-08 09:30:00",end="2025-01-08 14:50:30",freq='s',tz=pytz.timezone('US/Eastern'))
+    tstamp_list = pd.date_range(start="2025-01-07 09:30:00",end="2025-01-07 14:50:30",freq='s',tz=pytz.timezone('US/Eastern'))
+    #tstamp_list = pd.date_range(start="2025-01-08 09:30:00",end="2025-01-08 14:50:30",freq='s',tz=pytz.timezone('US/Eastern'))
     for tstamp in tstamp_list:
         try:
             get_df = compute_gex(ticker,tstamp)
