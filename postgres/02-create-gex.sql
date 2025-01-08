@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS event_agg (
     ask_volume double precision,
     bid_volume double precision,
     open_interest double precision,
+    price double precision,
     volatility double precision,
     delta double precision,
     gamma double precision,
