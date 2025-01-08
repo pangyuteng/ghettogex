@@ -114,7 +114,7 @@ def compute_gex_core(df,to_numeric=False):
     oi_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest']]
     oi_df = oi_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
     
-    greeks_df = greeks_df[['event_symbol','gamma']]
+    greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega']]
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
 
     timeandsale_df = timeandsale_df[['event_symbol','size_signed']]
@@ -131,7 +131,7 @@ def compute_gex_core(df,to_numeric=False):
     for col_name in ['gamma','open_interest','spot_price','contract_type_int']:
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
 
-    merged_df['gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
+    merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
     
     # quality check
     reqd_event_list = ['summary','greeks','timeandsale','candle']
@@ -143,7 +143,7 @@ def compute_gex_core(df,to_numeric=False):
 
 def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     gex_df = None
-    csv_file = f"tmp/gex-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv"
+    csv_file = f"tmp/naive_gex-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv"
 
     utc_tstamp = et_tstamp.astimezone(tz="UTC")
     max_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=1)
@@ -155,25 +155,38 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
         first_minute = False
 
     # the first minute, grab everything
-    columns = [
-        'event_type','event_symbol',
+    event_agg_columns = [
+        'event_symbol',
         'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
-        'open_interest','price','volatility','delta','gamma','theta','rho','vega',
-        'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
+        'open_interest',
+        'price','volatility','delta','gamma','theta','rho','vega',
+        'ticker','expiration','contract_type','strike',
+        'tstamp',
+        'naive_gex',
     ]
     if first_minute:
-        query_str = "SELECT * FROM gex_strike WHERE ticker = %s and tstamp = %s"
+        query_str = "SELECT * FROM gex_net WHERE ticker = %s and tstamp = %s"
         query_args = (ticker,utc_tstamp)
         fetched = postgres_execute(query_str,query_args)
         if len(fetched) == 0:
             event_df = get_events_df(ticker,max_utc_tstamp,market_open_tstamp_et)
-            gex_df, qc_pass = compute_gex_core(event_df)
-            print(first_minute,et_tstamp,qc_pass,len(event_df),len(gex_df),gex_df.gex.sum())
+            agg_df, qc_pass = compute_gex_core(event_df)
+            print(first_minute,et_tstamp,qc_pass,len(event_df),len(agg_df),agg_df.naive_gex.sum())
+            agg_df['tstamp']=utc_tstamp
             if persist_to_postgres and qc_pass:
-                gex_df.to_csv(csv_file,index=False)
-                # query_str = "INSERT INTO gex_strike (ticker,tstamp,strike,naive_gex) VLUES (%s,%s,%s,%s)"
-                # query_args = (row.ticker,row.tstamp,...)
-                #postgres_execute(query_str,query_args,is_commit=True)
+                agg_df = agg_df[event_agg_columns]
+                agg_df.to_csv(csv_file,index=False)
+                col_str = ','.join(event_agg_columns)
+                ps_str = ','.join(["%s"]*len(event_agg_columns))
+                query_str = "INSERT INTO event_agg ("+col_str+") VALUES ("+ps_str+")"
+                for n,row in agg_df.iterrows():
+                    query_args = [getattr(row,x,None) for x in event_agg_columns]
+                    print(query_str)
+                    print(query_args)
+                    #postgres_execute(query_str,query_args,is_commit=True)
+                strike_gex_df = agg_df[['ticker','strike','tstamp','gex']]
+                strike_gex_df = strike_gex_df
+
         else:
             print(fetched,'??')
     else:

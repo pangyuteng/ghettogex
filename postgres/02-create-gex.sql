@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS event_agg (
     theta double precision,
     rho double precision,
     vega double precision,
+    naive_gex double precision,
     ticker text,
     expiration TIMESTAMP,
     contract_type text,
