@@ -11,7 +11,7 @@ from .postgres_utils import postgres_execute
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
 
-def get_events_df(ticker,max_utc_tstamp,market_open_tstamp_et):
+def get_events_df_first_minute(ticker,max_utc_tstamp,market_open_tstamp_et):
     query_str = """
     (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
     where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
@@ -55,6 +55,51 @@ def get_events_df(ticker,max_utc_tstamp,market_open_tstamp_et):
 
     return df
 
+def get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp):
+
+    query_str = """
+    (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
+    where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+    ) union all (
+    select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
+    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    ) union all (
+    select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from event_agg
+    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    ) union all (
+    select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
+    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    ) union all (
+    select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
+    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    )
+    """
+
+    query_args = (
+        prior_minute_utc_tstamp,max_utc_tstamp,ticker, # underlying_candle
+        utc_tstamp,max_utc_tstamp,ticker, # candle
+        prior_minute_utc_tstamp,max_utc_tstamp,ticker, # summary
+        prior_minute_utc_tstamp,max_utc_tstamp,ticker, # greeks
+        utc_tstamp,max_utc_tstamp,ticker, # timeandsale
+    )
+
+    fetched = postgres_execute(query_str,query_args)
+
+    # the first minute, grab everything
+    columns = [
+        'event_type','event_symbol',
+        'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
+        'open_interest','price','volatility','delta','gamma','theta','rho','vega',
+        'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
+    ]
+
+    if fetched is None:
+        df = pd.DataFrame([],columns=columns)
+    else:
+        df = pd.DataFrame(fetched,columns=columns)
+
+    return df
+
 # event: candle
 # volume, bid_volume,ask_volume, --> sum, open,high,low,close
 # event: summary
@@ -74,18 +119,9 @@ def get_events_df(ticker,max_utc_tstamp,market_open_tstamp_et):
 # + summary event seems to be only once a day?
 
 
-def compute_gex_core(df,to_numeric=False):
-    
-    if to_numeric:
-        df['spot_price'] = pd.to_numeric(df['spot_price'], errors='coerce')
-        df['close'] = pd.to_numeric(df['close'], errors='coerce')
-        df['open_interest'] = pd.to_numeric(df['open_interest'], errors='coerce')
-        df['gamma'] = pd.to_numeric(df['gamma'], errors='coerce')
-        df['size'] = pd.to_numeric(df['size'], errors='coerce')
-        df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size'])
-        df['strike'] = pd.to_numeric(df['strike'], errors='coerce')
-        df = df.sort_values(['event_type','tstamp'])
+def compute_gex_core(df,first_minute):
 
+    # size from timeandsale event
     df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size'])
     underlying_candle_df = df[df.event_type=='underlying_candle']
 
@@ -126,19 +162,23 @@ def compute_gex_core(df,to_numeric=False):
 
     merged_df['contract_type_int'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['spot_price']=spot_price
-    merged_df['open_interest']=merged_df.open_interest+merged_df.size_signed
+
     
-    for col_name in ['gamma','open_interest','spot_price','contract_type_int']:
+    for col_name in ['gamma','open_interest','spot_price','contract_type_int','size_signed']:
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
 
+    merged_df['open_interest']=merged_df.open_interest+merged_df.size_signed
     merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
-    
-    # quality check
-    reqd_event_list = ['summary','greeks','timeandsale','candle']
-    if np.isnan(spot_price) or not all([event_type in df.event_type.unique() for event_type in reqd_event_list]):
-        qc_pass = False
+    if first_minute:
+        # quality check
+        reqd_event_list = ['summary','greeks','timeandsale','candle']
+        if np.isnan(spot_price) or not all([event_type in df.event_type.unique() for event_type in reqd_event_list]):
+            qc_pass = False
+        else:
+            qc_pass = True
     else:
         qc_pass = True
+
     return merged_df, qc_pass
 
 def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
@@ -148,6 +188,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
 
     utc_tstamp = et_tstamp.astimezone(tz="UTC")
     max_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=1)
+    prior_minute_utc_tstamp = utc_tstamp-datetime.timedelta(seconds=60)
     
     delta, market_open_tstamp_et = timedelta_from_market_open(et_tstamp)
     if delta < datetime.timedelta(minutes=1):
@@ -165,86 +206,60 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
         'tstamp',
         'naive_gex',
     ]
-    if first_minute:
-        query_str = "SELECT * FROM gex_net WHERE ticker = %s and tstamp = %s"
-        query_args = (ticker,utc_tstamp)
-        fetched = postgres_execute(query_str,query_args)
-        if len(fetched) == 0:
-            event_df = get_events_df(ticker,max_utc_tstamp,market_open_tstamp_et)
-            agg_df, qc_pass = compute_gex_core(event_df)
-            print(first_minute,et_tstamp,qc_pass,len(event_df),len(agg_df),agg_df.naive_gex.sum())
+    query_str = "SELECT * FROM gex_net WHERE ticker = %s and tstamp = %s"
+    query_args = (ticker,utc_tstamp)
+    fetched = postgres_execute(query_str,query_args)
+    if len(fetched) == 0:
+        if first_minute:
+            event_df = get_events_df_first_minute(ticker,max_utc_tstamp,market_open_tstamp_et)
+            agg_df, qc_pass = compute_gex_core(event_df,first_minute)
             agg_df['tstamp']=utc_tstamp
             agg_df['ticker']=ticker
-            if persist_to_postgres and qc_pass:
+            print(first_minute,et_tstamp,qc_pass,len(event_df),len(agg_df),agg_df.naive_gex.sum())
+        else:
+            event_df = get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp)
+            agg_df, qc_pass = compute_gex_core(event_df,first_minute)
+            agg_df['tstamp']=utc_tstamp
+            agg_df['ticker']=ticker
+            print(first_minute,et_tstamp,qc_pass,len(event_df),len(agg_df),agg_df.naive_gex.sum())
 
-                agg_df = agg_df[event_agg_columns]
-                if csv_file:
-                    agg_df.to_csv(csv_file,index=False)
+        if persist_to_postgres and qc_pass:
+            agg_df = agg_df[event_agg_columns]
+            if csv_file:
+                agg_df.to_csv(csv_file,index=False)
 
-                col_str = ','.join(event_agg_columns)
-                ps_str = ','.join(["%s"]*len(event_agg_columns))
-                query_str = "INSERT INTO event_agg ("+col_str+") VALUES ("+ps_str+")"
+            col_str = ','.join(event_agg_columns)
+            ps_str = ','.join(["%s"]*len(event_agg_columns))
+            query_str = "INSERT INTO event_agg ("+col_str+") VALUES ("+ps_str+")"
 
-                for n,row in agg_df.iterrows():
-                    query_args = [getattr(row,x,None) for x in event_agg_columns]
-                    postgres_execute(query_str,query_args,is_commit=True)
+            for n,row in agg_df.iterrows():
+                query_args = [getattr(row,x,None) for x in event_agg_columns]
+                postgres_execute(query_str,query_args,is_commit=True)
 
-                table_cols = ['ticker','strike','tstamp','naive_gex']
-                strike_gex_df = agg_df[table_cols]
-                strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).sum().reset_index()
-                col_str = ','.join(table_cols)
-                ps_str = ','.join(["%s"]*len(table_cols))
-                query_str = "INSERT INTO gex_strike ("+col_str+") VALUES ("+ps_str+")"
-                for n,row in strike_gex_df.iterrows():
-                    query_args = [getattr(row,x,None) for x in table_cols]
-                    postgres_execute(query_str,query_args,is_commit=True)
+            table_cols = ['ticker','strike','tstamp','naive_gex']
+            strike_gex_df = agg_df[table_cols]
+            strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).sum().reset_index()
+            col_str = ','.join(table_cols)
+            ps_str = ','.join(["%s"]*len(table_cols))
+            query_str = "INSERT INTO gex_strike ("+col_str+") VALUES ("+ps_str+")"
+            for n,row in strike_gex_df.iterrows():
+                query_args = [getattr(row,x,None) for x in table_cols]
+                postgres_execute(query_str,query_args,is_commit=True)
 
-                table_cols = ['ticker','tstamp','naive_gex']
-                net_gex_df = agg_df[table_cols]
-                net_gex_df = net_gex_df.groupby(['ticker','tstamp']).sum().reset_index()
-                col_str = ','.join(table_cols)
-                ps_str = ','.join(["%s"]*len(table_cols))
-                query_str = "INSERT INTO gex_net ("+col_str+") VALUES ("+ps_str+")"
-                for n,row in net_gex_df.iterrows():
-                    query_args = [getattr(row,x,None) for x in table_cols]
-                    postgres_execute(query_str,query_args,is_commit=True)
+            table_cols = ['ticker','tstamp','naive_gex']
+            net_gex_df = agg_df[table_cols]
+            net_gex_df = net_gex_df.groupby(['ticker','tstamp']).sum().reset_index()
+            col_str = ','.join(table_cols)
+            ps_str = ','.join(["%s"]*len(table_cols))
+            query_str = "INSERT INTO gex_net ("+col_str+") VALUES ("+ps_str+")"
+            for n,row in net_gex_df.iterrows():
+                query_args = [getattr(row,x,None) for x in table_cols]
+                postgres_execute(query_str,query_args,is_commit=True)
 
         else:
-            print(fetched,'??')
+            print(fetched,'qc_pass',qc_pass)
     else:
-        raise NotImplementedError()
-        query_str = """
-        (select 'underlying_candle' as event_type,event_symbol,close as spot_price,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
-        where tstamp >= %s and tstamp < %s and event_symbol = %s
-        ) union all (
-        select 'candle' as event_type,event_symbol,null::float as spot_price,close,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
-        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
-        ) union all (
-        select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
-        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
-        ) union all (
-        select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, gamma,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
-        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
-        ) union all (
-        select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
-        where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
-        )
-        """
-
-        query_args = (
-            utc_tstamp,max_utc_tstamp,ticker,
-            utc_tstamp,max_utc_tstamp,ticker,
-            utc_tstamp,max_utc_tstamp,ticker,
-            utc_tstamp,max_utc_tstamp,ticker,
-            utc_tstamp,max_utc_tstamp,ticker,
-        )
-
-        fetched = postgres_execute(query_str,query_args)
-        if fetched is None:
-            df = pd.DataFrame([],columns=columns)
-        else:
-            df = pd.DataFrame(fetched,columns=columns)
-    
+        print('found',len(fetched))
     return gex_df
 
 # python -m utils.compute_intraday SPX 2025-01-06-16-45-03
@@ -255,8 +270,8 @@ def mainone(ticker,tstamp_str):
     compute_gex(ticker,tstamp)
 
 def main(ticker):
-    tstamp_list = pd.date_range(start="2025-01-07 09:30:00",end="2025-01-07 14:50:30",freq='s',tz=pytz.timezone('US/Eastern'))
-    #tstamp_list = pd.date_range(start="2025-01-08 09:30:00",end="2025-01-08 14:50:30",freq='s',tz=pytz.timezone('US/Eastern'))
+    tstamp_list = pd.date_range(start="2025-01-07 09:30:00",end="2025-01-07 16:30:00",freq='s',tz=pytz.timezone('US/Eastern'))
+    #tstamp_list = pd.date_range(start="2025-01-08 09:30:00",end="2025-01-08 16:30:00",freq='s',tz=pytz.timezone('US/Eastern'))
     for tstamp in tstamp_list:
         try:
             get_df = compute_gex(ticker,tstamp)
