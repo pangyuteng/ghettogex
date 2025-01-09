@@ -1,7 +1,17 @@
-import logging
-logger = logging.getLogger(__file__)
 import os
 import sys
+import logging
+
+logger = logging.getLogger(__file__)
+logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler(sys.stdout)
+#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 import traceback
 import time
 import pytz
@@ -39,7 +49,10 @@ def get_events_df_first_minute(ticker,max_utc_tstamp,market_open_tstamp_et):
         market_open_tstamp_et,max_utc_tstamp,ticker,
     )
 
+    logger.debug(f'pg select START-------------------------------')
     fetched = postgres_execute(query_str,query_args)
+    logger.debug(f'pg select END !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+
 
     # the first minute, grab everything
     columns = [
@@ -84,7 +97,9 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp):
         utc_tstamp,max_utc_tstamp,ticker, # timeandsale
     )
 
+    logger.debug(f'pg select START-------------------------------')
     fetched = postgres_execute(query_str,query_args)
+    logger.debug(f'pg select END !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
     # the first minute, grab everything
     columns = [
@@ -214,15 +229,15 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     fetched = postgres_execute(query_str,query_args)
 
     time_b = time.time()
-    logger.debug(f'pg select {time_b-time_a}')
+    logger.debug(f'pg select {time_b-time_a} {len(fetched)}')
 
     if len(fetched) == 0:
-        time_a = time.time()
         if first_minute:
+            time_a = time.time()
             event_df = get_events_df_first_minute(ticker,max_utc_tstamp,market_open_tstamp_et)
 
             time_b = time.time()
-            print('get_events_df',time_b-time_a)
+            logger.info(f'get_events_df {time_b-time_a}')
 
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),first_minute)
             agg_df['tstamp']=utc_tstamp
@@ -230,13 +245,14 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             logger.debug(f'{first_minute},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
 
             time_c = time.time()
-            print('compute_gex_core',time_c-time_b)
+            logger.info(f'compute_gex_core {time_c-time_b}')
 
         else:
+            time_a = time.time()
             event_df = get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp)
 
             time_b = time.time()
-            print('get_events_df',time_b-time_a)
+            logger.info(f'get_events_df {time_b-time_a}')
 
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),first_minute)
             agg_df['tstamp']=utc_tstamp
@@ -244,7 +260,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             logger.debug(f'{first_minute},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
 
             time_c = time.time()
-            print('compute_gex_core',time_c-time_b)
+            logger.info(f'compute_gex_core {time_c-time_b}')
 
         if persist_to_postgres and qc_pass:
             time_d = time.time()
@@ -287,14 +303,21 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
                 query_list.append((query_str,query_args))
 
             time_b = time.time()
-            print('text append',time_b-time_d)
+            logger.info(f'text append {time_b-time_d}')
             postgres_execute_many(query_list)
             time_c = time.time()
-            print('postgres_execute_many',time_c-time_b)
+            logger.info(f'postgres_execute_many {time_c-time_b}')
         else:
             logger.debug(f'qc_pass {qc_pass}, {len(fetched)}')
+            if first_minute:
+                time_b = time.time()
+                query_str = "INSERT INTO gex_net (ticker,tstamp) VALUES (%s,%s)"
+                query_args = (ticker,utc_tstamp)
+                postgres_execute_many([(query_str,query_args)])
+                time_c = time.time()
+                logger.info(f'postgres_execute_many {time_c-time_b}')
     else:
-        pass
+        logger.debug(f'{utc_tstamp} {len(fetched)}')
     return gex_df
 
 # python -m utils.compute_intraday SPX 2025-01-06-16-45-03
