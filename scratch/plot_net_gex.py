@@ -12,8 +12,9 @@ from utils.postgres_utils import postgres_execute
 
 def main():
     ticker = 'SPX'
-    postgres_query = "select * from gex_net where ticker = %s order by tstamp"
-    postgres_args = (ticker,)
+    tstamp_str = '2025-01-08'
+    postgres_query = "select * from gex_net where ticker = %s and tstamp = %s order by tstamp"
+    postgres_args = (ticker,tstamp_str)
     fetched = postgres_execute(postgres_query,postgres_args)
     df = pd.DataFrame(fetched)
     utc = pytz.timezone('UTC')
@@ -21,8 +22,8 @@ def main():
     df.tstamp = df.tstamp.apply(lambda x: x.replace(tzinfo=utc).astimezone(tz=eastern))
     print(df.shape)
     
-    postgres_query = "select * from gex_strike where ticker = %s order by tstamp "
-    postgres_args = (ticker,)
+    postgres_query = "select * from gex_strike where ticker = %s and tstamp = %s order by tstamp"
+    postgres_args = (ticker,tstamp_str)
     fetched = postgres_execute(postgres_query,postgres_args)
     sdf = pd.DataFrame(fetched)
     utc = pytz.timezone('UTC')
