@@ -31,9 +31,11 @@ def main():
 
     plt.subplot(211)
     plt.plot(df.tstamp,df.spot_price)
-    plt.title(f"intraday naive gex\nticker:{ticker} {df.tstamp.min()} to {df.tstamp.max()}\ngreen: max-gex, red:min-gex")
+    plt.ylabel("price")
+    plt.title(f"intraday naive gex\nticker:{ticker} {df.tstamp.min().strftime('Y-%m-%d')} to {df.tstamp.max()}\ngreen: max-gex, red:min-gex")
     plt.grid(True)
-
+    
+    # TOOD: optimize this....need to do some pd.dataframe magic
     for tstamp in df.tstamp.unique():
         tmpdf = sdf[sdf.tstamp == tstamp]
         max_gex_idx = tmpdf.naive_gex.argmax()
@@ -45,9 +47,9 @@ def main():
 
     plt.subplot(212)
     plt.plot(df.tstamp,df.naive_gex/1e9)
-    plt.title("net naive gex ($Bn/%Move)")
+    plt.ylabel("net naive gex ($Bn/%Move)")
     plt.grid(True)
-
+    plt.tight_layout()
     plt.savefig('gex_net.png')
 
 if __name__ == "__main__":
