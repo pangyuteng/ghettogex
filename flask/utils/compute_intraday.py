@@ -24,7 +24,7 @@ from .postgres_utils import postgres_execute, postgres_execute_many
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
 
-def get_events_df_first_minute(ticker,max_utc_tstamp,market_open_tstamp_et):
+def get_events_df_first_minute(ticker,max_utc_tstamp,min_utc_tstamp):
     query_str = """
     (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
     where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
@@ -44,11 +44,11 @@ def get_events_df_first_minute(ticker,max_utc_tstamp,market_open_tstamp_et):
     """
 
     query_args = (
-        market_open_tstamp_et,max_utc_tstamp,ticker,
-        market_open_tstamp_et,max_utc_tstamp,ticker,
-        market_open_tstamp_et,max_utc_tstamp,ticker,
-        market_open_tstamp_et,max_utc_tstamp,ticker,
-        market_open_tstamp_et,max_utc_tstamp,ticker,
+        min_utc_tstamp,max_utc_tstamp,ticker,
+        min_utc_tstamp,max_utc_tstamp,ticker,
+        min_utc_tstamp,max_utc_tstamp,ticker,
+        min_utc_tstamp,max_utc_tstamp,ticker,
+        min_utc_tstamp,max_utc_tstamp,ticker,
     )
 
     logger.debug(f'pg select START-------------------------------')
@@ -71,7 +71,7 @@ def get_events_df_first_minute(ticker,max_utc_tstamp,market_open_tstamp_et):
 
     return df
 
-def get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp):
+def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
 
     query_str = """
     (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
@@ -92,10 +92,10 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp):
     """
 
     query_args = (
-        prior_minute_utc_tstamp,max_utc_tstamp,ticker, # underlying_candle
+        min_utc_tstamp,max_utc_tstamp,ticker, # underlying_candle
         utc_tstamp,max_utc_tstamp,ticker, # candle
-        prior_minute_utc_tstamp,max_utc_tstamp,ticker, # summary
-        prior_minute_utc_tstamp,max_utc_tstamp,ticker, # greeks
+        min_utc_tstamp,max_utc_tstamp,ticker, # summary
+        min_utc_tstamp,max_utc_tstamp,ticker, # greeks
         utc_tstamp,max_utc_tstamp,ticker, # timeandsale
     )
 
