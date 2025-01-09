@@ -42,6 +42,8 @@ def main():
     # TOOD: optimize this....need to do some pd.dataframe magic
     for tstamp in df.tstamp.unique():
         tmpdf = sdf[sdf.tstamp == tstamp]
+        if len(tmpdf) == 0:
+            continue
         max_gex_idx = tmpdf.naive_gex.argmax()
         min_gex_idx = tmpdf.naive_gex.argmin()
         if sdf.loc[max_gex_idx,'strike'] < 3000 or sdf.loc[min_gex_idx,'strike']<3000:
