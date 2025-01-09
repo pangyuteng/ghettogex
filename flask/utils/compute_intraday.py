@@ -276,9 +276,9 @@ def mainone(ticker,tstamp_str):
     tstamp = tstamp.replace(tzinfo=eastern)
     compute_gex(ticker,tstamp)
 
-def main(ticker):
-    tstamp_list = pd.date_range(start="2025-01-07 09:30:00",end="2025-01-07 16:30:00",freq='s',tz=pytz.timezone('US/Eastern'))
-    #tstamp_list = pd.date_range(start="2025-01-08 09:30:00",end="2025-01-08 16:30:00",freq='s',tz=pytz.timezone('US/Eastern'))
+def main(ticker,my_date):
+    #my_date = '2025-01-07'
+    tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:30:00",freq='s',tz=pytz.timezone('US/Eastern'))
     for tstamp in tstamp_list:
         try:
             get_df = compute_gex(ticker,tstamp)
@@ -290,7 +290,8 @@ def main(ticker):
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
-    main(ticker)
+    my_date = sys.argv[2]
+    main(ticker,my_date)
 
 """
 select * from candle 
@@ -311,6 +312,7 @@ kubectl port-forward --address 0.0.0.0 fi-postgres-deployment-554bc784bf-xrgkg 5
 
 export POSTGRES_URI=postgres://postgres:postgres@192.168.68.143:5432/postgres
 
-python -m utils.compute_intraday SPX
+python -m utils.compute_intraday SPX 2025-01-07
+python -m utils.compute_intraday SPX 2025-01-08
 
 """
