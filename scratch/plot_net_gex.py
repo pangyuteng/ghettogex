@@ -16,16 +16,17 @@ def main():
     postgres_args = (ticker,)
     fetched = postgres_execute(postgres_query,postgres_args)
     df = pd.DataFrame(fetched)
-    utc = pytz.timezone('US/Eastern')
-    df.tstamp = df.tstamp.apply(lambda x: x.replace(tzinfo=utc).astimezone(tz="US/Eastern"))
+    utc = pytz.timezone('UTC')
+    eastern = pytz.timezone('US/Eastern')
+    df.tstamp = df.tstamp.apply(lambda x: x.replace(tzinfo=utc).astimezone(tz=eastern))
     print(df.shape)
     
     postgres_query = "select * from gex_strike where ticker = %s order by tstamp "
     postgres_args = (ticker,)
     fetched = postgres_execute(postgres_query,postgres_args)
     sdf = pd.DataFrame(fetched)
-    utc = pytz.timezone('US/Eastern')
-    sdf.tstamp = sdf.tstamp.apply(lambda x: x.replace(tzinfo=utc).astimezone(tz="US/Eastern"))
+    utc = pytz.timezone('UTC')
+    sdf.tstamp = sdf.tstamp.apply(lambda x: x.replace(tzinfo=utc).astimezone(tz=eastern))
     print(sdf.shape)
 
 

@@ -8,6 +8,7 @@ import ast
 import time
 import math
 import traceback
+import pytz
 import datetime
 import json
 import asyncio
@@ -78,7 +79,10 @@ def manage_subscriptions(*args,**kwargs):
 def trigger_gex_cache(*args,**kwargs):
     query_str = "select * from watchlist"
     query_args = ()
-    tstamp = datetime.datetime.now().replace(microsecond=0)
+    utc_tstamp = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+    eastern = pytz.timezone('US/Eastern')
+    et_tstamp = utc_tstamp.astimezone(tz=eastern)
+
     if is_market_open() is False:
         pass
     else:
@@ -89,8 +93,7 @@ def trigger_gex_cache(*args,**kwargs):
         for row in fetched:
             ticker = row['ticker']
             logger.info(f"trigger_gex_cache {ticker}")
-            compute_gex(ticker,tstamp,persist_to_postgres=True)
-
+            compute_gex(ticker,et_tstamp,persist_to_postgres=True)
 
 # TODO: you can implement backfill via luigi
 class GexTarget(luigi.Target):
