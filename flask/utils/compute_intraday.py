@@ -3,6 +3,7 @@ logger = logging.getLogger(__file__)
 import os
 import sys
 import traceback
+import time
 import pytz
 import datetime
 import numpy as np
@@ -182,6 +183,8 @@ def compute_gex_core(df,first_minute):
     return merged_df, qc_pass
 
 def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
+    time_a = time.time()
+
     gex_df = None
     csv_file = f"tmp/naive_gex-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv"
     csv_file = None
@@ -209,21 +212,42 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     query_str = "SELECT * FROM gex_net WHERE ticker = %s and tstamp = %s"
     query_args = (ticker,utc_tstamp)
     fetched = postgres_execute(query_str,query_args)
+
+    time_b = time.time()
+    logger.debug(f'pg select {time_b-time_a}')
+
     if len(fetched) == 0:
+        time_a = time.time()
         if first_minute:
             event_df = get_events_df_first_minute(ticker,max_utc_tstamp,market_open_tstamp_et)
+
+            time_b = time.time()
+            print('get_events_df',time_b-time_a)
+
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),first_minute)
             agg_df['tstamp']=utc_tstamp
             agg_df['ticker']=ticker
-            print(first_minute,et_tstamp,qc_pass,len(event_df),len(agg_df),agg_df.naive_gex.sum())
+            logger.debug(f'{first_minute},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
+
+            time_c = time.time()
+            print('compute_gex_core',time_c-time_b)
+
         else:
             event_df = get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp)
+
+            time_b = time.time()
+            print('get_events_df',time_b-time_a)
+
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),first_minute)
             agg_df['tstamp']=utc_tstamp
             agg_df['ticker']=ticker
-            print(first_minute,et_tstamp,qc_pass,len(event_df),len(agg_df),agg_df.naive_gex.sum())
+            logger.debug(f'{first_minute},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
+
+            time_c = time.time()
+            print('compute_gex_core',time_c-time_b)
 
         if persist_to_postgres and qc_pass:
+            time_d = time.time()
             agg_df = agg_df[event_agg_columns]
             if csv_file:
                 agg_df.to_csv(csv_file,index=False)
@@ -262,11 +286,15 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
                 query_args = [getattr(row,x,None) for x in table_cols]
                 query_list.append((query_str,query_args))
 
+            time_b = time.time()
+            print('text append',time_b-time_d)
             postgres_execute_many(query_list)
+            time_c = time.time()
+            print('postgres_execute_many',time_c-time_b)
         else:
-            print(fetched,'qc_pass',qc_pass)
+            logger.debug(f'qc_pass {qc_pass}, {len(fetched)}')
     else:
-        print('found',len(fetched))
+        pass
     return gex_df
 
 # python -m utils.compute_intraday SPX 2025-01-06-16-45-03
