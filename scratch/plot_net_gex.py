@@ -11,17 +11,17 @@ from utils.postgres_utils import postgres_execute
 
 
 def main():
-
-    postgres_query = "select * from gex_net order by tstamp"
-    postgres_args = ()
+    ticker = 'SPX'
+    postgres_query = "select * from gex_net where ticker = %s order by tstamp"
+    postgres_args = (ticker,)
     fetched = postgres_execute(postgres_query,postgres_args)
     df = pd.DataFrame(fetched)
     utc = pytz.timezone('US/Eastern')
     df.tstamp = df.tstamp.apply(lambda x: x.replace(tzinfo=utc).astimezone(tz="US/Eastern"))
     print(df.shape)
     
-    postgres_query = "select * from gex_strike order by tstamp"
-    postgres_args = ()
+    postgres_query = "select * from gex_strike where ticker = %s order by tstamp "
+    postgres_args = (ticker,)
     fetched = postgres_execute(postgres_query,postgres_args)
     sdf = pd.DataFrame(fetched)
     utc = pytz.timezone('US/Eastern')
@@ -31,6 +31,7 @@ def main():
 
     plt.subplot(211)
     plt.plot(df.tstamp,df.spot_price)
+    plt.title(f"intraday naive gex\nticker:{ticker} {df.tstamp.min()} to {df.tstamp.max()}\ngreen: max-gex, red:min-gex")
     plt.grid(True)
 
     for tstamp in df.tstamp.unique():
@@ -43,7 +44,8 @@ def main():
         plt.scatter(tstamp,sdf.loc[min_gex_idx,'strike'],color='red',alpha=0.1)
 
     plt.subplot(212)
-    plt.plot(df.tstamp,df.naive_gex)
+    plt.plot(df.tstamp,df.naive_gex/1e9)
+    plt.title("net naive gex ($Bn/%Move)")
     plt.grid(True)
 
     plt.savefig('gex_net.png')
