@@ -65,6 +65,6 @@ if __name__ == "__main__":
 
 export POSTGRES_URI=postgres://postgres:postgres@192.168.68.143:5432/postgres
 
-python -m plot_net_gex.py
+python plot_net_gex.py
 
 """

@@ -18,6 +18,8 @@ import pytz
 import datetime
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
+
 from .postgres_utils import postgres_execute, postgres_execute_many
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
@@ -329,8 +331,8 @@ def mainone(ticker,tstamp_str):
 
 def main(ticker,my_date):
     #my_date = '2025-01-07'
-    tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:30:00",freq='s',tz=pytz.timezone('US/Eastern'))
-    for tstamp in tstamp_list:
+    tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
+    for tstamp in tqdm(tstamp_list):
         try:
             get_df = compute_gex(ticker,tstamp)
         except KeyboardInterrupt:
