@@ -19,7 +19,7 @@ def main():
     utc = pytz.timezone('US/Eastern')
     df.tstamp = df.tstamp.apply(lambda x: x.replace(tzinfo=utc).astimezone(tz="US/Eastern"))
     print(df.shape)
-
+    
     postgres_query = "select * from gex_strike order by tstamp"
     postgres_args = ()
     fetched = postgres_execute(postgres_query,postgres_args)
@@ -32,6 +32,16 @@ def main():
     plt.subplot(211)
     plt.plot(df.tstamp,df.spot_price)
     plt.grid(True)
+
+    for tstamp in df.tstamp.unique():
+        tmpdf = sdf[sdf.tstamp == tstamp]
+        max_gex_idx = tmpdf.naive_gex.argmax()
+        min_gex_idx = tmpdf.naive_gex.argmin()
+        if sdf.loc[max_gex_idx,'strike'] < 3000 or sdf.loc[min_gex_idx,'strike']<3000:
+            continue
+        plt.scatter(tstamp,sdf.loc[max_gex_idx,'strike'],color='green',alpha=0.1)
+        plt.scatter(tstamp,sdf.loc[min_gex_idx,'strike'],color='red',alpha=0.1)
+
     plt.subplot(212)
     plt.plot(df.tstamp,df.naive_gex)
     plt.grid(True)
