@@ -31,6 +31,18 @@ def postgres_execute(query_str,query_args,is_commit=False):
         traceback.print_exc()
     return response
 
+def postgres_execute_many(query_list):
+    response = None
+    try:
+        with psycopg.connect(postgres_uri,row_factory=dict_row) as conn:
+            with conn.cursor() as curs:
+                for query_str,query_args in query_list:
+                    curs.execute(query_str,query_args)
+                conn.commit()
+    except:
+        traceback.print_exc()
+    return response
+
 """
 ('INSERT INTO Quote (eventSymbol,eventTime,sequence,timeNanoPart,bidTime,bidExchangeCode,askTime,askExchangeCode,bidPrice,askPrice,bidSize,askSize) VALUES 
 (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',)                                                                                                        

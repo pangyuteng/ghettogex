@@ -7,7 +7,7 @@ import pytz
 import datetime
 import numpy as np
 import pandas as pd
-from .postgres_utils import postgres_execute
+from .postgres_utils import postgres_execute, postgres_execute_many
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
 
@@ -120,7 +120,7 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp):
 
 
 def compute_gex_core(df,first_minute):
-
+    df = df.sort_values(by=['event_type','tstamp'])
     # size from timeandsale event
     df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size'])
     underlying_candle_df = df[df.event_type=='underlying_candle']
@@ -228,17 +228,18 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             if csv_file:
                 agg_df.to_csv(csv_file,index=False)
 
+            query_list = []
+
             col_str = ','.join(event_agg_columns)
             ps_str = ','.join(["%s"]*len(event_agg_columns))
             query_str = "INSERT INTO event_agg ("+col_str+") VALUES ("+ps_str+")"
-
             for n,row in agg_df.iterrows():
                 query_args = [getattr(row,x,None) for x in event_agg_columns]
-                postgres_execute(query_str,query_args,is_commit=True)
+                query_list.append((query_str,query_args))
 
             table_cols = ['ticker','strike','tstamp','naive_gex']
             strike_gex_df = agg_df[table_cols]
-            strike_gex_df = strike_gex_df.groupby(['ticker','tstamp']).agg(
+            strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).agg(
                 naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
             ).reset_index()
             col_str = ','.join(table_cols)
@@ -246,7 +247,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             query_str = "INSERT INTO gex_strike ("+col_str+") VALUES ("+ps_str+")"
             for n,row in strike_gex_df.iterrows():
                 query_args = [getattr(row,x,None) for x in table_cols]
-                postgres_execute(query_str,query_args,is_commit=True)
+                query_list.append((query_str,query_args))
 
             table_cols = ['ticker','tstamp','spot_price','naive_gex']
             net_gex_df = agg_df[table_cols]
@@ -259,8 +260,9 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             query_str = "INSERT INTO gex_net ("+col_str+") VALUES ("+ps_str+")"
             for n,row in net_gex_df.iterrows():
                 query_args = [getattr(row,x,None) for x in table_cols]
-                postgres_execute(query_str,query_args,is_commit=True)
+                query_list.append((query_str,query_args))
 
+            postgres_execute_many(query_list)
         else:
             print(fetched,'qc_pass',qc_pass)
     else:
