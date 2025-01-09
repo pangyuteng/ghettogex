@@ -212,13 +212,13 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     if len(fetched) == 0:
         if first_minute:
             event_df = get_events_df_first_minute(ticker,max_utc_tstamp,market_open_tstamp_et)
-            agg_df, qc_pass = compute_gex_core(event_df,first_minute)
+            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),first_minute)
             agg_df['tstamp']=utc_tstamp
             agg_df['ticker']=ticker
             print(first_minute,et_tstamp,qc_pass,len(event_df),len(agg_df),agg_df.naive_gex.sum())
         else:
             event_df = get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp)
-            agg_df, qc_pass = compute_gex_core(event_df,first_minute)
+            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),first_minute)
             agg_df['tstamp']=utc_tstamp
             agg_df['ticker']=ticker
             print(first_minute,et_tstamp,qc_pass,len(event_df),len(agg_df),agg_df.naive_gex.sum())
@@ -312,7 +312,7 @@ kubectl port-forward --address 0.0.0.0 fi-postgres-deployment-554bc784bf-xrgkg 5
 
 export POSTGRES_URI=postgres://postgres:postgres@192.168.68.143:5432/postgres
 
-python -m utils.compute_intraday SPX 2025-01-07
+python -m utils.compute_intraday SPX 2025-01-07 && \
 python -m utils.compute_intraday SPX 2025-01-08
 
 """
