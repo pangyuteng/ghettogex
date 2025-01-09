@@ -32,7 +32,7 @@ def main():
     plt.subplot(211)
     plt.plot(df.tstamp,df.spot_price)
     plt.ylabel("price")
-    plt.title(f"intraday naive gex\nticker:{ticker} {df.tstamp.min().strftime('Y-%m-%d')} to {df.tstamp.max()}\ngreen: max-gex, red:min-gex")
+    plt.title(f"intraday naive gex\nticker:{ticker} {df.tstamp.min().strftime('%Y-%m-%d')}\ngreen: max-gex, red:min-gex")
     plt.grid(True)
     
     # TOOD: optimize this....need to do some pd.dataframe magic
