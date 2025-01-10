@@ -24,7 +24,7 @@ from .postgres_utils import postgres_execute, postgres_execute_many
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
 
-def get_events_df_first_minute(ticker,max_utc_tstamp,min_utc_tstamp):
+def get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     query_str = """
     (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
     where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
@@ -205,12 +205,14 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     gex_df = None
     csv_file = f"tmp/naive_gex-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv"
     csv_file = None
-
-    utc_tstamp = et_tstamp.astimezone(tz="UTC")
+    utc = pytz.timezone('UTC')
+    utc_tstamp = et_tstamp.astimezone(tz=utc)
     max_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=1)
     prior_minute_utc_tstamp = utc_tstamp-datetime.timedelta(seconds=60)
     
     delta, market_open_tstamp_et = timedelta_from_market_open(et_tstamp)
+    market_open_tstamp_utc = market_open_tstamp_et.astimezone(tz=utc)
+
     if delta < datetime.timedelta(minutes=1):
         first_minute = True
     else:
@@ -236,7 +238,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     if len(fetched) == 0:
         if first_minute:
             time_a = time.time()
-            event_df = get_events_df_first_minute(ticker,max_utc_tstamp,market_open_tstamp_et)
+            event_df = get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,market_open_tstamp_utc)
 
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
@@ -359,6 +361,8 @@ SELECT * from candle
 WHERE event_symbol = 'SPX'
 and tstamp >= '2025-01-07 14:31:00' and tstamp < '2025-01-07 14:32:00'
 -- 66 rows
+
+https://www.pgmustard.com/blog/max-parallel-workers-per-gather
 
 https://stackoverflow.com/questions/63680444/why-less-than-has-much-better-performance-than-greater-than-in-a-query
 
