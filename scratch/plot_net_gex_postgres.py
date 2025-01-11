@@ -82,7 +82,7 @@ def plot_iv(ticker,day_stamp):
         plt.grid(True)
         plt.ylabel("strike")
         plt.xlabel("net naive gex ($Bn/%Move)")
-        plt.title(f"ticker: {ticker}")
+        plt.title(f"ticker: {ticker} price {spot_price:1.2f}\n{tstamp}")
         plt.ylim(5500,6500)
         plt.xlim(-3,3)
         plt.show()
