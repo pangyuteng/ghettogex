@@ -127,7 +127,7 @@ async def ws_random_surf():
                 mylist.append(myitem)
             data_str = render_html("random-surf.html",mylist=mylist,tstamp=tstamp)
             await websocket.send(data_str)
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise
