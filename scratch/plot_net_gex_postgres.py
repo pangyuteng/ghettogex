@@ -20,6 +20,16 @@ def plot_iv(ticker,day_stamp):
     png_file_list = []
 
     query_str = """
+    select * from gex_net where ticker = %s and tstamp::date = %s
+    order by tstamp
+    """
+    query_args = (ticker,day_stamp)
+    fetched = postgres_execute(query_str,query_args)
+
+    ndf = pd.DataFrame(fetched)
+    ndf = ndf[['tstamp','spot_price']]
+
+    query_str = """
     select * from gex_strike where ticker = %s and tstamp::date = %s
     order by tstamp
     """
@@ -27,13 +37,23 @@ def plot_iv(ticker,day_stamp):
     fetched = postgres_execute(query_str,query_args)
 
     df = pd.DataFrame(fetched)
+    df = df.merge(ndf,how='left',on=['tstamp'])
     df.naive_gex = df.naive_gex/1e9
+
     print(df.shape)
     print(df.columns)
     tstamp_list = sorted(list(df.tstamp.unique()))
-    #tstamp_list = tstamp_list[::60]
+
     for tstamp in tqdm(tstamp_list):
+
         tmp = df[df.tstamp==tstamp].reset_index()
+
+        try:
+            spot_price = tmp.spot_price.to_list()[-1]
+        except:
+            spot_price = np.nan
+        print(tstamp,spot_price)
+
         png_file = os.path.join("tmp","pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
         # Plot 3D surface
         fig = plt.figure()
@@ -58,7 +78,7 @@ def plot_iv(ticker,day_stamp):
                 else:
                     color = 'red'
                 plt.plot(x,y,color=color)
-
+        plt.axhline(spot_price,color='blue')
         plt.grid(True)
         plt.ylabel("strike")
         plt.xlabel("net naive gex ($Bn/%Move)")
