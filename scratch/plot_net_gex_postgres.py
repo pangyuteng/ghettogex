@@ -49,7 +49,8 @@ def plot_iv(ticker,day_stamp):
         if True:
             strike_list = [[x,x] for x in tmp.strike.to_numpy()]
             naive_gex_list = [[0,x] for x in tmp.naive_gex.to_numpy()]
-            plt.plot(naive_gex_list,strike_list)
+            for x,y in zip(naive_gex_list,strike_list):
+                plt.plot(x,y)
         plt.title(f"ticker: {ticker}")
         plt.show()
         plt.savefig(png_file)
