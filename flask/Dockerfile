@@ -1,6 +1,8 @@
 
 FROM python:3.10-bullseye
 
+# for moveipy
+RUN apt-get update && apt-get install ffmpeg -yq
 
 WORKDIR /opt
 

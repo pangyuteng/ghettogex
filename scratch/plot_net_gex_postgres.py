@@ -10,10 +10,12 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import PIL
-from moviepy import editor
+from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
 
 sys.path.append("../flask")
 from utils.postgres_utils import postgres_execute
+
+work_dir = 'tmp'
 
 def plot_iv(ticker,day_stamp):
 
@@ -40,10 +42,14 @@ def plot_iv(ticker,day_stamp):
     df = df.merge(ndf,how='left',on=['tstamp'])
     df.naive_gex = df.naive_gex/1e9
 
-    print(df.shape)
     print(df.columns)
-    tstamp_list = sorted(list(df.tstamp.unique()))
+    print(df.shape)
+    df = df[['strike','naive_gex','spot_price''tstamp']]
+    df = df.dropna()
+    print(df.shape)
 
+
+    tstamp_list = sorted(list(df.tstamp.unique()))
     for tstamp in tqdm(tstamp_list):
 
         tmp = df[df.tstamp==tstamp].reset_index()
@@ -54,7 +60,7 @@ def plot_iv(ticker,day_stamp):
             spot_price = np.nan
         print(tstamp,spot_price)
 
-        png_file = os.path.join("tmp","pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
+        png_file = os.path.join(work_dir,"pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
         # Plot 3D surface
         fig = plt.figure()
         if False:
@@ -96,29 +102,25 @@ def main():
 
     ticker = 'SPX'
     day_stamp = datetime.date(2025,1,7)
-    png_file_list = plot_iv(ticker,day_stamp)
+    png_file_list = sorted([str(x) for x in pathlib.Path("tmp/pngs").rglob("*.png")])
+    if len(png_file_list) == 0:
+        png_file_list = plot_iv(ticker,day_stamp)
+    else:
+        print(len(png_file_list))
 
-    file_list = []
-    file_list.extend(png_file_list)
-    fps = 30
-    duration = (len(png_file_list))/fps
-    print(duration)
-    time_list = list(np.arange(0,duration,1./fps))
-    print(len(time_list))
-    img_dict = {a:f for a,f in zip(time_list,file_list)}
-    print(img_dict)
-    def make_frame(t):
-        fpath= img_dict[t]
-        im = PIL.Image.open(fpath)
-        arr = np.asarray(im)
-        return arr
-    work_dir = 'tmp'
-    gif_path = os.path.join(work_dir,f'ani.gif')
-    video_file = os.path.join(work_dir,f"ani.mp4")
-    clip = editor.VideoClip(make_frame, duration=duration)
-    clip.write_gif(gif_path, fps=fps)
-    clip.write_videofile(video_file, fps=fps)
-    print(os.path.exists(video_file))
+    
+    gif_file = os.path.join(work_dir,f'ani.gif')
+    mp4_file = os.path.join(work_dir,f"ani.mp4")   
+
+    fps = 24
+    clips = [ImageClip(m).with_duration(0.1) for m in png_file_list]
+    concat_clip = concatenate_videoclips(clips, method="compose")
+    concat_clip.write_videofile(mp4_file, fps=fps)
+    print(os.path.exists(mp4_file))
+    clip=VideoFileClip(mp4_file)
+    clip.write_gif(gif_file)
+
+
 if __name__ == "__main__":
     main()
 
