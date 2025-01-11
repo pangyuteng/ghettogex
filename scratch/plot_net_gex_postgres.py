@@ -100,8 +100,8 @@ def main():
 
     file_list = []
     file_list.extend(png_file_list)
-    fps = 5
-    duration = (len(png_file_list))/5
+    fps = 30
+    duration = (len(png_file_list))/fps
     print(duration)
     time_list = list(np.arange(0,duration,1./fps))
     print(len(time_list))
