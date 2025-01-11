@@ -44,7 +44,7 @@ def plot_iv(ticker,day_stamp):
 
     print(df.columns)
     print(df.shape)
-    df = df[['strike','naive_gex','spot_price''tstamp']]
+    df = df[['strike','naive_gex','spot_price','tstamp']]
     df = df.dropna()
     print(df.shape)
 
