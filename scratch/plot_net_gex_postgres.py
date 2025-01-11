@@ -30,7 +30,9 @@ def plot_iv(ticker,day_stamp):
     df.naive_gex = df.naive_gex/1e9
     print(df.shape)
     print(df.columns)
-    for tstamp in tqdm(sorted(df.tstamp.unique())):
+    tstamp_list = sorted(list(df.tstamp.unique()))
+    tstamp_list = tstamp_list[::60]
+    for tstamp in tqdm(tstamp_list):
         tmp = df[df.tstamp==tstamp].reset_index()
         png_file = os.path.join("tmp","pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
         # Plot 3D surface
