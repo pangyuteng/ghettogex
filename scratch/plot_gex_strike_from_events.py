@@ -65,6 +65,8 @@ if __name__ == "__main__":
 
 """
 
+docker run -it --env-file=.env  -w $PWD -v /mnt:/mnt fi-flask:latest bash
+
 export POSTGRES_URI=postgres://postgres:postgres@192.168.68.143:5432/postgres
 
 python plot_net_gex.py

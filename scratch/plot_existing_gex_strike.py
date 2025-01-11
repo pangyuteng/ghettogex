@@ -108,7 +108,7 @@ def main():
     else:
         print(len(png_file_list))
 
-    
+    png_file_list = png_file_list[::60]    
     gif_file = os.path.join(work_dir,f'ani.gif')
     mp4_file = os.path.join(work_dir,f"ani.mp4")   
 
