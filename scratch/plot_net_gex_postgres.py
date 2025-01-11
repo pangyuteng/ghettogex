@@ -29,9 +29,8 @@ def plot_iv(ticker,day_stamp):
     df = pd.DataFrame(fetched)
     print(df.shape)
     print(df.columns)
-    for tstamp in sorted(df.tstamp.unique()):
+    for tstamp in tqdm(sorted(df.tstamp.unique())):
         tmp = df[df.tstamp==tstamp].reset_index()
-        print(tstamp,len(tmp),len(df))
         png_file = os.path.join("tmp","pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
         # Plot 3D surface
         fig = plt.figure()
@@ -48,7 +47,9 @@ def plot_iv(ticker,day_stamp):
             ax.set_xlabel("Strike Price", fontweight="heavy")
             ax.set_zlabel("Naive GEX", fontweight="heavy")
         if True:
-            plt.plot(tmp.naive_gex,tmp.strike)
+            strike_list = [[x,x] for x in tmp.strike.to_numpy()]
+            naive_gex_list = [[0,x] for x in tmp.naive_gex.to_numpy()]
+            plt.plot(naive_gex_list,strike_list)
         plt.title(f"ticker: {ticker}")
         plt.show()
         plt.savefig(png_file)
