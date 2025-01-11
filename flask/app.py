@@ -116,6 +116,22 @@ async def home():
 async def about():
     return await render_template("about.html")
 
+@app.websocket('/ws-random-surf')
+async def ws_random_surf():
+    try:
+        while True:
+            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
+            mylist = []
+            for n in range(100):
+                myitem = (np.random.rand(100)*2).astype(float).tolist()
+                mylist.append(myitem)
+            data_str = render_html("random-surf.html",mylist=mylist,tstamp=tstamp)
+            await websocket.send(data_str)
+            await asyncio.sleep(1)
+    except asyncio.CancelledError:
+        app.logger.error('Client disconnected')
+        raise
+
 @app.websocket('/ws-prices')
 @login_required
 async def ws_prices():
