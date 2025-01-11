@@ -11,13 +11,42 @@ from utils.postgres_utils import postgres_execute
 
 
 def main():
+
     ticker = 'SPX'
-    min_tstamp_str = '2025-01-07'
-    max_tstamp_str = '2025-01-08'
-    postgres_query = "select * from gex_net where ticker = %s and tstamp > %s and tstamp < %s order by tstamp"
-    postgres_args = (ticker,min_tstamp_str,max_tstamp_str)
+    day_stamp = '2025-01-07'
+
+    postgres_query = "select * from greeks where event_symbol = %s and tstamp::date = %s order by tstamp"
+    postgres_args = (ticker,day_stamp)
     fetched = postgres_execute(postgres_query,postgres_args)
-    print(len(fetched))
+    underlying_candle_df = pd.DataFrame(fetched)
+
+    postgres_query = "select * from greeks where event_symbol like '.'||%s||'%%' and tstamp::date = %s order by tstamp"
+    postgres_args = (ticker,day_stamp)
+    fetched = postgres_execute(postgres_query,postgres_args)
+    greeks_df = pd.DataFrame(fetched)
+
+    postgres_query = "select * from summary where event_symbol like '.'||%s||'%%' and tstamp::date = %s order by tstamp"
+    postgres_args = (ticker,day_stamp)
+    fetched = postgres_execute(postgres_query,postgres_args)
+    summary_df = pd.DataFrame(fetched)
+
+    postgres_query = "select * from timeandsale where event_symbol like '.'||%s||'%%' and tstamp::date = %s order by tstamp"
+    postgres_args = (ticker,day_stamp)
+    fetched = postgres_execute(postgres_query,postgres_args)
+    timeandsale_df = pd.DataFrame(fetched)
+    
+    print(underlying_candle_df.shape)
+    print(greeks_df.shape)
+    print(summary_df.shape)
+    print(timeandsale_df.shape)
+
+    utc = pytz.timezone('UTC')
+    eastern = pytz.timezone('US/Eastern')
+    tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=eastern)
+    x.replace(tzinfo=utc).astimezone(tz=eastern)
+
+
+"""
     df = pd.DataFrame(fetched)
     utc = pytz.timezone('UTC')
     eastern = pytz.timezone('US/Eastern')
@@ -25,7 +54,7 @@ def main():
     print(df.shape)
     
     postgres_query = "select * from gex_strike where ticker = %s and tstamp > %s and tstamp < %s order by tstamp"
-    postgres_args = (ticker,min_tstamp_str,max_tstamp_str)
+    postgres_args = (ticker,day_stamp)
     fetched = postgres_execute(postgres_query,postgres_args)
     sdf = pd.DataFrame(fetched)
     utc = pytz.timezone('UTC')
@@ -57,7 +86,7 @@ def main():
     plt.grid(True)
     plt.tight_layout()
     plt.savefig('gex_net.png')
-
+"""
 if __name__ == "__main__":
     main()
 
@@ -65,10 +94,14 @@ if __name__ == "__main__":
 
 """
 
-docker run -it --env-file=.env  -w $PWD -v /mnt:/mnt fi-flask:latest bash
+docker run -it --env-file=.env  -w $PWD -v /mnt:/mnt -p 8888:8888 fi-flask:latest bash
 
 export POSTGRES_URI=postgres://postgres:postgres@192.168.68.143:5432/postgres
 
-python plot_net_gex.py
+pip install jupyter notebook
+
+jupyter notebook --allow-root --ip=*
+
+plot_gex_strike_from_events.py
 
 """
