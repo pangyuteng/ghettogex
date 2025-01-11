@@ -53,11 +53,11 @@ def plot_iv(ticker,day_stamp):
             for x,y in zip(naive_gex_list,strike_list):
                 plt.plot(x,y)
         
-        plt.xlabel("strike")
-        plt.ylabel("net naive gex ($Bn/%Move)")
+        plt.ylabel("strike")
+        plt.xlabel("net naive gex ($Bn/%Move)")
         plt.title(f"ticker: {ticker}")
-        plt.xlim(5500,6500)
-        plt.ylim(-3,3)
+        plt.ylim(5500,6500)
+        plt.xlim(-3,3)
         plt.show()
         plt.savefig(png_file)
         plt.close()
