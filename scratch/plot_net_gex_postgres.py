@@ -27,6 +27,7 @@ def plot_iv(ticker,day_stamp):
     fetched = postgres_execute(query_str,query_args)
 
     df = pd.DataFrame(fetched)
+    df.naive_gex = df.naive_gex/1e9
     print(df.shape)
     print(df.columns)
     for tstamp in tqdm(sorted(df.tstamp.unique())):
@@ -51,7 +52,12 @@ def plot_iv(ticker,day_stamp):
             naive_gex_list = [[0,x] for x in tmp.naive_gex.to_numpy()]
             for x,y in zip(naive_gex_list,strike_list):
                 plt.plot(x,y)
+        
+        plt.xlabel("strike")
+        plt.ylabel("net naive gex ($Bn/%Move)")
         plt.title(f"ticker: {ticker}")
+        plt.xlim(5500,6500)
+        plt.ylim(-3,3)
         plt.show()
         plt.savefig(png_file)
         plt.close()
