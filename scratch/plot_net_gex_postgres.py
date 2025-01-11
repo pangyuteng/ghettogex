@@ -31,7 +31,7 @@ def plot_iv(ticker,day_stamp):
     print(df.shape)
     print(df.columns)
     tstamp_list = sorted(list(df.tstamp.unique()))
-    tstamp_list = tstamp_list[::60]
+    #tstamp_list = tstamp_list[::60]
     for tstamp in tqdm(tstamp_list):
         tmp = df[df.tstamp==tstamp].reset_index()
         png_file = os.path.join("tmp","pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
@@ -53,12 +53,13 @@ def plot_iv(ticker,day_stamp):
             strike_list = [[x,x] for x in tmp.strike.to_numpy()]
             naive_gex_list = [[0,x] for x in tmp.naive_gex.to_numpy()]
             for x,y in zip(naive_gex_list,strike_list):
-                if x[0] > 0:
+                if x[-1] > 0:
                     color = 'green'
                 else:
                     color = 'red'
                 plt.plot(x,y,color=color)
-        
+
+        plt.grid(True)
         plt.ylabel("strike")
         plt.xlabel("net naive gex ($Bn/%Move)")
         plt.title(f"ticker: {ticker}")
