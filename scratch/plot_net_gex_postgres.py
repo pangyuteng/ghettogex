@@ -51,7 +51,11 @@ def plot_iv(ticker,day_stamp):
             strike_list = [[x,x] for x in tmp.strike.to_numpy()]
             naive_gex_list = [[0,x] for x in tmp.naive_gex.to_numpy()]
             for x,y in zip(naive_gex_list,strike_list):
-                plt.plot(x,y)
+                if x[0] > 0:
+                    color = 'green'
+                else:
+                    color = 'red'
+                plt.plot(x,y,color=color)
         
         plt.ylabel("strike")
         plt.xlabel("net naive gex ($Bn/%Move)")
