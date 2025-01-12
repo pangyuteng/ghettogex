@@ -14,7 +14,9 @@ from utils.postgres_utils import postgres_execute
 def main():
     ticker = 'SPX'
     day_stamp = '2025-01-08'
+    time_stamp = '15:00:00'
     stime = time.time()
+    """
     postgres_query = "select * from candle where event_symbol = %s and tstamp::date = %s order by tstamp"
     postgres_args = (ticker,day_stamp)
     fetched = postgres_execute(postgres_query,postgres_args)
@@ -37,6 +39,32 @@ def main():
 
     postgres_query = "select * from timeandsale where event_symbol like '.'||%s||'%%' and tstamp::date = %s order by tstamp"
     postgres_args = (ticker,day_stamp)
+    fetched = postgres_execute(postgres_query,postgres_args)
+    timeandsale_df = pd.DataFrame(fetched)
+    """
+
+    postgres_query = "select * from candle where event_symbol = %s and tstamp::date = %s and tstamp::time < %s order by tstamp"
+    postgres_args = (ticker,day_stamp,time_stamp)
+    fetched = postgres_execute(postgres_query,postgres_args)
+    underlying_candle_df = pd.DataFrame(fetched)
+
+    postgres_query = "select * from candle where event_symbol like '.'||%s||'%%' and tstamp::date = %s and tstamp::time < %s order by tstamp"
+    postgres_args = (ticker,day_stamp,time_stamp)
+    fetched = postgres_execute(postgres_query,postgres_args)
+    candle_df = pd.DataFrame(fetched)
+
+    postgres_query = "select * from greeks where event_symbol like '.'||%s||'%%' and tstamp::date = %s and tstamp::time < %s order by tstamp"
+    postgres_args = (ticker,day_stamp,time_stamp)
+    fetched = postgres_execute(postgres_query,postgres_args)
+    greeks_df = pd.DataFrame(fetched)
+
+    postgres_query = "select * from summary where event_symbol like '.'||%s||'%%' and tstamp::date = %s and tstamp::time < %s order by tstamp"
+    postgres_args = (ticker,day_stamp,time_stamp)
+    fetched = postgres_execute(postgres_query,postgres_args)
+    summary_df = pd.DataFrame(fetched)
+
+    postgres_query = "select * from timeandsale where event_symbol like '.'||%s||'%%' and tstamp::date = %s and tstamp::time < %s order by tstamp"
+    postgres_args = (ticker,day_stamp,time_stamp)
     fetched = postgres_execute(postgres_query,postgres_args)
     timeandsale_df = pd.DataFrame(fetched)
 
