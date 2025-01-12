@@ -13,10 +13,9 @@ from utils.postgres_utils import postgres_execute
 
 def main():
     ticker = 'SPX'
-    day_stamp = '2025-01-08'
-    time_stamp = '15:00:00'
+    day_stamp = '2025-01-07'
     stime = time.time()
-    """
+
     postgres_query = "select * from candle where event_symbol = %s and tstamp::date = %s order by tstamp"
     postgres_args = (ticker,day_stamp)
     fetched = postgres_execute(postgres_query,postgres_args)
@@ -39,32 +38,6 @@ def main():
 
     postgres_query = "select * from timeandsale where event_symbol like '.'||%s||'%%' and tstamp::date = %s order by tstamp"
     postgres_args = (ticker,day_stamp)
-    fetched = postgres_execute(postgres_query,postgres_args)
-    timeandsale_df = pd.DataFrame(fetched)
-    """
-
-    postgres_query = "select * from candle where event_symbol = %s and tstamp::date = %s and tstamp::time < %s order by tstamp"
-    postgres_args = (ticker,day_stamp,time_stamp)
-    fetched = postgres_execute(postgres_query,postgres_args)
-    underlying_candle_df = pd.DataFrame(fetched)
-
-    postgres_query = "select * from candle where event_symbol like '.'||%s||'%%' and tstamp::date = %s and tstamp::time < %s order by tstamp"
-    postgres_args = (ticker,day_stamp,time_stamp)
-    fetched = postgres_execute(postgres_query,postgres_args)
-    candle_df = pd.DataFrame(fetched)
-
-    postgres_query = "select * from greeks where event_symbol like '.'||%s||'%%' and tstamp::date = %s and tstamp::time < %s order by tstamp"
-    postgres_args = (ticker,day_stamp,time_stamp)
-    fetched = postgres_execute(postgres_query,postgres_args)
-    greeks_df = pd.DataFrame(fetched)
-
-    postgres_query = "select * from summary where event_symbol like '.'||%s||'%%' and tstamp::date = %s and tstamp::time < %s order by tstamp"
-    postgres_args = (ticker,day_stamp,time_stamp)
-    fetched = postgres_execute(postgres_query,postgres_args)
-    summary_df = pd.DataFrame(fetched)
-
-    postgres_query = "select * from timeandsale where event_symbol like '.'||%s||'%%' and tstamp::date = %s and tstamp::time < %s order by tstamp"
-    postgres_args = (ticker,day_stamp,time_stamp)
     fetched = postgres_execute(postgres_query,postgres_args)
     timeandsale_df = pd.DataFrame(fetched)
 
@@ -120,18 +93,18 @@ def main():
     print('prct_ffilled',prct_ffilled)
 
 
-    summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','tstamp_sec']]
+    summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','tstamp_sec','open_interest']]
     summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration','tstamp_sec']).last().reset_index()
 
     #greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega','tstamp_sec']]
-    greeks_df = greeks_df[['event_symbol','gamma','tstamp_sec']]
+    greeks_df = greeks_df[['event_symbol','tstamp_sec','gamma']]
     greeks_df = greeks_df.groupby(['event_symbol','tstamp_sec']).last().reset_index()
 
     timeandsale_df['size_signed'] = timeandsale_df['size'].where(timeandsale_df.aggressor_side == 'BUY', other=-1*timeandsale_df['size'])
     timeandsale_df = timeandsale_df[['event_symbol','size_signed','tstamp_sec']]
     timeandsale_df = timeandsale_df.groupby(['event_symbol','tstamp_sec']).sum().reset_index()
-
-    candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume','tstamp_sec']]
+    
+    candle_df = candle_df[['event_symbol','tstamp_sec','open','high','low','close','volume','bid_volume','ask_volume']]
     candle_df = candle_df.groupby(['event_symbol','tstamp_sec']).agg(
         open=pd.NamedAgg(column="open", aggfunc="last"),
         high=pd.NamedAgg(column="high", aggfunc="last"),
@@ -141,17 +114,17 @@ def main():
         bid_volume=pd.NamedAgg(column="bid_volume", aggfunc="sum"),
         ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="sum"),
     ).reset_index()
-
+    print(candle_df.columns)
     # summary OI is only at initial few seconds.... given we want to intraday OI....
     # naive merge will not work.
 
     mergedf = mergedf.merge(summary_df,how='left',on=['tstamp_sec'])
-    mergedf = mergedf.merge(greeks_df,how='left',on=['event_symbol'])
-    mergedf = mergedf.merge(timeandsale_df,how='left',on=['event_symbol'])
-    mergedf = mergedf.merge(candle_df,how='left',on=['event_symbol'])
+    mergedf = mergedf.merge(greeks_df,how='left',on=['event_symbol','tstamp_sec'])
+    mergedf = mergedf.merge(timeandsale_df,how='left',on=['event_symbol','tstamp_sec'])
+    mergedf = mergedf.merge(candle_df,how='left',on=['event_symbol','tstamp_sec'])
     mergedf['contract_type_int'] = mergedf.contract_type.apply(lambda x: -1 if x == 'P' else 1)
-
-
+    print(mergedf.columns)
+    print(mergedf.shape)
 
 if __name__ == "__main__":
     main()
