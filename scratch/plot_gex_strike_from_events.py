@@ -1,24 +1,29 @@
-
-
 import os
 import sys
+import time
 import pytz
 import datetime
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import pandas_market_calendars as mcal
 sys.path.append("/opt/fi/flask")
 from utils.postgres_utils import postgres_execute
 
 
 def main():
-
     ticker = 'SPX'
-    day_stamp = '2025-01-07'
-
-    postgres_query = "select * from greeks where event_symbol = %s and tstamp::date = %s order by tstamp"
+    day_stamp = '2025-01-08'
+    stime = time.time()
+    postgres_query = "select * from candle where event_symbol = %s and tstamp::date = %s order by tstamp"
     postgres_args = (ticker,day_stamp)
     fetched = postgres_execute(postgres_query,postgres_args)
     underlying_candle_df = pd.DataFrame(fetched)
+
+    postgres_query = "select * from candle where event_symbol like '.'||%s||'%%' and tstamp::date = %s order by tstamp"
+    postgres_args = (ticker,day_stamp)
+    fetched = postgres_execute(postgres_query,postgres_args)
+    candle_df = pd.DataFrame(fetched)
 
     postgres_query = "select * from greeks where event_symbol like '.'||%s||'%%' and tstamp::date = %s order by tstamp"
     postgres_args = (ticker,day_stamp)
@@ -34,59 +39,91 @@ def main():
     postgres_args = (ticker,day_stamp)
     fetched = postgres_execute(postgres_query,postgres_args)
     timeandsale_df = pd.DataFrame(fetched)
-    
+
+    etime = time.time()
+    print(etime-stime)
     print(underlying_candle_df.shape)
+    print(candle_df.shape)
     print(greeks_df.shape)
     print(summary_df.shape)
     print(timeandsale_df.shape)
 
-    utc = pytz.timezone('UTC')
+    #x.replace(microsecond=0,tzinfo=utc).astimezone(tz=eastern))
+
+    nyse = mcal.get_calendar('NYSE')
+    early = nyse.schedule(start_date=day_stamp, end_date=day_stamp)
+
+    start_time = early.market_open.to_list()[0]
+    end_time = early.market_close.to_list()[0]
+    print(start_time,end_time)
+
     eastern = pytz.timezone('US/Eastern')
-    tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=eastern)
-    x.replace(tzinfo=utc).astimezone(tz=eastern)
-
-
-"""
-    df = pd.DataFrame(fetched)
     utc = pytz.timezone('UTC')
-    eastern = pytz.timezone('US/Eastern')
-    df.tstamp = df.tstamp.apply(lambda x: x.replace(tzinfo=utc).astimezone(tz=eastern))
-    print(df.shape)
-    
-    postgres_query = "select * from gex_strike where ticker = %s and tstamp > %s and tstamp < %s order by tstamp"
-    postgres_args = (ticker,day_stamp)
-    fetched = postgres_execute(postgres_query,postgres_args)
-    sdf = pd.DataFrame(fetched)
-    utc = pytz.timezone('UTC')
-    sdf.tstamp = sdf.tstamp.apply(lambda x: x.replace(tzinfo=utc).astimezone(tz=eastern))
-    print(sdf.shape)
+    reference_tstamp_list = pd.date_range(start=start_time,end=end_time,freq='s')
+    print(len(reference_tstamp_list))
+
+    mydict = {
+        'uc': underlying_candle_df,
+        'c': candle_df,
+        'g': greeks_df,
+        's': summary_df,
+        't': timeandsale_df,
+    }
+
+    for k,v in mydict.items():
+        print(len(v))
+        v['tstamp_sec']=v.tstamp.apply(lambda x: x.replace(microsecond=0,tzinfo=utc))
+
+    # get underlying price at 1sec freq
+
+    mergedf = pd.DataFrame([])
+    mergedf['tstamp_sec']=reference_tstamp_list
+    print(len(mergedf))
+    uc = underlying_candle_df[underlying_candle_df.close > 0]
+    uc = uc[['tstamp_sec','close']].groupby(['tstamp_sec']).last().reset_index()
+    uc = uc.rename({'close':'spot_price'},axis=1)
+    mergedf = mergedf.merge(uc,how='left',on=['tstamp_sec'])
+    mergedf_null = mergedf.copy(deep=True)
+    nullcount_init = np.sum(mergedf.spot_price.isnull())
+    mergedf.spot_price = mergedf.spot_price.ffill()
+    nullcount_after_ffill = np.sum(mergedf.spot_price.isnull())
+    print(nullcount_init,nullcount_after_ffill,'!!')
+    prct_ffilled = 100*(nullcount_init-nullcount_after_ffill) / len(mergedf)
+    print('prct_ffilled',prct_ffilled)
 
 
-    plt.subplot(211)
-    plt.plot(df.tstamp,df.spot_price)
-    plt.ylabel("price")
-    plt.title(f"intraday naive gex\nticker:{ticker} {df.tstamp.min().strftime('%Y-%m-%d')}\ngreen: max-gex, red:min-gex")
-    plt.grid(True)
-    
-    # TOOD: optimize this....need to do some pd.dataframe magic
-    for tstamp in df.tstamp.unique():
-        tmpdf = sdf[sdf.tstamp == tstamp]
-        if len(tmpdf) == 0:
-            continue
-        max_gex_idx = tmpdf.naive_gex.argmax()
-        min_gex_idx = tmpdf.naive_gex.argmin()
-        if sdf.loc[max_gex_idx,'strike'] < 3000 or sdf.loc[min_gex_idx,'strike']<3000:
-            continue
-        plt.scatter(tstamp,sdf.loc[max_gex_idx,'strike'],color='green',alpha=0.1)
-        plt.scatter(tstamp,sdf.loc[min_gex_idx,'strike'],color='red',alpha=0.1)
+    summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','tstamp_sec']]
+    summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration','tstamp_sec']).last().reset_index()
 
-    plt.subplot(212)
-    plt.plot(df.tstamp,df.naive_gex/1e9)
-    plt.ylabel("net naive gex ($Bn/%Move)")
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig('gex_net.png')
-"""
+    greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega','tstamp_sec']]
+    greeks_df = greeks_df.groupby(['event_symbol','tstamp_sec']).last().reset_index()
+
+    timeandsale_df['size_signed'] = timeandsale_df['size'].where(timeandsale_df.aggressor_side == 'BUY', other=-1*timeandsale_df['size'])
+    timeandsale_df = timeandsale_df[['event_symbol','size_signed','tstamp_sec']]
+    timeandsale_df = timeandsale_df.groupby(['event_symbol','tstamp_sec']).sum().reset_index()
+
+    candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume','tstamp_sec']]
+    candle_df = candle_df.groupby(['event_symbol','tstamp_sec']).agg(
+        open=pd.NamedAgg(column="open", aggfunc="last"),
+        high=pd.NamedAgg(column="high", aggfunc="last"),
+        low=pd.NamedAgg(column="low", aggfunc="last"),
+        close=pd.NamedAgg(column="close", aggfunc="last"),
+        volume=pd.NamedAgg(column="volume", aggfunc="sum"),
+        bid_volume=pd.NamedAgg(column="bid_volume", aggfunc="sum"),
+        ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="sum"),
+    ).reset_index()
+
+    # summary OI is only at initial few seconds.... given we want to intraday OI....
+    # naive merge will not work.
+
+    mergedf = mergedf.merge(summary_df,how='left',on=['tstamp_sec'])
+    mergedf = mergedf.merge(greeks_df,how='left',on=['event_symbol'])
+    mergedf = mergedf.merge(timeandsale_df,how='left',on=['event_symbol'])
+    mergedf = mergedf.merge(candle_df,how='left',on=['event_symbol'])
+    mergedf['contract_type_int'] = mergedf.contract_type.apply(lambda x: -1 if x == 'P' else 1)
+
+
+
 if __name__ == "__main__":
     main()
 
