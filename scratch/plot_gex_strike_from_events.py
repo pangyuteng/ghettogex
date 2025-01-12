@@ -142,6 +142,6 @@ pip install jupyter notebook
 
 jupyter notebook --allow-root --ip=*
 
-plot_gex_strike_from_events.py
+python plot_gex_strike_from_events.py
 
 """
