@@ -95,7 +95,8 @@ def main():
     summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','tstamp_sec']]
     summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration','tstamp_sec']).last().reset_index()
 
-    greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega','tstamp_sec']]
+    #greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega','tstamp_sec']]
+    greeks_df = greeks_df[['event_symbol','gamma','tstamp_sec']]
     greeks_df = greeks_df.groupby(['event_symbol','tstamp_sec']).last().reset_index()
 
     timeandsale_df['size_signed'] = timeandsale_df['size'].where(timeandsale_df.aggressor_side == 'BUY', other=-1*timeandsale_df['size'])
