@@ -168,7 +168,10 @@ def gex_to_ani(df):
     png_file_list = sorted([str(x) for x in pathlib.Path("tmp/pngs").rglob("*.png")])
 
     if len(png_file_list) == 0:
-        tstamp_list = sorted(list(df.tstamp_sec.unique()))
+
+        df.gex_volume = df.gex_volume/1e9
+        tstamp_list = sorted(list(df.tstamp_sec.unique()))[::60]
+
         for tstamp in tqdm(tstamp_list):
 
             tmp = df[df.tstamp_sec==tstamp].reset_index()
@@ -205,7 +208,6 @@ def gex_to_ani(df):
 
     print(len(png_file_list))
 
-    png_file_list = png_file_list[::60]
     gif_file = os.path.join(work_dir,f'ani.gif')
     mp4_file = os.path.join(work_dir,f"ani.mp4")   
 
