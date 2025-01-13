@@ -238,7 +238,7 @@ if __name__ == "__main__":
         foodf = pd.read_parquet(pq_file)
     if not os.path.exists(mp4_file):
         gex_to_ani(foodf,mp4_file)
-
+    print('done')
 """
 
 kubectl port-forward --address 0.0.0.0 fi-postgres-deployment-6b6b89f7c6-ftwg4 5432:5432
