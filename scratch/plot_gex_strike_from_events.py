@@ -62,6 +62,17 @@ def cache_data(ticker,day_stamp):
     reference_tstamp_list = pd.date_range(start=start_time,end=end_time,freq='s')
     print(len(reference_tstamp_list))
 
+    mydict = {
+        'uc': underlying_candle_df,
+        'c': candle_df,
+        'g': greeks_df,
+        's': summary_df,
+        't': timeandsale_df,
+    }
+
+    for k,v in mydict.items():
+        print(len(v))
+        v['tstamp_sec']=v.tstamp.apply(lambda x: x.replace(microsecond=0,tzinfo=utc))
 
     stime = time.time()
     # get underlying price at 1sec freq
@@ -140,6 +151,8 @@ def cache_data(ticker,day_stamp):
             init_oi = 0
         ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+init_oi
         ok.oi_volume = ok.oi_volume.cumsum().astype(float)+init_oi
+        ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
+        ok['gex_volume'] = ok.gamma * ok.oi_volume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
         mylist.append(ok.copy(deep=True))
     foodf = pd.concat(mylist)
 
