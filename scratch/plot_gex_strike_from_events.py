@@ -166,10 +166,10 @@ def gex_to_ani(df):
     png_file_list = sorted([str(x) for x in pathlib.Path("tmp/pngs").rglob("*.png")])
 
     if len(png_file_list) == 0:
-        tstamp_list = sorted(list(df.tstamp.unique()))
+        tstamp_list = sorted(list(df.tstamp_sec.unique()))
         for tstamp in tqdm(tstamp_list):
 
-            tmp = df[df.tstamp==tstamp].reset_index()
+            tmp = df[df.tstamp_sec==tstamp].reset_index()
 
             try:
                 spot_price = tmp.spot_price.to_list()[-1]
