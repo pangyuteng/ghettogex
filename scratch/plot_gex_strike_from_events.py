@@ -170,8 +170,14 @@ def gex_to_ani(df):
 
     if len(png_file_list) == 0:
 
-        df.gex_volume = df.gex_volume/1e9
         tstamp_list = sorted(list(df.tstamp_sec.unique()))[::60]
+        
+        df.gex_volume = df.gex_volume/1e9
+
+        gex_lim = np.max(np.abs(df.gex_volume))
+        spot_min,spot_max = np.min(df.spot_price)*.98,np.max(df.spot_price)*1.02
+        print(gex_lim)
+        print(spot_min,spot_max)
 
         for tstamp in tqdm(tstamp_list):
 
@@ -199,8 +205,8 @@ def gex_to_ani(df):
             plt.ylabel("strike")
             plt.xlabel("net naive gex ($Bn/%Move)")
             plt.title(f"ticker: {ticker} price {spot_price:1.2f}\n{tstamp}")
-            plt.ylim(5500,6500)
-            plt.xlim(-3,3)
+            plt.ylim(spot_min,spot_max)
+            plt.xlim(-gex_lim,gex_lim)
             plt.show()
             plt.savefig(png_file)
             plt.close()
@@ -212,7 +218,7 @@ def gex_to_ani(df):
     gif_file = os.path.join(work_dir,f'ani.gif')
     mp4_file = os.path.join(work_dir,f"ani.mp4")   
 
-    fps = 24
+    fps = 5
     clips = [ImageClip(m).with_duration(0.1) for m in png_file_list]
     concat_clip = concatenate_videoclips(clips, method="compose")
     concat_clip.write_videofile(mp4_file, fps=fps)
