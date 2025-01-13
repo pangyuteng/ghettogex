@@ -97,7 +97,6 @@ def cache_data(ticker,day_stamp):
     prct_ffilled = 100*(nullcount_init-nullcount_after_ffill) / len(spot_df)
     print('prct_ffilled',prct_ffilled)
 
-
     print(spot_df.shape)
     print(candle_df.shape)
     print(greeks_df.shape)
@@ -239,9 +238,9 @@ if __name__ == "__main__":
         if os.path.exists(png_folder):
             shutil.rmtree(png_folder)
     else:
-        os.makedirs(png_folder,exist_ok=True)
         foodf = pd.read_parquet(pq_file)
     if not os.path.exists(mp4_file):
+        os.makedirs(png_folder,exist_ok=True)
         gex_to_ani(foodf,mp4_file)
     print('done')
 """
