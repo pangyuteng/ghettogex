@@ -238,7 +238,8 @@ if __name__ == "__main__":
     if not os.path.exists(pq_file):
         foodf = cache_data(ticker,day_stamp)
         foodf.to_parquet(pq_file,compression='gzip',index=False)
-        shutil.rmtree(png_folder)
+        if os.path.exists(png_folder):
+            shutil.rmtree(png_folder)
     else:
         os.makedirs(png_folder,exist_ok=True)
         foodf = pd.read_parquet(pq_file)
