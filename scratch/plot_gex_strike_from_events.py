@@ -13,6 +13,8 @@ sys.path.append("/opt/fi/flask")
 from utils.postgres_utils import postgres_execute
 from tqdm import tqdm
 
+work_dir = 'tmp'
+
 def cache_data(ticker,day_stamp):
 
     stime = time.time()
@@ -220,7 +222,7 @@ if __name__ == "__main__":
 
     ticker = 'SPX'
     day_stamp = '2025-01-08'
-    pq_file = "tmp/pg.parquet.gzip"
+    pq_file = os.path.join(work_dir,"pg.parquet.gzip")
     if not os.path.exists(pq_file):
         foodf = cache_data(ticker,day_stamp)
         foodf.to_parquet(pq_file,compression='gzip',index=False)
