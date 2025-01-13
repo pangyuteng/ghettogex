@@ -183,7 +183,7 @@ def gex_to_ani(df):
             # Plot 3D surface
             fig = plt.figure()
             strike_list = [[x,x] for x in tmp.strike.to_numpy()]
-            naive_gex_list = [[0,x] for x in tmp.naive_gex.to_numpy()]
+            naive_gex_list = [[0,x] for x in tmp.gex_volume.to_numpy()]
             for x,y in zip(naive_gex_list,strike_list):
                 if x[-1] > 0:
                     color = 'green'
