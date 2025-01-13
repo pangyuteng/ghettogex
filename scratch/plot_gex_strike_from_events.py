@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import pandas_market_calendars as mcal
 sys.path.append("/opt/fi/flask")
 from utils.postgres_utils import postgres_execute
-
+from tqdm import tqdm
 
 def cache_data(ticker,day_stamp):
 
