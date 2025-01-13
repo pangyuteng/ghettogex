@@ -229,9 +229,7 @@ def gex_to_ani(df,mp4_file):
 if __name__ == "__main__":
 
     ticker = 'SPX'
-    day_stamp = '2025-01-08'
-    day_stamp = '2025-01-10'
-    day_stamp = '2025-01-07'
+    day_stamp = sys.argv[1]
     pq_file = os.path.join(work_dir,f"pg-{day_stamp}.parquet.gzip")
     mp4_file = os.path.join(work_dir,f"pg-{day_stamp}.mp4")
     png_folder =os.path.join(work_dir,"pngs")
@@ -258,6 +256,8 @@ pip install jupyter notebook
 
 jupyter notebook --allow-root --ip=*
 
-python plot_gex_strike_from_events.py
+2025-01-07 2025-01-08 2025-01-10
+python plot_gex_strike_from_events.py 2025-01-13
+
 
 """
