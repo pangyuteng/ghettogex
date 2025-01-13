@@ -3,6 +3,7 @@ import sys
 import time
 import pytz
 import json
+import pathlib
 import datetime
 import numpy as np
 import pandas as pd
@@ -160,6 +161,61 @@ def cache_data(ticker,day_stamp):
     print(etime-stime)
     return foodf
 
+def gex_to_ani(df):
+
+    png_file_list = sorted([str(x) for x in pathlib.Path("tmp/pngs").rglob("*.png")])
+
+    if len(png_file_list) == 0:
+        tstamp_list = sorted(list(df.tstamp.unique()))
+        for tstamp in tqdm(tstamp_list):
+
+            tmp = df[df.tstamp==tstamp].reset_index()
+
+            try:
+                spot_price = tmp.spot_price.to_list()[-1]
+            except:
+                spot_price = np.nan
+            print(tstamp,spot_price)
+
+            png_file = os.path.join(work_dir,"pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
+            # Plot 3D surface
+            fig = plt.figure()
+            strike_list = [[x,x] for x in tmp.strike.to_numpy()]
+            naive_gex_list = [[0,x] for x in tmp.naive_gex.to_numpy()]
+            for x,y in zip(naive_gex_list,strike_list):
+                if x[-1] > 0:
+                    color = 'green'
+                else:
+                    color = 'red'
+                plt.plot(x,y,color=color)
+            plt.axhline(spot_price,color='blue')
+            plt.grid(True)
+            plt.ylabel("strike")
+            plt.xlabel("net naive gex ($Bn/%Move)")
+            plt.title(f"ticker: {ticker} price {spot_price:1.2f}\n{tstamp}")
+            plt.ylim(5500,6500)
+            plt.xlim(-3,3)
+            plt.show()
+            plt.savefig(png_file)
+            plt.close()
+            png_file_list.append(png_file)
+
+
+    print(len(png_file_list))
+
+    png_file_list = png_file_list[::60]
+    gif_file = os.path.join(work_dir,f'ani.gif')
+    mp4_file = os.path.join(work_dir,f"ani.mp4")   
+
+    fps = 24
+    clips = [ImageClip(m).with_duration(0.1) for m in png_file_list]
+    concat_clip = concatenate_videoclips(clips, method="compose")
+    concat_clip.write_videofile(mp4_file, fps=fps)
+    print(os.path.exists(mp4_file))
+    clip=VideoFileClip(mp4_file)
+    clip.write_gif(gif_file)
+
+
 if __name__ == "__main__":
 
     ticker = 'SPX'
@@ -170,6 +226,8 @@ if __name__ == "__main__":
         foodf.to_parquet(pq_file,compression='gzip',index=False)
     else:
         foodf = pd.read_parquet(pq_file)
+
+    gex_to_ani(foodf)
 
 """
 
