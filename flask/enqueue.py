@@ -16,6 +16,7 @@ import celery
 
 from tasks import task_foo
 LISTEM_TABLE_LIST = ["watchlist","quotes","summary","greeks","timeandsale"]
+LISTEN_TABLE_LIST = ["watchlist"]
 
 class Enqueue():
     """
@@ -77,7 +78,7 @@ class Enqueue():
         
     # subscribe to table of interests
     def _subscribe(self):
-        for table in LISTEM_TABLE_LIST:
+        for table in LISTEN_TABLE_LIST:
             self.addNotify(table)
             logger.info('subscribing {}'.format(table))
             print('subscribing {}'.format(table))
