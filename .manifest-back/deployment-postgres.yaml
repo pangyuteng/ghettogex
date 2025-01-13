@@ -18,6 +18,13 @@ spec:
       - name: fi-postgres
         image: docker.io/pangyuteng/private:fi-postgres-edge
         imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: "6"
+            memory: "20Gi"
+          requests:
+            cpu: "4.2"
+            memory: "20Gi"
         env:
         - name: POSTGRES_USER
           value: postgres
