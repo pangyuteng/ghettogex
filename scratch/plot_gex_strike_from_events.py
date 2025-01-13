@@ -232,11 +232,13 @@ if __name__ == "__main__":
     day_stamp = '2025-01-10'
     pq_file = os.path.join(work_dir,f"pg-{day_stamp}.parquet.gzip")
     mp4_file = os.path.join(work_dir,f"pg-{day_stamp}.mp4")
+    png_folder =os.path.join(work_dir,"pngs")
     if not os.path.exists(pq_file):
         foodf = cache_data(ticker,day_stamp)
         foodf.to_parquet(pq_file,compression='gzip',index=False)
-        shutil.rmtree(os.path.join(work_dir,"pngs"))
+        shutil.rmtree(png_folder)
     else:
+        os.makedirs(png_folder,exist_ok=True)
         foodf = pd.read_parquet(pq_file)
     if not os.path.exists(mp4_file):
         gex_to_ani(foodf,mp4_file)
