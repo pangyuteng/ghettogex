@@ -4,6 +4,7 @@ import time
 import pytz
 import json
 import pathlib
+import shutil
 import datetime
 import numpy as np
 import pandas as pd
@@ -234,6 +235,7 @@ if __name__ == "__main__":
     if not os.path.exists(pq_file):
         foodf = cache_data(ticker,day_stamp)
         foodf.to_parquet(pq_file,compression='gzip',index=False)
+        shutil.rmtree(os.path.join(work_dir,"pngs"))
     else:
         foodf = pd.read_parquet(pq_file)
     if not os.path.exists(mp4_file):
