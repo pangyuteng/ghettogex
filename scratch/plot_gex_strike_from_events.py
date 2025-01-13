@@ -12,6 +12,7 @@ import pandas_market_calendars as mcal
 sys.path.append("/opt/fi/flask")
 from utils.postgres_utils import postgres_execute
 from tqdm import tqdm
+from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
 
 work_dir = 'tmp'
 
