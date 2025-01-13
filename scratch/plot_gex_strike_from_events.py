@@ -164,7 +164,7 @@ def cache_data(ticker,day_stamp):
     print(etime-stime)
     return foodf
 
-def gex_to_ani(df):
+def gex_to_ani(df,mp4_file):
 
     png_file_list = sorted([str(x) for x in pathlib.Path("tmp/pngs").rglob("*.png")])
 
@@ -215,30 +215,29 @@ def gex_to_ani(df):
 
     print(len(png_file_list))
 
-    gif_file = os.path.join(work_dir,f'ani.gif')
-    mp4_file = os.path.join(work_dir,f"ani.mp4")   
-
+    #gif_file = os.path.join(work_dir,f'ani.gif')
     fps = 5
     clips = [ImageClip(m).with_duration(0.1) for m in png_file_list]
     concat_clip = concatenate_videoclips(clips, method="compose")
     concat_clip.write_videofile(mp4_file, fps=fps)
     print(os.path.exists(mp4_file))
     clip=VideoFileClip(mp4_file)
-    clip.write_gif(gif_file)
+    #clip.write_gif(gif_file)
 
 
 if __name__ == "__main__":
 
     ticker = 'SPX'
     day_stamp = '2025-01-08'
-    pq_file = os.path.join(work_dir,"pg.parquet.gzip")
+    pq_file = os.path.join(work_dir,f"pg-{day_stamp}.parquet.gzip")
+    mp4_file = os.path.join(work_dir,f"pg-{day_stamp}.mp4")
     if not os.path.exists(pq_file):
         foodf = cache_data(ticker,day_stamp)
         foodf.to_parquet(pq_file,compression='gzip',index=False)
     else:
         foodf = pd.read_parquet(pq_file)
-
-    gex_to_ani(foodf)
+    if not os.path.exists(mp4_file):
+        gex_to_ani(foodf,mp4_file)
 
 """
 
