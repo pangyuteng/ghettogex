@@ -41,6 +41,7 @@ docker run -it -u $(id -u):$(id -g) \
       + [ ] compute and visulize gex oi from volume only
       + [ ] compute and visulize gex oi from bid/ask volume
       + [ ] compute and visulize gex oi from timeandsale
++ [ ] testing live gex-strike
 + [ ] enable (end of day) GEX surface plots with plotly js 
 + [ ] ?automate daily download from UW, and parse data to put to postgres???
 
