@@ -3,8 +3,8 @@ import sys
 import logging
 
 logger = logging.getLogger(__file__)
-#logger.setLevel(logging.INFO)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
 
 handler = logging.StreamHandler(sys.stdout)
 #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
