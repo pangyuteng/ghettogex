@@ -3,8 +3,8 @@ import sys
 import logging
 
 logger = logging.getLogger(__file__)
-logger.setLevel(logging.INFO)
-#logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 handler = logging.StreamHandler(sys.stdout)
 #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -56,10 +56,7 @@ def get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
         min_utc_tstamp,max_utc_tstamp,ticker_alt,
     )
 
-    logger.debug(f'pg select START-------------------------------')
     fetched = postgres_execute(query_str,query_args)
-    logger.debug(f'pg select END !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-
 
     # the first minute, grab everything
     columns = [
@@ -109,9 +106,7 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
         utc_tstamp,max_utc_tstamp,ticker_alt, # timeandsale
     )
 
-    logger.debug(f'pg select START-------------------------------')
     fetched = postgres_execute(query_str,query_args)
-    logger.debug(f'pg select END !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
     # the first minute, grab everything
     columns = [
@@ -287,14 +282,15 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             if csv_file:
                 agg_df.to_csv(csv_file,index=False)
 
-            query_list = []
+            query_dict = {}
 
             col_str = ','.join(event_agg_columns)
             ps_str = ','.join(["%s"]*len(event_agg_columns))
             query_str = "INSERT INTO event_agg ("+col_str+") VALUES ("+ps_str+")"
+            query_dict[query_str]=[]
             for n,row in agg_df.iterrows():
                 query_args = [getattr(row,x,None) for x in event_agg_columns]
-                query_list.append((query_str,query_args))
+                query_dict[query_str].append(query_args)
 
             table_cols = ['ticker','strike','tstamp','naive_gex']
             strike_gex_df = agg_df[table_cols]
@@ -304,9 +300,10 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             col_str = ','.join(table_cols)
             ps_str = ','.join(["%s"]*len(table_cols))
             query_str = "INSERT INTO gex_strike ("+col_str+") VALUES ("+ps_str+")"
+            query_dict[query_str]=[]
             for n,row in strike_gex_df.iterrows():
                 query_args = [getattr(row,x,None) for x in table_cols]
-                query_list.append((query_str,query_args))
+                query_dict[query_str].append(query_args)
 
             table_cols = ['ticker','tstamp','spot_price','naive_gex']
             net_gex_df = agg_df[table_cols]
@@ -317,13 +314,14 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             col_str = ','.join(table_cols)
             ps_str = ','.join(["%s"]*len(table_cols))
             query_str = "INSERT INTO gex_net ("+col_str+") VALUES ("+ps_str+")"
+            query_dict[query_str]=[]
             for n,row in net_gex_df.iterrows():
                 query_args = [getattr(row,x,None) for x in table_cols]
-                query_list.append((query_str,query_args))
+                query_dict[query_str].append(query_args)
 
             time_b = time.time()
             logger.info(f'text append {time_b-time_d}')
-            postgres_execute_many(query_list)
+            postgres_execute_many(query_dict)
             time_c = time.time()
             logger.info(f'postgres_execute_many {time_c-time_b}')
         else:
@@ -332,9 +330,9 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
                 time_b = time.time()
                 query_str = "INSERT INTO gex_net (ticker,tstamp) VALUES (%s,%s)"
                 query_args = (ticker,utc_tstamp)
-                postgres_execute_many([(query_str,query_args)])
+                postgres_execute(query_str,query_args,is_commit=True)
                 time_c = time.time()
-                logger.info(f'postgres_execute_many {time_c-time_b}')
+                logger.info(f'postgres_execute {time_c-time_b}')
     else:
         logger.debug(f'{utc_tstamp} {len(fetched)}')
     return gex_df

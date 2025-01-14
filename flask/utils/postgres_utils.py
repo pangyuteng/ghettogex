@@ -31,13 +31,13 @@ def postgres_execute(query_str,query_args,is_commit=False):
         traceback.print_exc()
     return response
 
-def postgres_execute_many(query_list):
+def postgres_execute_many(query_dict):
     response = None
     try:
         with psycopg.connect(postgres_uri,row_factory=dict_row) as conn:
             with conn.cursor() as curs:
-                for query_str,query_args in query_list:
-                    curs.execute(query_str,query_args)
+                for query_str,query_list in query_dict.items():
+                    curs.executemany(query_str,query_list)
                 conn.commit()
     except:
         traceback.print_exc()
