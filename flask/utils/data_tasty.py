@@ -278,7 +278,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         expirations = sorted(list(chain.keys()))
         # get 2 expirations
         live_prices_list = []
-        for n,expiration in expirations:
+        for expiration in expirations:
             live_prices = await LivePrices.create(session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
             live_prices_list.append(live_prices)
             if len(live_prices_list)==2:
