@@ -165,14 +165,17 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         # event_symbol
         # tstamp_sec
         # gex_timeandsale
-                
-        query_dict = {}
+
+        
         strike_query_str = "INSERT INTO gex_strike (ticker,strike,naive_gex,tstamp) VALUE (%s,%s,%s,%s)"
         net_query_str = "INSERT INTO gex_strike (ticker,spot_price,naive_gex,tstamp) VALUE (%s,%s,%s,%s)"
-        query_dict[strike_query_str]=[]
-        query_dict[net_query_str]=[]
 
         for tstamp_sec in sorted(list(foodf.tstamp_sec.unique())):
+
+            query_dict = {}
+            query_dict[strike_query_str]=[]
+            query_dict[net_query_str]=[]
+
             print(tstamp_sec)
             row_df = foodf[foodf.tstamp_sec==tstamp_sec]
 
@@ -192,8 +195,10 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
             ).reset_index()
             for n,row in net_gex_df.iterrows():
                 query_dict[net_query_str].append((row.ticker,row.spot_price,row.gex_timeandsale,row.tstamp_sec))
-            #print(tstamp_sec,len(query_dict[net_query_str]),len(query_dict[strike_query_str]))
-        postgres_execute_many(query_dict)
+            
+            print(tstamp_sec,len(query_dict[net_query_str]),len(query_dict[strike_query_str]))
+            postgres_execute_many(query_dict)
+
     print('done')
     etime = time.time()
     print(etime-stime)
