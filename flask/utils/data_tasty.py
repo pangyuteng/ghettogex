@@ -163,12 +163,10 @@ class LivePrices:
             equity = Equity.get_equity(session, ticker)
             chain = get_option_chain(session, ticker)
 
-        expirations = sorted(list(chain.keys()))
-        expirations = [expirations[0]]
+        expirations = [expiration]
         options = []
-        for expiration in expirations:
-            options.extend([o for o in chain[expiration]])
-            print(expiration,'!!',len(options))
+        for e in expirations:
+            options.extend([o for o in chain[e]])
         # the `streamer_symbol` property is the symbol used by the streamer
         streamer_symbols = [o.streamer_symbol for o in options]
         print(len(streamer_symbols))
@@ -275,24 +273,35 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                 break
         
         session = get_session()
-        live_prices = await LivePrices.create(session,ticker,save_to_postres=save_to_postres,save_to_json=save_to_json)
+        
+        chain = get_option_chain(session, ticker)
+        expirations = sorted(list(chain.keys()))
+        # get 2 expirations
+        live_prices_list = []
+        for n,expiration in expirations:
+            live_prices = await LivePrices.create(session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
+            live_prices_list.append(live_prices)
+            if len(live_prices_list)==2:
+                break
 
         while True:
             if not is_market_open():
                 print("market not open -------------------------------")
-                await live_prices.shutdown()
+                for lp in live_prices_list:
+                    await lp.shutdown()
                 logger.info(f"canceling!")
                 logger.info("market is closed, exiting...")
                 raise ValueError("Exit!!!")
             else:
                 print("market open -------------------------------")
             # Print or process the quotes in real time
-            if live_prices.ticker in live_prices.quote.keys():
-                logger.info(f"Current quote: {live_prices.quote[live_prices.ticker]}")
-            if live_prices.ticker in live_prices.candle.keys():
-                logger.info(f"Current candle: {live_prices.candle[live_prices.ticker]}")
-            if live_prices.ticker in live_prices.summary.keys():
-                logger.info(f"Current summary: {live_prices.summary[live_prices.ticker]}")
+            for lp in live_prices_list:
+                if lp.ticker in lp.quote.keys():
+                    logger.info(f"Current quote: {lp.quote[lp.ticker]}")
+                if lp.ticker in lp.candle.keys():
+                    logger.info(f"Current candle: {lp.candle[lp.ticker]}")
+                if lp.ticker in lp.summary.keys():
+                    logger.info(f"Current summary: {lp.summary[lp.ticker]}")
 
             pathlib.Path(running_file).touch()
             await asyncio.sleep(5)
@@ -300,7 +309,8 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                 logger.info(f"canceljob receieved...")
                 os.remove(cancel_file)
                 logger.info(f"canceling!")
-                await live_prices.shutdown()
+                for lp in live_prices_list:
+                    await lp.shutdown()
                 if os.path.exists(running_file):
                     os.remove(running_file)
                 raise ValueError("canceljob")
