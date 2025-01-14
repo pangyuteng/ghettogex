@@ -201,7 +201,7 @@ async def ws_gex_strike_pg():
     try:
         while True:
             ticker = websocket.args.get("ticker")
-            mysec = 0.1
+            mysec = 0.5
 
             eastern = pytz.timezone('US/Eastern')
             utc = pytz.timezone('UTC')
