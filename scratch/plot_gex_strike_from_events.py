@@ -178,7 +178,7 @@ def gex_to_ani(df,mp4_file):
         spot_min,spot_max = np.min(df.spot_price)*.98,np.max(df.spot_price)*1.02
         print(gex_lim)
         print(spot_min,spot_max)
-
+        price_df = df[['tstamp_sec','spot_price']].drop_duplicates()
         for tstamp in tqdm(tstamp_list):
 
             tmp = df[df.tstamp_sec==tstamp].reset_index()
@@ -188,10 +188,10 @@ def gex_to_ani(df,mp4_file):
             except:
                 spot_price = np.nan
             print(tstamp,spot_price)
-
+            
             png_file = os.path.join(work_dir,"pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
             # Plot 3D surface
-            fig = plt.figure()
+            plt.subplot(121)
             strike_list = [[x,x] for x in tmp.strike.to_numpy()]
             naive_gex_list = [[0,x] for x in tmp.gex_volume.to_numpy()]
             for x,y in zip(naive_gex_list,strike_list):
@@ -208,6 +208,10 @@ def gex_to_ani(df,mp4_file):
             plt.ylim(spot_min,spot_max)
             plt.xlim(-gex_lim,gex_lim)
             plt.show()
+            plt.subplot(122)
+            plt.plot(price_df.tstamp_sec,price_df.spot_price)
+            plt.grid(True)
+            plt.ylim(spot_min,spot_max)
             plt.savefig(png_file)
             plt.close()
             png_file_list.append(png_file)
