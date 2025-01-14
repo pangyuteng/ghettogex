@@ -30,25 +30,30 @@ def get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
     ) union all (
     select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
-    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    where tstamp >= %s and tstamp < %s and ticker = %s
     ) union all (
     select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
-    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    where tstamp >= %s and tstamp < %s and ticker = %s
     ) union all (
     select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
-    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    where tstamp >= %s and tstamp < %s and ticker = %s
     ) union all (
     select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
-    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    where tstamp >= %s and tstamp < %s and ticker = %s
     )
     """
-
+    if ticker == 'SPX':
+        ticker_alt = 'SPXW'
+    if ticker == 'NDX':
+        ticker_alt = 'NDXP'
+    else:
+        ticker_alt = ticker
     query_args = (
         min_utc_tstamp,max_utc_tstamp,ticker,
-        min_utc_tstamp,max_utc_tstamp,ticker,
-        min_utc_tstamp,max_utc_tstamp,ticker,
-        min_utc_tstamp,max_utc_tstamp,ticker,
-        min_utc_tstamp,max_utc_tstamp,ticker,
+        min_utc_tstamp,max_utc_tstamp,ticker_alt,
+        min_utc_tstamp,max_utc_tstamp,ticker_alt,
+        min_utc_tstamp,max_utc_tstamp,ticker_alt,
+        min_utc_tstamp,max_utc_tstamp,ticker_alt,
     )
 
     logger.debug(f'pg select START-------------------------------')
@@ -78,25 +83,30 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
     ) union all (
     select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
-    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    where tstamp >= %s and tstamp < %s and ticker = %s
     ) union all (
     select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from event_agg
-    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    where tstamp >= %s and tstamp < %s and ticker = %s
     ) union all (
     select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
-    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    where tstamp >= %s and tstamp < %s and ticker = %s
     ) union all (
     select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
-    where tstamp >= %s and tstamp < %s and event_symbol like '.'||%s||'%%'
+    where tstamp >= %s and tstamp < %s and ticker = %s
     )
     """
-
+    if ticker == 'SPX':
+        ticker_alt = 'SPXW'
+    if ticker == 'NDX':
+        ticker_alt = 'NDXP'
+    else:
+        ticker_alt = ticker
     query_args = (
         min_utc_tstamp,max_utc_tstamp,ticker, # underlying_candle
-        utc_tstamp,max_utc_tstamp,ticker, # candle
-        min_utc_tstamp,max_utc_tstamp,ticker, # summary
-        min_utc_tstamp,max_utc_tstamp,ticker, # greeks
-        utc_tstamp,max_utc_tstamp,ticker, # timeandsale
+        utc_tstamp,max_utc_tstamp,ticker_alt, # candle
+        min_utc_tstamp,max_utc_tstamp,ticker_alt, # summary
+        min_utc_tstamp,max_utc_tstamp,ticker_alt, # greeks
+        utc_tstamp,max_utc_tstamp,ticker_alt, # timeandsale
     )
 
     logger.debug(f'pg select START-------------------------------')
@@ -340,6 +350,8 @@ def main(ticker,my_date):
     #my_date = '2025-01-07'
     tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
     for tstamp in tqdm(tstamp_list):
+        if tstamp > now_in_new_york():
+            break
         try:
             get_df = compute_gex(ticker,tstamp)
         except KeyboardInterrupt:
