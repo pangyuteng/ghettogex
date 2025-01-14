@@ -190,8 +190,14 @@ def gex_to_ani(df,mp4_file):
             print(tstamp,spot_price)
             
             png_file = os.path.join(work_dir,"pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
-            # Plot 3D surface
+
             plt.subplot(121)
+            plt.plot(price_df.tstamp_sec,price_df.spot_price,color='blue',linewidth=0.5)
+            plt.scatter(tstamp,spot_price,color='red',linewidth=2)
+            plt.grid(True)
+            plt.ylim(spot_min,spot_max)
+
+            plt.subplot(122)
             strike_list = [[x,x] for x in tmp.strike.to_numpy()]
             naive_gex_list = [[0,x] for x in tmp.gex_volume.to_numpy()]
             for x,y in zip(naive_gex_list,strike_list):
@@ -208,11 +214,6 @@ def gex_to_ani(df,mp4_file):
             plt.ylim(spot_min,spot_max)
             plt.xlim(-gex_lim,gex_lim)
             plt.show()
-            plt.subplot(122)
-            plt.plot(price_df.tstamp_sec,price_df.spot_price,color='blue',linewidth=0.5)
-            plt.scatter(tstamp,spot_price,color='red',linewidth=2)
-            plt.grid(True)
-            plt.ylim(spot_min,spot_max)
             plt.savefig(png_file)
             plt.close()
             png_file_list.append(png_file)
