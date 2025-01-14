@@ -1,0 +1,49 @@
+<div id="myDiv" hx-swap-oob="true">
+  <script>
+  var data = []
+  {%for n,row in df.iterrows() %}
+  data.push({
+      x: [0, {{row.naive_gex}}],
+      y: [{{row.strike}}, {{row.strike}}],
+      mode: 'lines',
+      line: {color: 'rgb(200, 200, 244)'},
+  })
+  {% endfor %}
+  {% if spot_price %}
+  data.push({
+      x: [ {{ df.naive_gex.min() }}, {{ df.naive_gex.max() }} ],
+      y: [ {{ spot_price }}, {{ spot_price }} ],
+      mode: 'lines',
+      line: {
+          color: 'rgb(244,10,10)',
+          dash: 'dot',
+          width: 1,
+          alpha: 0.2
+      }
+  })
+  {% endif %}  
+  var layout = { 
+      title: {text: '{{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
+      plot_bgcolor: '#2a2727',
+      paper_bgcolor: '#2a2727',
+      bgcolor: '#FFFFFF',
+      bordercolor: '#FFFFFF',
+      showlegend: false,
+      font: {
+          family: 'Courier New, monospace',
+          size: 18,
+          color: '#7f7f7f'
+      }
+  };
+  
+  Plotly.newPlot("{{ticker}}-plot", data, layout);
+  </script>
+  
+  <div id="{{ticker}}-plot"></div>
+  <span class="badge rounded-pill text-bg-dark">
+  tstamp:{{ tstamp }}
+  </span>
+  
+  </div>
+  
+  

@@ -3,6 +3,7 @@ import json
 import argparse
 import traceback
 import asyncio
+import pytz
 import datetime
 import numpy as np
 import pandas as pd
@@ -44,6 +45,7 @@ from utils.compute import (
     get_gex_df,
     compute_btc_gex
 )
+from utils.postgres_utils import apostgres_execute
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(THIS_DIR,"templates")
@@ -188,33 +190,65 @@ async def ws_gex_strike():
         app.logger.error('Client disconnected')
         raise
 
-@app.websocket('/ticker/ws-gex-surf')
+@app.route("/spx")
 @login_required
-async def ws_gex_surf():
+async def home_spx():
+    return await render_template("spx.html")
+
+@app.websocket('/ticker/ws-gex-strike-pg')
+@login_required
+async def ws_gex_strike_pg():
     try:
         while True:
             ticker = websocket.args.get("ticker")
-            mysec = 5
-            div_name = "div-"+ticker.replace("^","")
-            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
+            mysec = 0.1
 
-            if ticker == BTC_TICKER:
-                spot_price, df = compute_btc_gex()
-                df = df.copy()
+            eastern = pytz.timezone('US/Eastern')
+            utc = pytz.timezone('UTC')
+            tstamp_et = now_in_new_york()
+            tstamp_utc = tstamp_et.astimezone(tz=utc)
+            tstamp_utc_min = tstamp_utc-datetime.timedelta(seconds=15)
+
+            query_str = """
+                select * from gex_net
+                where ticker = %s
+                and tstamp > %s
+                order by tstamp
+            """
+            query_args = (ticker,tstamp_utc_min)
+            fetched = await apostgres_execute(query_str,query_args)
+            columns = ['ticker','tstamp','spot_price','naive_gex','volume_gex']
+            if fetched is None or len(fetched)==0:
+                ucdf = pd.DataFrame([],columns=columns)
+                spot_price = None
             else:
-                spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker)
-                df = gex_by_strike.copy()
+                ucdf = pd.DataFrame(fetched,columns=columns)
+                spot_price = ucdf.spot_price.to_list()[-1]
 
-            data_str = render_html("gex_surf.html",
-                ticker=ticker,df=df,
-                spot_price=spot_price,
-                tstamp=tstamp,div_name=div_name)
+            query_str = """
+                select * from gex_strike
+                where ticker = %s
+                and tstamp > %s
+                order by tstamp
+            """
+            query_args = (ticker,tstamp_utc_min)
+            fetched = await apostgres_execute(query_str,query_args)
+            columns = ['ticker','tstamp','strike','naive_gex','volume_gex']
+            if fetched is None or len(fetched)==0:
+                df = pd.DataFrame([],columns=columns)
+            else:
+                df = pd.DataFrame(fetched)
+            df = df.replace({np.nan: None})
+            app.logger.info(str(df.columns))
+            tstamp = tstamp_et.strftime("%Y-%m-%d-%H-%M-%S-%f-%Z")
+            data_str = render_html("spx-gex-strike.html",
+                ticker=ticker,df=df,spot_price=spot_price,
+                tstamp=tstamp)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

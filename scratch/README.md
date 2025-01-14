@@ -35,10 +35,16 @@ docker run -it -u $(id -u):$(id -g) \
 + [x] revive hello-tastytrade/dxlink-sub, to save to both json and postgres via kube.
     (utils/compute_intraday.py,utils/data_tasty.py,tasks.py)
 + [x] manual 2024-Q4 historical EOD download from UW. (/mnt/hd2/data/finance/bot-eod-zip)
++ [x] subscribe for a few expirations per ticker
 + [o] verify visualize second-freq OI and visualize GEX (scratch/plot_gex_strike_from_events.py)
++ [ ] verify again GEX
+      + [ ] compute and visulize gex oi from volume only
+      + [ ] compute and visulize gex oi from bid/ask volume
+      + [ ] compute and visulize gex oi from timeandsale
 + [ ] enable (end of day) GEX surface plots with plotly js 
 + [ ] ?automate daily download from UW, and parse data to put to postgres???
-+ [ ] subscribe for a few expirations per ticker, then OI ultimately have a break down between sell/buy-side.
+
+
 --
 + [ ] sideswap/aqua btc to L BTC and back to btc than coldstorage.
 + [ ] setup tor for exporsed btc node port
