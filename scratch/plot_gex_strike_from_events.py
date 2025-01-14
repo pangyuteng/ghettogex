@@ -11,13 +11,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import pandas_market_calendars as mcal
 sys.path.append("/opt/fi/flask")
-from utils.postgres_utils import postgres_execute
+from utils.postgres_utils import postgres_execute, postgres_execute_many
+
 from tqdm import tqdm
 from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
 
 work_dir = 'tmp'
 
-def cache_data(ticker,day_stamp):
+def cache_data(ticker,day_stamp,persist_to_postgres=True):
 
     stime = time.time()
     postgres_query = "select * from candle where event_symbol = %s and tstamp::date = %s order by tstamp"
@@ -160,6 +161,40 @@ def cache_data(ticker,day_stamp):
         mylist.append(ok.copy(deep=True))
     foodf = pd.concat(mylist)
 
+    if persist_to_postgres:
+        # event_symbol
+        # tstamp_sec
+        # gex_timeandsale
+                
+        query_dict = {}
+        strike_query_str = "INSERT INTO gex_strike (ticker,strike,naive_gex,tstamp) VALUE (%s,%s,%s,%s)"
+        net_query_str = "INSERT INTO gex_strike (ticker,spot_price,naive_gex,tstamp) VALUE (%s,%s,%s,%s)"
+        query_dict[strike_query_str]=[]
+        query_dict[net_query_str]=[]
+
+        for tstamp_sec in sorted(list(foodf.tstamp_sec.unique())):
+            print(tstamp_sec)
+            row_df = foodf[foodf.tstamp_sec==tstamp_sec]
+
+            table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale']
+            strike_gex_df = row_df[table_cols]
+            strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp_sec']).agg(
+                gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"),
+            ).reset_index()
+            for n,row in strike_gex_df.iterrows():
+                query_dict[strike_query_str].append((row.ticker,row.strike,row.gex_timeandsale,row.tstamp_sec))
+            
+            table_cols = ['ticker','spot_price','gex_timeandsale','tstamp_sec']
+            net_gex_df = row_df[table_cols]
+            net_gex_df = net_gex_df.groupby(['ticker','tstamp_sec']).agg(
+                spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
+                gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"),
+            ).reset_index()
+            for n,row in net_gex_df.iterrows():
+                query_dict[net_query_str].append((row.ticker,row.spot_price,row.gex_timeandsale,row.tstamp_sec))
+            #print(tstamp_sec,len(query_dict[net_query_str]),len(query_dict[strike_query_str]))
+        postgres_execute_many(query_dict)
+    print('done')
     etime = time.time()
     print(etime-stime)
     return foodf
