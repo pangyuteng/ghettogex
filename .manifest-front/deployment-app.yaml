@@ -23,6 +23,12 @@ spec:
           value: /mnt/hd1/data/fi
         - name: CACHE_TASTY_FOLDER
           value: /mnt/hd1/data/tastyfi
+        - name: AMQP_URI
+          value: amqp://fi-rabbitmq:5672
+        - name: REDIS_URI
+          value: redis://fi-redis:6379/1
+        - name: POSTGRES_URI
+          value: postgres://postgres:postgres@fi-postgres:5432/postgres
         command: ["python"]
         args: ["app.py", "80"]
         ports:
