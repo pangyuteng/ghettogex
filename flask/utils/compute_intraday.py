@@ -44,8 +44,10 @@ def get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     """
     if ticker == 'SPX':
         ticker_alt = 'SPXW'
-    if ticker == 'NDX':
+    elif ticker == 'NDX':
         ticker_alt = 'NDXP'
+    elif ticker == 'VIX':
+        ticker_alt = 'VIXW'
     else:
         ticker_alt = ticker
     query_args = (
@@ -94,8 +96,10 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     """
     if ticker == 'SPX':
         ticker_alt = 'SPXW'
-    if ticker == 'NDX':
+    elif ticker == 'NDX':
         ticker_alt = 'NDXP'
+    elif ticker == 'VIX':
+        ticker_alt = 'VIXW'
     else:
         ticker_alt = ticker
     query_args = (
