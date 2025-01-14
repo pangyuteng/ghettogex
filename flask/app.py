@@ -241,7 +241,7 @@ async def ws_gex_sample():
                 df = pd.DataFrame(fetched)
             df = df.replace({np.nan: None})
             tstamp = tstamp_et.strftime("%Y-%m-%d-%H-%M-%S-%f-%Z")
-            data_str = render_html("spx-gex-strike.html",
+            data_str = render_html("ws-sample-gex.html",
                 ticker=ticker,df=df,spot_price=spot_price,
                 tstamp=tstamp)
             await websocket.send(data_str)
