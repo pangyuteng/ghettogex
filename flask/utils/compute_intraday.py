@@ -235,13 +235,15 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     # the first minute, grab everything
     event_agg_columns = [
         'event_symbol',
-        'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
+        'spot_price',
         'open_interest',
-        'price','volatility','delta','gamma','theta','rho','vega',
+        'gamma',
         'ticker','expiration','contract_type','strike',
         'tstamp',
         'naive_gex',
     ]
+    # 'open','high','low','close','volume','ask_volume','bid_volume',
+    # 'price','volatility','delta','gamma','theta','rho','vega',
     query_str = "SELECT * FROM gex_net WHERE ticker = %s and tstamp = %s"
     query_args = (ticker,utc_tstamp)
     fetched = postgres_execute(query_str,query_args)
