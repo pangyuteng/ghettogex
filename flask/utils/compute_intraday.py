@@ -187,6 +187,11 @@ def compute_gex_core(df,first_minute):
 
     merged_df['open_interest']=merged_df.open_interest+merged_df.size_signed
     merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
+
+    # TODO: THIS IS WHERE YOU WANT TO PLAY WITH gex compute...
+    #ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+init_oi
+    #ok.oi_volume = ok.oi_volume.cumsum().astype(float)+init_oi
+
     if first_minute:
         # quality check
         reqd_event_list = ['summary','greeks','timeandsale','candle']

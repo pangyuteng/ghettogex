@@ -190,14 +190,15 @@ async def ws_gex_strike():
         app.logger.error('Client disconnected')
         raise
 
-@app.route("/spx")
+@app.route("/gex")
 @login_required
-async def home_spx():
-    return await render_template("spx.html")
+async def sample_gex():
+    ticker = request.args.get("ticker")
+    return await render_template("sample-gex.html",ticker=ticker)
 
-@app.websocket('/ticker/ws-gex-strike-pg')
+@app.websocket('/ticker/ws-gex-sample')
 @login_required
-async def ws_gex_strike_pg():
+async def ws_gex_sample():
     try:
         while True:
             ticker = websocket.args.get("ticker")
@@ -239,13 +240,13 @@ async def ws_gex_strike_pg():
             else:
                 df = pd.DataFrame(fetched)
             df = df.replace({np.nan: None})
-            app.logger.info(str(df.columns))
             tstamp = tstamp_et.strftime("%Y-%m-%d-%H-%M-%S-%f-%Z")
             data_str = render_html("spx-gex-strike.html",
                 ticker=ticker,df=df,spot_price=spot_price,
                 tstamp=tstamp)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
+
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise
