@@ -171,9 +171,17 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         tstamp_list = sorted(list(foodf.tstamp_sec.unique()))
         for tstamp_sec in tqdm(tstamp_list):
             print(tstamp_sec)
+            if ticker == 'SPX':
+                ticker_alt = 'SPXW'
+            elif ticker == 'NDX':
+                ticker_alt = 'NDXP'
+            elif ticker == 'VIX':
+                ticker_alt = 'VIXW'
+            else:
+                ticker_alt = ticker
 
             postgres_query = """ select * from gex_net where ticker = %s and tstamp = %s """
-            postgres_args = (ticker,tstamp_sec)
+            postgres_args = (ticker_alt,tstamp_sec)
             fetched = postgres_execute(postgres_query,postgres_args)
             if fetched is not None and len(fetched)>0:
                 print("found....")
