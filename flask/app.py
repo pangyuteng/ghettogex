@@ -202,7 +202,7 @@ async def ws_gex_sample():
     try:
         while True:
             ticker = websocket.args.get("ticker")
-            mysec = 0.5
+            mysec = 1
 
             eastern = pytz.timezone('US/Eastern')
             utc = pytz.timezone('UTC')
@@ -214,12 +214,9 @@ async def ws_gex_sample():
             order by tstamp desc limit 1
             """
             query_args = (ticker,)
-            try:
-                fetched = await apostgres_execute(query_str,query_args)
-                df = pd.DataFrame(fetched)
-                tstamp_utc = df.tstamp.to_list()[-1]
-            except:
-                tstamp_utc = None
+            fetched = await apostgres_execute(query_str,query_args)
+            df = pd.DataFrame([x for x in fetched])
+            tstamp_utc = df.tstamp.to_list()[-1]
 
             query_str = """
                 select * from gex_net
@@ -230,12 +227,8 @@ async def ws_gex_sample():
             query_args = (ticker,tstamp_utc)
             fetched = await apostgres_execute(query_str,query_args)
             columns = ['ticker','tstamp','spot_price','naive_gex','volume_gex']
-            if fetched is None or len(fetched)==0:
-                ucdf = pd.DataFrame([],columns=columns)
-                spot_price = np.nan
-            else:
-                ucdf = pd.DataFrame(fetched,columns=columns)
-                spot_price = ucdf.spot_price.to_list()[-1]
+            ucdf = pd.DataFrame([x for x in fetched])
+            spot_price = ucdf.spot_price.to_list()[-1]
 
             query_str = """
                 select * from gex_strike
@@ -246,10 +239,8 @@ async def ws_gex_sample():
             query_args = (ticker,tstamp_utc)
             fetched = await apostgres_execute(query_str,query_args)
             columns = ['ticker','tstamp','strike','naive_gex','volume_gex']
-            if fetched is None or len(fetched)==0:
-                df = pd.DataFrame([],columns=columns)
-            else:
-                df = pd.DataFrame(fetched)
+            df = pd.DataFrame([x for x in fetched])
+
             df = df.replace({np.nan: None})
             df.naive_gex = df.naive_gex/1e9
             data_str = render_html("ws-sample-gex.html",
@@ -259,6 +250,7 @@ async def ws_gex_sample():
             await asyncio.sleep(mysec)
 
     except asyncio.CancelledError:
+        app.logger.error(traceback.format_exc())
         app.logger.error('Client disconnected')
         raise
 
