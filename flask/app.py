@@ -207,21 +207,32 @@ async def ws_gex_sample():
             eastern = pytz.timezone('US/Eastern')
             utc = pytz.timezone('UTC')
             tstamp_et = now_in_new_york()
-            tstamp_utc = tstamp_et.astimezone(tz=utc)
-            tstamp_utc_min = tstamp_utc-datetime.timedelta(seconds=15)
+            ws_tstamp_utc = tstamp_et.astimezone(tz=utc)
+            
+            query_str = """
+            select * from gex_net where ticker = %s
+            order by tstamp desc limit 1
+            """
+            query_args = (ticker,)
+            try:
+                fetched = await apostgres_execute(query_str,query_args)
+                df = pd.DataFrame(fetched)
+                tstamp_utc = df.tstamp.to_list()[-1]
+            except:
+                tstamp_utc = None
 
             query_str = """
                 select * from gex_net
                 where ticker = %s
-                and tstamp > %s
+                and tstamp = %s
                 order by tstamp
             """
-            query_args = (ticker,tstamp_utc_min)
+            query_args = (ticker,tstamp_utc)
             fetched = await apostgres_execute(query_str,query_args)
             columns = ['ticker','tstamp','spot_price','naive_gex','volume_gex']
             if fetched is None or len(fetched)==0:
                 ucdf = pd.DataFrame([],columns=columns)
-                spot_price = None
+                spot_price = np.nan
             else:
                 ucdf = pd.DataFrame(fetched,columns=columns)
                 spot_price = ucdf.spot_price.to_list()[-1]
@@ -229,10 +240,10 @@ async def ws_gex_sample():
             query_str = """
                 select * from gex_strike
                 where ticker = %s
-                and tstamp > %s
+                and tstamp = %s
                 order by tstamp
             """
-            query_args = (ticker,tstamp_utc_min)
+            query_args = (ticker,tstamp_utc)
             fetched = await apostgres_execute(query_str,query_args)
             columns = ['ticker','tstamp','strike','naive_gex','volume_gex']
             if fetched is None or len(fetched)==0:
@@ -240,10 +251,10 @@ async def ws_gex_sample():
             else:
                 df = pd.DataFrame(fetched)
             df = df.replace({np.nan: None})
-            tstamp = tstamp_et.strftime("%Y-%m-%d-%H-%M-%S-%f-%Z")
+            df.naive_gex = df.naive_gex/1e9
             data_str = render_html("ws-sample-gex.html",
                 ticker=ticker,df=df,spot_price=spot_price,
-                tstamp=tstamp)
+                tstamp=tstamp_utc,ws_tstamp=ws_tstamp_utc)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
 
@@ -259,5 +270,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf asdfasdf
+asdf 
 """

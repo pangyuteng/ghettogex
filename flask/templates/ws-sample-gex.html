@@ -29,6 +29,7 @@
       bgcolor: '#FFFFFF',
       bordercolor: '#FFFFFF',
       showlegend: false,
+      yaxis: { range:[{{spot_price}}*0.95,{{spot_price*1.05}}] },
       font: {
           family: 'Courier New, monospace',
           size: 18,
@@ -42,6 +43,7 @@
   <div id="{{ticker}}-plot"></div>
   <span class="badge rounded-pill text-bg-dark">
   tstamp:{{ tstamp }}
+  ws_tstamp: {{ ws_tstamp }}
   </span>
   
   </div>

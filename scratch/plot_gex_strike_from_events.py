@@ -165,18 +165,24 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         # event_symbol
         # tstamp_sec
         # gex_timeandsale
-
         
         strike_query_str = "INSERT INTO gex_strike (ticker,strike,naive_gex,tstamp) VALUE (%s,%s,%s,%s)"
-        net_query_str = "INSERT INTO gex_strike (ticker,spot_price,naive_gex,tstamp) VALUE (%s,%s,%s,%s)"
+        net_query_str = "INSERT INTO gex_net (ticker,spot_price,naive_gex,tstamp) VALUE (%s,%s,%s,%s)"
+        tstamp_list = sorted(list(foodf.tstamp_sec.unique()))
+        for tstamp_sec in tqdm(tstamp_list):
+            print(tstamp_sec)
 
-        for tstamp_sec in sorted(list(foodf.tstamp_sec.unique())):
+            postgres_query = """ select * from gex_net where ticker = %s and tstamp = %s """
+            postgres_args = (ticker,tstamp_sec)
+            fetched = postgres_execute(postgres_query,postgres_args)
+            if fetched is not None and len(fetched)>0:
+                print("found....")
+                continue
 
             query_dict = {}
             query_dict[strike_query_str]=[]
             query_dict[net_query_str]=[]
-
-            print(tstamp_sec)
+            
             row_df = foodf[foodf.tstamp_sec==tstamp_sec]
 
             table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale']
