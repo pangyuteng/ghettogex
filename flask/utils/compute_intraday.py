@@ -105,7 +105,7 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     query_args = (
         min_utc_tstamp,max_utc_tstamp,ticker, # underlying_candle
         utc_tstamp,max_utc_tstamp,ticker_alt, # candle
-        min_utc_tstamp,max_utc_tstamp,ticker_alt, # summary
+        min_utc_tstamp,max_utc_tstamp,ticker_alt, # summary $ TODO: update query tu use dstamp
         min_utc_tstamp,max_utc_tstamp,ticker_alt, # greeks
         utc_tstamp,max_utc_tstamp,ticker_alt, # timeandsale
     )
