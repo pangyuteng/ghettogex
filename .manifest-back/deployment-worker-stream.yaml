@@ -19,7 +19,7 @@ spec:
         image: docker.io/pangyuteng/private:fi-flask-edge
         imagePullPolicy: Always
         command: ["bash"]
-        args: ["worker.sh"]
+        args: ["worker.sh","stream"]
         env:
         - name: CACHE_FOLDER
           value: /mnt/hd1/data/fi

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fi-worker-deployment
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: fi-worker
+  template:
+    metadata:
+      labels:
+        app: fi-worker
+    spec:
+      imagePullSecrets:
+      - name: registry-credentials
+      containers:
+      - name: fi-worker
+        image: docker.io/pangyuteng/private:fi-flask-edge
+        imagePullPolicy: Always
+        command: ["bash"]
+        args: ["worker.sh","default"]
+        env:
+        - name: CACHE_FOLDER
+          value: /mnt/hd1/data/fi
+        - name: CACHE_TASTY_FOLDER
+          value: /mnt/hd1/data/tastyfi
+        - name: AMQP_URI
+          value: amqp://fi-rabbitmq:5672
+        - name: REDIS_URI
+          value: redis://fi-redis:6379/1
+        - name: POSTGRES_URI
+          value: postgres://postgres:postgres@fi-postgres:5432/postgres
+        - name: C_FORCE_ROOT
+          value: "true"
+        - name: IS_TEST
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: IS_TEST
+        - name: TASTYTRADE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: TASTYTRADE_USERNAME
+        - name: TASTYTRADE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: TASTYTRADE_PASSWORD
+        volumeMounts:
+        - name: nfs-volume
+          mountPath: /mnt/hd1/data
+      volumes:
+      - name: nfs-volume
+        nfs:
+          server: 192.168.68.141
+          path: /mnt/hd1/data

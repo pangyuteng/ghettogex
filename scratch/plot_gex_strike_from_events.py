@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import pandas_market_calendars as mcal
 sys.path.append("/opt/fi/flask")
 from utils.postgres_utils import postgres_execute, postgres_execute_many
+from utils.misc import now_in_new_york
 
 from tqdm import tqdm
 from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
@@ -65,8 +66,11 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
 
     eastern = pytz.timezone('US/Eastern')
     utc = pytz.timezone('UTC')
+    
     reference_tstamp_list = pd.date_range(start=start_time,end=end_time,freq='s')
     print(len(reference_tstamp_list))
+    reference_tstamp_list = [x  for x in reference_tstamp_list if x < now_in_new_york()]
+    print(len(reference_tstamp_list),'!!!!!!!!!!!!!!!!!!!1')
 
     mydict = {
         'uc': underlying_candle_df,
@@ -77,7 +81,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     }
 
     for k,v in mydict.items():
-        print(len(v))
+        print(k,len(v))
         v['tstamp_sec']=v.tstamp.apply(lambda x: x.replace(microsecond=0,tzinfo=utc))
 
     stime = time.time()

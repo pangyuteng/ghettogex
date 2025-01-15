@@ -28,15 +28,14 @@ beat_schedule = {
         'task': 'tasks.manage_subscriptions',
         'schedule': crontab(minute='*'),
         'relative': True,
-        'options': {'queue': 'default'},
+        'options': {'queue': 'stream'},
         'args': [],
     },
+   'trigger_gex_cache': {
+       'task': 'tasks.trigger_gex_cache',
+       'schedule': 1, # every second!
+       'relative': True, # rounded to the resolution of the interval
+       'options': {'queue': 'default'},
+       'args': [],
+   },
 }
-
-#    'trigger_gex_cache': {
-#        'task': 'tasks.trigger_gex_cache',
-#        'schedule': 1, # every second!
-#        'relative': True, # rounded to the resolution of the interval
-#        'options': {'queue': 'default'},
-#        'args': [],
-#    },
