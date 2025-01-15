@@ -27,6 +27,6 @@ create index underlying_tstamp_index on underlying using brin (tstamp);
 
 create index gex_strike_tstamp_index on gex_strike using brin (tstamp);
 create index gex_net_tstamp_index on gex_net using brin (tstamp);
-create index event_agg_tstamp_index on event_agg using brin (tstamp);
+create index event_agg_tstamp_index on event_agg using brin (dstamp);
 
   

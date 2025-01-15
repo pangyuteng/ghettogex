@@ -292,6 +292,8 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
 
             col_str = ','.join(event_agg_columns)
             ps_str = ','.join(["%s"]*len(event_agg_columns))
+            # TODO: replace insert with **upserts**
+            # pkey event_symbol and dstamp
             query_str = "INSERT INTO event_agg ("+col_str+") VALUES ("+ps_str+")"
             query_dict[query_str]=[]
             for n,row in agg_df.iterrows():
