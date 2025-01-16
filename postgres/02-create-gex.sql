@@ -44,6 +44,6 @@ CREATE TABLE IF NOT EXISTS event_agg (
     expiration TIMESTAMP,
     contract_type text,
     strike double precision,
-    tstamp TIMESTAMP default (now() at time zone 'utc'),
-    dstamp TIMESTAMP default (now()::date at time zone 'utc')
+    tstamp TIMESTAMP,
+    dstamp TIMESTAMP
 );
