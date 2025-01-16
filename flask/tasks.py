@@ -93,7 +93,7 @@ def trigger_gex_cache(*args,**kwargs):
         for row in fetched:
             ticker = row['ticker']
             logger.info(f"trigger_gex_cache {ticker}")
-            compute_gex(ticker,et_tstamp,persist_to_postgres=True)
+            output = asyncio.run(compute_gex(ticker,et_tstamp,persist_to_postgres=True))
 
 # TODO: you can implement backfill via luigi
 class GexTarget(luigi.Target):

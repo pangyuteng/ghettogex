@@ -37,6 +37,10 @@ docker run -it -u $(id -u):$(id -g) \
 + [x] manual 2024-Q4 historical EOD download from UW. (/mnt/hd2/data/finance/bot-eod-zip)
 + [x] subscribe for a few expirations per ticker
 + [o] verify visualize second-freq OI and visualize GEX (scratch/plot_gex_strike_from_events.py)
++ [x] optimization
+    sql: create index with tstamp -> 4 to lt 1 sec
+    sql: use = as oppose to like 
+    union all is fast, use asyncio and gather 5 queries -> 700ms to 250ms
 + [ ] verify again GEX
       + [ ] compute and visulize gex oi from volume only
       + [ ] compute and visulize gex oi from bid/ask volume

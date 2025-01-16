@@ -1,7 +1,7 @@
 import os
 import sys
+import warnings
 import logging
-
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 #logger.setLevel(logging.DEBUG)
@@ -19,29 +19,17 @@ import datetime
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import asyncio
 
-from .postgres_utils import postgres_execute, postgres_execute_many
+from .postgres_utils import (
+    postgres_execute, postgres_execute_many,
+    apostgres_execute, apostgres_execute_many
+)
+
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
 
-def get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
-    query_str = """
-    (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
-    where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
-    ) union all (
-    select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
-    where tstamp >= %s and tstamp < %s and ticker = %s
-    ) union all (
-    select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
-    where tstamp >= %s and tstamp < %s and ticker = %s
-    ) union all (
-    select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
-    where tstamp >= %s and tstamp < %s and ticker = %s
-    ) union all (
-    select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
-    where tstamp >= %s and tstamp < %s and ticker = %s
-    )
-    """
+async def get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     if ticker == 'SPX':
         ticker_alt = 'SPXW'
     elif ticker == 'NDX':
@@ -50,15 +38,7 @@ def get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
         ticker_alt = 'VIXW'
     else:
         ticker_alt = ticker
-    query_args = (
-        min_utc_tstamp,max_utc_tstamp,ticker,
-        min_utc_tstamp,max_utc_tstamp,ticker_alt,
-        min_utc_tstamp,max_utc_tstamp,ticker_alt,
-        min_utc_tstamp,max_utc_tstamp,ticker_alt,
-        min_utc_tstamp,max_utc_tstamp,ticker_alt,
-    )
 
-    fetched = postgres_execute(query_str,query_args)
 
     # the first minute, grab everything
     columns = [
@@ -68,32 +48,85 @@ def get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
 
-    if fetched is None:
-        df = pd.DataFrame([],columns=columns)
+    if False:
+        query_str = """
+        (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
+        where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+        ) union all (
+        select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        ) union all (
+        select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        ) union all (
+        select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        ) union all (
+        select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        )
+        """
+        query_args = (
+            min_utc_tstamp,max_utc_tstamp,ticker,
+            min_utc_tstamp,max_utc_tstamp,ticker_alt,
+            min_utc_tstamp,max_utc_tstamp,ticker_alt,
+            min_utc_tstamp,max_utc_tstamp,ticker_alt,
+            min_utc_tstamp,max_utc_tstamp,ticker_alt,
+        )
+
+        fetched = await apostgres_execute(query_str,query_args)
+        
+        if fetched is None:
+            df = pd.DataFrame([],columns=columns)
+        else:
+            df = pd.DataFrame(fetched,columns=columns)
+        return df
     else:
-        df = pd.DataFrame(fetched,columns=columns)
 
-    return df
+        query_str = """
+        select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
+        where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+        """
+        query_args = (min_utc_tstamp,max_utc_tstamp,ticker)
+        uc = apostgres_execute(query_str,query_args)
 
-def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
+        query_str = """
+        select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        """
+        query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt)
+        oc = apostgres_execute(query_str,query_args)
 
-    query_str = """
-    (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
-    where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
-    ) union all (
-    select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
-    where tstamp >= %s and tstamp < %s and ticker = %s
-    ) union all (
-    select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from event_agg
-    where dstamp = %s and ticker = %s
-    ) union all (
-    select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
-    where tstamp >= %s and tstamp < %s and ticker = %s
-    ) union all (
-    select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
-    where tstamp >= %s and tstamp < %s and ticker = %s
-    )
-    """
+        query_str = """
+        select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from summary
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        """
+        query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt)
+        os = apostgres_execute(query_str,query_args)
+
+        query_str = """
+        select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        """
+        query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt)
+        og = apostgres_execute(query_str,query_args)
+
+        query_str = """
+        select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        """
+        query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt)
+        ot = apostgres_execute(query_str,query_args)
+
+        all_groups = await asyncio.gather(uc,oc,os,og,ot)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
+            df = pd.concat(pd_list,ignore_index=True)
+        return df
+
+async def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
+
     if ticker == 'SPX':
         ticker_alt = 'SPXW'
     elif ticker == 'NDX':
@@ -102,17 +135,7 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
         ticker_alt = 'VIXW'
     else:
         ticker_alt = ticker
-    query_args = (
-        min_utc_tstamp,max_utc_tstamp,ticker, # underlying_candle
-        utc_tstamp,max_utc_tstamp,ticker_alt, # candle
-        utc_tstamp.date(),ticker_alt, # event_agg
-        min_utc_tstamp,max_utc_tstamp,ticker_alt, # greeks
-        utc_tstamp,max_utc_tstamp,ticker_alt, # timeandsale
-    )
 
-    fetched = postgres_execute(query_str,query_args)
-
-    # the first minute, grab everything
     columns = [
         'event_type','event_symbol',
         'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
@@ -120,12 +143,82 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
 
-    if fetched is None:
-        df = pd.DataFrame([],columns=columns)
-    else:
-        df = pd.DataFrame(fetched,columns=columns)
+    if False:
+        query_str = """
+        (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
+        where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+        ) union all (
+        select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        ) union all (
+        select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from event_agg
+        where dstamp = %s and ticker = %s
+        ) union all (
+        select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        ) union all (
+        select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        )
+        """
+        query_args = (
+            min_utc_tstamp,max_utc_tstamp,ticker, # underlying_candle
+            utc_tstamp,max_utc_tstamp,ticker_alt, # candle
+            utc_tstamp.date(),ticker_alt, # event_agg
+            min_utc_tstamp,max_utc_tstamp,ticker_alt, # greeks
+            utc_tstamp,max_utc_tstamp,ticker_alt, # timeandsale
+        )
 
-    return df
+        fetched = await apostgres_execute(query_str,query_args)
+        if fetched is None:
+            df = pd.DataFrame([],columns=columns)
+        else:
+            df = pd.DataFrame(fetched,columns=columns)
+
+        return df
+    else:
+            
+        query_str = """
+        select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
+        where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+        """
+        query_args = (min_utc_tstamp,max_utc_tstamp,ticker) # underlying_candle
+        uc = apostgres_execute(query_str,query_args)
+
+        query_str = """
+        select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        """
+        query_args = (utc_tstamp,max_utc_tstamp,ticker_alt) # candle
+        oc = apostgres_execute(query_str,query_args)
+
+        query_str = """
+        select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from event_agg
+        where dstamp = %s and ticker = %s
+        """
+        query_args = (utc_tstamp.date(),ticker_alt) # event_agg
+        os = apostgres_execute(query_str,query_args)
+
+        query_str = """
+        select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        """
+        query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt) # greeks
+        og = apostgres_execute(query_str,query_args)
+
+        query_str = """
+        select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
+        where tstamp >= %s and tstamp < %s and ticker = %s
+        """
+        query_args = (utc_tstamp,max_utc_tstamp,ticker_alt) # timeandsale
+        ot = apostgres_execute(query_str,query_args)
+
+        all_groups = await asyncio.gather(uc,oc,os,og,ot)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
+            df = pd.concat(pd_list,ignore_index=True)
+        return df
 
 # event: candle
 # volume, bid_volume,ask_volume, --> sum, open,high,low,close
@@ -216,7 +309,7 @@ def compute_gex_core(df,first_minute):
 
     return merged_df, qc_pass
 
-def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
+async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     time_a = time.time()
 
     gex_df = None
@@ -257,7 +350,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     if len(fetched) == 0:
         if first_minute:
             time_a = time.time()
-            event_df = get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,market_open_tstamp_utc)
+            event_df = await get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,market_open_tstamp_utc)
 
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
@@ -272,7 +365,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
 
         else:
             time_a = time.time()
-            event_df = get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp)
+            event_df = await get_events_df(ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp)
 
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
@@ -348,21 +441,13 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
         logger.debug(f'{utc_tstamp} {len(fetched)} found!')
     return gex_df
 
-# python -m utils.compute_intraday SPX 2025-01-06-16-45-03
-def mainone(ticker,tstamp_str):
-    eastern = pytz.timezone('US/Eastern')
-    tstamp = datetime.datetime.strptime(tstamp_str,"%Y-%m-%d-%H-%M-%S")
-    tstamp = tstamp.replace(tzinfo=eastern)
-    compute_gex(ticker,tstamp)
-
 def main(ticker,my_date):
-    #my_date = '2025-01-07'
     tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
     for tstamp in tqdm(tstamp_list):
         if tstamp > now_in_new_york():
             break
         try:
-            get_df = compute_gex(ticker,tstamp)
+            get_df = asyncio.run(compute_gex(ticker,tstamp))
         except KeyboardInterrupt:
             sys.exit(1)
         except:

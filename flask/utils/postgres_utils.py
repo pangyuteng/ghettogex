@@ -19,6 +19,17 @@ async def apostgres_execute(query_str,query_args,is_commit=False):
 
     return response
 
+async def apostgres_execute_many(query_dict):
+    response = None
+    try:
+        async with await psycopg.AsyncConnection.connect(postgres_uri,row_factory=dict_row) as aconn:
+            async with aconn.cursor() as curs:
+                await curs.executemany(query_str,query_args)
+                #await aconn.commit() # ??
+    except:
+        traceback.print_exc()
+    return response
+
 def postgres_execute(query_str,query_args,is_commit=False):
     response = None
     try:
