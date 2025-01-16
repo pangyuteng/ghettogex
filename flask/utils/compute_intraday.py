@@ -309,6 +309,9 @@ def compute_gex_core(df,first_minute):
 
     return merged_df, qc_pass
 
+
+# TODO: create first_minute cron job every 5 minute 
+
 async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     time_a = time.time()
 
