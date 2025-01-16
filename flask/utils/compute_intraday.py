@@ -307,6 +307,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             ).reset_index()
             col_str = ','.join(table_cols)
             ps_str = ','.join(["%s"]*len(table_cols))
+            # TODO: replace with UPSERT
             query_str = "INSERT INTO gex_strike ("+col_str+") VALUES ("+ps_str+")"
             query_dict[query_str]=[]
             for n,row in strike_gex_df.iterrows():
@@ -322,6 +323,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             ).reset_index()
             col_str = ','.join(table_cols)
             ps_str = ','.join(["%s"]*len(table_cols))
+            # TODO: replace with UPSERT
             query_str = "INSERT INTO gex_net ("+col_str+") VALUES ("+ps_str+")"
             query_dict[query_str]=[]
             for n,row in net_gex_df.iterrows():

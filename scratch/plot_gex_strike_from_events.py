@@ -169,7 +169,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         # event_symbol
         # tstamp_sec
         # gex_timeandsale
-        
+        # TODO: replace with UPSERT
         strike_query_str = "INSERT INTO gex_strike (ticker,strike,naive_gex,tstamp) VALUES (%s,%s,%s,%s)"
         net_query_str = "INSERT INTO gex_net (ticker,spot_price,naive_gex,tstamp) VALUES (%s,%s,%s,%s)"
         tstamp_list = sorted(list(foodf.tstamp_sec.unique()))
