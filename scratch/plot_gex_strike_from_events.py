@@ -203,7 +203,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
                 gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"),
             ).reset_index()
             for n,row in strike_gex_df.iterrows():
-                query_dict[strike_query_str].append((row.ticker,row.strike,row.gex_timeandsale,row.tstamp_sec))
+                query_dict[strike_query_str].append((ticker,row.strike,row.gex_timeandsale,row.tstamp_sec))
             
             table_cols = ['ticker','spot_price','gex_timeandsale','tstamp_sec']
             net_gex_df = row_df[table_cols]
@@ -212,7 +212,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
                 gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"),
             ).reset_index()
             for n,row in net_gex_df.iterrows():
-                query_dict[net_query_str].append((row.ticker,row.spot_price,row.gex_timeandsale,row.tstamp_sec))
+                query_dict[net_query_str].append((ticker,row.spot_price,row.gex_timeandsale,row.tstamp_sec))
             
             print(tstamp_sec,len(query_dict[net_query_str]),len(query_dict[strike_query_str]))
             postgres_execute_many(query_dict)
