@@ -73,7 +73,7 @@ def manage_subscriptions(*args,**kwargs):
         for row in fetched:
             ticker = row['ticker']
             logger.info(f"trigger subscriptions apply_async {ticker}")
-            trigger_subscription.apply_async(args=[ticker])
+            trigger_subscription.apply_async(args=[ticker],queue="stream")
 
 @celery_app.task
 def trigger_gex_cache(*args,**kwargs):
