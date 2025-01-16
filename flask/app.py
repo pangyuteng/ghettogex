@@ -163,7 +163,6 @@ async def overview():
     ticker = request.args.get("ticker")
     ticker = ticker.replace("^","")
     if ticker == 'SPX':
-        ticker = 'SPXW'
         return await render_template("sample-gex.html",ticker=ticker)
     else:
         return await render_template("overview.html",ticker=ticker)
