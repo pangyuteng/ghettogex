@@ -402,10 +402,10 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             ps_str = ','.join(["%s"]*len(table_cols))
             # TODO: replace with UPSERT
             query_str = "INSERT INTO gex_strike ("+col_str+") VALUES ("+ps_str+")"
-            query_dict[query_str]=[]
-            for n,row in strike_gex_df.iterrows():
-                query_args = [getattr(row,x,None) for x in table_cols]
-                query_dict[query_str].append(query_args)
+            def get_args(row):
+                return [row.get(x,None) for x in table_cols]
+            query_args = strike_gex_df.apply(lambda row: get_args(row), axis=1)
+            query_dict[query_str]=query_args.to_list()
 
             table_cols = ['ticker','tstamp','spot_price','naive_gex']
             agg_df['ticker'] = ticker
@@ -418,13 +418,14 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             ps_str = ','.join(["%s"]*len(table_cols))
             # TODO: replace with UPSERT
             query_str = "INSERT INTO gex_net ("+col_str+") VALUES ("+ps_str+")"
-            query_dict[query_str]=[]
-            for n,row in net_gex_df.iterrows():
-                query_args = [getattr(row,x,None) for x in table_cols]
-                query_dict[query_str].append(query_args)
+            def get_args(row):
+                return [row.get(x,None) for x in table_cols]
+            query_args = net_gex_df.apply(lambda row: get_args(row), axis=1)
+            query_dict[query_str] = query_args.to_list()
 
             time_b = time.time()
             logger.info(f'text append {time_b-time_d}')
+
             postgres_execute_many(query_dict)
             time_c = time.time()
             logger.info(f'postgres_execute_many {time_c-time_b}')
