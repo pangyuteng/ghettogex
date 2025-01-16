@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS gex_net (
 CREATE TABLE IF NOT EXISTS event_agg (
     event_agg_id SERIAL PRIMARY KEY,
     event_symbol text NOT NULL,
-    tstamp_et TIMESTAMP,
+    dstamp TIMESTAMP,
     spot_price double precision,
     open double precision,
     high double precision,
@@ -45,5 +45,5 @@ CREATE TABLE IF NOT EXISTS event_agg (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP,
-    dstamp TIMESTAMP
+    UNIQUE (event_symbol, dstamp)
 );

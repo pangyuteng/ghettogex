@@ -85,7 +85,7 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     where tstamp >= %s and tstamp < %s and ticker = %s
     ) union all (
     select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from event_agg
-    where tstamp >= %s and tstamp < %s and ticker = %s
+    where dstamp = %s and ticker = %s
     ) union all (
     select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
     where tstamp >= %s and tstamp < %s and ticker = %s
@@ -105,7 +105,7 @@ def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     query_args = (
         min_utc_tstamp,max_utc_tstamp,ticker, # underlying_candle
         utc_tstamp,max_utc_tstamp,ticker_alt, # candle
-        min_utc_tstamp,max_utc_tstamp,ticker_alt, # summary $ TODO: update query tu use dstamp
+        utc_tstamp.date(),ticker_alt, # event_agg
         min_utc_tstamp,max_utc_tstamp,ticker_alt, # greeks
         utc_tstamp,max_utc_tstamp,ticker_alt, # timeandsale
     )
@@ -190,17 +190,20 @@ def compute_gex_core(df,first_minute):
     merged_df['contract_type_int'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['spot_price']=spot_price
 
-    
+
+    # TODO: THIS IS WHERE YOU WANT TO PLAY WITH gex compute...
+    #ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+init_oi
+    #ok.oi_volume = ok.oi_volume.cumsum().astype(float)+init_oi
+    # oi_timeandsale = merged_df.open_interest+merged_df.ask_volume-merged_df.bid_volume
+    # oi_volume = merged_df.open_interest+merged_df.size_signed
+
     for col_name in ['gamma','open_interest','spot_price','contract_type_int','size_signed']:
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
 
     merged_df['open_interest']=merged_df.open_interest+merged_df.size_signed
     merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
-
-    # TODO: THIS IS WHERE YOU WANT TO PLAY WITH gex compute...
-    #ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+init_oi
-    #ok.oi_volume = ok.oi_volume.cumsum().astype(float)+init_oi
-
+    merged_df.open_interest = merged_df.open_interest.fillna(value=0)
+    merged_df.naive_gex = merged_df.naive_gex.fillna(value=0)
     if first_minute:
         # quality check
         reqd_event_list = ['summary','greeks','timeandsale','candle']
@@ -235,11 +238,11 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     # the first minute, grab everything
     event_agg_columns = [
         'event_symbol',
-        'spot_price',
-        'open_interest',
-        'gamma',
-        'ticker','expiration','contract_type','strike',
+        'dstamp',
         'tstamp',
+        'spot_price','gamma',
+        'ticker','expiration','contract_type','strike',
+        'open_interest',
         'naive_gex',
     ]
     # 'open','high','low','close','volume','ask_volume','bid_volume',
@@ -260,8 +263,8 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             logger.info(f'get_events_df {time_b-time_a}')
 
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),first_minute)
+            agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
-            agg_df['ticker']=ticker
             logger.debug(f'{first_minute},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
 
             time_c = time.time()
@@ -275,8 +278,8 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             logger.info(f'get_events_df {time_b-time_a}')
 
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),first_minute)
+            agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
-            agg_df['ticker']=ticker
             logger.debug(f'{first_minute},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
 
             time_c = time.time()
@@ -289,18 +292,15 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
                 agg_df.to_csv(csv_file,index=False)
 
             query_dict = {}
-
-            col_str = ','.join(event_agg_columns)
-            ps_str = ','.join(["%s"]*len(event_agg_columns))
-            # TODO: replace insert with **upserts**
-            # pkey event_symbol and dstamp
-            query_str = "INSERT INTO event_agg ("+col_str+") VALUES ("+ps_str+")"
+            # pkey event_symbol and dstamp   
+            query_str = "INSERT INTO event_agg (event_symbol,dstamp,open_interest,naive_gex,tstamp,ticker,expiration,contract_type,strike) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (event_symbol,dstamp) do update set open_interest = %s, naive_gex = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s;"
             query_dict[query_str]=[]
             for n,row in agg_df.iterrows():
-                query_args = [getattr(row,x,None) for x in event_agg_columns]
+                query_args = [row.event_symbol,row.dstamp,row.open_interest,row.naive_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.naive_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
                 query_dict[query_str].append(query_args)
-
+            
             table_cols = ['ticker','strike','tstamp','naive_gex']
+            agg_df['ticker'] = ticker
             strike_gex_df = agg_df[table_cols]
             strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).agg(
                 naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
@@ -314,6 +314,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
                 query_dict[query_str].append(query_args)
 
             table_cols = ['ticker','tstamp','spot_price','naive_gex']
+            agg_df['ticker'] = ticker
             net_gex_df = agg_df[table_cols]
             net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
                 spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),

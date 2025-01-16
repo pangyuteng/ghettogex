@@ -29,4 +29,5 @@ create index gex_strike_tstamp_index on gex_strike using brin (tstamp);
 create index gex_net_tstamp_index on gex_net using brin (tstamp);
 
 create index event_agg_dstamp_index on event_agg using brin (dstamp);
+create index event_agg_dstamp_index on event_agg using brin (dstamp);
 create index event_agg_event_symbol_index on event_agg using brin (event_symbol);
