@@ -343,7 +343,7 @@ def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
                 time_c = time.time()
                 logger.info(f'postgres_execute {time_c-time_b}')
     else:
-        logger.debug(f'{utc_tstamp} {len(fetched)}')
+        logger.debug(f'{utc_tstamp} {len(fetched)} found!')
     return gex_df
 
 # python -m utils.compute_intraday SPX 2025-01-06-16-45-03
