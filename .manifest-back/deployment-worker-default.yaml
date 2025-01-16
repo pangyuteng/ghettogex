@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fi-worker-deployment
+  name: fi-worker-default-deployment
 spec:
   replicas: 4
   selector:
     matchLabels:
-      app: fi-worker
+      app: fi-worker-default
   template:
     metadata:
       labels:
-        app: fi-worker
+        app: fi-worker-default
     spec:
       imagePullSecrets:
       - name: registry-credentials
       containers:
-      - name: fi-worker
+      - name: fi-worker-default
         image: docker.io/pangyuteng/private:fi-flask-edge
         imagePullPolicy: Always
         command: ["bash"]

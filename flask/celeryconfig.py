@@ -21,6 +21,7 @@ task_queue_max_priority = 10
 task_default_priority = 5
 task_queues = (
     Queue('default', routing_key='default-routing-key', queue_arguments={'x-max-priority': 10}),
+    Queue('stream', routing_key='stream-routing-key', queue_arguments={'x-max-priority': 10}),
 )
 
 beat_schedule = {

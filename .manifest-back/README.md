@@ -21,6 +21,7 @@ kubectl rollout restart deployment fi-redis-deployment -n default
 kubectl rollout restart deployment fi-luigi-deployment -n default
 kubectl rollout restart deployment fi-enqueue-deployment -n default
 kubectl rollout restart deployment fi-beat-deployment -n default
-kubectl rollout restart deployment fi-worker-deployment -n default
+kubectl rollout restart deployment fi-worker-default-deployment -n default
+kubectl rollout restart deployment fi-worker-stream-deployment -n default
 
 ```
