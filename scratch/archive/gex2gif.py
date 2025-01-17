@@ -52,7 +52,7 @@ async def get_json(json_file):
     tstamp, uid = file_split[-1].replace(".json","").split("-uid-")
     event_type = file_split[-2]
     streamer_symbol = file_split[-3]
-    ## TODO: parse later?
+    ## TOFO: parse later?
     #tstamp = datetime.datetime.strptime(tstamp,'%Y-%m-%d-%H-%M-%S.%f')
 
     async with aiofiles.open(json_file, mode='r') as f:

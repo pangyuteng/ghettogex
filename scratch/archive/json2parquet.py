@@ -37,7 +37,7 @@ async def get_json(json_file):
     tstamp, uid = file_split[-1].replace(".json","").split("-uid-")
     event_type = file_split[-2]
     streamer_symbol = file_split[-3]
-    ## TODO: parse later?
+    ## TOFO: parse later?
     #tstamp = datetime.datetime.strptime(tstamp,'%Y-%m-%d-%H-%M-%S.%f')
 
     async with aiofiles.open(json_file, mode='r') as f:
@@ -154,7 +154,7 @@ def cache_oi(ticker,tstamp):
 
     price_list = []
     for tstamp in tqdm(tstamp_list):
-        if False: # TODO: unsure why no data?
+        if False: # TOFO: unsure why no data?
             u_df = df[(df.tstamp_reduced==tstamp)&(df.event_type=='candle')&(df.event_symbol==ticker)&(df.strike.isnull())]
             price_list.append(u_df)
         q_df = df[(df.tstamp_reduced==tstamp)&(df.event_type=='quote')&(df.event_symbol==ticker)&(df.strike.isnull())]

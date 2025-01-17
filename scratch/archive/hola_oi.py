@@ -205,7 +205,7 @@ def cache_oi(ticker,event_symbol,tstamp,is_init,freq):
             open_interest = prior_oi["open_interest"]
             ts_ask_size = ts_df[ts_df.aggressor_side=='BUY']['size'].sum()
             ts_bid_size = ts_df[ts_df.aggressor_side=='SELL']['size'].sum()
-            # TODO: BAD ASSUMPTION
+            # TOFO: BAD ASSUMPTION
             updated_open_interest = int(open_interest+ts_ask_size-ts_bid_size)
             oi_dict = {"open_interest":updated_open_interest}
             with open(oi_json_file,"w") as f:

@@ -43,6 +43,7 @@ docker run -it -u $(id -u):$(id -g) \
     union all is fast, use asyncio and gather 5 queries -> 700ms to 250ms
     replace `getattr` with `dict.get` https://stackoverflow.com/questions/9790991/why-is-getattr-so-much-slower-than-self-dict-get
     replace for loop with series.apply
++ [ ] monitor system performance for a week or two
 + [ ] verify again GEX
       + [ ] compute and visulize gex oi from volume only
       + [ ] compute and visulize gex oi from bid/ask volume
