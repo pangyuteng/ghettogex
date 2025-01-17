@@ -219,8 +219,11 @@ async def ws_gex_sample():
             """
             query_args = (ticker,)
             fetched = await apostgres_execute(query_str,query_args)
-            df = pd.DataFrame([x for x in fetched])
-            tstamp_utc = df.tstamp.to_list()[-1]
+            try:
+                df = pd.DataFrame([x for x in fetched])
+                tstamp_utc = df.tstamp.to_list()[-1]
+            except:
+                tstamp_utc = None
 
             query_str = """
                 select * from gex_net
@@ -231,9 +234,12 @@ async def ws_gex_sample():
             query_args = (ticker,tstamp_utc)
             fetched = await apostgres_execute(query_str,query_args)
             columns = ['ticker','tstamp','spot_price','naive_gex','volume_gex']
-            ucdf = pd.DataFrame([x for x in fetched])
-            spot_price = ucdf.spot_price.to_list()[-1]
-
+            try:
+                ucdf = pd.DataFrame([x for x in fetched])
+                spot_price = ucdf.spot_price.to_list()[-1]
+            except:
+                ucdf = pd.DataFrame([],columns=columns)
+                spot_price = -1
             query_str = """
                 select * from gex_strike
                 where ticker = %s
@@ -243,10 +249,12 @@ async def ws_gex_sample():
             query_args = (ticker,tstamp_utc)
             fetched = await apostgres_execute(query_str,query_args)
             columns = ['ticker','tstamp','strike','naive_gex','volume_gex']
-            df = pd.DataFrame([x for x in fetched])
-
-            df = df.replace({np.nan: None})
-            df.naive_gex = df.naive_gex/1e9
+            try:
+                df = pd.DataFrame([x for x in fetched])
+                df = df.replace({np.nan: None})
+                df.naive_gex = df.naive_gex/1e9
+            except:
+                df = pd.DataFrame([],columns=columns)
             data_str = render_html("ws-sample-gex.html",
                 ticker=ticker,df=df,spot_price=spot_price,
                 tstamp=tstamp_utc,ws_tstamp=ws_tstamp_utc)
