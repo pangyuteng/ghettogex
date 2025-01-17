@@ -47,3 +47,9 @@ CREATE TABLE IF NOT EXISTS event_agg (
     tstamp TIMESTAMP,
     UNIQUE (event_symbol, dstamp)
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+    settings_id bool PRIMARY KEY DEFAULT true
+    , from_scratch bool
+    , CONSTRAINT settings_uni CHECK (settings_id)
+);

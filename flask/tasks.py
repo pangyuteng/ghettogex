@@ -77,7 +77,7 @@ def manage_subscriptions(*args,**kwargs):
 
 @celery_app.task
 def trigger_gex_cache(*args,**kwargs):
-    query_str = "select * from watchlist"
+    query_str = "select * from watchlist,settings"
     query_args = ()
     utc_tstamp = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
     eastern = pytz.timezone('US/Eastern')
@@ -92,8 +92,9 @@ def trigger_gex_cache(*args,**kwargs):
         fetched = [dict(x) for x in fetched]
         for row in fetched:
             ticker = row['ticker']
+            from_scratch = row['from_scratch']
             logger.info(f"trigger_gex_cache {ticker}")
-            output = asyncio.run(compute_gex(ticker,et_tstamp,persist_to_postgres=True))
+            output = asyncio.run(compute_gex(ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=True))
 
 # TODO: you can implement backfill via luigi
 class GexTarget(luigi.Target):
@@ -130,7 +131,7 @@ class ComputeSpotGex(luigi.Task):
     def run(self):
         # TODO
         raise NotImplementedError()
-        compute_gex(self.ticker,tstamp,persist_to_postgres=True)
+        compute_gex(self.ticker,tstamp,persist_to_postgres=True,from_scratch=False)
 
 
 

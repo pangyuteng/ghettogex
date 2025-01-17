@@ -29,7 +29,7 @@ from .postgres_utils import (
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
 
-async def get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
+async def get_events_df_from_scratch(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     if ticker == 'SPX':
         ticker_alt = 'SPXW'
     elif ticker == 'NDX':
@@ -239,7 +239,7 @@ async def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
 # + summary event seems to be only once a day?
 
 
-def compute_gex_core(df,first_minute):
+def compute_gex_core(df,from_scratch):
     df = df.sort_values(by=['event_type','tstamp'])
     # size from timeandsale event
     df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size'])
@@ -297,7 +297,7 @@ def compute_gex_core(df,first_minute):
     merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
     merged_df.open_interest = merged_df.open_interest.fillna(value=0)
     merged_df.naive_gex = merged_df.naive_gex.fillna(value=0)
-    if first_minute:
+    if from_scratch:
         # quality check
         reqd_event_list = ['summary','greeks','timeandsale','candle']
         if np.isnan(spot_price) or not all([event_type in df.event_type.unique() for event_type in reqd_event_list]):
@@ -310,9 +310,9 @@ def compute_gex_core(df,first_minute):
     return merged_df, qc_pass
 
 
-# TODO: create first_minute cron job every 5 minute 
+# TODO: create from_scratch cron job every 5 minute 
 
-async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
+async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
     time_a = time.time()
 
     gex_df = None
@@ -331,6 +331,8 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     else:
         first_minute = False
 
+    if from_scratch is None:
+        from_scratch = first_minute
     # the first minute, grab everything
     event_agg_columns = [
         'event_symbol',
@@ -351,17 +353,17 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     logger.debug(f'pg select {time_b-time_a} {len(fetched)}')
 
     if len(fetched) == 0:
-        if first_minute:
+        if from_scratch:
             time_a = time.time()
-            event_df = await get_events_df_first_minute(ticker,utc_tstamp,max_utc_tstamp,market_open_tstamp_utc)
+            event_df = await get_events_df_from_scratch(ticker,utc_tstamp,max_utc_tstamp,market_open_tstamp_utc)
 
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
 
-            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),first_minute)
+            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
-            logger.debug(f'{first_minute},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
+            logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
 
             time_c = time.time()
             logger.info(f'compute_gex_core {time_c-time_b}')
@@ -373,10 +375,10 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
 
-            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),first_minute)
+            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
-            logger.debug(f'{first_minute},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
+            logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
 
             time_c = time.time()
             logger.info(f'compute_gex_core {time_c-time_b}')
@@ -401,12 +403,9 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).agg(
                 naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
             ).reset_index()
-            col_str = ','.join(table_cols)
-            ps_str = ','.join(["%s"]*len(table_cols))
-            # TODO: replace with UPSERT
-            query_str = "INSERT INTO gex_strike ("+col_str+") VALUES ("+ps_str+")"
+            query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,naive_gex) VALUES (%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set naive_gex = %s;"
             def get_args(row):
-                return [row.get(x,None) for x in table_cols]
+                return [row.ticker,row.strike,row.tstamp,row.naive_gex,row.naive_gex]
             query_args = strike_gex_df.apply(lambda row: get_args(row), axis=1)
             query_dict[query_str]=query_args.to_list()
 
@@ -417,12 +416,9 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
                 spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
                 naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
             ).reset_index()
-            col_str = ','.join(table_cols)
-            ps_str = ','.join(["%s"]*len(table_cols))
-            # TODO: replace with UPSERT
-            query_str = "INSERT INTO gex_net ("+col_str+") VALUES ("+ps_str+")"
+            query_str = "INSERT INTO gex_net (ticker,tstamp,naive_gex,spot_price) VALUES (%s,%s,%s,%s) on conflict (ticker,tstamp) do update set naive_gex = %s, spot_price = %s;"
             def get_args(row):
-                return [row.get(x,None) for x in table_cols]
+                return [row.ticker,row.tstamp,row.naive_gex,row.spot_price,row.naive_gex,row.spot_price]
             query_args = net_gex_df.apply(lambda row: get_args(row), axis=1)
             query_dict[query_str] = query_args.to_list()
 
@@ -436,7 +432,7 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             logger.debug(f'qc_pass {qc_pass}, {len(fetched)}')
             if first_minute:
                 time_b = time.time()
-                query_str = "INSERT INTO gex_net (ticker,tstamp) VALUES (%s,%s)"
+                query_str = "INSERT INTO gex_net (ticker,tstamp) VALUES (%s,%s) ON CONFLICT DO NOTHING;"
                 query_args = (ticker,utc_tstamp)
                 postgres_execute(query_str,query_args,is_commit=True)
                 time_c = time.time()
@@ -451,7 +447,18 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            get_df = asyncio.run(compute_gex(ticker,tstamp))
+            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True))
+        except KeyboardInterrupt:
+            sys.exit(1)
+        except:
+            traceback.print_exc()
+            sys.exit(1)
+
+def tryone(ticker):
+    for x in range(1):
+        tstamp = now_in_new_york()
+        try:
+            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=True,persist_to_postgres=True))
         except KeyboardInterrupt:
             sys.exit(1)
         except:
