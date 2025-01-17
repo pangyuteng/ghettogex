@@ -60,7 +60,7 @@ def _get_iv_df(ticker,option_type,tstamp=None,is_pivot=True):
         df = options_df
 
     df = df[df.option_type==option_type]
-    # TODO: fill NA with theoretical IV
+    # TOFO: fill NA with theoretical IV
     df = df.sort_values(by=['expiration', 'strike','iv'])
     df = df[['expiration','strike','iv']]
     if is_pivot:
