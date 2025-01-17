@@ -58,7 +58,7 @@ def get_session(remember_me=True):
         logger.debug(username)
         session = Session(username,password,remember_me=remember_me,is_test=is_test)
         # #use of remember_token locks the account!
-        # TODO: need to read tasty api
+        # TOFO: need to read tasty api
         # with open(token_file,'w') as f:
         #    f.write(json.dumps({"remember_token":session.remember_token}))
         return session
