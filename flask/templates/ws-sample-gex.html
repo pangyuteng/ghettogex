@@ -29,8 +29,14 @@
       bgcolor: '#FFFFFF',
       bordercolor: '#FFFFFF',
       showlegend: false,
-      yaxis: { range:[{{spot_price}}*0.95,{{spot_price*1.05}}] },
-      xaxis: { range: [-5,5] },
+      yaxis: {
+        showgrid: true,
+        range: [ {{spot_price}}*0.95, {{spot_price*1.05}} ]
+      },
+      xaxis: {
+        showgrid: true,
+        range: [ -5, 5 ]
+      },
       font: {
           family: 'Courier New, monospace',
           size: 18,

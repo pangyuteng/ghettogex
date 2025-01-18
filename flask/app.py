@@ -224,6 +224,7 @@ async def ws_gex_sample():
                 tstamp_utc = df.tstamp.to_list()[-1]
             except:
                 tstamp_utc = None
+                spot_price = -1
 
             query_str = """
                 select * from gex_net

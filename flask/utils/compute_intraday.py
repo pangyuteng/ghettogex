@@ -290,12 +290,22 @@ def compute_gex_core(df,from_scratch):
     # oi_timeandsale = merged_df.open_interest+merged_df.ask_volume-merged_df.bid_volume
     # oi_volume = merged_df.open_interest+merged_df.size_signed
 
-    for col_name in ['gamma','open_interest','spot_price','contract_type_int','size_signed','ask_volume','bid_volume']:
+    for col_name in ['gamma','open_interest','spot_price','contract_type_int','size_signed','volume','ask_volume','bid_volume']:
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
 
     merged_df.open_interest = merged_df.open_interest.fillna(value=0)
     merged_df.size_signed = merged_df.size_signed.fillna(value=0)
-    merged_df.open_interest = merged_df.open_interest+merged_df.size_signed
+    merged_df.volume = merged_df.volume.fillna(value=0)
+    merged_df.ask_volume = merged_df.ask_volume.fillna(value=0)
+    merged_df.bid_volume = merged_df.bid_volume.fillna(value=0)
+    kind = 'timeandsale_size'
+    if kind == 'candle_volume':
+        merged_df.open_interest = merged_df.open_interest+merged_df.volume
+    if kind == 'candle_bidask_volume':
+        merged_df.open_interest = merged_df.open_interest+merged_df.ask_volume-merged_df.bid_volume
+    if kind == 'timeandsale_size':
+        merged_df.open_interest = merged_df.open_interest+merged_df.size_signed
+
     merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
 
     merged_df.naive_gex = merged_df.naive_gex.fillna(value=0)
