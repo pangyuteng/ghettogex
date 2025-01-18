@@ -81,8 +81,7 @@ def trigger_gex_cache(*args,**kwargs):
     query_args = ()
     utc_tstamp = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
     eastern = pytz.timezone('US/Eastern')
-    et_tstamp = utc_tstamp.astimezone(tz=eastern)
-
+    et_tstamp = utc_tstamp.astimezone(tz=eastern)-datetime.timedelta(seconds=1)
     if is_market_open() is False:
         pass
     else:
