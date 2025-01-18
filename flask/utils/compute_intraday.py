@@ -293,10 +293,11 @@ def compute_gex_core(df,from_scratch):
     for col_name in ['gamma','open_interest','spot_price','contract_type_int','size_signed','ask_volume','bid_volume']:
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
 
-    merged_df['open_interest']=merged_df.open_interest+merged_df.size_signed
-    merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
     merged_df.open_interest = merged_df.open_interest.fillna(value=0)
-    logger.debug(f'                                    open_interest {merged_df.open_interest.sum()}')
+    merged_df.size_signed = merged_df.size_signed.fillna(value=0)
+    merged_df.open_interest = merged_df.open_interest+merged_df.size_signed
+    merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
+
     merged_df.naive_gex = merged_df.naive_gex.fillna(value=0)
     if from_scratch:
         # quality check
@@ -360,7 +361,6 @@ async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=Tru
 
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
-            logger.debug(f'                                              {utc_tstamp}')
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
@@ -375,7 +375,6 @@ async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=Tru
 
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
-            logger.debug(f'                                              {utc_tstamp}')
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
