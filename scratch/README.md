@@ -44,7 +44,7 @@ docker run -it -u $(id -u):$(id -g) \
     replace `getattr` with `dict.get` https://stackoverflow.com/questions/9790991/why-is-getattr-so-much-slower-than-self-dict-get
     replace for loop with series.apply
 + [x] patch oi compute bug, na needs to be replaced with 0 for numerical values.
-+ [o] verify again GEX
++ [x] verify again GEX
       + compute and visulize gex oi from volume only
       + compute and visulize gex oi from bid/ask volume
       + compute and visulize gex oi from timeandsale

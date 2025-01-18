@@ -151,18 +151,22 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         # fill 0s for timeandsale and candle volumes
         ok.open_interest = ok.open_interest.fillna(value=0)
         ok.size_signed = ok.size_signed.fillna(value=0)
+        ok.volume = ok.volume.fillna(value=0)
         ok.bid_volume = ok.bid_volume.fillna(value=0)
         ok.ask_volume = ok.ask_volume.fillna(value=0)
         ok['oi_timeandsale'] = ok.size_signed
-        ok['oi_volume'] = ok.ask_volume-ok.bid_volume
+        ok['oi_volume'] = ok.volume
+        ok['oi_bavolume'] = ok.ask_volume-ok.bid_volume
         try:
             init_oi = float(ok.open_interest.to_list()[-1])
         except:
             init_oi = 0
         ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+init_oi
         ok.oi_volume = ok.oi_volume.cumsum().astype(float)+init_oi
+        ok.oi_bavolume = ok.oi_bavolume.cumsum().astype(float)+init_oi
         ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
         ok['gex_volume'] = ok.gamma * ok.oi_volume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
+        ok['gex_bavolume'] = ok.gamma * ok.oi_bavolume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
         mylist.append(ok.copy(deep=True))
     foodf = pd.concat(mylist)
 
@@ -239,19 +243,18 @@ def gex_to_ani(df,mp4_file):
         ).reset_index()
         df.gex_timeandsale = df.gex_timeandsale/1e9
         df.gex_volume = df.gex_volume/1e9
-        df['mygex']=df.gex_timeandsale
 
-        gex_lim = np.max(np.abs(df.gex_volume))
+        gex_lim = 5 # np.max(np.abs(df.gex_volume))
         spot_min,spot_max = np.min(df.spot_price)*.98,np.max(df.spot_price)*1.02
         print(gex_lim)
         print(spot_min,spot_max)
         price_df = df[['tstamp_sec','spot_price']].drop_duplicates()
         for tstamp in tqdm(tstamp_list):
 
-            tmp = df[df.tstamp_sec==tstamp].reset_index()
+            tmpdf = df[df.tstamp_sec==tstamp].reset_index()
 
             try:
-                spot_price = tmp.spot_price.to_list()[-1]
+                spot_price = tmpdf.spot_price.to_list()[-1]
             except:
                 spot_price = np.nan
             print(tstamp,spot_price)
@@ -265,15 +268,21 @@ def gex_to_ani(df,mp4_file):
             plt.ylim(spot_min,spot_max)
 
             plt.subplot(122)
-            strike_list = [[x,x] for x in tmp.strike.to_numpy()]
-            naive_gex_list = [[0,x] for x in tmp.mygex.to_numpy()]
-            for x,y in zip(naive_gex_list,strike_list):
-                if x[-1] > 0:
-                    color = 'green'
+            for n,row in tmpdf.iterrows():
+                if row.gex_timeandsale > 0:
+                    color_gt = 'green'
                 else:
-                    color = 'red'
-                plt.plot(x,y,color=color)
-            plt.axhline(spot_price,color='blue')
+                    color_gt = 'red'
+                if row.gex_bavolume > 0:
+                    color_gbav = 'olive'
+                else:
+                    color_gbav = 'orange'    
+                color_gv = 'yellow'
+                plt.plot([0,row.gex_timeandsale],row.strike,color=color_gt,linestyle='-',linewidth=2)
+                plt.plot([0,row.gex_bavolume],row.strike,color=color_gbav,linestyle='--',linewidth=2)
+                plt.plot([0,row.gex_volume],row.strike,color=color_gv,linestyle='-',linewidth=1)
+
+            plt.axhline(spot_price,color='blue',linestyle='--')
             plt.grid(True)
             plt.ylabel("strike")
             plt.xlabel("net naive gex ($Bn/%Move)")
