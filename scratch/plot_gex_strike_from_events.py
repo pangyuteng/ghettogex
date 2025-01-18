@@ -239,6 +239,7 @@ def gex_to_ani(df,mp4_file):
         ).reset_index()
         df.gex_timeandsale = df.gex_timeandsale/1e9
         df.gex_volume = df.gex_volume/1e9
+        df['mygex']=df.gex_timeandsale
 
         gex_lim = np.max(np.abs(df.gex_volume))
         spot_min,spot_max = np.min(df.spot_price)*.98,np.max(df.spot_price)*1.02
@@ -265,7 +266,7 @@ def gex_to_ani(df,mp4_file):
 
             plt.subplot(122)
             strike_list = [[x,x] for x in tmp.strike.to_numpy()]
-            naive_gex_list = [[0,x] for x in tmp.gex_volume.to_numpy()]
+            naive_gex_list = [[0,x] for x in tmp.mygex.to_numpy()]
             for x,y in zip(naive_gex_list,strike_list):
                 if x[-1] > 0:
                     color = 'green'
