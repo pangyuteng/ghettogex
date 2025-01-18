@@ -1,5 +1,6 @@
 import logging
 logger = logging.getLogger(__file__)
+import os
 import sys
 import pathlib
 import datetime
@@ -138,7 +139,8 @@ def get_gex_df(ticker,tstamp=None,save_png=False):
     gex_by_expiration = compute_gex_by_expiration(df,ticker=ticker,save_png=save_png)
     gex_df = compute_gex_surface(spot_price,df,ticker=ticker,save_png=save_png)
 
-    return spot_price, gex_by_strike, gex_by_expiration, gex_df
+    data_tstamp = os.path.basename(os.path.dirname(last_csv_file))
+    return spot_price, gex_by_strike, gex_by_expiration, gex_df, data_tstamp
 
 def gex_test(ticker):
     spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker,save_png=True)
@@ -161,7 +163,7 @@ def compute_btc_gex(tstamp=None,save_png=False):
     gex_by_expiration_list = []
     gex_surface_list = []
     for ticker in ticker_list:
-        underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
+        underlying_dict,options_df,_last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
         row_df = options_df.copy(deep=True)
         row_df.expiration = row_df.expiration.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d'))
         row_df = row_df.reset_index()
@@ -236,7 +238,8 @@ def compute_btc_gex(tstamp=None,save_png=False):
         plt.xlabel("GEX ($Bn / % move)")
         plt.tight_layout()
         plt.savefig("tmp/strike.png")
-    return btc_spot_price, strike_df, expiration_df, surf_df
+    data_tstamp = os.path.basename(os.path.dirname(last_json_file))
+    return btc_spot_price, strike_df, expiration_df, surf_df, data_tstamp
 
 if __name__ == "__main__":
     ticker = sys.argv[1]

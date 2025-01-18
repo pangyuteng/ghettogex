@@ -19,7 +19,8 @@
 </head>
 
 <body>
-  
+
+<!--
 <div hx-ext="ws" ws-connect="/ws-guest-surf">
 
 </div>
@@ -59,13 +60,26 @@
 </script>
 
 <div id="updatePlot"></div>
+-->
 
+<div hx-ext="ws" ws-connect="/ticker/daily-ws-gex-strike?ticker=BTC-USD"></div>
 
 <div class="container">
-  <br><br><br>
-  links:<br>
-  <a href="https://nothingstopsthistrain.com" style="text-decoration:none">nothingstopsthistrain.com</a><br>
+  <div class="row">
+    <div class="col-sm">
+      <div id="div-BTC-USD"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  linktree<br>
   <a href="https://aigonewrong.com" style="text-decoration:none">aigonewrong.com</a><br>
+  cool links<br>
+  <a href="https://nothingstopsthistrain.com" style="text-decoration:none">nothingstopsthistrain.com</a><br>
+  cool gifs<br>
+  <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNTQzcWtzbm00dWxnbmxzdHp5OXVycDQ1MnI5N3dlcjFpeng5eDNnYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/QWkuGmMgphvmE/giphy.gif">
+  <br>
 </div>
 
 

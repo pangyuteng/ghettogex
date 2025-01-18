@@ -146,10 +146,10 @@ async def ws_prices():
             tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
             mydict = {}
             for ticker in CBOEX_TICKER_LIST:
-                underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker)
+                underlying_dict,options_df,last_json_file,data_tstamp = get_cache_latest(ticker)
                 mydict[ticker.replace("^","")] = underlying_dict
 
-            underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER)
+            underlying_dict,options_df,last_json_file,data_tstamp = get_cache_latest(BTC_TICKER)
             mydict[BTC_TICKER] = underlying_dict
 
             data_str = render_html("prices.html",mydict=mydict,tstamp=tstamp,market_open=is_market_open())
@@ -170,8 +170,7 @@ async def overview():
     else:
         return await render_template("overview.html",ticker=ticker)
 
-@app.websocket('/ticker/daily-ws-gex-strike')
-@login_required
+@app.websocket("/ticker/daily-ws-gex-strike")
 async def daily_ws_gex_strike():
     try:
         while True:
@@ -184,19 +183,22 @@ async def daily_ws_gex_strike():
                 ticker_alt = ticker
             mysec = 5
             div_name = "div-"+ticker.replace("^","")
-            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
-
+            server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
+            
             if ticker == BTC_TICKER:
-                spot_price, strike_df, expiration_df, surf_df = compute_btc_gex()
+                spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex()
                 df = strike_df.copy()
             else:
-                spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker_alt)
+                spot_price, gex_by_strike, gex_by_expiration, gex_df, data_tstamp = get_gex_df(ticker_alt)
                 df = gex_by_strike.copy()
 
             data_str = render_html("gex-strike.html",
-                ticker=ticker,df=df,
+                ticker=ticker,
+                df=df,
                 spot_price=spot_price,
-                tstamp=tstamp,div_name=div_name)
+                data_tstamp=data_tstamp,
+                server_tstamp=server_tstamp,
+                div_name=div_name)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
     except asyncio.CancelledError:
