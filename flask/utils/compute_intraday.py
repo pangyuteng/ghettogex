@@ -444,6 +444,7 @@ async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=Tru
 def main(ticker,my_date):
     tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
     for tstamp in tqdm(tstamp_list):
+        logger.info(f'...')
         if tstamp > now_in_new_york():
             break
         try:
