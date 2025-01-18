@@ -43,14 +43,21 @@ docker run -it -u $(id -u):$(id -g) \
     union all is fast, use asyncio and gather 5 queries -> 700ms to 250ms
     replace `getattr` with `dict.get` https://stackoverflow.com/questions/9790991/why-is-getattr-so-much-slower-than-self-dict-get
     replace for loop with series.apply
++ [x] patch oi compute bug, na needs to be replaced with 0 for numerical values.
++ [o] verify again GEX
+      + compute and visulize gex oi from volume only
+      + compute and visulize gex oi from bid/ask volume
+      + compute and visulize gex oi from timeandsale
+      volume only is what people say bouat naive gex
+      oi-change from "candle bid/ask volume" vs timeanedsale is similar.
+      get "candle bid/ask volume" - advantage: no need to subscribe timeanedsale, meaning you can subcribe to more expiration events?
+      use timeanedsale if you want sub second level updates.
 + [ ] monitor system performance for a week or two
-+ [ ] verify again GEX
-      + [ ] compute and visulize gex oi from volume only
-      + [ ] compute and visulize gex oi from bid/ask volume
-      + [ ] compute and visulize gex oi from timeandsale
 + [ ] testing live gex-strike
 + [ ] enable (end of day) GEX surface plots with plotly js 
 + [ ] ?automate daily download from UW, and parse data to put to postgres???
++ [ ] ideally you want to monitor OI (ask and bid seperately)
+      each contract, if `summary OI` is 0, then start tracking candle bid ask volumes and/or timeandsale.
 
 
 --
