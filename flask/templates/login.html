@@ -8,9 +8,6 @@
 
     <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
-    
-    <script src='https://cdn.plot.ly/plotly-2.35.2.min.js'></script>
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js'></script>
 
     <style>
     </style>
@@ -18,50 +15,8 @@
 
 <body>
   
-<div hx-ext="ws" ws-connect="/ws-random-surf">
-
-</div>
-<div class="container">
-  <div class="row">
-    <div id="myDIV"></div>
-  </div>
-</div>
-
-<script>
-
-    var data = [{
-        z: [],
-        type: 'surface'
-    }];
-
-    var layout = {
-    title: {
-        text: 'test-surface'
-    },
-    autosize: false,
-    width: 512,
-    height: 512,
-    margin: {
-        l: 50,
-        r: 50,
-        b: 50,
-        t: 50,
-    },
-    };
-    Plotly.newPlot(myDIV, data, layout);
-
-</script>
-
-<div id="updatePlot"></div>
-
 
 <div class="container">
-
-  <div class="row">
-  <h3>
-  welcome to aigonewrong's finance page!
-  </h3>
-  </div>
 
   <div class="row">
     <form method="POST">
@@ -77,19 +32,6 @@
     </form>  
   </div>
 
-  <div class="row">
-  <h3>
-  contact&tip: <a target="_blank" href="https://aigonewrong.com">aigonewrong.com</a></li>
-  </h3>
-  </div>
-
-  <div class="row">
-    <h3>
-    cool links/references:<br>
-    <li><a target="_blank" href="http://nothingstopsthistrain.com">nothingstopsthistrain.com</a></li>
-    </h3>
-  </div>
-  
 </div>
 
 

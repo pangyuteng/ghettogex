@@ -107,19 +107,22 @@ async def redirect_to_login(*_):
     return redirect(url_for("login"))
 
 @app.route("/")
+async def guest():
+    return await render_template("guest.html")
+
+@app.route("/home")
 async def home():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
-    else:
-        return await render_template("index.html",ticker_list=BTC_MSTR_TICKER_LIST)
+    return await render_template("index.html",ticker_list=BTC_MSTR_TICKER_LIST)
 
 @app.route("/about")
 @login_required
 async def about():
     return await render_template("about.html")
 
-@app.websocket('/ws-random-surf')
-async def ws_random_surf():
+@app.websocket('/ws-guest-surf')
+async def ws_guest_surf():
     try:
         while True:
             tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
@@ -127,9 +130,9 @@ async def ws_random_surf():
             for n in range(100):
                 myitem = (np.random.rand(100)*2).astype(float).tolist()
                 mylist.append(myitem)
-            data_str = render_html("random-surf.html",mylist=mylist,tstamp=tstamp)
+            data_str = render_html("guest-surf.html",mylist=mylist,tstamp=tstamp)
             await websocket.send(data_str)
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(2)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise
@@ -144,7 +147,7 @@ async def ws_prices():
             mydict = {}
             for ticker in CBOEX_TICKER_LIST:
                 underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker)
-                mydict[ticker] = underlying_dict
+                mydict[ticker.replace("^","")] = underlying_dict
 
             underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER)
             mydict[BTC_TICKER] = underlying_dict
@@ -167,12 +170,18 @@ async def overview():
     else:
         return await render_template("overview.html",ticker=ticker)
 
-@app.websocket('/ticker/ws-gex-strike')
+@app.websocket('/ticker/daily-ws-gex-strike')
 @login_required
-async def ws_gex_strike():
+async def daily_ws_gex_strike():
     try:
         while True:
             ticker = websocket.args.get("ticker")
+            if ticker == 'SPX':
+                ticker_alt = '^SPX'
+            elif ticker == 'NDX':
+                ticker_alt = '^NDX'
+            else:
+                ticker_alt = ticker
             mysec = 5
             div_name = "div-"+ticker.replace("^","")
             tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
@@ -181,7 +190,7 @@ async def ws_gex_strike():
                 spot_price, strike_df, expiration_df, surf_df = compute_btc_gex()
                 df = strike_df.copy()
             else:
-                spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker)
+                spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker_alt)
                 df = gex_by_strike.copy()
 
             data_str = render_html("gex-strike.html",
@@ -275,5 +284,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf 
+asdf  asdfasdf
 """
