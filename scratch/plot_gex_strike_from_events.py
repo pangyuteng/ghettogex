@@ -279,9 +279,9 @@ def gex_to_ani(df,mp4_file):
                 else:
                     color_gbav = 'orange'    
                 color_gv = 'yellow'
-                plt.plot([0,row.gex_timeandsale],row.strike,color=color_gt,linestyle='-',linewidth=2)
-                plt.plot([0,row.gex_bavolume],row.strike,color=color_gbav,linestyle='--',linewidth=2)
-                plt.plot([0,row.gex_volume],row.strike,color=color_gv,linestyle='-',linewidth=1)
+                plt.plot([0,row.gex_timeandsale],[row.strike,row.strike],color=color_gt,linestyle='-',linewidth=2)
+                plt.plot([0,row.gex_bavolume],[row.strike,row.strike],color=color_gbav,linestyle='--',linewidth=2)
+                plt.plot([0,row.gex_volume],[row.strike,row.strike],color=color_gv,linestyle='-',linewidth=1)
 
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.grid(True)
