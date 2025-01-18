@@ -244,6 +244,7 @@ def gex_to_ani(df,mp4_file):
         ).reset_index()
         df.gex_timeandsale = df.gex_timeandsale/1e9
         df.gex_volume = df.gex_volume/1e9
+        df.gex_bavolume = df.gex_bavolume/1e9
 
         gex_lim = 5 # np.max(np.abs(df.gex_volume))
         spot_min,spot_max = np.min(df.spot_price)*.98,np.max(df.spot_price)*1.02
