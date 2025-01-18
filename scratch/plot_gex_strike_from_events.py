@@ -149,6 +149,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         ok.close = ok.close.ffill()
         
         # fill 0s for timeandsale and candle volumes
+        ok.open_interest = ok.open_interest.fillna(value=0)
         ok.size_signed = ok.size_signed.fillna(value=0)
         ok.bid_volume = ok.bid_volume.fillna(value=0)
         ok.ask_volume = ok.ask_volume.fillna(value=0)
@@ -169,9 +170,8 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         # event_symbol
         # tstamp_sec
         # gex_timeandsale
-        # TODO: replace with UPSERT
-        strike_query_str = "INSERT INTO gex_strike (ticker,strike,naive_gex,tstamp) VALUES (%s,%s,%s,%s)"
-        net_query_str = "INSERT INTO gex_net (ticker,spot_price,naive_gex,tstamp) VALUES (%s,%s,%s,%s)"
+        strike_query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,naive_gex) VALUES (%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set naive_gex = %s;"
+        net_query_str = "INSERT INTO gex_net (ticker,tstamp,spot_price,naive_gex) VALUES (%s,%s,%s,%s) on conflict (ticker,tstamp) do update set spot_price = %s, naive_gex = %s;"
         tstamp_list = sorted(list(foodf.tstamp_sec.unique()))
         for tstamp_sec in tqdm(tstamp_list):
             print(tstamp_sec)
@@ -203,7 +203,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
                 gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"),
             ).reset_index()
             for n,row in strike_gex_df.iterrows():
-                query_dict[strike_query_str].append((ticker,row.strike,row.gex_timeandsale,row.tstamp_sec))
+                query_dict[strike_query_str].append((ticker,row.strike,row.tstamp_sec,row.gex_timeandsale,row.gex_timeandsale))
             
             table_cols = ['ticker','spot_price','gex_timeandsale','tstamp_sec']
             net_gex_df = row_df[table_cols]
@@ -212,8 +212,8 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
                 gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"),
             ).reset_index()
             for n,row in net_gex_df.iterrows():
-                query_dict[net_query_str].append((ticker,row.spot_price,row.gex_timeandsale,row.tstamp_sec))
-            
+                query_dict[net_query_str].append((ticker,row.tstamp_sec,row.spot_price,row.gex_timeandsale,row.spot_price,row.gex_timeandsale))
+
             print(tstamp_sec,len(query_dict[net_query_str]),len(query_dict[strike_query_str]))
             postgres_execute_many(query_dict)
 
@@ -306,7 +306,7 @@ if __name__ == "__main__":
     mp4_file = os.path.join(work_dir,f"pg-{day_stamp}.mp4")
     png_folder =os.path.join(work_dir,"pngs")
     if not os.path.exists(pq_file):
-        foodf = cache_data(ticker,day_stamp,persist_to_postgres=False)
+        foodf = cache_data(ticker,day_stamp,persist_to_postgres=True)
         foodf.to_parquet(pq_file,compression='gzip',index=False)
         if os.path.exists(png_folder):
             shutil.rmtree(png_folder)
@@ -329,7 +329,7 @@ pip install jupyter notebook
 jupyter notebook --allow-root --ip=*
 
 2025-01-07 2025-01-08 2025-01-10
-python plot_gex_strike_from_events.py 2025-01-13
+python plot_gex_strike_from_events.py 2025-01-17
 
 
 """
