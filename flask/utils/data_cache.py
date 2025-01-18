@@ -23,7 +23,7 @@ BTC_TICKER_LIST = ['IBIT','GBTC','FBTC','ARKB','BTC','BITO','BITX','BITU','^CBTX
 OTHER_TICKER_LIST = ['MSTR','TSLA','NVDA','COIN']
 BTC_MSTR_TICKER_LIST = list(BTC_TICKER_LIST)
 BTC_MSTR_TICKER_LIST.append("MSTR")
-def cache_main():
+def cache_cboe():
     now_et = now_in_new_york()
     logger.info(str(now_et))
     year_stamp = datetime.datetime.strftime(now_et,'%Y')
@@ -122,7 +122,7 @@ if __name__== "__main__":
         if is_market_open():
             logger.info('market open, will update when market closed...')
         elif now_et.hour > 19: # cache after market close.
-            cache_main()
+            cache_cboe()
         else:
             pass
         # TODO: add celery

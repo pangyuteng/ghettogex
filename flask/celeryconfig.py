@@ -39,4 +39,11 @@ beat_schedule = {
        'options': {'queue': 'default'},
        'args': [],
    },
+   'trigger_cache_cboe': {
+       'task': 'tasks.trigger_cache_cboe',
+       'schedule': crontab(minute=1, hour=0), # utc midnight, ~7pm et
+       'relative': True, # rounded to the resolution of the interval
+       'options': {'queue': 'default'},
+       'args': [],
+   },
 }
