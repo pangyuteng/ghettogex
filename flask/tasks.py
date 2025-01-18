@@ -44,7 +44,7 @@ class Subscription(luigi.Task):
             logger.info(f"market closed no need to trigger background_subscribe")
             return
         tastytrade.logger.setLevel(logging.INFO)
-        output = asyncio.run(background_subscribe(self.ticker,save_to_postres=True,save_to_json=True))
+        output = asyncio.run(background_subscribe(self.ticker,save_to_postres=True,save_to_json=False))
 
 @celery_app.task
 def trigger_subscription(*args,**kwargs):
