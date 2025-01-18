@@ -234,10 +234,11 @@ def gex_to_ani(df,mp4_file):
 
         tstamp_list = sorted(list(df.tstamp_sec.unique()))[::60]
         
-        table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_volume','spot_price']
+        table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_bavolume','gex_volume','spot_price']
         df = df[table_cols]
         df = df.groupby(['ticker','strike','tstamp_sec']).agg(
             gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"),
+            gex_bavolume=pd.NamedAgg(column="gex_bavolume", aggfunc="sum"),
             gex_volume=pd.NamedAgg(column="gex_volume", aggfunc="sum"),
             spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
         ).reset_index()
