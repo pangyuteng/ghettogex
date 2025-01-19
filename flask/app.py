@@ -148,7 +148,7 @@ async def ws_guest():
                 )
 
                 await websocket.send(data_str)
-                await asyncio.sleep(1)
+                await asyncio.sleep(10)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise
