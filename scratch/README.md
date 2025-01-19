@@ -52,9 +52,10 @@ docker run -it -u $(id -u):$(id -g) \
       oi-change from "candle bid/ask volume" vs timeanedsale is similar.
       get "candle bid/ask volume" - advantage: no need to subscribe timeanedsale, meaning you can subcribe to more expiration events?
       use timeanedsale if you want sub second level updates.
++ [x] enable (end of day) GEX surface plots with plotly js 
 + [ ] monitor system performance for a week or two
 + [ ] testing live gex-strike
-+ [ ] enable (end of day) GEX surface plots with plotly js 
+      verify again GEX
 + [ ] ?automate daily download from UW, and parse data to put to postgres???
 + [ ] ideally you want to monitor OI (ask and bid seperately)
       each contract, if `summary OI` is 0, then start tracking candle bid ask volumes and/or timeandsale.
