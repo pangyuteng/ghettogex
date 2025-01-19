@@ -128,7 +128,7 @@ async def ws_guest():
         now_et = now_in_new_york()
         year_stamp = datetime.datetime.strftime(now_et,'%Y')
         cache_folder = os.path.join(CACHE_FOLDER,'FBTC',year_stamp)
-        daystamp_list = sorted(os.listdir(cache_folder))[-5:]
+        daystamp_list = sorted(os.listdir(cache_folder))[-7:-2]
         while True:
             for daystamp in daystamp_list:
                 tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
@@ -148,7 +148,7 @@ async def ws_guest():
                 )
 
                 await websocket.send(data_str)
-                await asyncio.sleep(10)
+                await asyncio.sleep(3)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise

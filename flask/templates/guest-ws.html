@@ -1,25 +1,25 @@
 <div id="surfUpdate" hx-swap-oob="true">
     <script>
-    
+
     var z_data=[];
     {% for x in surf_list %}
     z_data.push({{ x }});
     {% endfor %}
     
-    var data_update = [{
+    var surfData = [{
         z: z_data,
         type: 'surface'
     }];
-    
-    Plotly.react(surfDiv, data_update, surfDiv.layout);
+
+    Plotly.react(surfDiv, surfData, surfDiv.layout);
 
     </script>
 </div>
 <div id="strikeUpdate" hx-swap-oob="true">
     <script>
-    var data = []
+    var strikeData = []
     {%for n,row in strike_df.iterrows() %}
-    data.push({
+    strikeData.push({
         x: [0, {{row.gex}}],
         y: [{{row.strike}}, {{row.strike}}],
         mode: 'lines',
@@ -27,8 +27,8 @@
         line: {color: 'rgb(100, 100, 244)'},
     })
     {% endfor %}
-    
-    data.push({
+
+    strikeData.push({
         x: [ {{ strike_df.gex.min() }}, {{ strike_df.gex.max() }} ],
         y: [ {{ spot_price }}, {{ spot_price }} ],
         mode: 'lines',
@@ -39,18 +39,15 @@
             alpha: 0.2
         }
     })
-    
 
-    Plotly.newPlot(strikeDiv, data, strikeDiv.layout);
+    Plotly.react(strikeDiv, strikeData, strikeDiv.layout);
     </script>
-    
+
     <span class="badge rounded-pill text-bg-dark">
     data_tstamp:{{ data_tstamp }}
     </span>
     <span class="badge rounded-pill text-bg-dark">
     server_tstamp:{{ server_tstamp }}
     </span>
-    
+
 </div>
-    
-    
