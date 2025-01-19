@@ -108,7 +108,7 @@ async def redirect_to_login(*_):
 
 @app.route("/")
 async def guest():
-    return await render_template("guest.html")
+    return await render_template("guest.html",ticker_list=','.join(BTC_MSTR_TICKER_LIST))
 
 @app.route("/home")
 async def home():
@@ -118,7 +118,7 @@ async def home():
 
 @app.route("/about")
 async def about():
-    return await render_template("about.html",ticker_list=','.join(BTC_MSTR_TICKER_LIST))
+    return await render_template("about.html")
 
 @app.websocket('/ws-guest')
 async def ws_guest():
@@ -148,7 +148,7 @@ async def ws_guest():
                 )
 
                 await websocket.send(data_str)
-                raise # disconnect
+                await websocket.close(1000)
                 await asyncio.sleep(600)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
@@ -171,6 +171,7 @@ async def ws_prices():
 
             data_str = render_html("prices.html",mydict=mydict,tstamp=tstamp,market_open=is_market_open())
             await websocket.send(data_str)
+            await websocket.close(1000)
             await asyncio.sleep(mysec)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
@@ -195,6 +196,7 @@ async def daily_ws_gex_strike():
         year_stamp = datetime.datetime.strftime(now_et,'%Y')
         cache_folder = os.path.join(CACHE_FOLDER,'FBTC',year_stamp)
         daystamp_list = sorted(os.listdir(cache_folder))[-5:]
+        daystamp_list = [daystamp_list[-1]]
         while True:
             ticker = websocket.args.get("ticker")
             if ticker == 'SPX':
@@ -206,10 +208,8 @@ async def daily_ws_gex_strike():
             mysec = 5
             div_name = "div-"+ticker.replace("^","")
             server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
-            #for daystamp in daystamp_list:
-            #    tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
-            for _ in range(1):
-                tstamp = None
+            for daystamp in daystamp_list:
+                tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
                 if ticker == BTC_TICKER:
                     spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp)
                     df = strike_df.copy()
@@ -225,6 +225,7 @@ async def daily_ws_gex_strike():
                     server_tstamp=server_tstamp,
                     div_name=div_name)
                 await websocket.send(data_str)
+                await websocket.close(1000)
                 await asyncio.sleep(mysec)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
@@ -311,5 +312,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf asdfaasdfas
+asdf asdfas
 """

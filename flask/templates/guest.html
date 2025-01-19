@@ -16,25 +16,17 @@
 
     <style>
     </style>
+    <title>
+      bitcoin gamma exposure by @aigonewrong
+    </title>
 </head>
 
 <body>
 
 <div class="ml-x">
-    <pre>
-    <a href="/about" style="text-decoration:none;color:gray">about</a>
-    <a href="https://aigonewrong.com" style="text-decoration:none;color:gray">@aigonewrong</a>
-    </pre>
-
-    <div class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" disabled>
-      <label class="form-check-label" for="flexSwitchCheckChecked">live updates</label>
-    </div>
-
-</div>
-
-
-<div id="wsDiv" hx-ext="ws" ws-connect="/ws-guest">
+  <h5>
+  bitcoin gamma exposure by <a href="https://aigonewrong.com" style="text-decoration:none;color:gray">@aigonewrong</a>
+  </h5>
 </div>
 
 <div class="container">
@@ -56,7 +48,7 @@
     }];
 
     var surfLayout = {
-    title: {text: '@aigonewrong'},
+    title: {text: '@aigonewrong',y:0.5,x:0.5},
     autorange: false,
     autosize: false,
     width: 512,
@@ -88,7 +80,7 @@
     })
     
     var strikeLayout = { 
-        title: {text: '@aigonewrong'},
+      title: {text: '@aigonewrong',y:0.5,x:0.5},
         autosize: false,
         width: 512,
         height: 512,
@@ -106,9 +98,44 @@
 
 </script>
 
+<div hx-ext="ws" ws-connect="/ws-guest">
+</div>
+
 <div id="surfUpdate"></div>
 
 <div id="strikeUpdate"></div>
+
+
+<div class="ml-x">
+
+  <div class="form-check form-switch">
+  <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" disabled>
+  <label class="form-check-label" for="flexSwitchCheckChecked">live updates</label>
+  </div>
+  <hr>
+
+  <pre>
+
+  footnotes
+
+  + left plot is a work in progress: gex by strike (x) and expiration (y), with invalid ticks.
+  + right plot: gex by strike
+  + right plot: x-axis: naive GEX($Bn/1%move) based on end-of-day open interest, y-axis: strike, dashed-line: underlying-spot
+  + data computed from end of day quotes computed every day at 12am UTC.
+  + GEX for BTC-USD is aggregated from option data from following tickers {{ticker_list}}
+
+  references
+
+  + SqueezeMetrix, Gamma Exposure (GEX), https://squeezemetrics.com/download/white_paper.pdf
+  + https://github.com/Matteo-Ferrara/gex-tracker
+
+  tech stack
+
+  + plotly,htmx,bootstrap (frontend)
+  + quart,json,postgres,celery,k3s,gitlab-cicd (backend,deployment)
+  
+  </pre>
+</div>
 
 </body>
 </html>
