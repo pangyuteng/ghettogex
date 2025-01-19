@@ -190,6 +190,10 @@ async def overview():
 @login_required
 async def daily_ws_gex_strike():
     try:
+        now_et = now_in_new_york()
+        year_stamp = datetime.datetime.strftime(now_et,'%Y')
+        cache_folder = os.path.join(CACHE_FOLDER,'FBTC',year_stamp)
+        daystamp_list = sorted(os.listdir(cache_folder))[-5:]
         while True:
             ticker = websocket.args.get("ticker")
             if ticker == 'SPX':
@@ -201,23 +205,24 @@ async def daily_ws_gex_strike():
             mysec = 5
             div_name = "div-"+ticker.replace("^","")
             server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
-            
-            if ticker == BTC_TICKER:
-                spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex()
-                df = strike_df.copy()
-            else:
-                spot_price, gex_by_strike, gex_by_expiration, gex_df, data_tstamp = get_gex_df(ticker_alt)
-                df = gex_by_strike.copy()
+            for daystamp in daystamp_list:
+                tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
+                if ticker == BTC_TICKER:
+                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp)
+                    df = strike_df.copy()
+                else:
+                    spot_price, gex_by_strike, gex_by_expiration, gex_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
+                    df = gex_by_strike.copy()
 
-            data_str = render_html("gex-strike.html",
-                ticker=ticker,
-                df=df,
-                spot_price=spot_price,
-                data_tstamp=data_tstamp,
-                server_tstamp=server_tstamp,
-                div_name=div_name)
-            await websocket.send(data_str)
-            await asyncio.sleep(mysec)
+                data_str = render_html("gex-strike.html",
+                    ticker=ticker,
+                    df=df,
+                    spot_price=spot_price,
+                    data_tstamp=data_tstamp,
+                    server_tstamp=server_tstamp,
+                    div_name=div_name)
+                await websocket.send(data_str)
+                await asyncio.sleep(mysec)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise
@@ -303,5 +308,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf  asdfasdf
+asdf  asdf
 """
