@@ -12,11 +12,30 @@
 
 <body>
 
-<div class="container">
+<div class="ml-x">
+<pre>
 
-<li>SqueezeMetrix, Gamma Exposure (GEX), https://squeezemetrics.com/download/white_paper.pdf</li>
-<li>https://github.com/Matteo-Ferrara/gex-tracker</li>
+Footnotes
 
++ left plot is a work in progress: gex by strike (x) and expiration (y), with invalid ticks.
++ right plot: gex by strike
++ right plot: x-axis: naive GEX($Bn/1%move) based on end-of-day open interest, y-axis: strike, red-dashed-line: underlying-spot
++ data computed from end of day quotes computed every day at 12am UTC.
++ GEX for BTC-USD is aggregated from option data from following tickers {{ticker_list}}
+
+References
+
++ SqueezeMetrix, Gamma Exposure (GEX), https://squeezemetrics.com/download/white_paper.pdf
++ https://github.com/Matteo-Ferrara/gex-tracker
+
+<!--
+techstack
+
++ Plotly.js,HTMX,Bootstrap (frontend)
++ Quart,json,postgres,celery,k3s,gitlab-cicd (backend/devops)
+-->
+
+</pre>
 </div>
 
 </body>

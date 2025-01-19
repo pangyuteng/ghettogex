@@ -114,12 +114,11 @@ async def guest():
 async def home():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
-    return await render_template("index.html",ticker_list=BTC_MSTR_TICKER_LIST)
+    return await render_template("index.html")
 
 @app.route("/about")
-@login_required
 async def about():
-    return await render_template("about.html")
+    return await render_template("about.html",ticker_list=','.join(BTC_MSTR_TICKER_LIST))
 
 @app.websocket('/ws-guest')
 async def ws_guest():
@@ -310,5 +309,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf asdfasdf
+asdf asdfaasdfas
 """
