@@ -6,7 +6,7 @@ data.push({
     x: [0, {{row.gex}}],
     y: [{{row.strike}}, {{row.strike}}],
     mode: 'lines',
-    line: {color: 'rgb(200, 200, 244)'},
+    line: {color: 'rgb(100, 100, 244)'},
 })
 {% endfor %}
 
@@ -24,15 +24,13 @@ data.push({
 
 var layout = { 
     title: {text: '{{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
-    plot_bgcolor: '#2a2727',
-    paper_bgcolor: '#2a2727',
-    bgcolor: '#FFFFFF',
-    bordercolor: '#FFFFFF',
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
     showlegend: false,
     font: {
         family: 'Courier New, monospace',
         size: 18,
-        color: '#7f7f7f'
+        color: 'rgb(200,200,200)'
     }
 };
 

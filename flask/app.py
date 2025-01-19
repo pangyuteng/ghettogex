@@ -121,18 +121,33 @@ async def home():
 async def about():
     return await render_template("about.html")
 
-@app.websocket('/ws-guest-surf')
-async def ws_guest_surf():
+@app.websocket('/ws-guest')
+async def ws_guest():
     try:
         while True:
-            tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
-            mylist = []
-            for n in range(100):
-                myitem = (np.random.rand(100)*2).astype(float).tolist()
-                mylist.append(myitem)
-            data_str = render_html("guest-surf.html",mylist=mylist,tstamp=tstamp)
-            await websocket.send(data_str)
-            await asyncio.sleep(2)
+            ticker = "BTC-USD"
+            # tstamp_list = []
+            #for tstamp in tstamp_list:
+            for tstamp in range(1):
+                tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
+
+                server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
+                spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex()
+                surf_df = surf_df.pivot(index='expiration',columns='strike',values='GEX')
+                surf_df = surf_df.fillna(value="null")
+                surf_list = surf_df.values.tolist()
+
+                data_str = render_html("guest-ws.html",
+                    ticker=ticker,
+                    strike_df=strike_df,
+                    surf_list=surf_list,
+                    spot_price=spot_price,
+                    data_tstamp=data_tstamp,
+                    server_tstamp=server_tstamp,
+                )
+
+                await websocket.send(data_str)
+                await asyncio.sleep(5)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise
@@ -171,6 +186,7 @@ async def overview():
         return await render_template("overview.html",ticker=ticker)
 
 @app.websocket("/ticker/daily-ws-gex-strike")
+@login_required
 async def daily_ws_gex_strike():
     try:
         while True:

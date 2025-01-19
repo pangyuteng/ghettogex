@@ -20,15 +20,23 @@
 
 <body>
 
-<!--
-<div hx-ext="ws" ws-connect="/ws-guest-surf">
+  <div class="container">
+    <a href="https://aigonewrong.com" style="text-decoration:none">aigonewrong.com</a><br>
+  </div>
+
+  
+<div hx-ext="ws" ws-connect="/ws-guest">
 
 </div>
 
 <div class="container">
   <div class="row">
-    <div id="myDIV"></div>
+    <div id="strikeDiv"></div>
   </div>
+  <div class="row">
+    <div id="surfDiv"></div>
+  </div>
+
 </div>
 
 <script>
@@ -55,33 +63,39 @@
         t: 50,
     },
     };
-    Plotly.newPlot(myDIV, data, layout);
+    Plotly.newPlot("surfDiv", data, layout);
+
+
+    var strikeData = []
+
+    strikeData.push({
+        x: [],
+        y: [],
+        mode: 'lines',
+        line: {color: 'rgb(200, 200, 244)'},
+    })
+    
+    var strikeLayout = { 
+        title: {text: 'BTC-USD'},
+        autosize: false,
+        width: 512,
+        height: 512,
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        showlegend: false,
+        font: {
+            family: 'Courier New, monospace',
+            size: 18,
+            color: '#7f7f7f'
+        }
+    };
+    
+    Plotly.newPlot("strikeDiv", strikeData, strikeLayout);
 
 </script>
 
-<div id="updatePlot"></div>
--->
+<div id="surfUpdate"></div>
 
-<div hx-ext="ws" ws-connect="/ticker/daily-ws-gex-strike?ticker=BTC-USD"></div>
-
-<div class="container">
-  <div class="row">
-    <div class="col-sm">
-      <div id="div-BTC-USD"></div>
-    </div>
-  </div>
-</div>
-
-<div class="container">
-  linktree<br>
-  <a href="https://aigonewrong.com" style="text-decoration:none">aigonewrong.com</a><br>
-  cool links<br>
-  <a href="https://nothingstopsthistrain.com" style="text-decoration:none">nothingstopsthistrain.com</a><br>
-  cool gifs<br>
-  <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNTQzcWtzbm00dWxnbmxzdHp5OXVycDQ1MnI5N3dlcjFpeng5eDNnYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/QWkuGmMgphvmE/giphy.gif">
-  <br>
-</div>
-
-
+<div id="strikeUpdate"></div>
 </body>
 </html>
