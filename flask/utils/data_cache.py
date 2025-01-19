@@ -93,8 +93,22 @@ def get_cache_latest(ticker,tstamp=None):
             last_json_file = json_file_list[-1]
             last_csv_file = None
     else:
-        raise NotImplementedError()
-
+        # assume tstamp is str YYY-mm-dd
+        date_str = tstamp.strftime("%Y-%m-%d")
+        year_str = tstamp.strftime("%Y")
+        cache_folder = os.path.join(CACHE_FOLDER,ticker,year_str,date_str)
+        json_file_list = sorted([os.path.abspath(str(x)) for x in pathlib.Path(cache_folder).rglob(f"underlying-{ticker}-*.json")])
+        csv_file_list = sorted([os.path.abspath(str(x)) for x in pathlib.Path(cache_folder).rglob(f"options-{ticker}-*.csv")])
+        if ticker != BTC_TICKER:
+            if len(csv_file_list) == 0 or len(json_file_list) == 0:
+                raise LookupError()
+            last_json_file = json_file_list[-1]
+            last_csv_file = csv_file_list[-1]
+        else:
+            if len(json_file_list) == 0:
+                raise LookupError()
+            last_json_file = json_file_list[-1]
+            last_csv_file = None
     if ticker != BTC_TICKER:
         options_df = pd.read_csv(last_csv_file)
     else:

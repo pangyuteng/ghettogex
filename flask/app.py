@@ -28,7 +28,7 @@ from quart_auth import (
     Unauthorized,
 )
 
-from utils.misc import check_password
+from utils.misc import check_password, CACHE_FOLDER
 from utils.data_cache import (
     BTC_TICKER,
     CBOEX_TICKER_LIST,
@@ -124,15 +124,16 @@ async def about():
 @app.websocket('/ws-guest')
 async def ws_guest():
     try:
+        ticker = BTC_TICKER
+        now_et = now_in_new_york()
+        year_stamp = datetime.datetime.strftime(now_et,'%Y')
+        cache_folder = os.path.join(CACHE_FOLDER,'FBTC',year_stamp)
+        daystamp_list = sorted(os.listdir(cache_folder))[-5:]
         while True:
-            ticker = "BTC-USD"
-            # tstamp_list = []
-            #for tstamp in tstamp_list:
-            for tstamp in range(1):
-                tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
-
+            for daystamp in daystamp_list:
+                tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
                 server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
-                spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex()
+                spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp)
                 surf_df = surf_df.pivot(index='expiration',columns='strike',values='GEX')
                 surf_df = surf_df.fillna(value="null")
                 surf_list = surf_df.values.tolist()
@@ -147,7 +148,7 @@ async def ws_guest():
                 )
 
                 await websocket.send(data_str)
-                await asyncio.sleep(5)
+                await asyncio.sleep(1)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise
