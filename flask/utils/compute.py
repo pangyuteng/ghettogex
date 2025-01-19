@@ -167,8 +167,6 @@ def compute_btc_gex(tstamp=None,save_png=False):
         row_df = options_df.copy(deep=True)
         row_df.expiration = row_df.expiration.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d'))
         row_df = row_df.reset_index()
-        print(ticker)
-        print(row_df.shape)
         try:
             spot_price = row_df.loc[0,'spot_price']
             compute_total_gex(spot_price, row_df)
@@ -205,7 +203,7 @@ def compute_btc_gex(tstamp=None,save_png=False):
         surf_df = pd.concat(gex_surface_list)
     else:
         surf_df = pd.DataFrame([],columns=['expiration','strike','gex'])
-    print(surf_df.columns)
+
     surf_df = surf_df.groupby(['expiration','strike'],as_index=False).sum()
     
     # sum via expiration
