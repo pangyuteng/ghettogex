@@ -205,8 +205,10 @@ async def daily_ws_gex_strike():
             mysec = 5
             div_name = "div-"+ticker.replace("^","")
             server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
-            for daystamp in daystamp_list:
-                tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
+            #for daystamp in daystamp_list:
+            #    tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
+            for _ in range(1):
+                tstamp = None
                 if ticker == BTC_TICKER:
                     spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp)
                     df = strike_df.copy()
@@ -308,5 +310,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf  asdf
+asdf asdfasdf
 """

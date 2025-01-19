@@ -20,6 +20,11 @@
 
 <body>
 
+<div class="form-check form-switch">
+  <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" disabled>
+  <label class="form-check-label" for="flexSwitchCheckChecked">rotate graph with dates</label>
+</div>
+
 <div hx-ext="ws" ws-connect="/ws-prices"></div>
 <div hx-ext="ws" ws-connect="/ticker/daily-ws-gex-strike?ticker=SPX"></div>
 <div hx-ext="ws" ws-connect="/ticker/daily-ws-gex-strike?ticker=NDX"></div>

@@ -6,6 +6,7 @@
       x: [0, {{row.naive_gex}}],
       y: [{{row.strike}}, {{row.strike}}],
       mode: 'lines',
+      width: 5,
       {% if row.naive_gex > 0 %}
       line: {color: 'rgb(50, 255, 50)'}
       {% else %}
@@ -67,7 +68,7 @@
   */
   
   </script>
-  
+  <div class="container">
   <span class="badge rounded-pill text-bg-dark">
   data tstamp: {{ tstamp }}
   </span><br>
@@ -78,7 +79,7 @@
   <br>
   no data found.
   {% endif %}
-
+  </div>
 </div>
   
   
