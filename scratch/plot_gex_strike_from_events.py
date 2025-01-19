@@ -143,7 +143,10 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         ok = ok.merge(gk,how='left',on=['event_symbol','tstamp_sec'])
         ok = ok.merge(ts,how='left',on=['event_symbol','tstamp_sec'])
         ok = ok.merge(cd,how='left',on=['event_symbol','tstamp_sec'])
-        
+        ok = ok.sort_values(["tstamp_sec"],ascending=True)
+
+        for col_name in ['gamma','open_interest','spot_price','contract_type_int','size_signed','volume','ask_volume','bid_volume']:
+            ok[col_name] = pd.to_numeric(ok[col_name], errors='coerce')
         # ffill gamma
         ok.gamma = ok.gamma.ffill()
         ok.close = ok.close.ffill()
@@ -161,9 +164,9 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
             init_oi = float(ok.open_interest.to_list()[-1])
         except:
             init_oi = 0
-        ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+init_oi
-        ok.oi_volume = ok.oi_volume.cumsum().astype(float)+init_oi
-        ok.oi_bavolume = ok.oi_bavolume.cumsum().astype(float)+init_oi
+        ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+ok.open_interest
+        ok.oi_volume = ok.oi_volume.cumsum().astype(float)+ok.open_interest
+        ok.oi_bavolume = ok.oi_bavolume.cumsum().astype(float)+ok.open_interest
         ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
         ok['gex_volume'] = ok.gamma * ok.oi_volume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
         ok['gex_bavolume'] = ok.gamma * ok.oi_bavolume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
@@ -281,8 +284,8 @@ def gex_to_ani(df,mp4_file):
                     color_gbav = 'orange'    
                 color_gv = 'yellow'
                 plt.plot([0,row.gex_timeandsale],[row.strike,row.strike],color=color_gt,linestyle='-',linewidth=2)
-                plt.plot([0,row.gex_bavolume],[row.strike,row.strike],color=color_gbav,linestyle='--',linewidth=2)
-                plt.plot([0,row.gex_volume],[row.strike,row.strike],color=color_gv,linestyle='-',linewidth=1)
+                plt.plot([0,row.gex_bavolume],[row.strike+1,row.strike+1],color=color_gbav,linestyle='--',linewidth=2)
+                plt.plot([0,row.gex_volume],[row.strike+2,row.strike+2],color=color_gv,linestyle='-',linewidth=1)
 
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.grid(True)
