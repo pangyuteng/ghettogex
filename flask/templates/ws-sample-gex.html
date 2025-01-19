@@ -1,50 +1,71 @@
 <div id="myDiv" hx-swap-oob="true">
   <script>
-  var data = []
-  {%for n,row in df.iterrows() %}
-  data.push({
+  var updateData = []
+  {% for n,row in df.iterrows() %}
+  updateData.push({
       x: [0, {{row.naive_gex}}],
       y: [{{row.strike}}, {{row.strike}}],
       mode: 'lines',
-      line: {color: 'rgb(200, 200, 244)'},
+      {% if row.naive_gex > 0 %}
+      line: {color: 'rgb(50, 255, 50)'}
+      {% else %}
+      line: {color: 'rgb(255, 50, 50)'}
+      {% endif %}
   })
   {% endfor %}
   {% if spot_price %}
-  data.push({
+  updateData.push({
       x: [ {{ df.naive_gex.min() }}, {{ df.naive_gex.max() }} ],
       y: [ {{ spot_price }}, {{ spot_price }} ],
       mode: 'lines',
       line: {
-          color: 'rgb(244,10,10)',
+          color: 'rgb(50,50,255)',
           dash: 'dot',
-          width: 1,
+          width: 5,
       }
   })
-  {% endif %}  
-  var layout = { 
-      title: {text: '{{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
-      paper_bgcolor: 'rgba(0,0,0,0)',
-      plot_bgcolor: 'rgba(0,0,0,0)',
-      autosize: false,
-      width: 512,
-      height: 512,
-      showlegend: false,
-      yaxis: {
+  {% endif %}
+  
+  var updateLayout = {
+    title: {text: '{{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    width: 512,
+    height: 512,
+    autosize: false,
+    showlegend: false,
+    yaxis: {
         showgrid: true,
         range: [ {{spot_price}}*0.95, {{spot_price*1.05}} ]
-      },
-      xaxis: {
+    },
+    xaxis: {
+      showgrid: true,
+      range: [ -5, 5 ]
+    },
+    font: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: 'rgba(200,200,200,1)'
+    }
+  };
+
+  Plotly.react(plotDiv, updateData, updateLayout);
+
+  /*
+  // cannot set title to plotDiv.layout
+  plotDiv.layout.title = {text: '{{ticker}} {{ "%0.2f" | format(spot_price|float) }}'};
+  plotDiv.layout.yaxis = {
         showgrid: true,
-        range: [ -5, 5 ]
-      },
-      font: {
-          family: 'Courier New, monospace',
-          size: 18,
-          color: 'rgba(200,200,200,1)'
-      }
+        range: [ {{spot_price}}*0.95, {{spot_price*1.05}} ]
+      };
+  plotDiv.layout.xaxis = {
+    showgrid: true,
+    range: [ {{spot_price}}*0.95, {{spot_price*1.05}} ]
   };
   
-  Plotly.newPlot(plotDiv, data, layout);
+  Plotly.react(plotDiv, updateData, plotDiv.layout);
+  */
+  
   </script>
   
   <span class="badge rounded-pill text-bg-dark">

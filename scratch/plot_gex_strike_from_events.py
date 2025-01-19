@@ -313,14 +313,15 @@ def gex_to_ani(df,mp4_file):
 
 
 if __name__ == "__main__":
-
+    import ast
     ticker = 'SPX'
     day_stamp = sys.argv[1]
+    persist = ast.literal_eval(sys.argv[2])
     pq_file = os.path.join(work_dir,f"pg-{day_stamp}.parquet.gzip")
     mp4_file = os.path.join(work_dir,f"pg-{day_stamp}.mp4")
     png_folder =os.path.join(work_dir,"pngs")
     if not os.path.exists(pq_file):
-        foodf = cache_data(ticker,day_stamp,persist_to_postgres=False)
+        foodf = cache_data(ticker,day_stamp,persist_to_postgres=persist)
         foodf.to_parquet(pq_file,compression='gzip',index=False)
         if os.path.exists(png_folder):
             shutil.rmtree(png_folder)
@@ -343,7 +344,7 @@ pip install jupyter notebook
 jupyter notebook --allow-root --ip=*
 
 2025-01-07 2025-01-08 2025-01-10
-python plot_gex_strike_from_events.py 2025-01-17
+python plot_gex_strike_from_events.py 2025-01-17 False
 
 
 """

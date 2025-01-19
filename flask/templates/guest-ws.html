@@ -24,7 +24,11 @@
         y: [{{row.strike}}, {{row.strike}}],
         mode: 'lines',
         width: 2,
-        line: {color: 'rgb(100, 100, 244)'},
+        {% if row.gex > 0 %}
+        line: {color: 'rgb(50, 255, 50)'}
+        {% else %}
+        line: {color: 'rgb(255, 50, 50)'}
+        {% endif %}
     })
     {% endfor %}
 
@@ -33,10 +37,9 @@
         y: [ {{ spot_price }}, {{ spot_price }} ],
         mode: 'lines',
         line: {
-            color: 'rgb(244,10,10)',
+            color: 'rgb(50,50,255)',
             dash: 'dot',
-            width: 2,
-            alpha: 0.2
+            width: 5,
         }
     })
 

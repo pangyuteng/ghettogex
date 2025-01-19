@@ -26,12 +26,31 @@
     <div class="row">
 
       <div class="col-sm">
-        <div id="plotDiv"></div>
+      <div id="plotDiv"></div>
       </div>
 
     </div>
 
 </div>
+
+<script>
+var data = []
+var layout = { 
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    width: 512,
+    height: 512,
+    autosize: false,
+    showlegend: false,
+    font: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: 'rgba(200,200,200,1)'
+    }
+};
+
+Plotly.newPlot(plotDiv, data, layout);
+</script>
 
 <div id="myDiv">
 </div>
