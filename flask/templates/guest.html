@@ -17,25 +17,25 @@
     <style>
     </style>
     <title>
-      bitcoin gamma exposure by @aigonewrong
+    @aigonewrong-btc-gex
     </title>
 </head>
 
 <body>
 
 <div class="ml-x">
-  <h5>
-  bitcoin gamma exposure by <a href="https://aigonewrong.com" style="text-decoration:none;color:gray">@aigonewrong</a>
-  </h5>
+  <h2 style="color:gray;">
+  <a href="https://aigonewrong.com" style="text-decoration:none;color:gray;">@aigonewrong</a>'s aggregated btc-usd gamma exposure
+  </h2>
 </div>
 
 <div class="container">
   <div class="row">
     <div class="col-sm">
-      <div id="surfDiv"></div>
+      <div id="strikeDiv"></div>
     </div>
     <div class="col-sm">
-      <div id="strikeDiv"></div>
+      <div id="surfDiv"></div>
     </div>
   </div>
 </div>
@@ -48,7 +48,7 @@
     }];
 
     var surfLayout = {
-    title: {text: '@aigonewrong',y:0.5,x:0.5},
+    title: {text: '@aigonewrong<br>aggr btc-usd gex*',y:0.6,x:0.5},
     autorange: false,
     autosize: false,
     width: 512,
@@ -80,7 +80,7 @@
     })
     
     var strikeLayout = { 
-      title: {text: '@aigonewrong',y:0.5,x:0.5},
+        title: {text: '@aigonewrong<br>aggr btc-usd gex*',y:0.6,x:0.5},
         autosize: false,
         width: 512,
         height: 512,
@@ -116,25 +116,28 @@
 
   <pre>
 
-  footnotes
+    *footnotes
 
-  + left plot is a work in progress: gex by strike (x) and expiration (y), with invalid ticks.
-  + right plot: gex by strike
-  + right plot: x-axis: naive GEX($Bn/1%move) based on end-of-day open interest, y-axis: strike, dashed-line: underlying-spot
-  + data computed from end of day quotes computed every day at 12am UTC.
-  + GEX for BTC-USD is aggregated from option data from following tickers {{ticker_list}}
+    + GEX for BTC-USD is aggregated from option data from following tickers {{ticker_list}}
+    + data computed from end of day quotes computed every day at 12am UTC.
+    + left plot: gex by strike
+    + left plot: x-axis: naive GEX($Bn/1%move) based on end-of-day open interest, y-axis: strike, dashed-line: underlying-spot
+    + right plot: a work in progress: gex by strike (x) and expiration (y), with invalid ticks.
 
-  references
-
-  + SqueezeMetrix, Gamma Exposure (GEX), https://squeezemetrics.com/download/white_paper.pdf
-  + https://github.com/Matteo-Ferrara/gex-tracker
-
-  tech stack
-
-  + plotly,htmx,bootstrap (frontend)
-  + quart,json,postgres,celery,k3s,gitlab-cicd (backend,deployment)
+    <!--
+    references
   
-  </pre>
+    + SqueezeMetrix, Gamma Exposure (GEX), https://squeezemetrics.com/download/white_paper.pdf
+    + https://github.com/Matteo-Ferrara/gex-tracker
+  
+    tech stack
+  
+    + [frontend] javascript, plotly,htmx,bootstrap
+    + [backend] python, yfinance,pandas,quart,json/postgres,celery
+    + [deployment] docker, k3s, gitlab-cicd
+    -->
+    </pre>
+
 </div>
 
 </body>

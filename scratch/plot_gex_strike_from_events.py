@@ -335,6 +335,7 @@ if __name__ == "__main__":
 
 kubectl port-forward --address 0.0.0.0 fi-postgres-deployment-6b6b89f7c6-ftwg4 5432:5432
 
+docker run -it --env-file=.env  -w $PWD -v /mnt:/mnt -p 5000:5000 fi-flask:latest bash
 docker run -it --env-file=.env  -w $PWD -v /mnt:/mnt -p 8888:8888 fi-flask:latest bash
 
 export POSTGRES_URI=postgres://postgres:postgres@192.168.68.143:5432/postgres
