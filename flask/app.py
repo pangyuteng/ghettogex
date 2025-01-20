@@ -123,17 +123,21 @@ async def about():
 @app.websocket('/ws-guest')
 async def ws_guest():
     try:
+
+        enable_live = True if websocket.args.get("enable_live","true")=="true" else False
+
         ticker = BTC_TICKER
         now_et = now_in_new_york()
         year_stamp = datetime.datetime.strftime(now_et,'%Y')
         cache_folder = os.path.join(CACHE_FOLDER,'FBTC',year_stamp)
-        daystamp_list = sorted(os.listdir(cache_folder))[-7:-2]
+        daystamp_list = sorted(os.listdir(cache_folder))
         daystamp_list = [daystamp_list[-1]]
         while True:
             for daystamp in daystamp_list:
                 tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
                 server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
-                spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp)
+                spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp,enable_live=True)
+                app.logger.info(f'spot_price {spot_price}')
                 surf_df = surf_df.pivot(index='expiration',columns='strike',values='GEX')
                 surf_df = surf_df.fillna(value="null")
                 strike_list = surf_df.columns.to_list()
@@ -151,8 +155,10 @@ async def ws_guest():
                 )
 
                 await websocket.send(data_str)
-                await websocket.close(1000)
-                await asyncio.sleep(600)
+                if enable_live is False:
+                    await websocket.close(1000)
+                else:
+                    await asyncio.sleep(10)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise

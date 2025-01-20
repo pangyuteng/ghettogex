@@ -18,7 +18,8 @@ from .data_cache import (
     INDEX_TICKER_LIST,
     BTC_TICKER_LIST,
     BTC_MSTR_TICKER_LIST,
-    get_cache_latest
+    get_cache_latest,
+    scrape_btcusd,
 )
 from .data_cboe import (
     compute_total_gex,
@@ -155,9 +156,11 @@ def round_nearest(x, a):
     return np.round(x / a) * a
 
 ROUND_UP_UNIT = 1000
-def compute_btc_gex(tstamp=None,save_png=False):
+def compute_btc_gex(tstamp=None,save_png=False,enable_live=False):
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER,tstamp=tstamp)
     btc_spot_price = underlying_dict['last_price']
+    if enable_live:
+        btc_spot_price = scrape_btcusd()['last_price']
     ticker_list = BTC_MSTR_TICKER_LIST
     gex_by_strike_list = []
     gex_by_expiration_list = []
