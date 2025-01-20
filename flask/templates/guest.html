@@ -48,13 +48,14 @@
     }];
 
     var surfLayout = {
-    title: {text: '@aigonewrong<br>aggr btc-usd gex*',y:0.6,x:0.5},
+    title: {text: '@aigonewrong<br>aggr btc-usd gex*<br>xxx',y:0.6,x:0.5},
     autorange: false,
     autosize: false,
     width: 512,
     height: 512,
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
+    scene: {},
     margin: {
         l: 50,
         r: 50,
@@ -80,19 +81,27 @@
     })
     
     var strikeLayout = { 
-        title: {text: '@aigonewrong<br>aggr btc-usd gex*',y:0.6,x:0.5},
+        title: {text: '@aigonewrong<br>aggr btc-usd gex*<br><br>xxx',y:0.6,x:0.5},
         autosize: false,
         width: 512,
         height: 512,
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         showlegend: false,
+        xaxis: {
+          title: {
+            text: 'naive GEX($Bn/1%move)',
+        }},
+        yaxis: {
+          title: {
+            text: 'strike (BTC-USD)',
+        }},
         font: {
             family: 'Courier New, monospace',
             size: 18,
             color: 'rgba(200,200,200,1)'
         }
-    };
+        };
     
     Plotly.newPlot("strikeDiv", strikeData, strikeLayout);
 
@@ -120,16 +129,14 @@
 
     + GEX for BTC-USD is aggregated from option data from following tickers {{ticker_list}}
     + data computed from end of day quotes computed every day at 12am UTC.
-    + left plot: gex by strike
-    + left plot: x-axis: naive GEX($Bn/1%move) based on end-of-day open interest, y-axis: strike, dashed-line: underlying-spot
-    + right plot: a work in progress: gex by strike (x) and expiration (y), with invalid ticks.
 
-    <!--
+
     references
   
     + SqueezeMetrix, Gamma Exposure (GEX), https://squeezemetrics.com/download/white_paper.pdf
     + https://github.com/Matteo-Ferrara/gex-tracker
-  
+
+    <!--
     tech stack
   
     + [frontend] javascript, plotly,htmx,bootstrap

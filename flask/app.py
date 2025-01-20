@@ -136,13 +136,16 @@ async def ws_guest():
                 spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp)
                 surf_df = surf_df.pivot(index='expiration',columns='strike',values='GEX')
                 surf_df = surf_df.fillna(value="null")
+                strike_list = surf_df.columns.to_list()
+                expiration_list = [x.strftime("%Y-%m-%d") for x in surf_df.index.to_list()]
                 surf_list = surf_df.values.tolist()
-
                 data_str = render_html("guest-ws.html",
                     ticker=ticker,
                     strike_df=strike_df,
                     surf_list=surf_list,
                     spot_price=spot_price,
+                    strike_list=strike_list,
+                    expiration_list=expiration_list,
                     data_tstamp=data_tstamp,
                     server_tstamp=server_tstamp,
                 )
@@ -312,5 +315,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf asdfasss
+asdf asdfassdsss
 """
