@@ -108,7 +108,12 @@ async def redirect_to_login(*_):
 
 @app.route("/")
 async def guest():
-    return await render_template("guest.html",ticker_list=','.join(BTC_MSTR_TICKER_LIST))
+    enable_live = request.args.get("live")
+    ticker = request.args.get("ticker",None)
+    return await render_template("guest.html",
+        ticker=ticker,
+        enable_live=enable_live,
+        ticker_list=','.join(BTC_MSTR_TICKER_LIST))
 
 @app.route("/home")
 async def home():
@@ -124,19 +129,34 @@ async def about():
 async def ws_guest():
     try:
 
-        enable_live = True if websocket.args.get("enable_live","true")=="true" else False
+        enable_live = True if websocket.args.get("live","false")=="true" else False
+        ticker = websocket.args.get("ticker",BTC_TICKER)
 
-        ticker = BTC_TICKER
+        if ticker == 'SPX':
+            ticker_alt = '^SPX'
+        elif ticker == 'NDX':
+            ticker_alt = '^NDX'
+        else:
+            ticker_alt = ticker
+
         now_et = now_in_new_york()
         year_stamp = datetime.datetime.strftime(now_et,'%Y')
         cache_folder = os.path.join(CACHE_FOLDER,'FBTC',year_stamp)
-        daystamp_list = sorted(os.listdir(cache_folder))
+        if enable_live:
+            daystamp_list = sorted(os.listdir(cache_folder))
+        else:
+            daystamp_list = sorted(os.listdir(cache_folder))[:-7]
         daystamp_list = [daystamp_list[-1]]
         while True:
             for daystamp in daystamp_list:
                 tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
                 server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
-                spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp,enable_live=True)
+
+                if ticker == BTC_TICKER:
+                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp,enable_live=True)
+                else:
+                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
+
                 app.logger.info(f'spot_price {spot_price}')
                 surf_df = surf_df.pivot(index='expiration',columns='strike',values='GEX')
                 surf_df = surf_df.fillna(value="null")
@@ -156,9 +176,8 @@ async def ws_guest():
 
                 await websocket.send(data_str)
                 if enable_live is False:
-                    await websocket.close(1000)
-                else:
-                    await asyncio.sleep(10)
+                    await websocket.close(1)
+                await asyncio.sleep(10)
     except asyncio.CancelledError:
         app.logger.error('Client disconnected')
         raise
@@ -221,14 +240,12 @@ async def daily_ws_gex_strike():
                 tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
                 if ticker == BTC_TICKER:
                     spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp)
-                    df = strike_df.copy()
                 else:
-                    spot_price, gex_by_strike, gex_by_expiration, gex_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
-                    df = gex_by_strike.copy()
+                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
 
                 data_str = render_html("gex-strike.html",
                     ticker=ticker,
-                    df=df,
+                    df=strike_df,
                     spot_price=spot_price,
                     data_tstamp=data_tstamp,
                     server_tstamp=server_tstamp,
@@ -321,5 +338,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf asdfassdsss
+asdf asdfassd
 """

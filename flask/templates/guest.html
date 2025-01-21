@@ -114,9 +114,13 @@
     Plotly.newPlot("strikeDiv", strikeData, strikeLayout);
 
 </script>
-
-<div hx-ext="ws" ws-connect="/ws-guest">
+{% if ticker %}
+<div hx-ext="ws" ws-connect="/ws-guest?live={{enable_live}}&ticker={{ticker}}">
 </div>
+{% else %}
+<div hx-ext="ws" ws-connect="/ws-guest?live={{enable_live}}">
+</div>
+{% endif %}
 
 <div id="surfUpdate"></div>
 
@@ -124,11 +128,17 @@
 
 
 <div class="ml-x">
-
+  {% if enable_live == 'true' %}
   <div class="form-check form-switch">
   <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" checked disabled>
   <label class="form-check-label" for="flexSwitchCheckChecked">semi-live</label>
   </div>
+  {% else %}
+  <div class="form-check form-switch">
+    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" disabled>
+    <label class="form-check-label" for="flexSwitchCheckChecked">semi-live</label>
+  </div>
+  {% endif %}
   <hr>
 
   <pre>
