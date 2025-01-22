@@ -291,7 +291,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                     await lp.shutdown()
                 logger.info(f"canceling!")
                 logger.info("market is closed, exiting...")
-                raise ValueError("Exit!!!")
+                sys.exit(1)
             else:
                 print("market open -------------------------------")
             # Print or process the quotes in real time
