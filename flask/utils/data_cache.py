@@ -20,7 +20,7 @@ BTC_TICKER = "BTC-USD"
 INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX','^VIX']
 # https://etfdb.com/themes/bitcoin-etfs/#complete-list__overview&sort_name=assets_under_management&sort_order=desc&page=1
 BTC_TICKER_LIST = ['IBIT','GBTC','FBTC','ARKB','BTC','BITO','BITX','BITU','^CBTX','^MBTX']
-OTHER_TICKER_LIST = ['MSTR','TSLA','NVDA','COIN']
+OTHER_TICKER_LIST = ['MSTR','COIN','TSLA','NVDA','AAPL','MSFT','AMZN','META','GOOGL','GOOG','AVGO','COST']
 BTC_MSTR_TICKER_LIST = list(BTC_TICKER_LIST)
 BTC_MSTR_TICKER_LIST.append("MSTR")
 def cache_cboe():
