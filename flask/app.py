@@ -109,7 +109,7 @@ async def redirect_to_login(*_):
 @app.route("/")
 async def guest():
     enable_live = request.args.get("live")
-    ticker = request.args.get("ticker",None)
+    ticker = request.args.get("ticker",BTC_TICKER)
     return await render_template("guest.html",
         ticker=ticker,
         enable_live=enable_live,

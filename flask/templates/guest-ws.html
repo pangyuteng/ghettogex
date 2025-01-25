@@ -2,7 +2,7 @@
     <script>
 
     var surfLayout = {
-        title: {text: '@aigonewrong<br>aggr btc-usd gex*<br>{{"%.2f"|format(spot_price)}}',y:0.6,x:0.5},
+        title: {text: '@aigonewrong<br>{{ticker}} gex*<br>{{"%.2f"|format(spot_price)}}',y:0.6,x:0.5},
         autorange: false,
         autosize: false,
         width: 512,
@@ -11,7 +11,7 @@
         plot_bgcolor: 'rgba(0,0,0,0)',
         scene: {
             xaxis: {
-                title: 'strike (BTC-USD)',
+                title: 'strike',
                 tickfont: {
                 size: 12,
                 color: 'rgba(100,100,100,0)'
@@ -75,7 +75,7 @@
     <script>
 
     var strikeLayout = { 
-        title: {text: '@aigonewrong<br>aggr btc-usd gex*<br><br>{{"%.2f"|format(spot_price)}}',y:0.6,x:0.5},
+        title: {text: '@aigonewrong<br>{{ticker}} gex*<br><br>{{"%.2f"|format(spot_price)}}',y:0.6,x:0.5},
         autosize: false,
         width: 512,
         height: 512,
@@ -88,7 +88,7 @@
         }},
         yaxis: {
           title: {
-            text: 'BTC-USD',
+            text: '{{ticker}}',
         }},
         font: {
             family: 'Courier New, monospace',
