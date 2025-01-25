@@ -1,4 +1,5 @@
 
+
 FROM python:3.10-bullseye AS fi-base
 
 # for moveipy
@@ -16,6 +17,5 @@ RUN mkdir -p /opt/fi/flask && chmod -R 777 /opt/fi/flask
 
 FROM fi-base
 
-COPY --chmod=777 . /opt/fi/flask
+RUN pip install jupyter notebook
 
-WORKDIR /opt/fi/flask
