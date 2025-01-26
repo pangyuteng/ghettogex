@@ -27,14 +27,6 @@
   <h2 style="color:gray;">
   {{ticker}} naive gamma exposure
   </h2>
- <h5>
- <pre>
-  "donation-welcome": {
-    "bitcoin": <a style="text-decoration:none;color:gray" href="https://strike.me/aigonewrong">"strike.me/aigonewrong"</a>,
-    "usd": <a style="text-decoration:none;color:gray" href="https://buymeacoffee.com/aigonewrong">"buymeacoffee.com/aigonewrong"</a>
-  }
-</pre>
-</h5>
 </div>
 
 <div class="container">
@@ -56,7 +48,7 @@
     }];
 
     var surfLayout = {
-    title: {text: '@aigonewrong<br>aggr btc-usd gex*<br>xxx',y:0.6,x:0.5},
+    title: {text: '@aigonewrong<br>{{ticker}} gex*<br>null',y:0.6,x:0.5},
     autorange: false,
     autosize: false,
     width: 512,
@@ -89,7 +81,7 @@
     })
     
     var strikeLayout = { 
-        title: {text: '@aigonewrong<br>aggr btc-usd gex*<br><br>xxx',y:0.6,x:0.5},
+        title: {text: '@aigonewrong<br>{{ticker}} gex*<br><br>null',y:0.6,x:0.5},
         autosize: false,
         width: 512,
         height: 512,
@@ -121,13 +113,13 @@
 <div hx-ext="ws" ws-connect="/ws-guest?live={{enable_live}}">
 </div>
 {% endif %}
-
 <div id="surfUpdate"></div>
-
 <div id="strikeUpdate"></div>
 
-
 <div class="ml-x">
+  <pre>
+  donation-welcome {"bitcoin": <a style="text-decoration:none;color:gray" href="https://strike.me/aigonewrong">"strike.me/aigonewrong"</a>,"usd": <a style="text-decoration:none;color:gray" href="https://buymeacoffee.com/aigonewrong">"buymeacoffee.com/aigonewrong"</a>}
+  </pre>
   {% if enable_live == 'true' %}
   <div class="form-check form-switch">
   <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" checked disabled>
