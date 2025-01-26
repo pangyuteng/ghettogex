@@ -23,6 +23,9 @@ BTC_TICKER_LIST = ['IBIT','GBTC','FBTC','ARKB','BTC','BITO','BITX','BITU','^CBTX
 OTHER_TICKER_LIST = ['MSTR','COIN','TSLA','NVDA','AAPL','MSFT','AMZN','META','GOOGL','GOOG','AVGO','COST']
 BTC_MSTR_TICKER_LIST = list(BTC_TICKER_LIST)
 BTC_MSTR_TICKER_LIST.append("MSTR")
+USMARKET_TICKER = "USMARKET"
+USMARKET_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX','TSLA','NVDA','AAPL','MSFT','AMZN','META','GOOGL','GOOG','AVGO','COST']
+
 def cache_cboe():
     now_et = now_in_new_york()
     logger.info(str(now_et))
