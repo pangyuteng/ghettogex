@@ -21,9 +21,9 @@ work_dir = 'tmp'
 
 def get_size_signed(row):
     if row.aggressor_side == 'BUY':
-        return df['size']
+        return row['size']
     elif row.aggressor_side == 'SELL':
-        return -1*df['size']
+        return -1*row['size']
     else:
         return 0 # hau voaltility 2021 ????
 
