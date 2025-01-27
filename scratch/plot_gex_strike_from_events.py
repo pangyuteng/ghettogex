@@ -19,6 +19,14 @@ from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
 
 work_dir = 'tmp'
 
+def get_size_signed(row):
+    if row.aggressor_side == 'BUY':
+        return df['size']
+    elif row.aggressor_side == 'SELL':
+        return -1*df['size']
+    else:
+        return 0 # hau voaltility 2021 ????
+
 def cache_data(ticker,day_stamp,persist_to_postgres=True):
 
     stime = time.time()
@@ -116,6 +124,9 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     gby_greeks_df = gby_greeks_df.groupby(['event_symbol','tstamp_sec']).last().reset_index()
 
     timeandsale_df['size_signed'] = timeandsale_df['size'].where(timeandsale_df.aggressor_side == 'BUY', other=-1*timeandsale_df['size'])
+    # TODO: TESTING!!!
+    timeandsale_df['size_signed'] = timeandsale_df.apply(lambda x: get_size_signed(x),axis=1)
+
     gby_timeandsale_df = timeandsale_df[['event_symbol','size_signed','tstamp_sec']]
     gby_timeandsale_df = gby_timeandsale_df.groupby(['event_symbol','tstamp_sec']).sum().reset_index()
 
@@ -160,10 +171,15 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         ok['oi_timeandsale'] = ok.size_signed
         ok['oi_volume'] = ok.volume
         ok['oi_bavolume'] = ok.ask_volume-ok.bid_volume
+
+        
         try:
             init_oi = float(ok.open_interest.to_list()[-1])
         except:
             init_oi = 0
+        # TODO: TESTING!!!
+        init_oi = 0
+
         ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+ok.open_interest
         ok.oi_volume = ok.oi_volume.cumsum().astype(float)+ok.open_interest
         ok.oi_bavolume = ok.oi_bavolume.cumsum().astype(float)+ok.open_interest
