@@ -238,13 +238,22 @@ async def get_events_df(ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
 # + spot needs to be updated if candle, and you got underlying quotes.
 # + summary event seems to be only once a day?
 
+def get_size_signed(row):
+    if row.aggressor_side == 'BUY':
+        return df['size']
+    elif row.aggressor_side == 'SELL':
+        return -1*df['size']
+    else:
+        return 0 # hau voaltility 2021 ????
 
 def compute_gex_core(df,from_scratch):
     df = df.sort_values(by=['event_type','tstamp'])
     # size from timeandsale event
-    df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size'])
-    underlying_candle_df = df[df.event_type=='underlying_candle']
+    #df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size'])
+    # TODO: TESTING!!!
+    df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
 
+    underlying_candle_df = df[df.event_type=='underlying_candle']
     if len(underlying_candle_df)>0:
         underlying_candle_df = df[df.event_type=='underlying_candle']
         spot_price = underlying_candle_df.spot_price.to_list()[-1]
@@ -292,8 +301,13 @@ def compute_gex_core(df,from_scratch):
 
     for col_name in ['gamma','open_interest','spot_price','contract_type_int','size_signed','volume','ask_volume','bid_volume']:
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
-
-    merged_df.open_interest = merged_df.open_interest.fillna(value=0)
+    
+    # TODO: ignore open-interst, since we dont have ddoi yet, can we just assume start of day dealer is always neutral???
+    if from_scratch:
+        # TODO: TESTING!!!
+        merged_df.open_interest = 0
+    else:
+        merged_df.open_interest = merged_df.open_interest.fillna(value=0)
     merged_df.size_signed = merged_df.size_signed.fillna(value=0)
     merged_df.volume = merged_df.volume.fillna(value=0)
     merged_df.ask_volume = merged_df.ask_volume.fillna(value=0)
