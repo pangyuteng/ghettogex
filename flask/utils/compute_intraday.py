@@ -292,22 +292,15 @@ def compute_gex_core(df,from_scratch):
     merged_df['contract_type_int'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['spot_price']=spot_price
 
-
-    # TODO: THIS IS WHERE YOU WANT TO PLAY WITH gex compute...
-    #ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+init_oi
-    #ok.oi_volume = ok.oi_volume.cumsum().astype(float)+init_oi
-    # oi_timeandsale = merged_df.open_interest+merged_df.ask_volume-merged_df.bid_volume
-    # oi_volume = merged_df.open_interest+merged_df.size_signed
-
     for col_name in ['gamma','open_interest','spot_price','contract_type_int','size_signed','volume','ask_volume','bid_volume']:
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
     
-    # TODO: ignore open-interst, since we dont have ddoi yet, can we just assume start of day dealer is always neutral???
-    if from_scratch:
-        # TODO: TESTING!!!
-        merged_df.open_interest = 0
-    else:
-        merged_df.open_interest = merged_df.open_interest.fillna(value=0)
+    # # TODO: TESTING!!!
+    # the best option is to get DDOI from prior day.
+    # alter, everyday start from 0 or ??? just use cboe OI???
+    merged_df.open_interest = merged_df.open_interest.fillna(value=0)
+    merged_df.contract_type_int = -1 # TESTING!!! we flip size_signed, since this is dealer side!
+
     merged_df.size_signed = merged_df.size_signed.fillna(value=0)
     merged_df.volume = merged_df.volume.fillna(value=0)
     merged_df.ask_volume = merged_df.ask_volume.fillna(value=0)

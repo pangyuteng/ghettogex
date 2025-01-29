@@ -126,6 +126,15 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     timeandsale_df['size_signed'] = timeandsale_df['size'].where(timeandsale_df.aggressor_side == 'BUY', other=-1*timeandsale_df['size'])
     # TODO: TESTING!!!
     timeandsale_df['size_signed'] = timeandsale_df.apply(lambda x: get_size_signed(x),axis=1)
+    gby_summary_df['contract_type_int'] = -1  # TESTING!!! we flip size_signed, since this is dealer side!
+    
+    #!!!!!!!!!!!!!!!!!!!!1 """Compute dealers' total GEX"""
+    #!!!!!!!!!!!!!!!!!!!!1 # Compute gamma exposure for each option
+    #!!!!!!!!!!!!!!!!!!!!1 data["GEX"] = spot * data.gamma * data.open_interest * contract_size * spot * 0.01
+    #!!!!!!!!!!!!!!!!!!!!1
+    #!!!!!!!!!!!!!!!!!!!!1 # For put option we assume negative gamma, i.e. dealers sell puts and buy calls
+    #!!!!!!!!!!!!!!!!!!!!1 data["GEX"] = data.apply(lambda x: -x.GEX if x.option_type == "P" else x.GEX, axis=1)
+
 
     gby_timeandsale_df = timeandsale_df[['event_symbol','size_signed','tstamp_sec']]
     gby_timeandsale_df = gby_timeandsale_df.groupby(['event_symbol','tstamp_sec']).sum().reset_index()
@@ -177,8 +186,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
             init_oi = float(ok.open_interest.to_list()[-1])
         except:
             init_oi = 0
-        # TODO: TESTING!!!
-        init_oi = 0
+        # TESTING!!! 'init_oi' is wrong as prior day oi is not DDOI!
 
         ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+ok.open_interest
         ok.oi_volume = ok.oi_volume.cumsum().astype(float)+ok.open_interest
