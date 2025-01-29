@@ -289,38 +289,75 @@ async def ws_gex_sample():
                 tstamp_utc = None
                 spot_price = -1
 
-            query_str = """
+
+            net_query_str = """
                 select * from gex_net
                 where ticker = %s
                 and tstamp = %s
                 order by tstamp
             """
-            query_args = (ticker,tstamp_utc)
-            fetched = await apostgres_execute(query_str,query_args)
-            columns = ['ticker','tstamp','spot_price','naive_gex','volume_gex']
-            try:
-                ucdf = pd.DataFrame([x for x in fetched])
-                spot_price = ucdf.spot_price.to_list()[-1]
-            except:
-                ucdf = pd.DataFrame([],columns=columns)
-                spot_price = -1
-            query_str = """
+
+            strike_query_str = """
                 select * from gex_strike
                 where ticker = %s
                 and tstamp = %s
                 order by tstamp
             """
-            query_args = (ticker,tstamp_utc)
-            fetched = await apostgres_execute(query_str,query_args)
-            columns = ['ticker','tstamp','strike','naive_gex','volume_gex']
-            try:
-                df = pd.DataFrame([x for x in fetched])
-                df = df.replace({np.nan: None})
-                df.naive_gex = df.naive_gex/1e9
-            except:
-                df = pd.DataFrame([],columns=columns)
+
+            query_dict = {
+                'net': {'tstamp':tstamp_utc},
+                'strike': {'tstamp':tstamp_utc},
+                'strike-1min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=1)},
+                'strike-5min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=5)},
+                'strike-10min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=10)},
+                'strike-15min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=15)},
+                'strike-30min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=30)},
+            }
+            lookback_keys = ['strike-1min','strike-5min','strike-10min','strike-15min','strike-30min']
+            query_list = []
+            for query_kind, item_dict in query_dict.items():
+                tstamp = item_dict['tstamp']
+                query_args = (ticker,tstamp)
+                if query_kind == 'net':
+                    query_func = apostgres_execute(net_query_str,query_args)
+                else:
+                    query_func = apostgres_execute(strike_query_str,query_args)
+                query_list.append(query_func)
+            gathered_res = await asyncio.gather(*query_list)
+
+            for query_idx,query_kind in enumerate(query_dict.keys()):
+                res = gathered_res[query_idx]
+                if query_kind == 'net':
+                    columns = ['ticker','tstamp','spot_price','naive_gex','volume_gex']
+                    try:
+                        df = pd.DataFrame([x for x in res])
+                        spot_price = df.spot_price.to_list()[-1]
+                    except:
+                        df = pd.DataFrame([],columns=columns)
+                        spot_price = -1
+
+                else:
+                    columns = ['ticker','tstamp','strike','naive_gex','volume_gex']
+                    try:
+                        df = pd.DataFrame([x for x in res])
+                        df = df.replace({np.nan: None})
+                        df.naive_gex = df.naive_gex/1e9
+                    except:
+                        df = pd.DataFrame([],columns=columns)
+
+                query_dict[query_kind]["df"]=df
+
+            latest_df = query_dict["strike"]["df"]
+            max_gex = latest_df.at[latest_df.naive_gex.argmax(),'strike']
+            min_gex = latest_df.at[latest_df.naive_gex.argmin(),'strike']
+            xlim = np.max([max_gex,np.abs(min_gex)])*1.5
+
             data_str = render_html("ws-sample-gex.html",
-                ticker=ticker,df=df,spot_price=spot_price,
+                ticker=ticker,
+                spot_price=spot_price,
+                df=latest_df,
+                query_dict=query_dict,lookback_keys=lookback_keys,
+                max_gex=max_gex,min_gex=min_gex,xlim=xlim,
                 tstamp=tstamp_utc,ws_tstamp=ws_tstamp_utc)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
@@ -338,5 +375,5 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf asdfassd
+asdf asdfadasdfs
 """
