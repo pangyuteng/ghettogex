@@ -172,8 +172,8 @@ class LivePrices:
         print(len(streamer_symbols))
         streamer = await DXLinkStreamer(session)
         # subscribe to quotes and greeks for all options on that date
-        start_time = now_in_new_york()
-        start_time = datetime.datetime(start_time.year,start_time.month,start_time.day,9,30,0)
+        #start_time = datetime.datetime(start_time.year,start_time.month,start_time.day,9,30,0)
+        start_time = now_in_new_york() # start from now
         await streamer.subscribe_candle([ticker] + streamer_symbols, CANDLE_TYPE, start_time)
         await streamer.subscribe(Greeks, streamer_symbols)
         await streamer.subscribe(Profile, streamer_symbols)
