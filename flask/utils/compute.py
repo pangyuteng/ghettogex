@@ -10,6 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.interpolate import griddata
+sns.set_style("darkgrid")
 
 from py_vollib.ref_python.black_scholes_merton.implied_volatility import implied_volatility
 
@@ -331,8 +332,10 @@ def compute_us_market_gex(tstamp=None,save_png=False,enable_live=False):
         plt.locator_params(axis='y', nbins=20)
         plt.locator_params(axis='x', nbins=20)
         plt.xticks(rotation=45)
-        plt.title(f'{data_tstamp}\ntotal_gex: {total_gex:1.3f} Bn\ncombined {USMARKET_TICKER_LIST}\n spot: {spx_spot_price:1.2f}(red)')
+        USMARKET_TICKER_LIST_STR = ','.join(USMARKET_TICKER_LIST[:7])+'\n'+','.join(USMARKET_TICKER_LIST[7:])
+        plt.title(f'{data_tstamp} combined naive gex\ntotal_gex: {total_gex:1.3f} Bn\n{USMARKET_TICKER_LIST_STR}\n spot: {spx_spot_price:1.2f}')
         plt.grid(True)
+        plt.style.use("dark_background")
         plt.ylabel("strike")
         plt.xlabel("naive GEX ($Bn / % move)")
         plt.ylim(spx_spot_price*0.963,spx_spot_price*1.037)
