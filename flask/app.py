@@ -36,6 +36,8 @@ from utils.data_cache import (
     BTC_TICKER_LIST,
     OTHER_TICKER_LIST,
     BTC_MSTR_TICKER_LIST,
+    USMARKET_TICKER,
+    USMARKET_TICKER_LIST,
     get_cache_latest,
     is_market_open,
     now_in_new_york,

@@ -18,6 +18,9 @@ from .data_cache import (
     INDEX_TICKER_LIST,
     BTC_TICKER_LIST,
     BTC_MSTR_TICKER_LIST,
+    USMARKET_TICKER,
+    USMARKET_TICKER_LIST,
+    SPX,
     get_cache_latest,
     scrape_btcusd,
 )
@@ -222,6 +225,7 @@ def compute_btc_gex(tstamp=None,save_png=False,enable_live=False):
         strike_df = pd.DataFrame([],columns=['strike','gex'])
     strike_df = strike_df.groupby(['strike'],as_index=False).sum()
     total_gex = strike_df['gex'].sum()
+    data_tstamp = os.path.basename(os.path.dirname(last_json_file))
     if save_png:
         surf_df.to_csv("tmp/strike-expiration.csv",index=False)
         expiration_df.to_csv("tmp/expiration.csv",index=False)
@@ -233,14 +237,109 @@ def compute_btc_gex(tstamp=None,save_png=False,enable_live=False):
         plt.locator_params(axis='y', nbins=20)
         plt.locator_params(axis='x', nbins=20)
         plt.xticks(rotation=45)
-        plt.title(f'total_gex: {total_gex:1.3f} Bn\ncombined {BTC_MSTR_TICKER_LIST}\n spot: {btc_spot_price:1.2f}(red)')
+        plt.title(f'{data_tstamp}\ntotal_gex: {total_gex:1.3f} Bn\ncombined {BTC_MSTR_TICKER_LIST}\n spot: {btc_spot_price:1.2f}(red)')
         plt.grid(True)
         plt.ylabel("BTC strike")
         plt.xlabel("GEX ($Bn / % move)")
         plt.tight_layout()
         plt.savefig("tmp/strike.png")
-    data_tstamp = os.path.basename(os.path.dirname(last_json_file))
+    
     return btc_spot_price, strike_df, expiration_df, surf_df, data_tstamp
+
+SPX_ROUND_UP_UNIT = 5
+def compute_us_market_gex(tstamp=None,save_png=False,enable_live=False):
+
+    underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(SPX,tstamp=tstamp)
+    spx_spot_price = underlying_dict['last_price']
+    if enable_live:
+        pass
+
+    ticker_list = USMARKET_TICKER_LIST
+    gex_by_strike_list = []
+    gex_by_expiration_list = []
+    gex_surface_list = []
+    for ticker in ticker_list:
+        underlying_dict,options_df,_last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
+        row_df = options_df.copy(deep=True)
+        row_df.expiration = row_df.expiration.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d'))
+        row_df = row_df.reset_index()
+        try:
+            spot_price = row_df.loc[0,'spot_price']
+            compute_total_gex(spot_price, row_df)
+            gex_by_strike = compute_gex_by_strike(spot_price,row_df,lim='large',save_png=False)
+            gex_by_expiration = compute_gex_by_expiration(row_df,ticker=ticker,save_png=False)
+            gex_surface_df = compute_gex_surface(spot_price,row_df,ticker=ticker,lim='large',save_png=False)
+            logger.debug(f"---- {ticker}")
+            strike_list = gex_by_strike['strike'].values
+            gex_list = gex_by_strike['gex'].values
+            moneyness_list = strike_list/spot_price
+            spx_moneyness_list = round_nearest(moneyness_list*spx_spot_price, SPX_ROUND_UP_UNIT)
+            
+            for strike,gex in zip(spx_moneyness_list,gex_list):
+                gex_by_strike_list.append(dict(
+                    strike=strike,
+                    gex=gex,
+                ))
+
+            for expiration,gex in zip(gex_by_expiration['expiration'],gex_by_expiration['GEX']):
+                gex_by_expiration_list.append(dict(
+                    expiration=expiration,
+                    gex=gex,
+                ))
+
+            moneyness = gex_surface_df.strike/spot_price
+            btc_strike = round_nearest(moneyness*spx_spot_price, SPX_ROUND_UP_UNIT)
+            gex_surface_df.strike = btc_strike
+            gex_surface_list.append(gex_surface_df)
+            
+        except:
+            traceback.print_exc()
+    # sum via group by 
+    if len(gex_surface_list)>0:
+        surf_df = pd.concat(gex_surface_list)
+    else:
+        surf_df = pd.DataFrame([],columns=['expiration','strike','gex'])
+
+    surf_df = surf_df.groupby(['expiration','strike'],as_index=False).sum()
+    
+    # sum via expiration
+    if len(gex_by_expiration_list)>0:
+        expiration_df = pd.DataFrame(gex_by_expiration_list)
+    else:
+        expiration_df = pd.DataFrame([],columns=['expiration','gex'])
+    expiration_df = expiration_df.groupby(['expiration'],as_index=False).sum()
+
+    if len(gex_by_strike_list)>0:
+        strike_df = pd.DataFrame(gex_by_strike_list)
+    else:
+        strike_df = pd.DataFrame([],columns=['strike','gex'])
+    strike_df = strike_df.groupby(['strike'],as_index=False).sum()
+    total_gex = strike_df['gex'].sum()
+    data_tstamp = os.path.basename(os.path.dirname(last_json_file))
+    if save_png:
+        surf_df.to_csv("tmp/strike-expiration.csv",index=False)
+        expiration_df.to_csv("tmp/expiration.csv",index=False)
+        strike_df.to_csv("tmp/strike.csv",index=False)
+        for n,row in strike_df.iterrows():
+            if row.gex > 0:
+                color = 'green'
+            else:
+                color = 'red'
+            plt.plot([0,row.gex],[row.strike,row.strike], linewidth=2, color=color)
+
+        plt.axhline(spx_spot_price,color='blue',linewidth=1,linestyle='--')
+        plt.locator_params(axis='y', nbins=20)
+        plt.locator_params(axis='x', nbins=20)
+        plt.xticks(rotation=45)
+        plt.title(f'{data_tstamp}\ntotal_gex: {total_gex:1.3f} Bn\ncombined {USMARKET_TICKER_LIST}\n spot: {spx_spot_price:1.2f}(red)')
+        plt.grid(True)
+        plt.ylabel(" strike")
+        plt.xlabel("GEX ($Bn / % move)")
+        plt.ylim(spx_spot_price*0.963,spx_spot_price*1.037)
+        plt.tight_layout()
+        plt.savefig("tmp/strike.png")
+    
+    return spx_spot_price, strike_df, expiration_df, surf_df, data_tstamp
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
@@ -252,10 +351,14 @@ if __name__ == "__main__":
         gex_test(ticker)
     if action == 'btcgex':
         compute_btc_gex(save_png=True)
+    if action == 'usgex':
+        compute_us_market_gex(save_png=True)
+
 """
 
 python -m utils.compute MSTR C iv
 python -m utils.compute MSTR C gex
 python -m utils.compute null null btcgex
+python -m utils.compute null null usgex
 
 """

@@ -14,7 +14,7 @@ from .data_coin import scrape_btcusd
 from .data_cboe import scrape_options_data,scrape_underlying_data
 from .misc import now_in_new_york, is_market_open, CACHE_FOLDER
 
-
+SPX = "^SPX"
 CBOEX_TICKER_LIST = ['^SPX','^NDX','^VIX']
 BTC_TICKER = "BTC-USD"
 INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX','^VIX']
