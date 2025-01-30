@@ -45,7 +45,8 @@ from utils.data_cache import (
 
 from utils.compute import (
     get_gex_df,
-    compute_btc_gex
+    compute_btc_gex,
+    compute_us_market_gex,
 )
 from utils.postgres_utils import apostgres_execute
 
@@ -156,6 +157,8 @@ async def ws_guest():
 
                 if ticker == BTC_TICKER:
                     spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp,enable_live=True)
+                elif ticker == USMARKET_TICKER:
+                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_us_market_gex(tstamp=tstamp)
                 else:
                     spot_price, strike_df, expiration_df, surf_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
 
@@ -242,6 +245,8 @@ async def daily_ws_gex_strike():
                 tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
                 if ticker == BTC_TICKER:
                     spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp)
+                elif ticker == USMARKET_TICKER:
+                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_us_market_gex(tstamp=tstamp)
                 else:
                     spot_price, strike_df, expiration_df, surf_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
 
