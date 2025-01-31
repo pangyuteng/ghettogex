@@ -20,7 +20,7 @@ BTC_TICKER = "BTC-USD"
 INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX','^VIX']
 # https://etfdb.com/themes/bitcoin-etfs/#complete-list__overview&sort_name=assets_under_management&sort_order=desc&page=1
 BTC_TICKER_LIST = ['IBIT','GBTC','FBTC','ARKB','BTC','BITO','BITX','BITU','^CBTX','^MBTX']
-OTHER_TICKER_LIST = ['MSTR','COIN','TSLA','NVDA','AAPL','MSFT','AMZN','META','GOOGL','GOOG','AVGO','COST']
+OTHER_TICKER_LIST = ['MSTR','COIN','TSLA','NVDA','AAPL','MSFT','AMZN','META','GOOGL','GOOG','AVGO','COST','TSM']
 BTC_MSTR_TICKER_LIST = list(BTC_TICKER_LIST)
 BTC_MSTR_TICKER_LIST.append("MSTR")
 USMARKET_TICKER = "USMARKET"
@@ -36,6 +36,7 @@ def cache_cboe():
     ticker_list.extend(INDEX_TICKER_LIST)
     ticker_list.extend(BTC_TICKER_LIST)
     ticker_list.extend(OTHER_TICKER_LIST)
+    ticker_list.extend(USMARKET_TICKER_LIST)
     for ticker in ticker_list:
         logger.info(f'{ticker} underlying')
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
@@ -63,6 +64,7 @@ def cache_cboe():
     ticker_list.extend(INDEX_TICKER_LIST)
     ticker_list.extend(BTC_TICKER_LIST)
     ticker_list.extend(OTHER_TICKER_LIST)
+    ticker_list.extend(USMARKET_TICKER_LIST)
     for ticker in ticker_list:
         logger.info(f'{ticker} options')
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
