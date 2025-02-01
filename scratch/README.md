@@ -56,7 +56,11 @@ docker run -it -u $(id -u):$(id -g) \
 + [ ] monitor system performance for a week or two
 + [ ] testing live gex-strike
       verify again GEX
-+ [ ] ?automate daily download from UW, and parse data to put to postgres???
++ [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
++ [ ] play sound during events.
+    + [ ] flash crash
+    + [ ] ideal setup for long
+    + [ ] gex png and proposed direction, support/major levels.
 + [ ] ideally you want to monitor OI (ask and bid seperately)
       each contract, if `summary OI` is 0, then start tracking candle bid ask volumes and/or timeandsale.
 
