@@ -318,9 +318,9 @@ def compute_us_market_gex(tstamp=None,save_png=False,enable_live=False):
     total_gex = strike_df['gex'].sum()
     data_tstamp = os.path.basename(os.path.dirname(last_json_file))
     if save_png:
-        surf_df.to_csv("tmp/strike-expiration.csv",index=False)
-        expiration_df.to_csv("tmp/expiration.csv",index=False)
-        strike_df.to_csv("tmp/strike.csv",index=False)
+        surf_df.to_csv(f"tmp/strike-expiration-{USMARKET_TICKER}-{data_tstamp}.csv",index=False)
+        expiration_df.to_csv(f"tmp/expiration-{USMARKET_TICKER}-{data_tstamp}.csv",index=False)
+        strike_df.to_csv(f"tmp/strike-{USMARKET_TICKER}-{data_tstamp}.csv",index=False)
         for n,row in strike_df.iterrows():
             if row.gex > 0:
                 color = 'green'
@@ -340,7 +340,7 @@ def compute_us_market_gex(tstamp=None,save_png=False,enable_live=False):
         plt.xlabel("naive GEX ($Bn / % move)")
         plt.ylim(spx_spot_price*0.963,spx_spot_price*1.037)
         plt.tight_layout()
-        plt.savefig("tmp/strike.png")
+        plt.savefig(f"tmp/strike-{USMARKET_TICKER}-{data_tstamp}.png")
     
     return spx_spot_price, strike_df, expiration_df, surf_df, data_tstamp
 
