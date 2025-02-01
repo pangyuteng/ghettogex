@@ -187,10 +187,11 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         except:
             init_oi = 0
         # TESTING!!! 'init_oi' is wrong as prior day oi is not DDOI!
+        init_oi = 0
 
-        ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+ok.open_interest
-        ok.oi_volume = ok.oi_volume.cumsum().astype(float)+ok.open_interest
-        ok.oi_bavolume = ok.oi_bavolume.cumsum().astype(float)+ok.open_interest
+        ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+init_oi
+        ok.oi_volume = ok.oi_volume.cumsum().astype(float)+init_oi
+        ok.oi_bavolume = ok.oi_bavolume.cumsum().astype(float)+init_oi
         ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
         ok['gex_volume'] = ok.gamma * ok.oi_volume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
         ok['gex_bavolume'] = ok.gamma * ok.oi_bavolume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
@@ -273,7 +274,7 @@ def gex_to_ani(df,mp4_file):
         df.gex_volume = df.gex_volume/1e9
         df.gex_bavolume = df.gex_bavolume/1e9
 
-        gex_lim = 5 # np.max(np.abs(df.gex_volume))
+        gex_lim = np.max(np.abs(df.gex_volume))
         spot_min,spot_max = np.min(df.spot_price)*.98,np.max(df.spot_price)*1.02
         print(gex_lim)
         print(spot_min,spot_max)
