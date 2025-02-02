@@ -53,6 +53,7 @@ docker run -it -u $(id -u):$(id -g) \
       get "candle bid/ask volume" - advantage: no need to subscribe timeanedsale, meaning you can subcribe to more expiration events?
       use timeanedsale if you want sub second level updates.
 + [x] enable (end of day) GEX surface plots with plotly js 
++ [x] shutoff/restart worker at market close to patch hanging stream worker
 + [ ] monitor system performance for a week or two
 + [ ] testing live gex-strike
       verify again GEX
