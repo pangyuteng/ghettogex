@@ -19,9 +19,11 @@ from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
 
 work_dir = 'tmp'
 
+# https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457225774/MDP+3.0+-+Trade+Summary+Order+Level+Detail
+# 
 def get_size_signed(row):
-    if row.aggressor_side == 'BUY':
-        return row['size']
+    if row.aggressor_side == 'BUY': # so... if row is BUY, market maker is long call?? what??!?
+        return 1*row['size']
     elif row.aggressor_side == 'SELL':
         return -1*row['size']
     else:
@@ -115,6 +117,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     print(greeks_df.shape)
     print(summary_df.shape)
     print(timeandsale_df.shape)
+    print(timeandsale_df.aggressor_side.value_counts())
 
     gby_summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest']]
     gby_summary_df = gby_summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
@@ -126,7 +129,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     timeandsale_df['size_signed'] = timeandsale_df['size'].where(timeandsale_df.aggressor_side == 'BUY', other=-1*timeandsale_df['size'])
     # TODO: TESTING!!!
     timeandsale_df['size_signed'] = timeandsale_df.apply(lambda x: get_size_signed(x),axis=1)
-    gby_summary_df['contract_type_int'] = -1  # TESTING!!! we flip size_signed, since this is dealer side!
+    gby_summary_df['contract_type_int'] = 1 # TESTING!!! ignore with const of 1.
     
     #!!!!!!!!!!!!!!!!!!!!1 """Compute dealers' total GEX"""
     #!!!!!!!!!!!!!!!!!!!!1 # Compute gamma exposure for each option
@@ -265,7 +268,7 @@ def gex_to_ani(df,mp4_file):
         table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_bavolume','gex_volume','spot_price']
         df = df[table_cols]
         df = df.groupby(['ticker','strike','tstamp_sec']).agg(
-            gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"),
+            gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"), #????
             gex_bavolume=pd.NamedAgg(column="gex_bavolume", aggfunc="sum"),
             gex_volume=pd.NamedAgg(column="gex_volume", aggfunc="sum"),
             spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
@@ -273,9 +276,12 @@ def gex_to_ani(df,mp4_file):
         df.gex_timeandsale = df.gex_timeandsale/1e9
         df.gex_volume = df.gex_volume/1e9
         df.gex_bavolume = df.gex_bavolume/1e9
-
-        gex_lim = np.max(np.abs(df.gex_bavolume))
+        print(df.shape)
+        df = df[df.tstamp_sec.apply(lambda x: x in tstamp_list)].reset_index()
+        print(df.shape)
+        gex_lim = df.gex_timeandsale.abs().quantile(q=0.99)
         spot_min,spot_max = np.min(df.spot_price)*.98,np.max(df.spot_price)*1.02
+        print(df.gex_timeandsale.min(),df.gex_timeandsale.max())
         print(gex_lim)
         print(spot_min,spot_max)
         price_df = df[['tstamp_sec','spot_price']].drop_duplicates()
@@ -287,8 +293,7 @@ def gex_to_ani(df,mp4_file):
                 spot_price = tmpdf.spot_price.to_list()[-1]
             except:
                 spot_price = np.nan
-            print(tstamp,spot_price)
-            
+
             png_file = os.path.join(work_dir,"pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
 
             plt.subplot(121)

@@ -299,7 +299,7 @@ def compute_gex_core(df,from_scratch):
     # the best option is to get DDOI from prior day.
     # alter, everyday start from 0 or ??? just use cboe OI???
     merged_df.open_interest = merged_df.open_interest.fillna(value=0)
-    merged_df.contract_type_int = -1 # TESTING!!! we flip size_signed, since this is dealer side!
+    merged_df.contract_type_int = 1 # remove old assumption
 
     merged_df.size_signed = merged_df.size_signed.fillna(value=0)
     merged_df.volume = merged_df.volume.fillna(value=0)
