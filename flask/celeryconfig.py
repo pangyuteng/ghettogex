@@ -14,7 +14,7 @@ task_serializer = 'json'
 result_serializer = 'json'
 accept_content=['json','pickle','application/json']
 
-timezone = 'US/Pacific'
+timezone = 'UTC'
 enable_utc = True
 task_default_queue = 'default'
 task_queue_max_priority = 10
@@ -42,7 +42,12 @@ beat_schedule = {
    'trigger_cache_cboe': {
        'task': 'tasks.trigger_cache_cboe',
        'schedule': crontab(minute=1, hour=0), # utc midnight, ~7pm et
-       'relative': True, # rounded to the resolution of the interval
+       'options': {'queue': 'default'},
+       'args': [],
+   },
+   'trigger_shutdown': {
+       'task': 'tasks.trigger_shutdown',
+       'schedule': crontab(minute=1, hour=13), # utc midnight, ~7pm et
        'options': {'queue': 'default'},
        'args': [],
    },
