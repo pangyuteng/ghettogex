@@ -100,6 +100,10 @@ def trigger_gex_cache(*args,**kwargs):
 def trigger_cache_cboe(*args,**kwargs):
     cache_cboe()
 
+@celery_app.task
+def trigger_shutdown(*args,**kwargs):
+    celery_app.control.shutdown()
+
 # TODO: you can implement backfill via luigi
 class GexTarget(luigi.Target):
     ticker = luigi.parameter.Parameter()
