@@ -23,9 +23,9 @@ work_dir = 'tmp'
 # 
 def get_size_signed(row):
     if row.aggressor_side == 'BUY': # so... if row is BUY, market maker is long call?? what??!?
-        return 1*row['size']
+        return 1*row['size']*-1
     elif row.aggressor_side == 'SELL':
-        return -1*row['size']
+        return -1*row['size']*-1
     else:
         return 0 # hau voaltility 2021 ????
 
@@ -129,7 +129,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     timeandsale_df['size_signed'] = timeandsale_df['size'].where(timeandsale_df.aggressor_side == 'BUY', other=-1*timeandsale_df['size'])
     # TODO: TESTING!!!
     timeandsale_df['size_signed'] = timeandsale_df.apply(lambda x: get_size_signed(x),axis=1)
-    gby_summary_df['contract_type_int'] = 1 # TESTING!!! ignore with const of 1.
+    #gby_summary_df['contract_type_int'] = 1 # TESTING!!! ignore with const of 1.
     
     #!!!!!!!!!!!!!!!!!!!!1 """Compute dealers' total GEX"""
     #!!!!!!!!!!!!!!!!!!!!1 # Compute gamma exposure for each option
