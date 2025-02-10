@@ -281,7 +281,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         for expiration in expirations:
             live_prices = await LivePrices.create(session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
             live_prices_list.append(live_prices)
-            if len(live_prices_list)==2:
+            if len(live_prices_list)>=30:
                 break
 
         while True:
