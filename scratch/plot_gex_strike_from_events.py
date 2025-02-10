@@ -129,7 +129,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     timeandsale_df['size_signed'] = timeandsale_df['size'].where(timeandsale_df.aggressor_side == 'BUY', other=-1*timeandsale_df['size'])
     # TODO: TESTING!!!
     timeandsale_df['size_signed'] = timeandsale_df.apply(lambda x: get_size_signed(x),axis=1)
-    gby_summary_df['contract_type_int'] = -1 # TESTING!!! ignore with const of 1.
+    gby_summary_df['contract_type_int'] = 1 # TESTING!!! ignore with const of 1.
     
     #!!!!!!!!!!!!!!!!!!!!1 """Compute dealers' total GEX"""
     #!!!!!!!!!!!!!!!!!!!!1 # Compute gamma exposure for each option
@@ -265,13 +265,14 @@ def gex_to_ani(df,mp4_file):
 
         tstamp_list = sorted(list(df.tstamp_sec.unique()))[::60]
         
-        table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_bavolume','gex_volume','spot_price']
+        table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_bavolume','gex_volume','spot_price','oi_timeandsale']
         df = df[table_cols]
         df = df.groupby(['ticker','strike','tstamp_sec']).agg(
             gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"), #????
             gex_bavolume=pd.NamedAgg(column="gex_bavolume", aggfunc="sum"),
             gex_volume=pd.NamedAgg(column="gex_volume", aggfunc="sum"),
             spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
+            oi_timeandsale=pd.NamedAgg(column="oi_timeandsale", aggfunc="sum"),
         ).reset_index()
         df.gex_timeandsale = df.gex_timeandsale/1e9
         df.gex_volume = df.gex_volume/1e9
@@ -304,6 +305,7 @@ def gex_to_ani(df,mp4_file):
 
             plt.subplot(122)
             for n,row in tmpdf.iterrows():
+                """
                 if row.gex_timeandsale > 0:
                     color_gt = 'green'
                 else:
@@ -316,14 +318,18 @@ def gex_to_ani(df,mp4_file):
                 plt.plot([0,row.gex_timeandsale],[row.strike,row.strike],color=color_gt,linestyle='-',linewidth=2)
                 plt.plot([0,row.gex_bavolume],[row.strike+1,row.strike+1],color=color_gbav,linestyle='--',linewidth=2)
                 plt.plot([0,row.gex_volume],[row.strike+2,row.strike+2],color=color_gv,linestyle='-',linewidth=1)
-
+                """
+                color_gt = "black"
+                plt.plot([0,row.oi_timeandsale],[row.strike,row.strike],color=color_gt,linestyle='-',linewidth=2)
+                
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.grid(True)
             plt.ylabel("strike")
             plt.xlabel("net naive gex ($Bn/%Move)")
             plt.title(f"ticker: {ticker} price {spot_price:1.2f}\n{tstamp}")
             plt.ylim(spot_min,spot_max)
-            plt.xlim(-gex_lim,gex_lim)
+            plt.xlim(-1000,1000)
+            #plt.xlim(-gex_lim,gex_lim)
             plt.show()
             plt.savefig(png_file)
             plt.close()
