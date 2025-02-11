@@ -403,7 +403,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             time_c = time.time()
             logger.info(f'compute_gex_core {time_c-time_b}')
-        print(agg_df)
+
         if persist_to_postgres and qc_pass:
             time_d = time.time()
             agg_df = agg_df[event_agg_columns]
