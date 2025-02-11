@@ -374,7 +374,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     # 'price','volatility','delta','gamma','theta','rho','vega',
     query_str = "SELECT * FROM gex_net WHERE ticker = %s and tstamp = %s"
     query_args = (ticker,utc_tstamp)
-    fetched = apostgres_execute(apool,query_str,query_args)
+    fetched = await apostgres_execute(apool,query_str,query_args)
 
     time_b = time.time()
     logger.debug(f'pg select {time_b-time_a} {len(fetched)}')
