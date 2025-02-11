@@ -445,7 +445,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             time_b = time.time()
             logger.info(f'text append {time_b-time_d}')
-            print(query_dict)
+
             await apostgres_execute_many(apool,query_dict)
             time_c = time.time()
             logger.info(f'postgres_execute_many {time_c-time_b}')
