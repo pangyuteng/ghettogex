@@ -337,7 +337,7 @@ def compute_gex_core(df,from_scratch):
 
 async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
     async with psycopg_pool.AsyncConnectionPool(postgres_uri) as apool:
-        await _compute_gex(apool,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgre)
+        await _compute_gex(apool,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgres)
 
 async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
     time_a = time.time()
