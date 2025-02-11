@@ -37,7 +37,10 @@ from tastytrade.streamer import EventType
 from tastytrade.utils import today_in_new_york
 
 from .misc import now_in_new_york, is_market_open, CACHE_FOLDER, CACHE_TASTY_FOLDER
-from .postgres_utils import apostgres_execute
+from .postgres_utils import (
+    apostgres_execute,
+    psycopg_pool,postgres_uri,
+)
 
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
@@ -88,7 +91,7 @@ def postgres_friendly(value):
     else:
         return value
 
-async def persist_to_postgres(ticker,streamer_symbol,event_type,event):
+async def persist_to_postgres(apool,ticker,streamer_symbol,event_type,event):
     event_dict = dict(event)
     if streamer_symbol.startswith("."):
         ticker,expiration,contract_type,strike = parse_symbol(streamer_symbol)
@@ -106,7 +109,7 @@ async def persist_to_postgres(ticker,streamer_symbol,event_type,event):
     vals_str = ", ".join(vals_str_list)
     query_str = "INSERT INTO {event_type} ({cols}) VALUES ({vals_str})".format(event_type=event_type,cols = ','.join(cols), vals_str = vals_str)
     query_args = vals
-    await apostgres_execute(query_str,query_args,is_commit=True)
+    await apostgres_execute(apool,query_str,query_args,is_commit=True)
 
 # sample event_symbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
@@ -150,6 +153,7 @@ class LivePrices:
     @classmethod
     async def create(
         cls,
+        apool: psycopg_pool.AsyncConnectionPool,
         session: Session,
         ticker: str = 'SPY',
         expiration: datetime.date = today_in_new_york(),
@@ -192,13 +196,13 @@ class LivePrices:
                    streamer, equity, puts, calls, streamer_symbols,[],ticker,
                    save_to_json=save_to_json,save_to_postres=save_to_postres)
 
-        t_listen_candles = asyncio.create_task(self._update_candle())
-        t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks"))
-        t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile"))
-        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote"))
-        t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary"))
-        t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale"))
-        t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade"))
+        t_listen_candles = asyncio.create_task(self._update_candle(apool))
+        t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",apool))
+        t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile",apool))
+        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",apool))
+        t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary",apool))
+        t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",apool))
+        t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade",apool))
         if False:
             t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice"))
             t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying"))
@@ -240,23 +244,23 @@ class LivePrices:
         await self.streamer.close()
         logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
-    async def _update_candle(self):
+    async def _update_candle(self,apool):
         async for e in self.streamer.listen(Candle):
             streamer_symbol = e.event_symbol.replace("{="+CANDLE_TYPE+",tho=true}","")
             self.candle[streamer_symbol] = e
             if self.save_to_json:
                 await save_data_to_json(self.ticker,streamer_symbol,'candle',e)
             if self.save_to_postres:
-                await persist_to_postgres(self.ticker,streamer_symbol,'candle',e)
+                await persist_to_postgres(apool,self.ticker,streamer_symbol,'candle',e)
 
-    async def _update_event(self,event_type,attribue_name):
+    async def _update_event(self,apool,event_type,attribue_name):
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
             myparam[e.event_symbol] = e
             if self.save_to_json:
                 await save_data_to_json(self.ticker,e.event_symbol,attribue_name,e)
             if self.save_to_postres:
-                await persist_to_postgres(self.ticker,e.event_symbol,attribue_name,e)
+                await persist_to_postgres(apool,self.ticker,e.event_symbol,attribue_name,e)
 
 def get_cancel_file(ticker):
     ticker = ticker.replace("/","^")
@@ -287,11 +291,13 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         expirations = sorted(list(chain.keys()))
         # get 2 expirations
         live_prices_list = []
-        for expiration in expirations:
-            live_prices = await LivePrices.create(session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
-            live_prices_list.append(live_prices)
-            if len(live_prices_list)>=30:
-                break
+
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri) as apool
+            for expiration in expirations:
+                live_prices = await LivePrices.create(apool,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
+                live_prices_list.append(live_prices)
+                if len(live_prices_list)>=30:
+                    break
 
         while True:
             if not is_market_open():
