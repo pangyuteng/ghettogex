@@ -48,7 +48,10 @@ from utils.compute import (
     compute_btc_gex,
     compute_us_market_gex,
 )
-from utils.postgres_utils import apostgres_execute
+from utils.postgres_utils import (
+    apostgres_execute,
+    psycopg_pool,postgres_uri,
+)
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(THIS_DIR,"templates")
@@ -288,7 +291,8 @@ async def ws_gex_sample():
             order by tstamp desc limit 1
             """
             query_args = (ticker,)
-            fetched = await apostgres_execute(query_str,query_args)
+            async with psycopg_pool.AsyncConnectionPool(postgres_uri) as apool:
+                fetched = await apostgres_execute(apool,query_str,query_args)
             try:
                 df = pd.DataFrame([x for x in fetched])
                 tstamp_utc = df.tstamp.to_list()[-1]
@@ -325,11 +329,12 @@ async def ws_gex_sample():
             for query_kind, item_dict in query_dict.items():
                 tstamp = item_dict['tstamp']
                 query_args = (ticker,tstamp)
-                if query_kind == 'net':
-                    query_func = apostgres_execute(net_query_str,query_args)
-                else:
-                    query_func = apostgres_execute(strike_query_str,query_args)
-                query_list.append(query_func)
+                async with psycopg_pool.AsyncConnectionPool(postgres_uri) as apool:
+                    if query_kind == 'net':
+                        query_func = apostgres_execute(apool,net_query_str,query_args)
+                    else:
+                        query_func = apostgres_execute(apool,strike_query_str,query_args)
+                    query_list.append(query_func)
             gathered_res = await asyncio.gather(*query_list)
 
             for query_idx,query_kind in enumerate(query_dict.keys()):
