@@ -143,7 +143,7 @@ class LivePrices:
     puts: list[Option]
     calls: list[Option]
     streamer_symbols: list[str]
-    task_list: list[]
+    task_list: list[str]
     ticker: str
     save_to_json: bool=True
     save_to_postres: bool=False
@@ -188,6 +188,10 @@ class LivePrices:
         puts = [o for o in options if o.option_type == OptionType.PUT]
         calls = [o for o in options if o.option_type == OptionType.CALL]
 
+        self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
+                   streamer, equity, puts, calls, streamer_symbols,[],ticker,
+                   save_to_json=save_to_json,save_to_postres=save_to_postres)
+
         t_listen_candles = asyncio.create_task(self._update_candle())
         t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks"))
         t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile"))
@@ -215,10 +219,6 @@ class LivePrices:
         # wait we have quotes and greeks for each option
         while len(self.quote) < 1 or len(self.candle) < 1 or len(self.greeks) < 1 or len(self.summary) < 1 or len(self.trade) < 1:
             await asyncio.sleep(0.1)
-
-        self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
-                   streamer, equity, puts, calls, streamer_symbols,task_list,ticker,
-                   save_to_json=save_to_json,save_to_postres=save_to_postres)
 
         return self
 
