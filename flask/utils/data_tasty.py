@@ -143,6 +143,7 @@ class LivePrices:
     puts: list[Option]
     calls: list[Option]
     streamer_symbols: list[str]
+    task_list: list[]
     ticker: str
     save_to_json: bool=True
     save_to_postres: bool=False
@@ -172,24 +173,20 @@ class LivePrices:
         print(len(streamer_symbols))
         streamer = await DXLinkStreamer(session)
         # subscribe to quotes and greeks for all options on that date
-        #start_time = datetime.datetime(start_time.year,start_time.month,start_time.day,9,30,0)
         start_time = now_in_new_york() # start from now
         await streamer.subscribe_candle([ticker] + streamer_symbols, CANDLE_TYPE, start_time)
         await streamer.subscribe(Greeks, streamer_symbols)
         await streamer.subscribe(Profile, streamer_symbols)
         await streamer.subscribe(Quote, [ticker] + streamer_symbols)
         await streamer.subscribe(Summary, streamer_symbols)
-        #await streamer.subscribe(TheoPrice, streamer_symbols)
         await streamer.subscribe(TimeAndSale, streamer_symbols)
         await streamer.subscribe(Trade, streamer_symbols)
-        #await streamer.subscribe(Underlying, [ticker])
+        if False:
+            await streamer.subscribe(TheoPrice, streamer_symbols)
+            await streamer.subscribe(Underlying, [ticker])
 
         puts = [o for o in options if o.option_type == OptionType.PUT]
         calls = [o for o in options if o.option_type == OptionType.CALL]
-
-        self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
-                   streamer, equity, puts, calls, streamer_symbols,ticker,
-                   save_to_json=save_to_json,save_to_postres=save_to_postres)
 
         t_listen_candles = asyncio.create_task(self._update_candle())
         t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks"))
@@ -198,28 +195,38 @@ class LivePrices:
         t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary"))
         t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale"))
         t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade"))
-        #t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice"))
-        #t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying"))
+        if False:
+            t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice"))
+            t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying"))
 
-        asyncio.gather(t_listen_candles,
-                       t_listen_greeks,
-                       t_listen_profile,
-                       t_listen_quote,
-                       t_listen_summary,
-                       t_listen_time_and_sale,
-                       t_listen_trade,
-                       )
-                       #t_listen_underlying,
-                       #t_listen_theo_price,
+        self.task_list = [
+            t_listen_candles,
+            t_listen_greeks,
+            t_listen_profile,
+            t_listen_quote,
+            t_listen_summary,
+            t_listen_time_and_sale,
+            t_listen_trade,
+        ]
+
+        asyncio.gather(*self.task_list)
+
 
         # wait we have quotes and greeks for each option
         while len(self.quote) < 1 or len(self.candle) < 1 or len(self.greeks) < 1 or len(self.summary) < 1 or len(self.trade) < 1:
             await asyncio.sleep(0.1)
 
+        self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
+                   streamer, equity, puts, calls, streamer_symbols,task_list,ticker,
+                   save_to_json=save_to_json,save_to_postres=save_to_postres)
+
         return self
 
     async def shutdown(self):
-        logger.debug(f"sreamer.unsubscribe...{self.streamer_symbols}")
+        logger.debug(f"cancel tasks...{self.ticker}")
+        for task in self.task_list:
+            task.cancel()
+        logger.debug(f"sreamer.unsubscribe...{self.ticker}")
         await self.streamer.unsubscribe_candle([self.ticker] +self.streamer_symbols,CANDLE_TYPE)
         await self.streamer.unsubscribe(Greeks, self.streamer_symbols)
         await self.streamer.unsubscribe(Profile, self.streamer_symbols)
@@ -227,8 +234,9 @@ class LivePrices:
         await self.streamer.unsubscribe(Summary, self.streamer_symbols)
         await self.streamer.unsubscribe(TimeAndSale, self.streamer_symbols)
         await self.streamer.unsubscribe(Trade, self.streamer_symbols)
-        #await self.streamer.unsubscribe(TheoPrice, self.streamer_symbols)
-        #await self.streamer.unsubscribe(Underlying, [self.ticker])
+        if False:
+            await self.streamer.unsubscribe(TheoPrice, self.streamer_symbols)
+            await self.streamer.unsubscribe(Underlying, [self.ticker])
         await self.streamer.close()
         logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
@@ -240,6 +248,7 @@ class LivePrices:
                 await save_data_to_json(self.ticker,streamer_symbol,'candle',e)
             if self.save_to_postres:
                 await persist_to_postgres(self.ticker,streamer_symbol,'candle',e)
+
     async def _update_event(self,event_type,attribue_name):
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
@@ -286,6 +295,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
 
         while True:
             if not is_market_open():
+                await asyncio.sleep(10)
                 print("market not open -------------------------------")
                 for lp in live_prices_list:
                     await lp.shutdown()
