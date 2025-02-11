@@ -298,8 +298,12 @@ def compute_gex_core(df,from_scratch):
     # # TODO: TESTING!!!
     # the best option is to get DDOI from prior day.
     # alter, everyday start from 0 or ??? just use cboe OI???
-    merged_df.open_interest = merged_df.open_interest.fillna(value=0)
-    merged_df.contract_type_int = 1 # remove old assumption
+    if from_scratch:
+        # this is definately wrong, we nullify prior open_interest
+        merged_df.open_interest = 0
+    else:
+        merged_df.open_interest = merged_df.open_interest.fillna(value=0)
+    merged_df.contract_type_int = -1 # replace old assumption, and flip the sign since we are doing "DDOI"
 
     merged_df.size_signed = merged_df.size_signed.fillna(value=0)
     merged_df.volume = merged_df.volume.fillna(value=0)
