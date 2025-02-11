@@ -9,12 +9,18 @@ postgres_uri = os.environ.get("POSTGRES_URI")
 async def apostgres_execute(apool,query_str,query_args,is_commit=False):
     response = None
     try:
-        #async with await psycopg.AsyncConnection.connect(postgres_uri,autocommit=True,row_factory=dict_row) as aconn:
-        async with apool.connection() as aconn:
-            async with aconn.cursor(row_factory=dict_row) as curs:
-                await curs.execute(query_str,query_args)
-                if is_commit is False:
-                    response = await curs.fetchall()
+        if apool is None:
+            async with await psycopg.AsyncConnection.connect(postgres_uri,autocommit=True,row_factory=dict_row) as aconn:
+                    async with aconn.cursor(row_factory=dict_row) as curs:
+                        await curs.execute(query_str,query_args)
+                        if is_commit is False:
+                            response = await curs.fetchall()
+        else:
+            async with apool.connection() as aconn:
+                async with aconn.cursor(row_factory=dict_row) as curs:
+                    await curs.execute(query_str,query_args)
+                    if is_commit is False:
+                        response = await curs.fetchall()
     except:
         traceback.print_exc()
 

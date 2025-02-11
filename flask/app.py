@@ -291,8 +291,7 @@ async def ws_gex_sample():
             order by tstamp desc limit 1
             """
             query_args = (ticker,)
-            async with psycopg_pool.AsyncConnectionPool(postgres_uri) as apool:
-                fetched = await apostgres_execute(apool,query_str,query_args)
+            fetched = await apostgres_execute(None,query_str,query_args)
             try:
                 df = pd.DataFrame([x for x in fetched])
                 tstamp_utc = df.tstamp.to_list()[-1]
@@ -314,27 +313,29 @@ async def ws_gex_sample():
                 and tstamp = %s
                 order by tstamp
             """
+            if tstamp_utc:
+                query_dict = {
+                    'net': {'tstamp':tstamp_utc},
+                    'strike': {'tstamp':tstamp_utc},
+                    'strike-1min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=1)},
+                    'strike-5min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=5)},
+                    'strike-10min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=10)},
+                    'strike-15min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=15)},
+                    'strike-30min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=30)},
+                }
+            else:
+                query_dict = {}
 
-            query_dict = {
-                'net': {'tstamp':tstamp_utc},
-                'strike': {'tstamp':tstamp_utc},
-                'strike-1min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=1)},
-                'strike-5min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=5)},
-                'strike-10min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=10)},
-                'strike-15min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=15)},
-                'strike-30min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=30)},
-            }
             lookback_keys = ['strike-1min','strike-5min','strike-10min','strike-15min','strike-30min']
             query_list = []
             for query_kind, item_dict in query_dict.items():
                 tstamp = item_dict['tstamp']
                 query_args = (ticker,tstamp)
-                async with psycopg_pool.AsyncConnectionPool(postgres_uri) as apool:
-                    if query_kind == 'net':
-                        query_func = apostgres_execute(apool,net_query_str,query_args)
-                    else:
-                        query_func = apostgres_execute(apool,strike_query_str,query_args)
-                    query_list.append(query_func)
+                if query_kind == 'net':
+                    query_func = apostgres_execute(None,net_query_str,query_args)
+                else:
+                    query_func = apostgres_execute(None,strike_query_str,query_args)
+                query_list.append(query_func)
             gathered_res = await asyncio.gather(*query_list)
 
             for query_idx,query_kind in enumerate(query_dict.keys()):
@@ -359,9 +360,14 @@ async def ws_gex_sample():
 
                 query_dict[query_kind]["df"]=df
 
-            latest_df = query_dict["strike"]["df"]
-            max_gex = latest_df.at[latest_df.naive_gex.argmax(),'strike']
-            min_gex = latest_df.at[latest_df.naive_gex.argmin(),'strike']
+            try:
+                latest_df = query_dict["strike"]["df"]
+                max_gex = latest_df.at[latest_df.naive_gex.argmax(),'strike']
+                min_gex = latest_df.at[latest_df.naive_gex.argmin(),'strike']
+            except:
+                latest_df = pd.DataFrame([])
+                max_gex = 100
+                min_gex = -100
             xlim = np.max([max_gex,np.abs(min_gex)])*1.5
 
             data_str = render_html("ws-sample-gex.html",

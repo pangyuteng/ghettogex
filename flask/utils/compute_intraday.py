@@ -298,11 +298,7 @@ def compute_gex_core(df,from_scratch):
     # # TODO: TESTING!!!
     # the best option is to get DDOI from prior day.
     # alter, everyday start from 0 or ??? just use cboe OI???
-    if from_scratch:
-        # this is definately wrong, we nullify prior open_interest
-        merged_df.open_interest = 0
-    else:
-        merged_df.open_interest = merged_df.open_interest.fillna(value=0)
+    merged_df.open_interest = merged_df.open_interest.fillna(value=0)
     merged_df.contract_type_int = -1 # replace old assumption, and flip the sign since we are doing "DDOI"
 
     merged_df.size_signed = merged_df.size_signed.fillna(value=0)
@@ -407,7 +403,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             time_c = time.time()
             logger.info(f'compute_gex_core {time_c-time_b}')
-
+        print(agg_df)
         if persist_to_postgres and qc_pass:
             time_d = time.time()
             agg_df = agg_df[event_agg_columns]
@@ -449,7 +445,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             time_b = time.time()
             logger.info(f'text append {time_b-time_d}')
-
+            print(query_dict)
             await apostgres_execute_many(apool,query_dict)
             time_c = time.time()
             logger.info(f'postgres_execute_many {time_c-time_b}')
@@ -473,7 +469,8 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True))
+            from_scratch=None
+            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=from_scratch,persist_to_postgres=True))
         except KeyboardInterrupt:
             sys.exit(1)
         except:
@@ -495,6 +492,7 @@ if __name__ == "__main__":
     ticker = sys.argv[1]
     my_date = sys.argv[2]
     main(ticker,my_date)
+    #tryone(ticker)
 
 """
 select * from candle 

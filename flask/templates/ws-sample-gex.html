@@ -15,6 +15,7 @@
   {% endfor %}
 
   {% for lookback in lookback_keys %}
+  {% if query_dict %}
   {% for n,row in query_dict[lookback].df.iterrows() %}
   updateData.push({
       x: [{{row.naive_gex}}, {{row.naive_gex}}],
@@ -35,6 +36,7 @@
       {% endif %}
   })
   {% endfor %}
+  {% endif %}
   {% endfor %}
 
   {% if spot_price %}
