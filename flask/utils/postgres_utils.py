@@ -1,3 +1,7 @@
+import logging
+logger = logging.getLogger(__file__)
+
+import datetime
 import os
 import sys
 import traceback
@@ -21,6 +25,7 @@ async def apostgres_execute(apool,query_str,query_args,is_commit=False):
                     await curs.execute(query_str,query_args)
                     if is_commit is False:
                         response = await curs.fetchall()
+                logger.debug(f"apostgres_execute...")
     except:
         traceback.print_exc()
 
