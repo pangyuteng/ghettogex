@@ -289,10 +289,11 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         
         chain = get_option_chain(session, ticker)
         expirations = sorted(list(chain.keys()))
-        # get 2 expirations
         live_prices_list = []
-        EXPIRATION_LIM = 10
-        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=30,open=False,reconnect_timeout=2) as apool:
+        EXPIRATION_LIM = 30
+        TRADING_DURATION_SEC = 7*60*60 # seconds
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,
+            min_size=30,open=False,reconnect_timeout=100,max_lifetime_sec=TRADING_DURATION_SEC) as apool:
             for expiration in expirations:
                 live_prices = await LivePrices.create(apool,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
                 live_prices_list.append(live_prices)
@@ -308,7 +309,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                         await lp.shutdown()
                     logger.info(f"canceling!")
                     logger.info("market is closed, exiting...")
-                    sys.exit(1)
+                    sys.exit(0)
                 else:
                     print("market open -------------------------------")
                 # Print or process the quotes in real time
