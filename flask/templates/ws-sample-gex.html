@@ -91,7 +91,7 @@
     },
     xaxis: {
         showgrid: true,
-        range: [ {{ -1*xlim }}, {{ xlim }} ]
+        range: [ -10,10 ]
     },
     font: {
         family: 'Courier New, monospace',
@@ -120,7 +120,7 @@
   </script>
   <div class="container">
   <span class="badge rounded-pill text-bg-dark">
-  data tstamp: {{ tstamp }}
+  data tstamp: {{ tstamp }} {{ xlim }}
   </span><br>
   <span class="badge rounded-pill text-bg-dark">
   websocket tstamp: {{ ws_tstamp }}
