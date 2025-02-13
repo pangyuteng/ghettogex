@@ -301,8 +301,9 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
 
             while True:
                 if not is_market_open():
+                    print("market closing -------------------------------")
                     await asyncio.sleep(10)
-                    print("market not open -------------------------------")
+                    apool.close()
                     for lp in live_prices_list:
                         await lp.shutdown()
                     logger.info(f"canceling!")
