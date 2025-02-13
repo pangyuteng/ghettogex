@@ -368,7 +368,7 @@ async def ws_gex_sample():
                 latest_df = pd.DataFrame([])
                 max_gex = 100
                 min_gex = -100
-            xlim = np.max([max_gex,np.abs(min_gex)])*1.5
+            xlim = np.max([latest_df.naive_gex.max(),np.abs(latest_df.naive_gex.min())])*1.5
 
             data_str = render_html("ws-sample-gex.html",
                 ticker=ticker,
