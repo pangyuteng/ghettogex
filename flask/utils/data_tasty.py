@@ -293,7 +293,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         EXPIRATION_LIM = 30
         TRADING_DURATION_SEC = 7*60*60 # seconds
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,
-            min_size=30,open=False,reconnect_timeout=100,max_lifetime_sec=TRADING_DURATION_SEC) as apool:
+            min_size=30,open=False,reconnect_timeout=100,max_lifetime=TRADING_DURATION_SEC) as apool:
             for expiration in expirations:
                 live_prices = await LivePrices.create(apool,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
                 live_prices_list.append(live_prices)
