@@ -292,44 +292,44 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         # get 2 expirations
         live_prices_list = []
         EXPIRATION_MAX_LIM = 10
-        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=30) as apool:
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=30,open=False,reconnect_timeout=2) as apool:
             for expiration in expirations:
                 live_prices = await LivePrices.create(apool,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
                 live_prices_list.append(live_prices)
                 if len(live_prices_list)>=EXPIRATION_MAX_LIM:
                     break
 
-        while True:
-            if not is_market_open():
-                await asyncio.sleep(10)
-                print("market not open -------------------------------")
+            while True:
+                if not is_market_open():
+                    await asyncio.sleep(10)
+                    print("market not open -------------------------------")
+                    for lp in live_prices_list:
+                        await lp.shutdown()
+                    logger.info(f"canceling!")
+                    logger.info("market is closed, exiting...")
+                    sys.exit(1)
+                else:
+                    print("market open -------------------------------")
+                # Print or process the quotes in real time
                 for lp in live_prices_list:
-                    await lp.shutdown()
-                logger.info(f"canceling!")
-                logger.info("market is closed, exiting...")
-                sys.exit(1)
-            else:
-                print("market open -------------------------------")
-            # Print or process the quotes in real time
-            for lp in live_prices_list:
-                if lp.ticker in lp.quote.keys():
-                    logger.info(f"Current quote: {lp.quote[lp.ticker]}")
-                if lp.ticker in lp.candle.keys():
-                    logger.info(f"Current candle: {lp.candle[lp.ticker]}")
-                if lp.ticker in lp.summary.keys():
-                    logger.info(f"Current summary: {lp.summary[lp.ticker]}")
+                    if lp.ticker in lp.quote.keys():
+                        logger.info(f"Current quote: {lp.quote[lp.ticker]}")
+                    if lp.ticker in lp.candle.keys():
+                        logger.info(f"Current candle: {lp.candle[lp.ticker]}")
+                    if lp.ticker in lp.summary.keys():
+                        logger.info(f"Current summary: {lp.summary[lp.ticker]}")
 
-            pathlib.Path(running_file).touch()
-            await asyncio.sleep(5)
-            if os.path.exists(cancel_file):
-                logger.info(f"canceljob receieved...")
-                os.remove(cancel_file)
-                logger.info(f"canceling!")
-                for lp in live_prices_list:
-                    await lp.shutdown()
-                if os.path.exists(running_file):
-                    os.remove(running_file)
-                raise ValueError("canceljob")
+                pathlib.Path(running_file).touch()
+                await asyncio.sleep(5)
+                if os.path.exists(cancel_file):
+                    logger.info(f"canceljob receieved...")
+                    os.remove(cancel_file)
+                    logger.info(f"canceling!")
+                    for lp in live_prices_list:
+                        await lp.shutdown()
+                    if os.path.exists(running_file):
+                        os.remove(running_file)
+                    raise ValueError("canceljob")
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
     finally:
