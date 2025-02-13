@@ -2,7 +2,7 @@
 FROM python:3.10-bullseye AS fi-base
 
 # for moveipy
-RUN apt-get update && apt-get install ffmpeg -yq
+RUN apt-get update && apt-get install ffmpeg vim curl wget jq -yq
 
 WORKDIR /opt
 

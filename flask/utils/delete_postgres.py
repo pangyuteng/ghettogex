@@ -8,7 +8,7 @@ if __name__ == "__main__":
     daystamp = sys.argv[1]
 
     table_list = 'timeandsale,summary,quote,greeks,event,candle,profile,theoprice,trade,underlying'.split(",")
-    table_list = 'event_agg,gex_strike,gex_net'.split(",")
+    #table_list = 'event_agg,gex_strike,gex_net'.split(",")
     for tablestr in table_list:
         query_str = "delete from "+tablestr+" where tstamp < %s"
         query_args = (daystamp,)
