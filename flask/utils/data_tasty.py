@@ -204,8 +204,8 @@ class LivePrices:
         t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",apool))
         t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade",apool))
         if False:
-            t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice"))
-            t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying"))
+            t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice",apool))
+            t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying",apool))
 
         self.task_list = [
             t_listen_candles,
@@ -253,7 +253,7 @@ class LivePrices:
             if self.save_to_postres:
                 await persist_to_postgres(apool,self.ticker,streamer_symbol,'candle',e)
 
-    async def _update_event(self,apool,event_type,attribue_name):
+    async def _update_event(self,event_type,attribue_name,apool):
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
             myparam[e.event_symbol] = e
