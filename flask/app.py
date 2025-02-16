@@ -341,7 +341,7 @@ async def ws_gex_sample():
             for query_idx,query_kind in enumerate(query_dict.keys()):
                 res = gathered_res[query_idx]
                 if query_kind == 'net':
-                    columns = ['ticker','tstamp','spot_price','naive_gex','volume_gex']
+                    columns = ['ticker','tstamp','spot_price','naive_gex','true_gex']
                     try:
                         df = pd.DataFrame([x for x in res])
                         spot_price = df.spot_price.to_list()[-1]
@@ -350,11 +350,11 @@ async def ws_gex_sample():
                         spot_price = -1
 
                 else:
-                    columns = ['ticker','tstamp','strike','naive_gex','volume_gex']
+                    columns = ['ticker','tstamp','strike','naive_gex','true_gex']
                     try:
                         df = pd.DataFrame([x for x in res])
                         df = df.replace({np.nan: None})
-                        df.naive_gex = df.naive_gex/1e9
+                        df.true_gex = df.true_gex/1e9
                     except:
                         df = pd.DataFrame([],columns=columns)
 
@@ -362,13 +362,13 @@ async def ws_gex_sample():
 
             try:
                 latest_df = query_dict["strike"]["df"]
-                max_gex = latest_df.at[latest_df.naive_gex.argmax(),'strike']
-                min_gex = latest_df.at[latest_df.naive_gex.argmin(),'strike']
+                max_gex = latest_df.at[latest_df.true_gex.argmax(),'strike']
+                min_gex = latest_df.at[latest_df.true_gex.argmin(),'strike']
             except:
                 latest_df = pd.DataFrame([])
                 max_gex = 100
                 min_gex = -100
-            xlim = latest_df.naive_gex.abs().max()*1.5
+            xlim = latest_df.true_gex.abs().max()*1.5
 
             data_str = render_html("ws-sample-gex.html",
                 ticker=ticker,

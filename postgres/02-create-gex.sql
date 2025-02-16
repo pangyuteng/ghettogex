@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS gex_strike (
     tstamp TIMESTAMP,
     strike double precision,
     naive_gex double precision,
-    volume_gex double precision,
+    true_gex double precision,
     UNIQUE (ticker, tstamp, strike)
 );
 
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS gex_net (
     tstamp TIMESTAMP,
     spot_price double precision,
     naive_gex double precision,
-    volume_gex double precision,
+    true_gex double precision,
     UNIQUE (ticker, tstamp)
 );
 
@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS event_agg (
     ask_volume double precision,
     bid_volume double precision,
     open_interest double precision,
+    true_oi double precision,
     price double precision,
     volatility double precision,
     delta double precision,
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS event_agg (
     rho double precision,
     vega double precision,
     naive_gex double precision,
+    true_gex double precision,
     ticker text,
     expiration TIMESTAMP,
     contract_type text,

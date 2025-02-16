@@ -29,7 +29,7 @@ from .postgres_utils import (
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
 
-async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
+async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp,lookback_utc_tstamp):
     if ticker == 'SPX':
         ticker_alt = 'SPXW'
     elif ticker == 'NDX':
@@ -80,7 +80,7 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_
     select 'timeandsale' as event_type,event_symbol,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
     where tstamp >= %s and tstamp < %s and ticker = %s
     """
-    query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt)
+    query_args = (lookback_utc_tstamp,max_utc_tstamp,ticker_alt)
     ot = apostgres_execute(apool,query_str,query_args)
 
     all_groups = await asyncio.gather(uc,oc,os,og,ot)
@@ -88,6 +88,7 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_
         warnings.filterwarnings("ignore", category=FutureWarning)
         pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
         df = pd.concat(pd_list,ignore_index=True)
+        df['true_oi']=None
     return df
 
 async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
@@ -104,7 +105,7 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     columns = [
         'event_type','event_symbol',
         'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
-        'open_interest','price','volatility','delta','gamma','theta','rho','vega',
+        'true_oi','open_interest','price','volatility','delta','gamma','theta','rho','vega',
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
 
@@ -123,7 +124,7 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     oc = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
-    select 'summary' as event_type,event_symbol,open_interest,tstamp,ticker,expiration,contract_type,strike from event_agg
+    select 'summary' as event_type,event_symbol,true_oi,open_interest,tstamp,ticker,expiration,contract_type,strike from event_agg
     where dstamp = %s and ticker = %s
     """
     query_args = (utc_tstamp.date(),ticker_alt) # event_agg
@@ -170,17 +171,14 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
 
 def get_size_signed(row):
     if row.aggressor_side == 'BUY':
-        return row['size']
+        return -1*row['size'] # buy means dealer is short the contract
     elif row.aggressor_side == 'SELL':
-        return -1*row['size']
+        return row['size'] # sell means dealer is long the contract
     else:
         return 0 # hau voaltility 2021 ????
 
 def compute_gex_core(df,from_scratch):
     df = df.sort_values(by=['event_type','tstamp'])
-    # size from timeandsale event
-    #df['size_signed'] = df['size'].where(df.aggressor_side == 'BUY', other=-1*df['size'])
-    # TODO: TESTING!!!
     df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
 
     underlying_candle_df = df[df.event_type=='underlying_candle']
@@ -206,8 +204,8 @@ def compute_gex_core(df,from_scratch):
         ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="sum"),
     ).reset_index()
 
-    oi_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest']]
-    oi_df = oi_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
+    summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','true_oi']]
+    summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
     
     greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega']]
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
@@ -215,37 +213,48 @@ def compute_gex_core(df,from_scratch):
     timeandsale_df = timeandsale_df[['event_symbol','size_signed']]
     timeandsale_df = timeandsale_df.groupby(['event_symbol']).sum().reset_index()
 
-    merged_df = oi_df.merge(greeks_df,how='left',on=['event_symbol'])
+    merged_df = summary_df.merge(greeks_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
 
+    # contract_type_int is the naive gex assumption. dealer is long call, short put
     merged_df['contract_type_int'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['spot_price']=spot_price
 
-    for col_name in ['gamma','open_interest','spot_price','contract_type_int','size_signed','volume','ask_volume','bid_volume']:
+    for col_name in ['gamma','open_interest','true_oi','spot_price','contract_type_int','size_signed','volume','ask_volume','bid_volume']:
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
-    
-    # # TODO: TESTING!!!
-    # the best option is to get DDOI from prior day.
-    # alter, everyday start from 0 or ??? just use cboe OI???
-    merged_df.open_interest = merged_df.open_interest.fillna(value=0)
-    merged_df.contract_type_int = -1 # replace old assumption, and flip the sign since we are doing "DDOI"
 
+    merged_df.true_oi = merged_df.true_oi.fillna(value=0)
+    merged_df.open_interest = merged_df.open_interest.fillna(value=0)
     merged_df.size_signed = merged_df.size_signed.fillna(value=0)
     merged_df.volume = merged_df.volume.fillna(value=0)
     merged_df.ask_volume = merged_df.ask_volume.fillna(value=0)
     merged_df.bid_volume = merged_df.bid_volume.fillna(value=0)
-    kind = 'timeandsale_size'
-    if kind == 'candle_volume':
-        merged_df.open_interest = merged_df.open_interest+merged_df.volume
-    if kind == 'candle_bidask_volume':
-        merged_df.open_interest = merged_df.open_interest+merged_df.ask_volume-merged_df.bid_volume
-    if kind == 'timeandsale_size':
-        merged_df.open_interest = merged_df.open_interest+merged_df.size_signed
 
+
+    # let naive_gex open_interest be updated using 
+    # ask means buy, dealer is short, bid means sell, dealer is long
+    merged_df.open_interest = merged_df.open_interest-merged_df.ask_volume+merged_df.bid_volume
+    if from_scratch:
+        merged_df['true_oi'] = merged_df.size_signed
+    
+    else:
+        # update oi
+        merged_df['true_oi'] += merged_df.size_signed
+
+    # UNSURE HERE... stil at debug phase
+    # KISS.
+    # `naive_gex` update summary based on bid-ask volume using summary open_interest
+    # `true_gex` uses timeandsale and true_oi
+    
+    # naive_gex is wrong
     merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
 
+    merged_df['true_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
+
     merged_df.naive_gex = merged_df.naive_gex.fillna(value=0)
+    merged_df.true_gex = merged_df.true_gex.fillna(value=0)
+
     if from_scratch:
         # quality check
         reqd_event_list = ['summary','greeks','timeandsale','candle']
@@ -270,7 +279,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
     gex_df = None
     csv_file = f"tmp/naive_gex-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv"
-    csv_file = None
+    csv_file = None # TOO SLOW! FOR DEBUG
     utc = pytz.timezone('UTC')
     utc_tstamp = et_tstamp.astimezone(tz=utc)
     max_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=1)
@@ -278,7 +287,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     
     delta, market_open_tstamp_et = timedelta_from_market_open(et_tstamp)
     market_open_tstamp_utc = market_open_tstamp_et.astimezone(tz=utc)
-
+    lookback_tstamp_utc = market_open_tstamp_utc - datetime.timedelta(days=30)
     if delta < datetime.timedelta(minutes=1):
         first_minute = True
     else:
@@ -293,8 +302,8 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
         'tstamp',
         'spot_price','gamma',
         'ticker','expiration','contract_type','strike',
-        'open_interest',
-        'naive_gex',
+        'open_interest','true_oi',
+        'naive_gex','true_gex',
     ]
     # 'open','high','low','close','volume','ask_volume','bid_volume',
     # 'price','volatility','delta','gamma','theta','rho','vega',
@@ -308,14 +317,14 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     if len(fetched) == 0:
         if from_scratch:
             time_a = time.time()
-            event_df = await get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,market_open_tstamp_utc)
+            event_df = await get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,market_open_tstamp_utc,lookback_tstamp_utc)
 
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
-            logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
+            logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.true_gex.sum()}')
 
             time_c = time.time()
             logger.info(f'compute_gex_core {time_c-time_b}')
@@ -329,7 +338,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
-            logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.naive_gex.sum()}')
+            logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.true_gex.sum()}')
 
             time_c = time.time()
             logger.info(f'compute_gex_core {time_c-time_b}')
@@ -342,34 +351,36 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             query_dict = {}
             # pkey event_symbol and dstamp   
-            query_str = "INSERT INTO event_agg (event_symbol,dstamp,open_interest,naive_gex,tstamp,ticker,expiration,contract_type,strike) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (event_symbol,dstamp) do update set open_interest = %s, naive_gex = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s;"
+            query_str = "INSERT INTO event_agg (event_symbol,dstamp,open_interest,naive_gex,true_oi,true_gex,tstamp,ticker,expiration,contract_type,strike) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (event_symbol,dstamp) do update set open_interest = %s, naive_gex = %s, true_oi = %s, true_gex = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s;"
             query_dict[query_str]=[]
             for n,row in agg_df.iterrows():
-                query_args = [row.event_symbol,row.dstamp,row.open_interest,row.naive_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.naive_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
+                query_args = [row.event_symbol,row.dstamp,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
                 query_dict[query_str].append(query_args)
             
-            table_cols = ['ticker','strike','tstamp','naive_gex']
+            table_cols = ['ticker','strike','tstamp','naive_gex','true_gex']
             agg_df['ticker'] = ticker
             strike_gex_df = agg_df[table_cols]
             strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).agg(
                 naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
+                true_gex=pd.NamedAgg(column="true_gex", aggfunc="sum"),
             ).reset_index()
-            query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,naive_gex) VALUES (%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set naive_gex = %s;"
+            query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,naive_gex,true_gex) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set naive_gex = %s,true_gex = %s;"
             def get_args(row):
-                return [row.ticker,row.strike,row.tstamp,row.naive_gex,row.naive_gex]
+                return [row.ticker,row.strike,row.tstamp,row.naive_gex,row.true_gex,row.naive_gex,row.true_gex]
             query_args = strike_gex_df.apply(lambda row: get_args(row), axis=1)
             query_dict[query_str]=query_args.to_list()
 
-            table_cols = ['ticker','tstamp','spot_price','naive_gex']
+            table_cols = ['ticker','tstamp','spot_price','naive_gex','true_gex']
             agg_df['ticker'] = ticker
             net_gex_df = agg_df[table_cols]
             net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
                 spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
                 naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
+                true_gex=pd.NamedAgg(column="true_gex", aggfunc="sum"),
             ).reset_index()
-            query_str = "INSERT INTO gex_net (ticker,tstamp,naive_gex,spot_price) VALUES (%s,%s,%s,%s) on conflict (ticker,tstamp) do update set naive_gex = %s, spot_price = %s;"
+            query_str = "INSERT INTO gex_net (ticker,tstamp,naive_gex,true_gex,spot_price) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,tstamp) do update set naive_gex = %s,true_gex = %s, spot_price = %s;"
             def get_args(row):
-                return [row.ticker,row.tstamp,row.naive_gex,row.spot_price,row.naive_gex,row.spot_price]
+                return [row.ticker,row.tstamp,row.naive_gex,row.true_gex,row.spot_price,row.naive_gex,row.true_gex,row.spot_price]
             query_args = net_gex_df.apply(lambda row: get_args(row), axis=1)
             query_dict[query_str] = query_args.to_list()
 

@@ -3,10 +3,10 @@
   var updateData = []
   {% for n,row in df.iterrows() %}
   updateData.push({
-      x: [0, {{row.naive_gex}}],
+      x: [0, {{row.true_gex}}],
       y: [{{row.strike}}, {{row.strike}}],
       mode: 'lines',
-      {% if row.naive_gex > 0 %}
+      {% if row.true_gex > 0 %}
       line: {color: 'rgb(50, 255, 50)', width: 3}
       {% else %}
       line: {color: 'rgb(255, 50, 50)', width: 3}
@@ -18,7 +18,7 @@
   {% if query_dict %}
   {% for n,row in query_dict[lookback].df.iterrows() %}
   updateData.push({
-      x: [{{row.naive_gex}}, {{row.naive_gex}}],
+      x: [{{row.true_gex}}, {{row.true_gex}}],
       y: [{{row.strike}}, {{row.strike}}],
       mode: 'markers',
       {% if lookback == 'strike-1min' %}
