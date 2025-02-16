@@ -156,7 +156,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     # each tstamp,event_symbol, strike*gmma*open_interest*spot_price*contract_type_int
     pd.set_option('future.no_silent_downcasting', True)
     mylist = []
-    for event_symbol in list(gby_summary_df.event_symbol.unique()):
+    for event_symbol in tqdm(list(gby_summary_df.event_symbol.unique())):
         su = gby_summary_df[gby_summary_df.event_symbol==event_symbol]
         gk = gby_greeks_df[gby_greeks_df.event_symbol==event_symbol]
         ts = gby_timeandsale_df[gby_timeandsale_df.event_symbol==event_symbol]
