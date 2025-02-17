@@ -365,7 +365,7 @@ async def ws_gex_sample():
                 max_gex = latest_df.at[latest_df.true_gex.argmax(),'strike']
                 min_gex = latest_df.at[latest_df.true_gex.argmin(),'strike']
                 max_gex = 1.03*spot_price
-                min_gex = -0.97*spot_price
+                min_gex = 0.97*spot_price
             except:
                 latest_df = pd.DataFrame([])
                 max_gex = 100
