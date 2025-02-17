@@ -38,7 +38,7 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_
         ticker_alt = 'VIXW'
     else:
         ticker_alt = ticker
-
+    expiration = utc_tstamp.date()
 
     # the first minute, grab everything
     columns = [
@@ -57,30 +57,30 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_
 
     query_str = """
     select 'candle' as event_type,event_symbol,open,high,low,close,volume,ask_volume,bid_volume,tstamp,ticker,expiration,contract_type,strike from candle
-    where tstamp >= %s and tstamp < %s and ticker = %s
+    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt)
+    query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
     oc = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
     select 'summary' as event_type,event_symbol,open_interest,tstamp,ticker,expiration,contract_type,strike from summary
-    where tstamp >= %s and tstamp < %s and ticker = %s
+    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt)
+    query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
     os = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
     select 'greeks' as event_type,event_symbol,price,volatility,delta,gamma,theta,rho,vega,tstamp,ticker,expiration,contract_type,strike from greeks
-    where tstamp >= %s and tstamp < %s and ticker = %s
+    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt)
+    query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
     og = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
     select 'timeandsale' as event_type,event_symbol,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
-    where tstamp >= %s and tstamp < %s and ticker = %s
+    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (lookback_utc_tstamp,max_utc_tstamp,ticker_alt)
+    query_args = (lookback_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
     ot = apostgres_execute(apool,query_str,query_args)
 
     all_groups = await asyncio.gather(uc,oc,os,og,ot)
@@ -101,7 +101,7 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
         ticker_alt = 'VIXW'
     else:
         ticker_alt = ticker
-
+    expiration = utc_tstamp.date()
     columns = [
         'event_type','event_symbol',
         'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
@@ -118,30 +118,30 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
 
     query_str = """
     select 'candle' as event_type,event_symbol,open,high,low,close,volume,ask_volume,bid_volume,tstamp,ticker,expiration,contract_type,strike from candle
-    where tstamp >= %s and tstamp < %s and ticker = %s
+    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (utc_tstamp,max_utc_tstamp,ticker_alt) # candle
+    query_args = (utc_tstamp,max_utc_tstamp,ticker_alt,expiration) # candle
     oc = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
     select 'summary' as event_type,event_symbol,true_oi,open_interest,tstamp,ticker,expiration,contract_type,strike from event_agg
-    where dstamp = %s and ticker = %s
+    where dstamp = %s and ticker = %s and expiration = %s
     """
-    query_args = (utc_tstamp.date(),ticker_alt) # event_agg
+    query_args = (utc_tstamp.date(),ticker_alt,expiration) # event_agg
     os = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
     select 'greeks' as event_type,event_symbol,price,volatility,delta,gamma,theta,rho,vega,tstamp,ticker,expiration,contract_type,strike from greeks
-    where tstamp >= %s and tstamp < %s and ticker = %s
+    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt) # greeks
+    query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration) # greeks
     og = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
     select 'timeandsale' as event_type,event_symbol,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
-    where tstamp >= %s and tstamp < %s and ticker = %s
+    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (utc_tstamp,max_utc_tstamp,ticker_alt) # timeandsale
+    query_args = (utc_tstamp,max_utc_tstamp,ticker_alt,expiration) # timeandsale
     ot = apostgres_execute(apool,query_str,query_args)
 
     all_groups = await asyncio.gather(uc,oc,os,og,ot)
@@ -408,7 +408,6 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
 def main(ticker,my_date):
     tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
-    tstamp_list = pd.date_range(start=my_date+" 14:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
     for tstamp in tqdm(tstamp_list):
         logger.debug(f'...')
         if tstamp > now_in_new_york():
