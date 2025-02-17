@@ -63,6 +63,7 @@ docker run -it -u $(id -u):$(id -g) \
     + [x] postgres optimization - increased connection, see postgres/README.md
     + [x] closed apool prior shutdown luigi task
     + [x] postgres optimization - tuple as index, see postgres/README.md
+    + [x] async insert https://stackoverflow.com/questions/67944791/fastest-way-to-apply-an-async-function-to-pandas-dataframe
     + [x] added true_gex 
 + [ ] verify again GEX
 + [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
