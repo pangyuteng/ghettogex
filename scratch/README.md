@@ -54,9 +54,17 @@ docker run -it -u $(id -u):$(id -g) \
       use timeanedsale if you want sub second level updates.
 + [x] enable (end of day) GEX surface plots with plotly js 
 + [x] shutoff/restart worker at market close to patch hanging stream worker
-+ [ ] monitor system performance for a week or two
-+ [ ] testing live gex-strike
-      verify again GEX
++ [todo] verify again GEX with gexbot-state
++ [o] testing live gex-strike
+    + [o] monitor system performance for a week or two
+    + [problem] LivePrices hangs, luigi task does not exit.
+    + [x] Attempt to listen to 30 expirations to get DDOI
+    + [x] added connection pool
+    + [x] postgres optimization - increased connection, see postgres/README.md
+    + [x] closed apool prior shutdown luigi task
+    + [x] postgres optimization - tuple as index, see postgres/README.md
+    + [x] added true_gex 
++ [ ] verify again GEX
 + [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
 + [ ] play sound during events.
     + [ ] flash crash
