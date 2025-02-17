@@ -270,7 +270,7 @@ def compute_gex_core(df,from_scratch):
 # TODO: create from_scratch cron job every 5 minute 
 
 async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=30,open=False) as apool:
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=500,open=False) as apool:
         await _compute_gex(apool,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgres)
 
 async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
@@ -345,16 +345,17 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
         if persist_to_postgres and qc_pass:
             time_d = time.time()
             
-            persist_func_list = []
             agg_df = agg_df[event_agg_columns]
             if csv_file:
                 agg_df.to_csv(csv_file,index=False)
 
-            async def insert_event_agg(row,conn_pool):
-                query_str = "INSERT INTO event_agg (event_symbol,dstamp,open_interest,naive_gex,true_oi,true_gex,tstamp,ticker,expiration,contract_type,strike) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (event_symbol,dstamp) do update set open_interest = %s, naive_gex = %s, true_oi = %s, true_gex = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s;"
+            query_dict = {}
+
+            event_agg_query_str = "INSERT INTO event_agg (event_symbol,dstamp,open_interest,naive_gex,true_oi,true_gex,tstamp,ticker,expiration,contract_type,strike) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (event_symbol,dstamp) do update set open_interest = %s, naive_gex = %s, true_oi = %s, true_gex = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s;"
+            async def insert_event_agg(row):
                 query_args = [row.event_symbol,row.dstamp,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
-                return apostgres_execute(conn_pool,query_str,query_args,is_commit=True)
-            persist_func_list.extend([insert_event_agg(row,apool) for n,row in agg_df.iterrows()])
+                return query_args
+            query_dict[event_agg_query_str] = await asyncio.gather(*(insert_event_agg(row) for n,row in agg_df.iterrows()))
 
             table_cols = ['ticker','strike','tstamp','naive_gex','true_gex']
             agg_df['ticker'] = ticker
@@ -364,11 +365,11 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 true_gex=pd.NamedAgg(column="true_gex", aggfunc="sum"),
             ).reset_index()
 
-            async def insert_gex_strike(row,conn_pool):
-                query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,naive_gex,true_gex) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set naive_gex = %s,true_gex = %s;"
+            gex_strike_query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,naive_gex,true_gex) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set naive_gex = %s,true_gex = %s;"
+            async def insert_gex_strike(row):
                 query_args = [row.ticker,row.strike,row.tstamp,row.naive_gex,row.true_gex,row.naive_gex,row.true_gex]
-                return apostgres_execute(conn_pool,query_str,query_args,is_commit=True)
-            persist_func_list.extend([insert_gex_strike(row,apool) for n,row in strike_gex_df.iterrows()])
+                return query_args
+            query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in strike_gex_df.iterrows()))
 
             table_cols = ['ticker','tstamp','spot_price','naive_gex','true_gex']
             agg_df['ticker'] = ticker
@@ -378,17 +379,20 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
                 true_gex=pd.NamedAgg(column="true_gex", aggfunc="sum"),
             ).reset_index()
-            
-            async def insert_gex_net(row,conn_pool):
-                query_str = "INSERT INTO gex_net (ticker,tstamp,naive_gex,true_gex,spot_price) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,tstamp) do update set naive_gex = %s,true_gex = %s, spot_price = %s;"
-                query_args = [row.ticker,row.tstamp,row.naive_gex,row.true_gex,row.spot_price,row.naive_gex,row.true_gex,row.spot_price]
-                return apostgres_execute(conn_pool,query_str,query_args,is_commit=True)
-            persist_func_list.extend([insert_gex_net(row,apool) for n,row in net_gex_df.iterrows()])
 
-            await assyncio.gather(*persist_func_list)
+            gex_net_query_str = "INSERT INTO gex_net (ticker,tstamp,naive_gex,true_gex,spot_price) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,tstamp) do update set naive_gex = %s,true_gex = %s, spot_price = %s;"
+            async def insert_gex_net(row):
+                query_args = [row.ticker,row.tstamp,row.naive_gex,row.true_gex,row.spot_price,row.naive_gex,row.true_gex,row.spot_price]
+                return query_args
+            query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
+
+            time_c = time.time()
+            logger.info(f'query prep {time_c-time_d}')
+            await apostgres_execute_many(apool,query_dict)
 
             time_e = time.time()
-            logger.info(f'postgres_execute_many {time_e-time_d}')
+            logger.info(f'postgres_execute_many {time_e-time_c}')
+
         else:
             logger.debug(f'qc_pass {qc_pass}, {len(fetched)}')
             if first_minute:
