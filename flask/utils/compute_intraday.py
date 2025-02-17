@@ -213,7 +213,7 @@ def compute_gex_core(df,from_scratch):
     timeandsale_df = timeandsale_df[['event_symbol','size_signed']]
     timeandsale_df = timeandsale_df.groupby(['event_symbol']).sum().reset_index()
 
-    merged_df = summary_df.merge(greeks_df,how='left',on=['event_symbol'])
+    merged_df = greeks_df.merge(summary_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
 
@@ -409,7 +409,7 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            from_scratch=None
+            from_scratch = None
             get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=from_scratch,persist_to_postgres=True))
         except KeyboardInterrupt:
             sys.exit(1)
@@ -454,19 +454,19 @@ https://stackoverflow.com/questions/63680444/why-less-than-has-much-better-perfo
 
 EXPLAIN ANALYZE
 (select 'underlying_candle' as event_type,event_symbol,close as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,null as ticker,null as expiration,null as contract_type,null as strike from candle
-where tstamp >= '2025-02-14 13:00:00' and tstamp < '2025-02-14 13:01:00' and event_symbol = 'SPX'
+where tstamp >= '2025-02-14 17:00:00' and tstamp < '2025-02-14 17:01:00' and event_symbol = 'SPX'
 ) union all (
 select 'candle' as event_type,event_symbol,null::float as spot_price,open,high,low,close,volume,ask_volume,bid_volume,null::int as open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from candle
-where tstamp >= '2025-02-14 13:00:59' and tstamp < '2025-02-14 13:01:00' and ticker = 'SPXW'
+where tstamp >= '2025-02-14 17:00:59' and tstamp < '2025-02-14 17:01:00' and ticker = 'SPXW'
 ) union all (
 select 'summary' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,open_interest,null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,null::int as size,null as aggressor_side,tstamp ,ticker,expiration,contract_type,strike from event_agg
-where tstamp >= '2025-02-14 13:00:00' and tstamp < '2025-02-14 13:01:00' and ticker = 'SPXW'
+where tstamp >= '2025-02-14 17:00:00' and tstamp < '2025-02-14 17:01:00' and ticker = 'SPXW'
 ) union all (
 select 'greeks' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, price,volatility,delta,gamma,theta,rho,vega,null::int as size,null as aggressor_side,tstamp,ticker,expiration,contract_type,strike from greeks
-where tstamp >= '2025-02-14 13:00:00' and tstamp < '2025-02-14 13:01:00' and ticker = 'SPXW'
+where tstamp >= '2025-02-14 17:00:00' and tstamp < '2025-02-14 17:01:00' and ticker = 'SPXW'
 ) union all (
 select 'timeandsale' as event_type,event_symbol,null::float as spot_price,null::float as open,null::float as high,null::float as low,null::float as close,null::float as volume,null::float as ask_volume,null::float as bid_volume,null::int as open_interest, null::float as price,null::float as volatility,null::float as delta,null::float as gamma,null::float as theta,null::float as rho,null::float as vega,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
-where tstamp >= '2025-02-14 13:00:59' and tstamp < '2025-02-14 13:01:00' and ticker = 'SPXW'
+where tstamp >= '2025-02-14 17:00:59' and tstamp < '2025-02-14 17:01:00' and ticker = 'SPXW'
 )
 
 kubectl port-forward --address 0.0.0.0 fi-postgres-deployment-554bc784bf-xrgkg 5432:5432
