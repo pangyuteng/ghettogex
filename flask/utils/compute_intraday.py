@@ -352,10 +352,12 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             # pkey event_symbol and dstamp   
             query_str = "INSERT INTO event_agg (event_symbol,dstamp,open_interest,naive_gex,true_oi,true_gex,tstamp,ticker,expiration,contract_type,strike) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (event_symbol,dstamp) do update set open_interest = %s, naive_gex = %s, true_oi = %s, true_gex = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s;"
             query_dict[query_str]=[]
-            for n,row in agg_df.iterrows():
-                query_args = [row.event_symbol,row.dstamp,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
-                query_dict[query_str].append(query_args)
             
+            def get_args(row):
+                return [row.event_symbol,row.dstamp,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
+            query_args = agg_df.apply(lambda row: get_args(row), axis=1)
+            query_dict[query_str] = query_args.to_list()
+
             table_cols = ['ticker','strike','tstamp','naive_gex','true_gex']
             agg_df['ticker'] = ticker
             strike_gex_df = agg_df[table_cols]
@@ -367,7 +369,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             def get_args(row):
                 return [row.ticker,row.strike,row.tstamp,row.naive_gex,row.true_gex,row.naive_gex,row.true_gex]
             query_args = strike_gex_df.apply(lambda row: get_args(row), axis=1)
-            query_dict[query_str]=query_args.to_list()
+            query_dict[query_str] = query_args.to_list()
 
             table_cols = ['ticker','tstamp','spot_price','naive_gex','true_gex']
             agg_df['ticker'] = ticker
@@ -404,6 +406,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
 def main(ticker,my_date):
     tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
+    tstamp_list = pd.date_range(start=my_date+" 14:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
     for tstamp in tqdm(tstamp_list):
         logger.debug(f'...')
         if tstamp > now_in_new_york():

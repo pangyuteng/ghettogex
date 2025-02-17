@@ -28,4 +28,10 @@ bash build_and_push.sh
 
 + update index to be tuple of (tstamp,ticker/event_symbol)
     https://stackoverflow.com/a/35541546/868736
-    vacuum candle, quote, summary, greeks,timeandsale
+    
+    cluster greeks_tstamp_ticker_index on greeks;
+    cluster event_agg_dstamp_ticker_index on event_agg;
+    cluster gex_strike_tstamp_ticker_index on gex_strike;
+    cluster gex_net_tstamp_ticker_index on gex_net;
+
+    vacuum candle, quote, summary, greeks, timeandsale
