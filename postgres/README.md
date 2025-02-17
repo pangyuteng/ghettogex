@@ -35,3 +35,9 @@ bash build_and_push.sh
     cluster gex_net_tstamp_ticker_index on gex_net;
 
     vacuum candle, quote, summary, greeks, timeandsale
+            await streamer.subscribe(Profile, streamer_symbols)
+            await streamer.subscribe(TheoPrice, streamer_symbols)
+            await streamer.subscribe(Underlying, [ticker])
+
+    delete from profile, theoprice, underlying
+    delete from candle, event, greeks, quote, summary, timeandsale, trade, gex_net, gex_strike, event_agg
