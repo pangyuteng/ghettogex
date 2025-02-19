@@ -214,17 +214,17 @@ class LivePrices:
             t_listen_quote,
         ]
         if expiration is not None:
-            self.task_list.expand([
+            self.task_list.extend([
                 t_listen_greeks,
                 t_listen_summary,
                 t_listen_time_and_sale,
             ])
 
         if False:
-            self.task_list.expand([
+            self.task_list.extend([
                 t_listen_profile,
                 t_listen_theo_price,
-                t_listen_underlying
+                t_listen_underlying,
                 t_listen_trade,
             ])
 
