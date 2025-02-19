@@ -339,7 +339,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                     logger.info("market open -------------------------------")
 
                 # Print quotes
-                tmp_quote = live_prices_list[0].quote[lp.ticker]
+                tmp_quote = live_prices_list[0].quote[ticker]
                 logger.info(f"Current quote: {tmp_quote}")
 
                 for lp in live_prices_list:
