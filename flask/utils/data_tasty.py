@@ -143,11 +143,10 @@ class LivePrices:
     underlying: dict[str, Underlying]
     streamer: DXLinkStreamer
     equity: list[Equity]
-    puts: list[Option]
-    calls: list[Option]
     streamer_symbols: list[str]
     task_list: list[str]
     ticker: str
+    expiration: datetime.date
     save_to_json: bool=True
     save_to_postres: bool=False
     @classmethod
@@ -160,92 +159,106 @@ class LivePrices:
         save_to_json: bool = True,
         save_to_postres: bool = False,
         ):
-        print("ticker",ticker)
         if "/" in ticker:
+            # TODO: futures not tested
             equity = Future.get_future(session, ticker)
             chain = get_future_option_chain(session, ticker)
         else:
             equity = Equity.get_equity(session, ticker)
             chain = get_option_chain(session, ticker)
 
-        expirations = [expiration]
-        options = []
-        for e in expirations:
-            options.extend([o for o in chain[e]])
-        # the `streamer_symbol` property is the symbol used by the streamer
-        streamer_symbols = [o.streamer_symbol for o in options]
-        print(len(streamer_symbols))
+        if expiration is not None:
+            options_list = [o for o in chain[expiration]]
+            streamer_symbols = [o.streamer_symbol for o in options_list]
+        else:
+            streamer_symbols = [equity.streamer_symbol]
+
         streamer = await DXLinkStreamer(session)
         # subscribe to quotes and greeks for all options on that date
         start_time = now_in_new_york() # start from now
-        await streamer.subscribe_candle([ticker] + streamer_symbols, CANDLE_TYPE, start_time)
-        await streamer.subscribe(Greeks, streamer_symbols)
-        await streamer.subscribe(Quote, [ticker] + streamer_symbols)
-        await streamer.subscribe(Summary, streamer_symbols)
-        await streamer.subscribe(TimeAndSale, streamer_symbols)
-        await streamer.subscribe(Trade, streamer_symbols)
+        await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time)
+        await streamer.subscribe(Quote,streamer_symbols)
+
+        if expiration is not None:
+            await streamer.subscribe(Greeks, streamer_symbols)
+            await streamer.subscribe(Summary, streamer_symbols)
+            await streamer.subscribe(TimeAndSale, streamer_symbols)
+
         if False:
+            await streamer.subscribe(Trade, streamer_symbols)
             await streamer.subscribe(Profile, streamer_symbols)
             await streamer.subscribe(TheoPrice, streamer_symbols)
-            await streamer.subscribe(Underlying, [ticker])
+            await streamer.subscribe(Underlying, streamer_symbols)
 
-        puts = [o for o in options if o.option_type == OptionType.PUT]
-        calls = [o for o in options if o.option_type == OptionType.CALL]
 
         self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
-                   streamer, equity, puts, calls, streamer_symbols,[],ticker,
+                   streamer, equity, streamer_symbols,[],ticker,expiration,
                    save_to_json=save_to_json,save_to_postres=save_to_postres)
 
         t_listen_candles = asyncio.create_task(self._update_candle(apool))
-        t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",apool))
         t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",apool))
-        t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary",apool))
-        t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",apool))
-        t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade",apool))
+
+        if expiration is not None:
+            t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",apool))
+            t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary",apool))
+            t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",apool))
+
         if False:
             t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile",apool))
             t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice",apool))
             t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying",apool))
+            t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade",apool))
 
         self.task_list = [
             t_listen_candles,
-            t_listen_greeks,
             t_listen_quote,
-            t_listen_summary,
-            t_listen_time_and_sale,
-            t_listen_trade,
         ]
+        if expiration is not None:
+            self.task_list.expand([
+                t_listen_greeks,
+                t_listen_summary,
+                t_listen_time_and_sale,
+            ])
+
         if False:
             self.task_list.expand([
                 t_listen_profile,
                 t_listen_theo_price,
                 t_listen_underlying
+                t_listen_trade,
             ])
 
         asyncio.gather(*self.task_list)
 
-
         # wait we have quotes and greeks for each option
-        while len(self.candle) < 1 or len(self.quote) < 1 or len(self.greeks) < 1 or len(self.summary) < 1:
+        while len(self.candle) < 1 or len(self.quote) < 1:
             await asyncio.sleep(0.1)
-
+        if expiration is not None:
+            while len(self.greeks) < 1 or len(self.summary) < 1:
+                await asyncio.sleep(0.1)
         return self
 
     async def shutdown(self):
-        logger.debug(f"cancel tasks...{self.ticker}")
+        logger.info(f"cancel tasks...{self.ticker}")
         for task in self.task_list:
+            logger.info(f"cancel tasks...{task}")
             task.cancel()
-        logger.debug(f"sreamer.unsubscribe...{self.ticker}")
-        await self.streamer.unsubscribe_candle([self.ticker] +self.streamer_symbols,CANDLE_TYPE)
-        await self.streamer.unsubscribe(Greeks, self.streamer_symbols)
-        await self.streamer.unsubscribe(Quote, [self.ticker]+self.streamer_symbols)
-        await self.streamer.unsubscribe(Summary, self.streamer_symbols)
-        await self.streamer.unsubscribe(TimeAndSale, self.streamer_symbols)
-        await self.streamer.unsubscribe(Trade, self.streamer_symbols)
+
+        logger.info(f"sreamer.unsubscribe...{self.ticker}")
+
+        await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
+        await self.streamer.unsubscribe(Quote,self.streamer_symbols)
+
+        if self.expiration is not None:
+            await self.streamer.unsubscribe(Greeks, self.streamer_symbols)
+            await self.streamer.unsubscribe(Summary, self.streamer_symbols)
+            await self.streamer.unsubscribe(TimeAndSale, self.streamer_symbols)
+
         if False:
+            await self.streamer.unsubscribe(Trade, self.streamer_symbols)
             await self.streamer.unsubscribe(Profile, self.streamer_symbols)
             await self.streamer.unsubscribe(TheoPrice, self.streamer_symbols)
-            await self.streamer.unsubscribe(Underlying, [self.ticker])
+            await self.streamer.unsubscribe(Underlying, self.streamer_symbols)
         await self.streamer.close()
         logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
@@ -299,6 +312,11 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         TRADING_DURATION_SEC = 7*60*60 # seconds
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,
             min_size=30,open=False,reconnect_timeout=100,max_lifetime=TRADING_DURATION_SEC) as apool:
+            
+            # underlying
+            live_prices = await LivePrices.create(apool,session,ticker,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
+            live_prices_list.append(live_prices)
+
             for expiration in expirations:
                 live_prices = await LivePrices.create(apool,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
                 live_prices_list.append(live_prices)
@@ -307,24 +325,28 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
 
             while True:
                 if not is_market_open():
-                    print("market closing -------------------------------")
+                    logger.info("market closing -------------------------------")
                     await asyncio.sleep(10)
-                    apool.close()
+                    await apool.close()
                     for lp in live_prices_list:
                         await lp.shutdown()
                     logger.info(f"canceling!")
                     logger.info("market is closed, exiting...")
                     sys.exit(0)
                 else:
-                    print("market open -------------------------------")
-                # Print or process the quotes in real time
+                    logger.info("market open -------------------------------")
+
+                # Print quotes
+                tmp_quote = live_prices_list[0].quote[lp.ticker]
+                logger.info(f"Current quote: {tmp_quote}")
+
                 for lp in live_prices_list:
                     if lp.ticker in lp.quote.keys():
-                        logger.info(f"Current quote: {lp.quote[lp.ticker]}")
+                        logger.debug(f"Current quote: {lp.quote[lp.ticker]}")
                     if lp.ticker in lp.candle.keys():
-                        logger.info(f"Current candle: {lp.candle[lp.ticker]}")
+                        logger.debug(f"Current candle: {lp.candle[lp.ticker]}")
                     if lp.ticker in lp.summary.keys():
-                        logger.info(f"Current summary: {lp.summary[lp.ticker]}")
+                        logger.debug(f"Current summary: {lp.summary[lp.ticker]}")
 
                 pathlib.Path(running_file).touch()
                 await asyncio.sleep(5)
