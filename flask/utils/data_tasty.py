@@ -318,6 +318,8 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
             live_prices_list.append(live_prices)
 
             for expiration in expirations:
+                if ticker == 'VIX': # ignore VIX
+                    continue
                 live_prices = await LivePrices.create(apool,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
                 live_prices_list.append(live_prices)
                 if len(live_prices_list)>=EXPIRATION_LIM:
