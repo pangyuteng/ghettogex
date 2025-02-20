@@ -318,7 +318,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
             live_prices_list.append(live_prices)
 
             for expiration in expirations:
-                if ticker == 'VIX': # ignore VIX
+                if ticker == 'VIX': # ignore options for VIX
                     continue
                 live_prices = await LivePrices.create(apool,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
                 live_prices_list.append(live_prices)
@@ -338,17 +338,10 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                 else:
                     logger.info("market open -------------------------------")
 
-                # Print quotes
-                tmp_quote = live_prices_list[0].quote[ticker]
-                logger.info(f"Current quote: {tmp_quote}")
-
-                for lp in live_prices_list:
-                    if lp.ticker in lp.quote.keys():
-                        logger.debug(f"Current quote: {lp.quote[lp.ticker]}")
-                    if lp.ticker in lp.candle.keys():
-                        logger.debug(f"Current candle: {lp.candle[lp.ticker]}")
-                    if lp.ticker in lp.summary.keys():
-                        logger.debug(f"Current summary: {lp.summary[lp.ticker]}")
+                # print quotes
+                if len(live_prices_list)>0:
+                    tmp_quote = live_prices_list[0].quote[ticker]
+                    logger.info(f"Current quote: {tmp_quote}")
 
                 pathlib.Path(running_file).touch()
                 await asyncio.sleep(5)
