@@ -212,6 +212,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         # TODO: while wrong, maybe plot gex_naive to see what going on.
 
         # compute GEX with DDOI with timeandsell events! horay!!
+        print(ok.oi_timeandsale.nanmean())
         ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)
         ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01
 
@@ -331,11 +332,10 @@ def gex_to_ani(df,mp4_file):
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.grid(True)
             plt.ylabel("strike")
-            plt.xlabel("net naive gex ($Bn/%Move)")
+            plt.xlabel("gex ($Bn/%Move)")
             plt.title(f"ticker: {ticker} price {spot_price:1.2f}\n{tstamp}")
             plt.ylim(spot_min,spot_max)
-            plt.xlim(-1000,1000)
-            #plt.xlim(-gex_lim,gex_lim)
+            plt.xlim(-gex_lim,gex_lim)
             plt.show()
             plt.savefig(png_file)
             plt.close()
