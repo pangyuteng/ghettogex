@@ -22,14 +22,19 @@ work_dir = 'tmp'
 # https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457225774/MDP+3.0+-+Trade+Summary+Order+Level+Detail
 # 
 def get_size_signed(row):
-    if row.aggressor_side == 'BUY': # so... if row is BUY, market maker is long call?? what??!?
-        return 1*row['size']
-    elif row.aggressor_side == 'SELL':
+    if row.aggressor_side == 'BUY':
+        # aggressor BUY, means market maker is is short
         return -1*row['size']
+    elif row.aggressor_side == 'SELL':
+        return row['size']
     else:
-        return 0 # hau voaltility 2021 ????
+        # TODO: hau voaltility 2021, need to decide buy/sell
+        # via order book history or difference from theoretical price via orderchain iv.
+        return 0
 
 def cache_data(ticker,day_stamp,persist_to_postgres=True):
+    
+    min_day_stamp = datetime.datetime.strptime(day_stamp,'%Y-%m-%d')-datetime.timedelta(days=30)
 
     stime = time.time()
     postgres_query = "select * from candle where event_symbol = %s and tstamp::date = %s order by tstamp"
@@ -37,6 +42,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     fetched = postgres_execute(postgres_query,postgres_args)
     underlying_candle_df = pd.DataFrame(fetched)
 
+    # NOTE: here we use like so we count both SPX and SPXW, but it going to be slower.
     postgres_query = "select * from candle where event_symbol like '.'||%s||'%%' and tstamp::date = %s order by tstamp"
     postgres_args = (ticker,day_stamp)
     fetched = postgres_execute(postgres_query,postgres_args)
@@ -52,8 +58,8 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     fetched = postgres_execute(postgres_query,postgres_args)
     summary_df = pd.DataFrame(fetched)
 
-    postgres_query = "select * from timeandsale where event_symbol like '.'||%s||'%%' and tstamp::date = %s order by tstamp"
-    postgres_args = (ticker,day_stamp)
+    postgres_query = "select * from timeandsale where event_symbol like '.'||%s||'%%' and tstamp::date <= %s and tstamp::date > %s order by tstamp"
+    postgres_args = (ticker,day_stamp,min_day_stamp)
     fetched = postgres_execute(postgres_query,postgres_args)
     timeandsale_df = pd.DataFrame(fetched)
 
@@ -121,16 +127,10 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
 
     gby_summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest']]
     gby_summary_df = gby_summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
+
+    # this is for naive gex only!
     gby_summary_df['contract_type_int'] = gby_summary_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
 
-    gby_greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega','tstamp_sec']]
-    gby_greeks_df = gby_greeks_df.groupby(['event_symbol','tstamp_sec']).last().reset_index()
-
-    timeandsale_df['size_signed'] = timeandsale_df['size'].where(timeandsale_df.aggressor_side == 'BUY', other=-1*timeandsale_df['size'])
-    # TODO: TESTING!!!
-    timeandsale_df['size_signed'] = timeandsale_df.apply(lambda x: get_size_signed(x),axis=1)
-    gby_summary_df['contract_type_int'] = 1 # TESTING!!! ignore with const of 1.
-    
     #!!!!!!!!!!!!!!!!!!!!1 """Compute dealers' total GEX"""
     #!!!!!!!!!!!!!!!!!!!!1 # Compute gamma exposure for each option
     #!!!!!!!!!!!!!!!!!!!!1 data["GEX"] = spot * data.gamma * data.open_interest * contract_size * spot * 0.01
@@ -138,6 +138,11 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     #!!!!!!!!!!!!!!!!!!!!1 # For put option we assume negative gamma, i.e. dealers sell puts and buy calls
     #!!!!!!!!!!!!!!!!!!!!1 data["GEX"] = data.apply(lambda x: -x.GEX if x.option_type == "P" else x.GEX, axis=1)
 
+
+    gby_greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega','tstamp_sec']]
+    gby_greeks_df = gby_greeks_df.groupby(['event_symbol','tstamp_sec']).last().reset_index()
+
+    timeandsale_df['size_signed'] = timeandsale_df.apply(lambda x: get_size_signed(x),axis=1)
 
     gby_timeandsale_df = timeandsale_df[['event_symbol','size_signed','tstamp_sec']]
     gby_timeandsale_df = gby_timeandsale_df.groupby(['event_symbol','tstamp_sec']).sum().reset_index()
@@ -156,8 +161,13 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     # each tstamp,event_symbol, strike*gmma*open_interest*spot_price*contract_type_int
     pd.set_option('future.no_silent_downcasting', True)
     mylist = []
-    #event_symbol_list = list(gby_summary_df[gby_summary_df.expiration == day_stamp].event_symbol.unique())
-    event_symbol_list = list(gby_summary_df.event_symbol.unique())
+    
+    lastday_only = True
+    if lastday_only:
+        event_symbol_list = list(gby_summary_df[gby_summary_df.expiration == day_stamp].event_symbol.unique())
+    else:
+        event_symbol_list = list(gby_summary_df.event_symbol.unique())
+
     event_symbol_list = sorted(event_symbol_list)
     for event_symbol in tqdm(event_symbol_list):
         su = gby_summary_df[gby_summary_df.event_symbol==event_symbol]
@@ -184,23 +194,27 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         ok.bid_volume = ok.bid_volume.fillna(value=0)
         ok.ask_volume = ok.ask_volume.fillna(value=0)
         ok['oi_timeandsale'] = ok.size_signed
+
+        # TODO: maybe plot oi_bavolume or oi_volume to see what going on.
         ok['oi_volume'] = ok.volume
         ok['oi_bavolume'] = ok.ask_volume-ok.bid_volume
 
-        
         try:
             init_oi = float(ok.open_interest.to_list()[-1])
         except:
             init_oi = 0
-        # TESTING!!! 'init_oi' is wrong as prior day oi is not DDOI!
-        init_oi = 0
 
-        ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+init_oi
         ok.oi_volume = ok.oi_volume.cumsum().astype(float)+init_oi
-        ok.oi_bavolume = ok.oi_bavolume.cumsum().astype(float)+init_oi
-        ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
-        ok['gex_volume'] = ok.gamma * ok.oi_volume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
-        ok['gex_bavolume'] = ok.gamma * ok.oi_bavolume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
+        ok['gex_naive'] = ok.gamma * ok.oi_volume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
+        # for gex_naive
+        # assume market maker long call, short put for prior day open_intererst and intraday volume .
+        # which is absolutely wrong...
+        # TODO: while wrong, maybe plot gex_naive to see what going on.
+
+        # compute GEX with DDOI with timeandsell events! horay!!
+        ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)
+        ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01
+
         mylist.append(ok.copy(deep=True))
     foodf = pd.concat(mylist)
 
@@ -268,18 +282,17 @@ def gex_to_ani(df,mp4_file):
 
         tstamp_list = sorted(list(df.tstamp_sec.unique()))[::60]
         
-        table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_bavolume','gex_volume','spot_price','oi_timeandsale']
+        table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_naive','spot_price','oi_timeandsale']
         df = df[table_cols]
         df = df.groupby(['ticker','strike','tstamp_sec']).agg(
             gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"), #????
-            gex_bavolume=pd.NamedAgg(column="gex_bavolume", aggfunc="sum"),
-            gex_volume=pd.NamedAgg(column="gex_volume", aggfunc="sum"),
+            gex_naive=pd.NamedAgg(column="gex_naive", aggfunc="sum"),
             spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
             oi_timeandsale=pd.NamedAgg(column="oi_timeandsale", aggfunc="sum"),
         ).reset_index()
         df.gex_timeandsale = df.gex_timeandsale/1e9
-        df.gex_volume = df.gex_volume/1e9
-        df.gex_bavolume = df.gex_bavolume/1e9
+        df.gex_naive = df.gex_naive/1e9
+
         print(df.shape)
         df = df[df.tstamp_sec.apply(lambda x: x in tstamp_list)].reset_index()
         print(df.shape)
@@ -308,22 +321,12 @@ def gex_to_ani(df,mp4_file):
 
             plt.subplot(122)
             for n,row in tmpdf.iterrows():
-                """
+
                 if row.gex_timeandsale > 0:
                     color_gt = 'green'
                 else:
                     color_gt = 'red'
-                if row.gex_bavolume > 0:
-                    color_gbav = 'olive'
-                else:
-                    color_gbav = 'orange'    
-                color_gv = 'yellow'
-                plt.plot([0,row.gex_timeandsale],[row.strike,row.strike],color=color_gt,linestyle='-',linewidth=2)
-                plt.plot([0,row.gex_bavolume],[row.strike+1,row.strike+1],color=color_gbav,linestyle='--',linewidth=2)
-                plt.plot([0,row.gex_volume],[row.strike+2,row.strike+2],color=color_gv,linestyle='-',linewidth=1)
-                """
-                color_gt = "black"
-                plt.plot([0,row.oi_timeandsale],[row.strike,row.strike],color=color_gt,linestyle='-',linewidth=2)
+                plt.plot([0,row.gex_timeandsale],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
                 
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.grid(True)
@@ -359,6 +362,7 @@ if __name__ == "__main__":
     pq_file = os.path.join(work_dir,f"pg-{day_stamp}.parquet.gzip")
     mp4_file = os.path.join(work_dir,f"pg-{day_stamp}.mp4")
     png_folder =os.path.join(work_dir,"pngs")
+    os.makedirs(work_dir,exist_ok=True)
     if not os.path.exists(pq_file):
         foodf = cache_data(ticker,day_stamp,persist_to_postgres=persist)
         foodf.to_parquet(pq_file,compression='gzip',index=False)
