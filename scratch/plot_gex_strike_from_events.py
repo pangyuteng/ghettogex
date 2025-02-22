@@ -166,7 +166,11 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     if lastday_only:
         event_symbol_list = list(gby_summary_df[gby_summary_df.expiration == day_stamp].event_symbol.unique())
     else:
-        event_symbol_list = list(gby_summary_df.event_symbol.unique())
+        # TODO: filter by expiration!
+        max_expiration = datetime.datetime.strptime(day_stamp,'%Y-%m-%d')-datetime.timedelta(days=5)
+        event_symbol_list = list(gby_summary_df[
+            (gby_summary_df.expiration >= day_stamp) \
+            & (gby_summary_df.expiration > max_expiration)].event_symbol.unique())
 
     event_symbol_list = sorted(event_symbol_list)
     for event_symbol in tqdm(event_symbol_list):
