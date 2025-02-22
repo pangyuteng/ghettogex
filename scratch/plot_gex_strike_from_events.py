@@ -215,7 +215,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         # which is absolutely wrong...
         # TODO: while wrong, maybe plot gex_naive to see what going on.
 
-        # compute GEX with DDOI with timeandsell events! horay!!
+        # compute GEX with DDOI with timeandsell events.
         prior_timeandsale_df = gby_timeandsale_df[(gby_timeandsale_df.event_symbol==event_symbol)&(gby_timeandsale_df.tstamp_sec<day_stamp)]
         prior_ddoi = np.float32(prior_timeandsale_df.size_signed.sum())
         print(ok.oi_timeandsale.sum(),len(prior_timeandsale_df),len(ts))
@@ -304,6 +304,7 @@ def gex_to_ani(df,mp4_file):
         df = df[df.tstamp_sec.apply(lambda x: x in tstamp_list)].reset_index()
         print(df.shape)
         gex_lim = df.gex_timeandsale.abs().quantile(q=0.999)
+        altgex_lim = df.gex_naive.abs().quantile(q=0.999)
         spot_min,spot_max = np.min(df.spot_price)*.98,np.max(df.spot_price)*1.02
         print(df.gex_timeandsale.min(),df.gex_timeandsale.max())
         print(gex_lim)
@@ -320,13 +321,13 @@ def gex_to_ani(df,mp4_file):
 
             png_file = os.path.join(work_dir,"pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
 
-            plt.subplot(121)
+            plt.subplot(131)
             plt.plot(price_df.tstamp_sec,price_df.spot_price,color='blue',linewidth=0.5)
             plt.scatter(tstamp,spot_price,color='red',linewidth=2)
             plt.grid(True)
             plt.ylim(spot_min,spot_max)
 
-            plt.subplot(122)
+            plt.subplot(132)
             for n,row in tmpdf.iterrows():
 
                 if row.gex_timeandsale > 0:
@@ -342,6 +343,25 @@ def gex_to_ani(df,mp4_file):
             plt.title(f"ticker: {ticker} price {spot_price:1.2f}\n{tstamp}")
             plt.ylim(spot_min,spot_max)
             plt.xlim(-gex_lim,gex_lim)
+
+
+            plt.subplot(133)
+            for n,row in tmpdf.iterrows():
+
+                if row.gex_naive > 0:
+                    color = 'green'
+                else:
+                    color = 'red'
+                plt.plot([0,row.gex_naive],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
+                
+            plt.axhline(spot_price,color='blue',linestyle='--')
+            plt.grid(True)
+            plt.ylabel("strike")
+            plt.xlabel("naive gex ($Bn/%Move)")
+            plt.title(f"ticker: {ticker} price {spot_price:1.2f}\n{tstamp}")
+            plt.ylim(spot_min,spot_max)
+            plt.xlim(-altgex_lim,altgex_lim)
+
             plt.show()
             plt.savefig(png_file)
             plt.close()
