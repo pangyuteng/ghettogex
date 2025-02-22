@@ -217,7 +217,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
 
         # compute GEX with DDOI with timeandsell events! horay!!
         prior_timeandsale_df = gby_timeandsale_df[(gby_timeandsale_df.event_symbol==event_symbol)&(gby_timeandsale_df.tstamp_sec<day_stamp)]
-        prior_ddoi = prior_timeandsale_df.size_signed.sum().astype(float)
+        prior_ddoi = np.float32(prior_timeandsale_df.size_signed.sum())
         print(ok.oi_timeandsale.sum(),len(prior_timeandsale_df),len(ts))
         ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+prior_ddoi
         ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01
