@@ -212,7 +212,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         # TODO: while wrong, maybe plot gex_naive to see what going on.
 
         # compute GEX with DDOI with timeandsell events! horay!!
-        print(ok.oi_timeandsale.mean())
+        print(ok.oi_timeandsale.sum())
         ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)
         ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01
 
