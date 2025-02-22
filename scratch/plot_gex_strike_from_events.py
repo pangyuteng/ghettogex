@@ -178,7 +178,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         gk = gby_greeks_df[gby_greeks_df.event_symbol==event_symbol]
         ts = gby_timeandsale_df[gby_timeandsale_df.event_symbol==event_symbol]
         cd = gby_candle_df[gby_candle_df.event_symbol==event_symbol]
-        
+
         ok = pd.merge(spot_df, su, how='cross')
         ok = ok.merge(gk,how='left',on=['event_symbol','tstamp_sec'])
         ok = ok.merge(ts,how='left',on=['event_symbol','tstamp_sec'])
@@ -216,8 +216,10 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         # TODO: while wrong, maybe plot gex_naive to see what going on.
 
         # compute GEX with DDOI with timeandsell events! horay!!
-        print(ok.oi_timeandsale.sum())
-        ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)
+        prior_timeandsale_df = gby_timeandsale_df[(gby_timeandsale_df.event_symbol==event_symbol)&(gby_timeandsale_df.tstamp_sec<day_stamp)]
+        prior_ddoi = prior_timeandsale_df.size_signed.sum().astype(float)
+        print(ok.oi_timeandsale.sum(),len(prior_timeandsale_df),len(ts))
+        ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+prior_ddoi
         ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01
 
         mylist.append(ok.copy(deep=True))
@@ -301,7 +303,7 @@ def gex_to_ani(df,mp4_file):
         print(df.shape)
         df = df[df.tstamp_sec.apply(lambda x: x in tstamp_list)].reset_index()
         print(df.shape)
-        gex_lim = df.gex_timeandsale.abs().quantile(q=0.99)
+        gex_lim = df.gex_timeandsale.abs().quantile(q=0.999)
         spot_min,spot_max = np.min(df.spot_price)*.98,np.max(df.spot_price)*1.02
         print(df.gex_timeandsale.min(),df.gex_timeandsale.max())
         print(gex_lim)
