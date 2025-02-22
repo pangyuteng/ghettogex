@@ -21,9 +21,12 @@ work_dir = 'tmp'
 
 # https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457225774/MDP+3.0+-+Trade+Summary+Order+Level+Detail
 # 
+#
+# TODO: makes no sense
+# aggressor_side BUY, means market maker is short, sign should be negative!
+# 
 def get_size_signed(row):
     if row.aggressor_side == 'BUY':
-        # aggressor BUY, means market maker is is short
         return -1*row['size']
     elif row.aggressor_side == 'SELL':
         return row['size']
@@ -137,8 +140,10 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     #!!!!!!!!!!!!!!!!!!!!1
     #!!!!!!!!!!!!!!!!!!!!1 # For put option we assume negative gamma, i.e. dealers sell puts and buy calls
     #!!!!!!!!!!!!!!!!!!!!1 data["GEX"] = data.apply(lambda x: -x.GEX if x.option_type == "P" else x.GEX, axis=1)
-
-
+    #
+    # "Gamma is a positive value for long positions and a negative 
+    # value for short positions — regardless if the contract is a call or a put."
+    #
     gby_greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega','tstamp_sec']]
     gby_greeks_df = gby_greeks_df.groupby(['event_symbol','tstamp_sec']).last().reset_index()
 
