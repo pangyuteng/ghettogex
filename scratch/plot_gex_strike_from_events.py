@@ -209,7 +209,7 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         ok['oi_bavolume'] = ok.ask_volume-ok.bid_volume
 
         try:
-            init_oi = float(ok.open_interest.to_list()[-1])
+            init_oi = np.float32(ok.open_interest.to_list()[-1])
         except:
             init_oi = 0
 
@@ -292,7 +292,7 @@ def gex_to_ani(df,mp4_file):
 
     if len(png_file_list) == 0:
 
-        tstamp_list = sorted(list(df.tstamp_sec.unique()))[::60]
+        tstamp_list = sorted(list(df.tstamp_sec.unique()))[::15]
         
         table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_naive','spot_price','oi_timeandsale']
         df = df[table_cols]
@@ -308,11 +308,11 @@ def gex_to_ani(df,mp4_file):
         print(df.shape)
         df = df[df.tstamp_sec.apply(lambda x: x in tstamp_list)].reset_index()
         print(df.shape)
-        gex_lim = df.gex_timeandsale.abs().quantile(q=0.999)
-        altgex_lim = df.gex_naive.abs().quantile(q=0.999)
+        gex_lim = 1.05*df.gex_timeandsale.abs().quantile(q=0.999)
+        alt_gex_lim = 1.05*df.gex_naive.abs().quantile(q=0.999)
         spot_min,spot_max = np.min(df.spot_price)*.98,np.max(df.spot_price)*1.02
         print(df.gex_timeandsale.min(),df.gex_timeandsale.max())
-        print(gex_lim)
+        print(gex_lim,alt_gex_lim)
         print(spot_min,spot_max)
         price_df = df[['tstamp_sec','spot_price']].drop_duplicates()
         for tstamp in tqdm(tstamp_list):
@@ -349,7 +349,6 @@ def gex_to_ani(df,mp4_file):
             plt.ylim(spot_min,spot_max)
             plt.xlim(-gex_lim,gex_lim)
 
-
             plt.subplot(133)
             for n,row in tmpdf.iterrows():
 
@@ -365,8 +364,7 @@ def gex_to_ani(df,mp4_file):
             plt.xlabel("naive gex ($Bn/%Move)")
             plt.title(f"ticker: {ticker} price {spot_price:1.2f}\n{tstamp}")
             plt.ylim(spot_min,spot_max)
-            plt.xlim(-altgex_lim,altgex_lim)
-
+            plt.xlim(-alt_gex_lim,alt_gex_lim)
             plt.show()
             plt.savefig(png_file)
             plt.close()
@@ -375,8 +373,7 @@ def gex_to_ani(df,mp4_file):
 
     print(len(png_file_list))
 
-    #gif_file = os.path.join(work_dir,f'ani.gif')
-    fps = 5
+    fps = 24
     clips = [ImageClip(m).with_duration(0.1) for m in png_file_list]
     concat_clip = concatenate_videoclips(clips, method="compose")
     concat_clip.write_videofile(mp4_file, fps=fps)
@@ -391,7 +388,7 @@ if __name__ == "__main__":
     day_stamp = sys.argv[1]
     persist = ast.literal_eval(sys.argv[2])
     pq_file = os.path.join(work_dir,f"pg-{day_stamp}.parquet.gzip")
-    mp4_file = os.path.join(work_dir,f"pg-{day_stamp}.mp4")
+    mp4_file = os.path.join(work_dir,f"ani-{day_stamp}.mp4")
     png_folder =os.path.join(work_dir,"pngs")
     os.makedirs(work_dir,exist_ok=True)
     if not os.path.exists(pq_file):
