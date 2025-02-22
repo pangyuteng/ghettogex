@@ -323,9 +323,9 @@ def gex_to_ani(df,mp4_file):
             for n,row in tmpdf.iterrows():
 
                 if row.gex_timeandsale > 0:
-                    color_gt = 'green'
+                    color = 'green'
                 else:
-                    color_gt = 'red'
+                    color = 'red'
                 plt.plot([0,row.gex_timeandsale],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
                 
             plt.axhline(spot_price,color='blue',linestyle='--')
