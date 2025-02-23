@@ -291,17 +291,26 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     print(etime-stime)
     return foodf
 
-def gex_to_ani(og_df,mp4_file):
+def gex_to_ani(df,mp4_file):
 
     png_file_list = sorted([str(x) for x in pathlib.Path("tmp/pngs").rglob("*.png")])
 
-    df = og_df.copy(deep=True)
     if len(png_file_list) == 0:
 
         tstamp_list = sorted(list(df.tstamp_sec.unique()))[::60]
 
+        table_cols = ['ticker','contract_type','strike','tstamp_sec','volume','bid_volume','ask_volume','size_signed']
+        alt_df = df[table_cols].copy(deep=True)
+        alt_df = alt_df.groupby(['ticker','contract_type','strike','tstamp_sec']).agg(
+            volume=pd.NamedAgg(column="volume", aggfunc="sum"),
+            bid_volume=pd.NamedAgg(column="bid_volume", aggfunc="sum"),
+            ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="sum"),
+            size_signed=pd.NamedAgg(column="size_signed", aggfunc="sum"),
+            
+        ).reset_index()
+
         table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_naive','spot_price','oi_timeandsale']
-        df = df[table_cols]
+        df = df[table_cols].copy(deep=True)
         df = df.groupby(['ticker','strike','tstamp_sec']).agg(
             gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"), #????
             gex_naive=pd.NamedAgg(column="gex_naive", aggfunc="sum"),
@@ -375,7 +384,7 @@ def gex_to_ani(og_df,mp4_file):
 
             # TODO: maybe plot oi_bavolume or oi_volume to see what going on.
             plt.subplot(334)
-            for n,row in og_df.iterrows():
+            for n,row in alt_df.iterrows():
                 value = row.volume
                 if row.contract_type == 'P':
                     color = 'blue'
@@ -388,7 +397,7 @@ def gex_to_ani(og_df,mp4_file):
             plt.grid(True)
 
             plt.subplot(335)
-            for n,row in og_df.iterrows():
+            for n,row in alt_df.iterrows():
                 value = row.ask_volume-row.bid_volume
                 if row.contract_type == 'P':
                     color = 'blue'
@@ -402,7 +411,7 @@ def gex_to_ani(og_df,mp4_file):
             plt.grid(True)
 
             plt.subplot(336)
-            for n,row in og_df.iterrows():
+            for n,row in alt_df.iterrows():
                 value = row.size_signed
                 if row.contract_type == 'P':
                     color = 'blue'
