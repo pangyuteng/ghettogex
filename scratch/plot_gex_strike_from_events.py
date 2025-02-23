@@ -331,7 +331,7 @@ def gex_to_ani(og_df,mp4_file):
                 spot_price = np.nan
 
             png_file = os.path.join(work_dir,"pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
-            plg.figure(figsize=(20,20))
+            plt.figure(figsize=(20,20))
 
             plt.subplot(331)
             plt.plot(price_df.tstamp_sec,price_df.spot_price,color='blue',linewidth=0.5)
