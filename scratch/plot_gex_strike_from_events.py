@@ -202,18 +202,15 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         ok.volume = ok.volume.fillna(value=0)
         ok.bid_volume = ok.bid_volume.fillna(value=0)
         ok.ask_volume = ok.ask_volume.fillna(value=0)
-        ok['oi_timeandsale'] = ok.size_signed
-
-        # TODO: maybe plot oi_bavolume or oi_volume to see what going on.
-        ok['oi_volume'] = ok.volume
-        ok['oi_bavolume'] = ok.ask_volume-ok.bid_volume
 
         try:
             init_oi = np.float32(ok.open_interest.to_list()[-1])
         except:
-            init_oi = 0
+            traceback.print_exc()
+            init_oi = 0.0
 
-        ok.oi_volume = ok.oi_volume.cumsum().astype(float)+init_oi
+        ok['init_oi'] = init_oi # prior day open_interest
+        ok.oi_volume = ok.oi_volume.cumsum().astype(float) + init_oi
         ok['gex_naive'] = ok.gamma * ok.oi_volume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
         # for gex_naive
         # assume market maker long call, short put for prior day open_intererst and intraday volume .
@@ -222,12 +219,20 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
 
         # compute GEX with DDOI with timeandsell events.
         prior_timeandsale_df = gby_timeandsale_df[(gby_timeandsale_df.event_symbol==event_symbol)&(gby_timeandsale_df.tstamp_sec<day_stamp)]
-        prior_ddoi = np.float32(prior_timeandsale_df.size_signed.sum())
-        print(ok.oi_timeandsale.sum(),len(prior_timeandsale_df),len(ts))
-        ok.oi_timeandsale = ok.oi_timeandsale.cumsum().astype(float)+prior_ddoi
+        try:
+            prior_ddoi = np.float32(prior_timeandsale_df.size_signed.sum())
+        except:
+            traceback.print_exc()
+            prior_ddoi = 0
+
+        ok['prior_ddoi'] = prior_ddoi # prior day ddoi
+        ok['oi_timeandsale'] = ok.size_signed.cumsum().astype(float) + prior_ddoi
         ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01
 
+        print(init_oi,prior_ddoi,ok.oi_timeandsale.sum(),len(prior_timeandsale_df),len(ts))
+        
         mylist.append(ok.copy(deep=True))
+
     foodf = pd.concat(mylist)
 
     if persist_to_postgres:
@@ -286,14 +291,15 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
     print(etime-stime)
     return foodf
 
-def gex_to_ani(df,mp4_file):
+def gex_to_ani(og_df,mp4_file):
 
     png_file_list = sorted([str(x) for x in pathlib.Path("tmp/pngs").rglob("*.png")])
 
+    df = og_df.copy(deep=True)
     if len(png_file_list) == 0:
 
-        tstamp_list = sorted(list(df.tstamp_sec.unique()))[::15]
-        
+        tstamp_list = sorted(list(df.tstamp_sec.unique()))[::60]
+
         table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_naive','spot_price','oi_timeandsale']
         df = df[table_cols]
         df = df.groupby(['ticker','strike','tstamp_sec']).agg(
@@ -325,14 +331,15 @@ def gex_to_ani(df,mp4_file):
                 spot_price = np.nan
 
             png_file = os.path.join(work_dir,"pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
+            plg.figure(figsize=(20,20))
 
-            plt.subplot(131)
+            plt.subplot(331)
             plt.plot(price_df.tstamp_sec,price_df.spot_price,color='blue',linewidth=0.5)
             plt.scatter(tstamp,spot_price,color='red',linewidth=2)
             plt.grid(True)
             plt.ylim(spot_min,spot_max)
 
-            plt.subplot(132)
+            plt.subplot(332)
             for n,row in tmpdf.iterrows():
 
                 if row.gex_timeandsale > 0:
@@ -349,7 +356,7 @@ def gex_to_ani(df,mp4_file):
             plt.ylim(spot_min,spot_max)
             plt.xlim(-gex_lim,gex_lim)
 
-            plt.subplot(133)
+            plt.subplot(333)
             for n,row in tmpdf.iterrows():
 
                 if row.gex_naive > 0:
@@ -365,6 +372,49 @@ def gex_to_ani(df,mp4_file):
             plt.title(f"ticker: {ticker} price {spot_price:1.2f}\n{tstamp}")
             plt.ylim(spot_min,spot_max)
             plt.xlim(-alt_gex_lim,alt_gex_lim)
+
+            # TODO: maybe plot oi_bavolume or oi_volume to see what going on.
+            plt.subplot(334)
+            for n,row in tmpdf.iterrows():
+                value = row.volume
+                if row.contract_type == 'P':
+                    color = 'blue'
+                else:
+                    color = 'orange'
+                plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
+            plt.axhline(spot_price,color='blue',linestyle='--')
+            plt.ylabel("strike")
+            plt.xlabel("volume")
+            plt.grid(True)
+
+            plt.subplot(335)
+            for n,row in tmpdf.iterrows():
+                value = row.ask_volume-row.bid_volume
+                if row.contract_type == 'P':
+                    color = 'blue'
+                else:
+                    color = 'orange'
+                plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
+
+            plt.axhline(spot_price,color='blue',linestyle='--')
+            plt.ylabel("strike")
+            plt.xlabel("bid_ask_volume")
+            plt.grid(True)
+
+            plt.subplot(336)
+            for n,row in tmpdf.iterrows():
+                value = row.size_signed
+                if row.contract_type == 'P':
+                    color = 'blue'
+                else:
+                    color = 'orange'
+                plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
+
+            plt.axhline(spot_price,color='blue',linestyle='--')
+            plt.ylabel("strike")
+            plt.xlabel("size_signed")
+            plt.grid(True)
+
             plt.show()
             plt.savefig(png_file)
             plt.close()
