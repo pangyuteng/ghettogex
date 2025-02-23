@@ -306,7 +306,6 @@ def gex_to_ani(df,mp4_file):
             bid_volume=pd.NamedAgg(column="bid_volume", aggfunc="sum"),
             ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="sum"),
             size_signed=pd.NamedAgg(column="size_signed", aggfunc="sum"),
-            
         ).reset_index()
 
         table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_naive','spot_price','oi_timeandsale']
@@ -392,7 +391,9 @@ def gex_to_ani(df,mp4_file):
                 else:
                     color = 'orange'
                 plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
+
             plt.axhline(spot_price,color='blue',linestyle='--')
+            plt.ylim(spot_min,spot_max)
             plt.ylabel("strike")
             plt.xlabel("volume")
             plt.grid(True)
@@ -407,6 +408,7 @@ def gex_to_ani(df,mp4_file):
                 plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
 
             plt.axhline(spot_price,color='blue',linestyle='--')
+            plt.ylim(spot_min,spot_max)
             plt.ylabel("strike")
             plt.xlabel("bid_ask_volume")
             plt.grid(True)
@@ -421,6 +423,7 @@ def gex_to_ani(df,mp4_file):
                 plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
 
             plt.axhline(spot_price,color='blue',linestyle='--')
+            plt.ylim(spot_min,spot_max)
             plt.ylabel("strike")
             plt.xlabel("size_signed")
             plt.grid(True)
