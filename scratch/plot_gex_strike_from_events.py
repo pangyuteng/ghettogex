@@ -391,7 +391,6 @@ def gex_to_ani(df,mp4_file):
                     color = 'blue'
                 else:
                     color = 'orange'
-                print(row.strike,volume)
                 plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.ylabel("strike")
@@ -405,7 +404,6 @@ def gex_to_ani(df,mp4_file):
                     color = 'blue'
                 else:
                     color = 'orange'
-                print(row.strike,volume)
                 plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
 
             plt.axhline(spot_price,color='blue',linestyle='--')
@@ -420,7 +418,6 @@ def gex_to_ani(df,mp4_file):
                     color = 'blue'
                 else:
                     color = 'orange'
-                print(row.strike,volume)
                 plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
 
             plt.axhline(spot_price,color='blue',linestyle='--')
