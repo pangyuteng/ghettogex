@@ -375,7 +375,7 @@ def gex_to_ani(og_df,mp4_file):
 
             # TODO: maybe plot oi_bavolume or oi_volume to see what going on.
             plt.subplot(334)
-            for n,row in tmpdf.iterrows():
+            for n,row in og_df.iterrows():
                 value = row.volume
                 if row.contract_type == 'P':
                     color = 'blue'
@@ -388,7 +388,7 @@ def gex_to_ani(og_df,mp4_file):
             plt.grid(True)
 
             plt.subplot(335)
-            for n,row in tmpdf.iterrows():
+            for n,row in og_df.iterrows():
                 value = row.ask_volume-row.bid_volume
                 if row.contract_type == 'P':
                     color = 'blue'
@@ -402,7 +402,7 @@ def gex_to_ani(og_df,mp4_file):
             plt.grid(True)
 
             plt.subplot(336)
-            for n,row in tmpdf.iterrows():
+            for n,row in og_df.iterrows():
                 value = row.size_signed
                 if row.contract_type == 'P':
                     color = 'blue'
