@@ -210,12 +210,11 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
             init_oi = 0.0
 
         ok['init_oi'] = init_oi # prior day open_interest
-        ok.oi_volume = ok.oi_volume.cumsum().astype(float) + init_oi
-        ok['gex_naive'] = ok.gamma * ok.oi_volume * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
+        ok['volume_oi'] = ok.volume.cumsum().astype(float) + init_oi
+        ok['gex_naive'] = ok.gamma * ok.volume_oi * 100 * ok.spot_price * ok.spot_price * 0.01 * ok.contract_type_int
         # for gex_naive
         # assume market maker long call, short put for prior day open_intererst and intraday volume .
         # which is absolutely wrong...
-        # TODO: while wrong, maybe plot gex_naive to see what going on.
 
         # compute GEX with DDOI with timeandsell events.
         prior_timeandsale_df = gby_timeandsale_df[(gby_timeandsale_df.event_symbol==event_symbol)&(gby_timeandsale_df.tstamp_sec<day_stamp)]
@@ -229,6 +228,12 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
         ok['timeandsale_oi'] = ok.size_signed.cumsum().astype(float) + prior_ddoi
         ok['gex_timeandsale'] = ok.gamma * ok.timeandsale_oi * 100 * ok.spot_price * ok.spot_price * 0.01
 
+        # TODO: while wrong, maybe plot gex_naive to see what going on.
+        # also plt cumsum volume,bid ask
+        ok['volume_cumsum'] = ok.volume.cumsum()
+        ok['bid_volume_cumsum'] = ok.bid_volume.cumsum()
+        ok['ask_volume_cumsum'] = ok.ask_volume.cumsum()
+        ok['size_signed_cumsum'] = ok.size_signed.cumsum()
         print(init_oi,prior_ddoi,ok.timeandsale_oi.sum(),len(prior_timeandsale_df),len(ts))
         
         mylist.append(ok.copy(deep=True))
@@ -299,13 +304,13 @@ def gex_to_ani(df,mp4_file):
 
         tstamp_list = sorted(list(df.tstamp_sec.unique()))[::60]
 
-        table_cols = ['ticker','contract_type','strike','tstamp_sec','volume','bid_volume','ask_volume','size_signed']
+        table_cols = ['ticker','contract_type','strike','tstamp_sec','volume_cumsum','bid_volume_cumsum','ask_volume_cumsum','size_signed_cumsum']
         alt_df = df[table_cols].copy(deep=True)
         alt_df = alt_df.groupby(['ticker','contract_type','strike','tstamp_sec']).agg(
-            volume=pd.NamedAgg(column="volume", aggfunc="cumsum"),
-            bid_volume=pd.NamedAgg(column="bid_volume", aggfunc="cumsum"),
-            ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="cumsum"),
-            size_signed=pd.NamedAgg(column="size_signed", aggfunc="cumsum"),
+            volume_cumsum=pd.NamedAgg(column="volume_cumsum", aggfunc="sum"),
+            bid_volume_cumsum=pd.NamedAgg(column="bid_volume_cumsum", aggfunc="sum"),
+            ask_volume_cumsum=pd.NamedAgg(column="ask_volume_cumsum", aggfunc="sum"),
+            size_signed_cumsum=pd.NamedAgg(column="size_signed_cumsum", aggfunc="sum"),
         ).reset_index()
 
         table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_naive','spot_price']
@@ -381,10 +386,11 @@ def gex_to_ani(df,mp4_file):
             plt.ylim(spot_min,spot_max)
             plt.xlim(-alt_gex_lim,alt_gex_lim)
 
+
             # TODO: maybe plot oi_bavolume or oi_volume to see what going on.
             plt.subplot(334)
             for n,row in tmp_alt_df.iterrows():
-                value = row.volume
+                value = row.volume_cumsum
                 if row.contract_type == 'P':
                     color = 'blue'
                 else:
@@ -394,12 +400,12 @@ def gex_to_ani(df,mp4_file):
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.ylim(spot_min,spot_max)
             plt.ylabel("strike")
-            plt.xlabel("cumsum volume")
+            plt.xlabel("volume_cumsum")
             plt.grid(True)
 
             plt.subplot(335)
             for n,row in tmp_alt_df.iterrows():
-                value = row.ask_volume-row.bid_volume
+                value = row.ask_volume_cumsum-row.bid_volume_cumsum
                 if row.contract_type == 'P':
                     color = 'blue'
                 else:
@@ -409,12 +415,12 @@ def gex_to_ani(df,mp4_file):
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.ylim(spot_min,spot_max)
             plt.ylabel("strike")
-            plt.xlabel("cumsum bid_ask_volume")
+            plt.xlabel("bid_ask_volume_cumsum")
             plt.grid(True)
 
             plt.subplot(336)
             for n,row in tmp_alt_df.iterrows():
-                value = row.size_signed
+                value = row.size_signed_cumsum
                 if row.contract_type == 'P':
                     color = 'blue'
                 else:
@@ -424,7 +430,7 @@ def gex_to_ani(df,mp4_file):
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.ylim(spot_min,spot_max)
             plt.ylabel("strike")
-            plt.xlabel("cumsum size_signed")
+            plt.xlabel("size_signed_cumsum")
             plt.grid(True)
 
             plt.show()
