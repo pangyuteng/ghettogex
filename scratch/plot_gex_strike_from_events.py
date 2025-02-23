@@ -332,11 +332,11 @@ def gex_to_ani(df,mp4_file):
         price_df = df[['tstamp_sec','spot_price']].drop_duplicates()
         for tstamp in tqdm(tstamp_list):
 
-            tmpdf = df[df.tstamp_sec==tstamp].reset_index()
+            tmp_df = df[df.tstamp_sec==tstamp].reset_index()
             tmp_alt_df = alt_df[alt_df.tstamp_sec==tstamp].reset_index()
 
             try:
-                spot_price = tmpdf.spot_price.to_list()[-1]
+                spot_price = tmp_df.spot_price.to_list()[-1]
             except:
                 spot_price = np.nan
 
@@ -350,7 +350,7 @@ def gex_to_ani(df,mp4_file):
             plt.ylim(spot_min,spot_max)
 
             plt.subplot(332)
-            for n,row in tmpdf.iterrows():
+            for n,row in tmp_df.iterrows():
 
                 if row.gex_timeandsale > 0:
                     color = 'green'
@@ -367,7 +367,7 @@ def gex_to_ani(df,mp4_file):
             plt.xlim(-gex_lim,gex_lim)
 
             plt.subplot(333)
-            for n,row in tmpdf.iterrows():
+            for n,row in tmp_df.iterrows():
 
                 if row.gex_naive > 0:
                     color = 'green'
