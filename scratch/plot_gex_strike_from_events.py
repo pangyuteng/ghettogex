@@ -226,10 +226,10 @@ def cache_data(ticker,day_stamp,persist_to_postgres=True):
             prior_ddoi = 0
 
         ok['prior_ddoi'] = prior_ddoi # prior day ddoi
-        ok['oi_timeandsale'] = ok.size_signed.cumsum().astype(float) + prior_ddoi
-        ok['gex_timeandsale'] = ok.gamma * ok.oi_timeandsale * 100 * ok.spot_price * ok.spot_price * 0.01
+        ok['timeandsale_oi'] = ok.size_signed.cumsum().astype(float) + prior_ddoi
+        ok['gex_timeandsale'] = ok.gamma * ok.timeandsale_oi * 100 * ok.spot_price * ok.spot_price * 0.01
 
-        print(init_oi,prior_ddoi,ok.oi_timeandsale.sum(),len(prior_timeandsale_df),len(ts))
+        print(init_oi,prior_ddoi,ok.timeandsale_oi.sum(),len(prior_timeandsale_df),len(ts))
         
         mylist.append(ok.copy(deep=True))
 
@@ -302,19 +302,18 @@ def gex_to_ani(df,mp4_file):
         table_cols = ['ticker','contract_type','strike','tstamp_sec','volume','bid_volume','ask_volume','size_signed']
         alt_df = df[table_cols].copy(deep=True)
         alt_df = alt_df.groupby(['ticker','contract_type','strike','tstamp_sec']).agg(
-            volume=pd.NamedAgg(column="volume", aggfunc="sum"),
-            bid_volume=pd.NamedAgg(column="bid_volume", aggfunc="sum"),
-            ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="sum"),
-            size_signed=pd.NamedAgg(column="size_signed", aggfunc="sum"),
+            volume=pd.NamedAgg(column="volume", aggfunc="cumsum"),
+            bid_volume=pd.NamedAgg(column="bid_volume", aggfunc="cumsum"),
+            ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="cumsum"),
+            size_signed=pd.NamedAgg(column="size_signed", aggfunc="cumsum"),
         ).reset_index()
 
-        table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_naive','spot_price','oi_timeandsale']
+        table_cols = ['ticker','strike','tstamp_sec','gex_timeandsale','gex_naive','spot_price']
         df = df[table_cols].copy(deep=True)
         df = df.groupby(['ticker','strike','tstamp_sec']).agg(
             gex_timeandsale=pd.NamedAgg(column="gex_timeandsale", aggfunc="sum"), #????
             gex_naive=pd.NamedAgg(column="gex_naive", aggfunc="sum"),
             spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
-            oi_timeandsale=pd.NamedAgg(column="oi_timeandsale", aggfunc="sum"),
         ).reset_index()
         df.gex_timeandsale = df.gex_timeandsale/1e9
         df.gex_naive = df.gex_naive/1e9
@@ -340,7 +339,7 @@ def gex_to_ani(df,mp4_file):
                 spot_price = np.nan
 
             png_file = os.path.join(work_dir,"pngs",f"gex-{ticker}-{tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.png")
-            plt.figure(figsize=(20,20))
+            plt.figure()
 
             plt.subplot(331)
             plt.plot(price_df.tstamp_sec,price_df.spot_price,color='blue',linewidth=0.5)
@@ -395,7 +394,7 @@ def gex_to_ani(df,mp4_file):
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.ylim(spot_min,spot_max)
             plt.ylabel("strike")
-            plt.xlabel("volume")
+            plt.xlabel("cumsum volume")
             plt.grid(True)
 
             plt.subplot(335)
@@ -410,7 +409,7 @@ def gex_to_ani(df,mp4_file):
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.ylim(spot_min,spot_max)
             plt.ylabel("strike")
-            plt.xlabel("bid_ask_volume")
+            plt.xlabel("cumsum bid_ask_volume")
             plt.grid(True)
 
             plt.subplot(336)
@@ -425,7 +424,7 @@ def gex_to_ani(df,mp4_file):
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.ylim(spot_min,spot_max)
             plt.ylabel("strike")
-            plt.xlabel("size_signed")
+            plt.xlabel("cumsum size_signed")
             plt.grid(True)
 
             plt.show()
