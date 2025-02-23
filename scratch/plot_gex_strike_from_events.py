@@ -333,6 +333,7 @@ def gex_to_ani(df,mp4_file):
         for tstamp in tqdm(tstamp_list):
 
             tmpdf = df[df.tstamp_sec==tstamp].reset_index()
+            tmp_alt_df = alt_df[alt_df.tstamp_sec==tstamp].reset_index()
 
             try:
                 spot_price = tmpdf.spot_price.to_list()[-1]
@@ -384,12 +385,13 @@ def gex_to_ani(df,mp4_file):
 
             # TODO: maybe plot oi_bavolume or oi_volume to see what going on.
             plt.subplot(334)
-            for n,row in alt_df.iterrows():
+            for n,row in tmp_alt_df.iterrows():
                 value = row.volume
                 if row.contract_type == 'P':
                     color = 'blue'
                 else:
                     color = 'orange'
+                print(row.strike,volume)
                 plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
             plt.axhline(spot_price,color='blue',linestyle='--')
             plt.ylabel("strike")
@@ -397,12 +399,13 @@ def gex_to_ani(df,mp4_file):
             plt.grid(True)
 
             plt.subplot(335)
-            for n,row in alt_df.iterrows():
+            for n,row in tmp_alt_df.iterrows():
                 value = row.ask_volume-row.bid_volume
                 if row.contract_type == 'P':
                     color = 'blue'
                 else:
                     color = 'orange'
+                print(row.strike,volume)
                 plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
 
             plt.axhline(spot_price,color='blue',linestyle='--')
@@ -411,12 +414,13 @@ def gex_to_ani(df,mp4_file):
             plt.grid(True)
 
             plt.subplot(336)
-            for n,row in alt_df.iterrows():
+            for n,row in tmp_alt_df.iterrows():
                 value = row.size_signed
                 if row.contract_type == 'P':
                     color = 'blue'
                 else:
                     color = 'orange'
+                print(row.strike,volume)
                 plt.plot([0,value],[row.strike,row.strike],color=color,linestyle='-',linewidth=2)
 
             plt.axhline(spot_price,color='blue',linestyle='--')
