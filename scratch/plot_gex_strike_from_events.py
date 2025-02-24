@@ -22,14 +22,15 @@ work_dir = 'tmp'
 # https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457225774/MDP+3.0+-+Trade+Summary+Order+Level+Detail
 # 
 #
-# TODO: makes no sense
-# aggressor_side BUY, means market maker is short, sign should be negative!
-# 
+# aggressor_side BUY, means market maker is short, sign should be negative?
+#
+#!!!!!!!!!!!!!!!!!!!!1 # For put option we assume negative gamma, i.e. dealers sell puts and buy calls
+#  gby_summary_df['contract_type_int'] = gby_summary_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
 def get_size_signed(row):
     if row.aggressor_side == 'BUY':
-        return -1*row['size']
-    elif row.aggressor_side == 'SELL':
         return row['size']
+    elif row.aggressor_side == 'SELL':
+        return -1*row['size']
     else:
         # TODO: hau voaltility 2021, need to decide buy/sell
         # via order book history or difference from theoretical price via orderchain iv.
