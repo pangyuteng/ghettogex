@@ -231,10 +231,10 @@ class LivePrices:
         asyncio.gather(*self.task_list)
 
         # wait we have quotes and greeks for each option
-        while len(self.candle) < 1 or len(self.quote) < 1:
+        while len(self.candle) < 1:
             await asyncio.sleep(0.1)
         if expiration is not None:
-            while len(self.greeks) < 1 or len(self.summary) < 1:
+            while len(self.quote) < 1 or len(self.greeks) < 1 or len(self.summary) < 1:
                 await asyncio.sleep(0.1)
         return self
 
@@ -340,8 +340,8 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
 
                 # print quotes
                 if len(live_prices_list)>0:
-                    tmp_quote = live_prices_list[0].quote[ticker]
-                    logger.info(f"Current quote: {tmp_quote}")
+                    tmp_candle = live_prices_list[0].candle[ticker]
+                    logger.info(f"Current candle: {tmp_candle}")
 
                 pathlib.Path(running_file).touch()
                 await asyncio.sleep(5)
