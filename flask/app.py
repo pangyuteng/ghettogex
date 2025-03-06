@@ -364,11 +364,12 @@ async def ws_gex_sample():
                 latest_df = query_dict["strike"]["df"]
                 max_gex = latest_df.at[latest_df.true_gex.argmax(),'strike']
                 min_gex = latest_df.at[latest_df.true_gex.argmin(),'strike']
+                xlim = latest_df.true_gex.abs().max()*1.5
             except:
                 latest_df = pd.DataFrame([])
                 max_gex = 100
                 min_gex = -100
-            xlim = latest_df.true_gex.abs().max()*1.5
+                xlim = 999
 
             data_str = render_html("ws-sample-gex.html",
                 ticker=ticker,
