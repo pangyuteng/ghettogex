@@ -71,8 +71,13 @@ class GexService(object):
 
         for pq_file in self.pq_file_list:
             df = pd.read_parquet(pq_file)
-            print(pq_file,df.shape)
-
+            # typically trading hr
+            # ET: 9:30 to 16:00
+            # UTC: 13:30 to 20:00
+            print(pq_file)
+            print(len(df.tstamp_sec.unique()),df.tstamp_sec.min(),df.tstamp_sec.max())
+            print('--')
+            #sys.exit(1)
         # day_stamp
         # df = pd.read_parquet(PQ_FILE)
         if self.ticker == 'SPX':
@@ -83,7 +88,6 @@ class GexService(object):
             pass
         else:
             pass
-
 
     def get_gex_total(self,tstamp):
         df = get_gex_detailed(tstamp)
