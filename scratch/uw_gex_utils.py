@@ -42,15 +42,27 @@ class GexService(object):
                 csv_file = os.path.basename(zip_file).replace(".zip",".csv")
                 with archive.open(csv_file) as f:
                     df = pd.read_csv(f,low_memory=False)
-                    df = df[df.underlying_symbol==self.ticker]
+                    if self.ticker == 'SPX':
+                        df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="SPXW")]
+                    elif self.ticker == 'NDX':
+                        df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="NDXP")]
+                    else:
+                        df = df[df.underlying_symbol==self.ticker]
                     df['tstamp'] = df.executed_at.apply(lambda x: format_stamp(x))
                     df['tstamp_sec'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
-
                     df.to_parquet(pq_file,compression='gzip')
 
         # every day. get 
         #SPX,SPXW
         #NDX,NDXP
+        # df = pd.read_parquet(PQ_FILE)
+        # for each tstamp
+        #   get underlying price
+        #   for each symbol
+        #     obtain oi
+        #     compute theoretical gamma.
+        #     
+
         if self.ticker == 'SPX':
             # SPX SPXW
             pass
