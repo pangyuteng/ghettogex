@@ -21,48 +21,60 @@ class GexService(object):
     def __init__(self,ticker):
         self.ticker = ticker
         self.zip_file_list = None
+        self.pq_file_list = None
 
     def _prepare(self):
         # save option flow parquet file.
         self.zip_file_list = sorted(str(x) for x in pathlib.Path(BOT_EOD_ROOT).rglob("*.zip"))
-
         with tempfile.TemporaryDirectory() as tmpdir:
-            mylist = []
             for zip_file in tqdm(self.zip_file_list):
-                
                 tstamp_from_file = os.path.basename(zip_file).replace("bot-eod-report-","").replace(".zip","")
                 pq_file = os.path.join(CACHE_FOLDER,self.ticker,f"{tstamp_from_file}.parquet.gzip")
                 os.makedirs(os.path.dirname(pq_file),exist_ok=True)
-                print(pq_file)
-                print('reading',zip_file)
+                if not os.path.exists(pq_file):
+                    print(pq_file)
+                    print('reading',zip_file)
+                    archive = zipfile.ZipFile(zip_file, 'r')
+                    csv_file = os.path.basename(zip_file).replace(".zip",".csv")
+                    with archive.open(csv_file) as f:
+                        df = pd.read_csv(f,low_memory=False)
+                        if self.ticker == 'SPX':
+                            df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="SPXW")]
+                        elif self.ticker == 'NDX':
+                            df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="NDXP")]
+                        else:
+                            df = df[df.underlying_symbol==self.ticker]
+                        df['tstamp'] = df.executed_at.apply(lambda x: format_stamp(x))
+                        df['tstamp_sec'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
+                        df.to_parquet(pq_file,compression='gzip')
+        
+        
+        self.pq_file_list = sorted(str(x) for x in pathlib.Path(os.path.join(CACHE_FOLDER,self.ticker)).rglob("*.gzip"))
+        print(self.pq_file_list)
 
-
-
-                archive = zipfile.ZipFile(zip_file, 'r')
-                csv_file = os.path.basename(zip_file).replace(".zip",".csv")
-                with archive.open(csv_file) as f:
-                    df = pd.read_csv(f,low_memory=False)
-                    if self.ticker == 'SPX':
-                        df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="SPXW")]
-                    elif self.ticker == 'NDX':
-                        df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="NDXP")]
-                    else:
-                        df = df[df.underlying_symbol==self.ticker]
-                    df['tstamp'] = df.executed_at.apply(lambda x: format_stamp(x))
-                    df['tstamp_sec'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
-                    df.to_parquet(pq_file,compression='gzip')
-
-        # every day. get 
         #SPX,SPXW
         #NDX,NDXP
-        # df = pd.read_parquet(PQ_FILE)
-        # for each tstamp
-        #   get underlying price
-        #   for each symbol
-        #     obtain oi
-        #     compute theoretical gamma.
-        #     
 
+        # TODO: fix underlying_price for SPX,NDX
+        
+        # get list of contract relevant contract.
+        # cumsum directional oi
+        # for each second
+        #  get estimated underlying price
+        #  (from uw, use percentage change from SPY, alternatively compute from theoretical)
+        #  get oi per contract.
+        #  get gamm (from uw, alternatively compute from theoretical)
+        #  gex per strike with gamma from 
+        # 
+
+    def get_gex_detailed(day_stamp,lookfoward_days):
+        _prepare()
+        # day_stamp: is the day we will compute gex per strike per second
+        # using expiration betwen day_stamp to day_stamp+lookfoward_days
+        
+
+        # day_stamp
+        # df = pd.read_parquet(PQ_FILE)
         if self.ticker == 'SPX':
             # SPX SPXW
             pass
@@ -72,9 +84,7 @@ class GexService(object):
         else:
             pass
 
-    def get_gex_detailed(tstamp):
-        _process()
-        pass
+
     def get_gex_total(self,tstamp):
         df = get_gex_detailed(tstamp)
         return df.gex.sum()
@@ -90,7 +100,7 @@ if __name__ == "__main__":
 util to get gex from UW option flow data zip file.
 
 docker run -it -u $(id -u):$(id -g) -w $PWD -v /mnt:/mnt -p 8888:8888 fi-notebook:latest bash
-
+python uw_gex_utils.py SPY
 python uw_gex_utils.py SPX
 
 """
