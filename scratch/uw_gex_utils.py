@@ -68,18 +68,28 @@ class GexService(object):
 
         # day_stamp: is the day we will compute gex per strike per second
         # using expiration betwen day_stamp to day_stamp+lookfoward_days
-
+        
+        expiration_list = []
+        mylist = []
         for pq_file in self.pq_file_list:
             df = pd.read_parquet(pq_file)
-            # typically trading hr
-            # ET: 9:30 to 16:00
-            # UTC: 13:30 to 20:00
-            # totals to 23400 seconds for full trading day 6.5*60*60 
-            print(pq_file)
-            print(len(df.tstamp_sec.unique()),df.tstamp_sec.min(),df.tstamp_sec.max())
-            # assert(24000)
-            print('--')
-            sys.exit(1)
+            df = df[df.expiry.apply(lambda x: x in expiration_list)]
+            mylist.append(df)
+        all_df = pd.concat(mylist)
+        # get cumulative.
+        pass
+        # get the contract of interest
+        # based on strike,expiry,..
+
+        # typically trading hr
+        # ET: 9:30 to 16:00
+        # UTC: 13:30 to 20:00
+        # totals to 23400 seconds for full trading day 6.5*60*60 
+        print(pq_file)
+        print(len(df.tstamp_sec.unique()),df.tstamp_sec.min(),df.tstamp_sec.max())
+        # assert(24000)
+        print('--')
+        sys.exit(1)
         # day_stamp
         # df = pd.read_parquet(PQ_FILE)
         if self.ticker == 'SPX':
