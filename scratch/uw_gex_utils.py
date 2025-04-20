@@ -50,15 +50,14 @@ class GexService(object):
         
         
         self.pq_file_list = sorted(str(x) for x in pathlib.Path(os.path.join(CACHE_FOLDER,self.ticker)).rglob("*.gzip"))
-        print(self.pq_file_list)
 
         #SPX,SPXW
         #NDX,NDXP
 
-        # TODO: fix underlying_price for SPX,NDX
-        
+    def get_gex_detailed(self,day_stamp_str,lookfoward_days):
+        self._prepare()
         # get list of contract relevant contract.
-        # cumsum directional oi
+        # compute ddoi - dealer directional open interest.
         # for each second
         #  get estimated underlying price
         #  (from uw, use percentage change from SPY, alternatively compute from theoretical)
@@ -67,11 +66,12 @@ class GexService(object):
         #  gex per strike with gamma from 
         # 
 
-    def get_gex_detailed(day_stamp,lookfoward_days):
-        _prepare()
         # day_stamp: is the day we will compute gex per strike per second
         # using expiration betwen day_stamp to day_stamp+lookfoward_days
-        
+
+        for pq_file in self.pq_file_list:
+            df = pd.read_parquet(pq_file)
+            print(pq_file,df.shape)
 
         # day_stamp
         # df = pd.read_parquet(PQ_FILE)
@@ -92,7 +92,9 @@ class GexService(object):
 if __name__ == "__main__":
     ticker = sys.argv[1]
     gs = GexService(ticker)
-    gs._prepare()
+    day_stamp_str = "2025-04-10"
+    lookfoward_days = 90 # +90 days
+    gs.get_gex_detailed(day_stamp_str,lookfoward_days)
 
 
 """
