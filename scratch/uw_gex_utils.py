@@ -42,15 +42,7 @@ class GexService(object):
                 csv_file = os.path.basename(zip_file).replace(".zip",".csv")
                 with archive.open(csv_file) as f:
                     df = pd.read_csv(f,low_memory=False)
-                    if self.ticker == 'SPX':
-                        print(df.shape)
-                        df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="SPXW")]
-                        print(df.shape)
-                    elif self.ticker == 'NDX':
-                        df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="NDXP")]
-                    else:
-                        df = df[df.underlying_symbol==self.ticker]
-                    
+                    df = df[df.underlying_symbol==self.ticker]
                     df['tstamp'] = df.executed_at.apply(lambda x: format_stamp(x))
                     df['tstamp_sec'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
 
@@ -59,6 +51,14 @@ class GexService(object):
         # every day. get 
         #SPX,SPXW
         #NDX,NDXP
+        if self.ticker == 'SPX':
+            # SPX SPXW
+            pass
+        elif self.ticker == 'NDX':
+            # NDX NDXP
+            pass
+        else:
+            pass
 
     def get_gex_detailed(tstamp):
         _process()
