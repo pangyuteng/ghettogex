@@ -11,6 +11,12 @@ import pandas as pd
 BOT_EOD_ROOT = "/mnt/hd2/data/finance/bot-eod-zip"
 CACHE_FOLDER = "/mnt/hd1/data/uw-options-cache"
 
+def format_stamp(x):
+    if '.' in x:
+        return datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S.%f+00')
+    else:
+        return datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S+00')
+
 class GexService(object):
     def __init__(self,ticker):
         self.ticker = ticker
@@ -26,22 +32,25 @@ class GexService(object):
                 
                 tstamp_from_file = os.path.basename(zip_file).replace("bot-eod-report-","").replace(".zip","")
                 pq_file = os.path.join(CACHE_FOLDER,self.ticker,f"{tstamp_from_file}.parquet.gzip")
-
+                os.makedirs(os.path.dirname(pq_file),exist_ok=True)
                 print(pq_file)
                 print('reading',zip_file)
 
-                if self.ticker == 'SPX':
-                    symbol = 'SPXW'
-                elif self.ticker == 'NDX':
-                    symbol = 'NDXP'
-                else:
-                    symbol = self.ticker
+
 
                 archive = zipfile.ZipFile(zip_file, 'r')
                 csv_file = os.path.basename(zip_file).replace(".zip",".csv")
                 with archive.open(csv_file) as f:
                     df = pd.read_csv(f,low_memory=False)
-                    df = df[df.underlying_symbol==symbol]
+                    if self.ticker == 'SPX':
+                        print(df.shape)
+                        df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="SPXW")]
+                        print(df.shape)
+                    elif self.ticker == 'NDX':
+                        df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="NDXP")]
+                    else:
+                        df = df[df.underlying_symbol==self.ticker]
+                    
                     df['tstamp'] = df.executed_at.apply(lambda x: format_stamp(x))
                     df['tstamp_sec'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
 
@@ -68,7 +77,7 @@ if __name__ == "__main__":
 
 util to get gex from UW option flow data zip file.
 
-docker run -it -w $PWD -v /mnt:/mnt -p 8888:8888 fi-notebook:latest bash
+docker run -it -u $(id -u):$(id -g) -w $PWD -v /mnt:/mnt -p 8888:8888 fi-notebook:latest bash
 
 python uw_gex_utils.py SPX
 
