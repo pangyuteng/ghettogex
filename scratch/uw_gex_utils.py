@@ -74,10 +74,12 @@ class GexService(object):
             # typically trading hr
             # ET: 9:30 to 16:00
             # UTC: 13:30 to 20:00
+            # totals to 23400 seconds for full trading day 6.5*60*60 
             print(pq_file)
             print(len(df.tstamp_sec.unique()),df.tstamp_sec.min(),df.tstamp_sec.max())
+            # assert(24000)
             print('--')
-            #sys.exit(1)
+            sys.exit(1)
         # day_stamp
         # df = pd.read_parquet(PQ_FILE)
         if self.ticker == 'SPX':
