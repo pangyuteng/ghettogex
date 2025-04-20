@@ -10,3 +10,5 @@ oi.csv
 spot_price.csv
 greeks.csv
 gex_net.png
+.env
+session.json
