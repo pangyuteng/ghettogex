@@ -70,7 +70,8 @@ class GexService(object):
         day_stamp = datetime.datetime.strptime(day_stamp_str,'%Y-%m-%d').date()
         expiration_list = []
         for x in range(lookfoward_days):
-            expiration = day_stamp + datetime.timedelta(days=lookfoward_days)
+            expiration = day_stamp + datetime.timedelta(days=x)
+            expiration = expiration.strftime("%Y-%m-%d")
             expiration_list.append(expiration)
 
         print("day_stamp",day_stamp)
@@ -91,11 +92,11 @@ class GexService(object):
 
         
         mylist = []
-        for pq_file in tqdm(self.pq_file_list):
+        for pq_file in tqdm(self.pq_file_list[::-1]):
             df = pd.read_parquet(pq_file)
             df = df[df.expiry.apply(lambda x: x in expiration_list)]
+            print(df.shape,pq_file)
             mylist.append(df)
-
         all_df = pd.concat(mylist)
         print(all_df.shape)
         time.sleep(10)
@@ -133,7 +134,7 @@ class GexService(object):
 if __name__ == "__main__":
     ticker = sys.argv[1]
     gs = GexService(ticker)
-    day_stamp_str = "2025-04-10"
+    day_stamp_str = "2025-04-25"
     lookfoward_days = 5 # +90 days
     gs.get_gex_detailed(day_stamp_str,lookfoward_days)
 
