@@ -7,7 +7,7 @@ import tempfile
 import zipfile
 from tqdm import tqdm
 import pandas as pd
-
+import time
 BOT_EOD_ROOT = "/mnt/hd2/data/finance/bot-eod-zip"
 CACHE_FOLDER = "/mnt/hd1/data/uw-options-cache"
 
@@ -56,6 +56,26 @@ class GexService(object):
 
     def get_gex_detailed(self,day_stamp_str,lookfoward_days):
         self._prepare()
+        """
+        what you want ultimately want - higher to lower level
+            + net gex at each strike per second
+            + gex at each strike by put/call per second
+            + if ticker is SPX, then you need to get SPY price...
+            + ddoi, gamma per second, underlying price
+
+            # first get ddoi for each contract from all prior days.
+
+        """
+        
+        day_stamp = datetime.datetime.strptime(day_stamp_str,'%Y-%m-%d').date()
+        expiration_list = []
+        for x in range(lookfoward_days):
+            expiration = day_stamp + datetime.timedelta(days=lookfoward_days)
+            expiration_list.append(expiration)
+
+        print("day_stamp",day_stamp)
+        print("expiration_list",expiration_list)
+
         # get list of contract relevant contract.
         # compute ddoi - dealer directional open interest.
         # for each second
@@ -68,16 +88,21 @@ class GexService(object):
 
         # day_stamp: is the day we will compute gex per strike per second
         # using expiration betwen day_stamp to day_stamp+lookfoward_days
+
         
-        expiration_list = []
         mylist = []
-        for pq_file in self.pq_file_list:
+        for pq_file in tqdm(self.pq_file_list):
             df = pd.read_parquet(pq_file)
             df = df[df.expiry.apply(lambda x: x in expiration_list)]
             mylist.append(df)
+
         all_df = pd.concat(mylist)
+        print(all_df.shape)
+        time.sleep(10)
         # get cumulative.
-        pass
+
+        sys.exit(1)
+
         # get the contract of interest
         # based on strike,expiry,..
 
@@ -102,14 +127,14 @@ class GexService(object):
             pass
 
     def get_gex_total(self,tstamp):
-        df = get_gex_detailed(tstamp)
+        df = get_gex_detailed(tstamp,5)
         return df.gex.sum()
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
     gs = GexService(ticker)
     day_stamp_str = "2025-04-10"
-    lookfoward_days = 90 # +90 days
+    lookfoward_days = 5 # +90 days
     gs.get_gex_detailed(day_stamp_str,lookfoward_days)
 
 
