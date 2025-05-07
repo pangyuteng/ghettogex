@@ -105,7 +105,7 @@ class GexService(object):
         print(self.time_sec_list[0],self.time_sec_list[-1])
 
         # get order flow history
-        print('gathering oders...')
+        print('gathering orders...')
         zero_count = 0
         mylist = []
         for pq_file in tqdm(self.pq_file_list[::-1]):
@@ -188,18 +188,18 @@ class GexService(object):
             * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
 
         self.oi_df = oi_df
-        self.oi_df.to_csv('oi.csv',index=False)
+        self.oi_df.to_parquet('oi.parquet.gzip',compression='gzip')
         print('getting gex...')
         # get gex at each sec per contract.
         mylist = []
         for time_sec in tqdm(self.time_sec_list):
             for symbol in self.symbol_list:
-                tmp = self.oi_df[(self.oi_df.tstamp_sec<=time_sec)&(self.oi_df.tstamp_sec==symbol)]
+                tmp = self.oi_df[(self.oi_df.tstamp_sec<=time_sec)&(self.oi_df.option_chain_id==symbol)]
+                print(time_sec,symbol,tmp.shape)
                 if len(tmp)>0:
                     mydict = dict(tmp.iloc[-1,:])
                     print(mydict)
                     myrow = dict(
-                        expiration=mydict['expiration'],
                         strike=mydict['strike'],
                         underlying_price=mydict['underlying_price'],
                         option_type=mydict['option_type'],
@@ -207,16 +207,12 @@ class GexService(object):
                         gex=mydict['gex'],
                     )
                     mylist.append(myrow)
+
         gex_df = pd.DataFrame(mylist)
-        gex_df = gexdf.groupby(['expiration','strike']).agg(
+        gex_df = gexdf.groupby(['tstamp_sec','strike']).agg(
             gex=pd.NamedAgg(column="gex", aggfunc="sum"),
         ).reset_index()
-
-        # moidf.ddoi_gex = moidf.ddoi_gex/1e9
-        # gexdf = gexdf.groupby(['expiration','strike']).agg(
-        #     naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
-        #     ddoi_gex=pd.NamedAgg(column="ddoi_gex", aggfunc="sum"),
-        # ).reset_index()
+        gex_df.to_parquet('gex.parquet.gzip',compression='gzip')
 
     """
 
