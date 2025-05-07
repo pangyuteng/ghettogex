@@ -30,7 +30,10 @@ class GexService(object):
         self.time_sec_list = None
         self.symbol_list = None
         self.oi_df = None
-        
+        self.gex_df = None
+
+        self.oi_pq_file = 'oi.parquet.gzip'
+        self.gex_pq_file = 'gex.parquet.gzip'
 
     def _prepare(self):
         # save option flow parquet file.
@@ -65,6 +68,7 @@ class GexService(object):
         #NDX,NDXP
 
     def get_gex_detailed(self,day_stamp_str,lookfoward_days):
+
         self._prepare()
         """
         what you want ultimately want - higher to lower level
@@ -97,12 +101,6 @@ class GexService(object):
 
         if pq_file_index < 30:
             raise ValueError(f"Not enough data. pq_file_index {pq_file_index}!")
-
-        self.input_day_pq_file = self.pq_file_list[pq_file_index]
-        # get trading time seconds
-        self.input_day_df = pd.read_parquet(self.input_day_pq_file)
-        self.time_sec_list = pd.date_range(start=self.input_day_df.tstamp_sec.min(),end=self.input_day_df.tstamp_sec.max(),freq='s')
-        print(self.time_sec_list[0],self.time_sec_list[-1])
 
         # get order flow history
         print('gathering orders...')
@@ -188,17 +186,22 @@ class GexService(object):
             * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
 
         self.oi_df = oi_df
-        self.oi_df.to_parquet('oi.parquet.gzip',compression='gzip')
+        self.oi_df.to_parquet(self.oi_pq_file,compression='gzip')
         print('getting gex...')
+
+        self.input_day_pq_file = self.pq_file_list[pq_file_index]
+        # get trading time seconds
+        self.input_day_df = pd.read_parquet(self.input_day_pq_file)
+        self.time_sec_list = pd.date_range(start=self.input_day_df.tstamp_sec.min(),end=self.input_day_df.tstamp_sec.max(),freq='s')
+        print(self.time_sec_list[0],self.time_sec_list[-1])
+        
         # get gex at each sec per contract.
         mylist = []
         for time_sec in tqdm(self.time_sec_list):
             for symbol in self.symbol_list:
                 tmp = self.oi_df[(self.oi_df.tstamp_sec<=time_sec)&(self.oi_df.option_chain_id==symbol)]
-                print(time_sec,symbol,tmp.shape)
                 if len(tmp)>0:
                     mydict = dict(tmp.iloc[-1,:])
-                    print(mydict)
                     myrow = dict(
                         strike=mydict['strike'],
                         underlying_price=mydict['underlying_price'],
@@ -212,7 +215,9 @@ class GexService(object):
         gex_df = gexdf.groupby(['tstamp_sec','strike']).agg(
             gex=pd.NamedAgg(column="gex", aggfunc="sum"),
         ).reset_index()
-        gex_df.to_parquet('gex.parquet.gzip',compression='gzip')
+        self.gex_df = gex_df
+        self.gex_df.to_parquet(self.gex_pq_file,compression='gzip')
+        
 
     """
 
