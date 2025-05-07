@@ -143,10 +143,25 @@ class GexService(object):
             oi_list.append(tmp_oi)
         oi_df = pd.concat(oi_list)
         print(oi_df.shape)
-        #oi_df = oi_df.dropna()
-        print(oi_df.shape)
+        oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
+        oi_df = oi_df.reset_index()
+
+        # TODO: determine if contract_type_int necessary
+        oi_df['contract_type_int'] = oi_df.option_type.apply(lambda x: -1 if x == 'put' else 1)
+        oi_df['gex'] = \
+            oi_df.gamma * oi_df.oi * 100 \
+            * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
+
         self.oi_df = oi_df
         self.oi_df.to_csv('ok.csv',index=False)
+
+    """
+    index,executed_at,underlying_symbol,option_chain_id,side,strike,option_type,expiry,
+    underlying_price,nbbo_bid,nbbo_ask,ewma_nbbo_bid,ewma_nbbo_ask,price,size,premium,
+    volume,open_interest,implied_volatility,delta,theta,gamma,vega,rho,theo,
+    sector,exchange,report_flags,canceled,upstream_condition_detail,equity_type,
+    tstamp,tstamp_sec,size_signed,oi
+    """
 
     """
     Index(['executed_at', 'underlying_symbol', 'option_chain_id', 'side', 'strike',
