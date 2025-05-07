@@ -6,6 +6,7 @@ import pathlib
 import tempfile
 import zipfile
 from tqdm import tqdm
+import numpy as np
 import pandas as pd
 import time
 BOT_EOD_ROOT = "/mnt/hd2/data/finance/bot-eod-zip"
@@ -17,16 +18,31 @@ def format_stamp(x):
     else:
         return datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S+00')
 
+def get_size_signed(row,df):
+    if row.side == 'ask':
+        return row['size']
+    elif row.side == 'bid':
+        return -1*row['size']
+    else:
+        return 0
+
 class GexService(object):
     def __init__(self,ticker):
         self.ticker = ticker
         self.zip_file_list = None
         self.pq_file_list = None
 
+        self.input_day_pq_file = None
+        self.input_day_df = None
+        self.time_sec_list = None
+        self.orders_df = None
+        self.oi_df = None
+
     def _prepare(self):
         # save option flow parquet file.
         self.zip_file_list = sorted(str(x) for x in pathlib.Path(BOT_EOD_ROOT).rglob("*.zip"))
         with tempfile.TemporaryDirectory() as tmpdir:
+            # replace `tmpdir`` with `CACHE_FOLDER`
             for zip_file in tqdm(self.zip_file_list):
                 tstamp_from_file = os.path.basename(zip_file).replace("bot-eod-report-","").replace(".zip","")
                 pq_file = os.path.join(CACHE_FOLDER,self.ticker,f"{tstamp_from_file}.parquet.gzip")
@@ -77,6 +93,135 @@ class GexService(object):
         print("day_stamp",day_stamp)
         print("expiration_list",expiration_list)
 
+        # find zip file.
+        day_pq_file_basename = f'{day_stamp_str}.parquet.gzip'
+        try:
+            basename_pq_file_list = [os.path.basename(x) for x in self.pq_file_list]
+            pq_file_index = basename_pq_file_list.index(day_pq_file_basename)
+        except:
+            raise LookupError(f"pq_file not found given day_stamp_str {day_pq_file_basename}")
+
+        if pq_file_index < 30:
+            raise ValueError(f"Not enough data. pq_file_index {pq_file_index}!")
+
+        self.input_day_pq_file = self.pq_file_list[pq_file_index]
+        # get trading time seconds
+        self.input_day_df = pd.read_parquet(self.input_day_pq_file)
+        self.time_sec_list = pd.date_range(start=self.input_day_df.tstamp_sec.min(),end=self.input_day_df.tstamp_sec.max(),freq='s')
+        print(self.time_sec_list[0],self.time_sec_list[-1])
+
+        # get order flow history
+        zero_count = 0
+        mylist = []
+        for pq_file in tqdm(self.pq_file_list[::-1]):
+            df = pd.read_parquet(pq_file)
+            unq_price = df.underlying_price.unique()
+            df = df[df.expiry.apply(lambda x: x in expiration_list)]
+            mylist.append(df)
+            if len(df) == 0:
+                zero_count+=1
+            if zero_count > 10:
+                break
+        df = pd.concat(mylist)
+        df = df.sort_values(['option_chain_id','tstamp'])
+        df = df.reset_index()
+
+        df['size_signed'] = df.apply(lambda x: get_size_signed(x,df),axis=1)
+        self.orders_df = df
+
+        print(self.orders_df.shape)
+        print(self.orders_df.columns)
+
+        symbol_list = self.orders_df.option_chain_id.unique()
+        oi_list = []
+        for option_chain_id in symbol_list:
+            tmp_oi = df[df.option_chain_id==option_chain_id].copy()
+            init_oi = 0
+            print(option_chain_id,tmp_oi.shape)
+            tmp_oi['oi'] = tmp_oi.size_signed
+            tmp_oi.oi = tmp_oi.oi.cumsum().astype(float)+init_oi
+            oi_list.append(tmp_oi)
+        oi_df = pd.concat(oi_list)
+        print(oi_df.shape)
+        #oi_df = oi_df.dropna()
+        print(oi_df.shape)
+        self.oi_df = oi_df
+        self.oi_df.to_csv('ok.csv',index=False)
+
+    """
+    Index(['executed_at', 'underlying_symbol', 'option_chain_id', 'side', 'strike',
+       'option_type', 'expiry', 'underlying_price', 'nbbo_bid', 'nbbo_ask',
+       'ewma_nbbo_bid', 'ewma_nbbo_ask', 'price', 'size', 'premium', 'volume',
+       'open_interest', 'implied_volatility', 'delta', 'theta', 'gamma',        
+       'vega', 'rho', 'theo', 'sector', 'exchange', 'report_flags', 'canceled',
+       'upstream_condition_detail', 'equity_type', 'tstamp', 'tstamp_sec'],
+      dtype='object')
+
+    def compute_ddoi(self):
+
+        moidf['spot_price'] = spot_price
+        moidf['contract_type_int'] = moidf.option_type.apply(lambda x: -1 if x == 'P' else 1)
+        moidf['naive_gex'] = \
+            moidf.gamma * moidf.open_interest * 100 \
+            * moidf.spot_price * moidf.spot_price * 0.01 * moidf.contract_type_int
+
+        moidf['ddoi_gex'] = \
+            moidf.gamma * moidf.mod_oi * 100 \
+            * moidf.spot_price * moidf.spot_price * 0.01 * moidf.contract_type_int
+
+        moidf.naive_gex = moidf.naive_gex/1e9
+        moidf.ddoi_gex = moidf.ddoi_gex/1e9
+
+        assert(len(moidf.expiration.unique())==1)
+        assert(len(moidf.strike.unique())*2==len(moidf))
+        cols = ['expiration','strike','naive_gex','ref_ddoi_gex','ddoi_gex']
+        gexdf = moidf[cols]
+        gexdf = gexdf.groupby(['expiration','strike']).agg(
+            naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
+            ddoi_gex=pd.NamedAgg(column="ddoi_gex", aggfunc="sum"),
+        ).reset_index()
+    """
+    def todos(self):
+        sys.exit(1)
+        # TODO: update estimate price
+        if self.ticker == "SPX":
+            # determine if underlying_price is legit
+            underlying_price_requires_recompute = False
+            if underlying_price_requires_recompute is False:
+                pass
+        elif self.ticker == "NDX":
+            raise NotImplementedError()
+        else:
+            pass
+        
+        # determine ranges for time, strikes
+
+        # ??? index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
+        # time,expriation,strike,contract_type,underyling_price,gamma,
+
+        #df = df.resample('7s').first()
+        #df = df.resample(rule='1s')
+        
+        # group by contract id.
+        # cumsum? drop_duplicates()
+        # then resample 
+
+        strike_df = None
+        ddoi_gex_df = None
+
+
+
+        #sys.exit(1)
+        #     
+        #     self.alt_inst = GexService("SPY")
+        #     self.alt_inst._prepare()
+
+        #tstamp_sec
+        #time_sec_list
+        #df = pd.DataFrame(dict(A=[1, 1, 3], B=[5, None, 6], C=[1, 2, 3]))
+        #df.groupby("A").last()
+
+        
         # get list of contract relevant contract.
         # compute ddoi - dealer directional open interest.
         # for each second
@@ -90,19 +235,6 @@ class GexService(object):
         # day_stamp: is the day we will compute gex per strike per second
         # using expiration betwen day_stamp to day_stamp+lookfoward_days
 
-        
-        mylist = []
-        for pq_file in tqdm(self.pq_file_list[::-1]):
-            df = pd.read_parquet(pq_file)
-            df = df[df.expiry.apply(lambda x: x in expiration_list)]
-            print(df.shape,pq_file)
-            mylist.append(df)
-        all_df = pd.concat(mylist)
-        print(all_df.shape)
-        time.sleep(10)
-        # get cumulative.
-
-        sys.exit(1)
 
         # get the contract of interest
         # based on strike,expiry,..
@@ -111,7 +243,7 @@ class GexService(object):
         # ET: 9:30 to 16:00
         # UTC: 13:30 to 20:00
         # totals to 23400 seconds for full trading day 6.5*60*60 
-        print(pq_file)
+
         print(len(df.tstamp_sec.unique()),df.tstamp_sec.min(),df.tstamp_sec.max())
         # assert(24000)
         print('--')
@@ -133,8 +265,8 @@ class GexService(object):
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
+    day_stamp_str = sys.argv[2] # "2025-04-25"
     gs = GexService(ticker)
-    day_stamp_str = "2025-04-25"
     lookfoward_days = 5 # +90 days
     gs.get_gex_detailed(day_stamp_str,lookfoward_days)
 
@@ -144,7 +276,7 @@ if __name__ == "__main__":
 util to get gex from UW option flow data zip file.
 
 docker run -it -u $(id -u):$(id -g) -w $PWD -v /mnt:/mnt -p 8888:8888 fi-notebook:latest bash
-python uw_gex_utils.py SPY
+python uw_gex_utils.py SPY 2025-05-02
 python uw_gex_utils.py SPX
 
 """
