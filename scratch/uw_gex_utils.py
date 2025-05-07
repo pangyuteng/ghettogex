@@ -18,24 +18,19 @@ def format_stamp(x):
     else:
         return datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S+00')
 
-def get_size_signed(row,df):
-    if row.side == 'ask':
-        return row['size']
-    elif row.side == 'bid':
-        return -1*row['size']
-    else:
-        return 0
-
 class GexService(object):
     def __init__(self,ticker):
         self.ticker = ticker
         self.zip_file_list = None
         self.pq_file_list = None
 
+        self.debug = False
         self.input_day_pq_file = None
         self.input_day_df = None
         self.time_sec_list = None
+        self.symbol_list = None
         self.oi_df = None
+        
 
     def _prepare(self):
         # save option flow parquet file.
@@ -110,6 +105,7 @@ class GexService(object):
         print(self.time_sec_list[0],self.time_sec_list[-1])
 
         # get order flow history
+        print('gathering oders...')
         zero_count = 0
         mylist = []
         for pq_file in tqdm(self.pq_file_list[::-1]):
@@ -125,49 +121,104 @@ class GexService(object):
         df = df.sort_values(['option_chain_id','tstamp'])
         df = df.reset_index()
 
-        df['size_signed'] = df.apply(lambda x: get_size_signed(x,df),axis=1)
-        print(df.shape)
-        print(df.columns)
+        if self.debug:
+            print(df.shape)
+            print(df.columns)
 
-        symbol_list = df.option_chain_id.unique()
+        """
+        index,executed_at,underlying_symbol,option_chain_id,side,strike,option_type,expiry,
+        underlying_price,nbbo_bid,nbbo_ask,ewma_nbbo_bid,ewma_nbbo_ask,price,size,premium,
+        volume,open_interest,implied_volatility,delta,theta,gamma,vega,rho,theo,
+        sector,exchange,report_flags,canceled,upstream_condition_detail,equity_type,
+        tstamp,tstamp_sec,size_signed,oi
+        """
+
+        """
+        the DDOI is negative; when dealers are long the
+        option, the DDOI is positive. DDOI is created by assessing trade direction of all option volume
+        throughout the day, then comparing that volume to subsequent change in open interest
+        
+        """
+
+        # ask implies it is bought, thus dealer is short -1
+        # 
+        def get_size_signed(row,okdf):
+            if row.side == 'ask':
+                return row['size']
+            elif row.side == 'bid':
+                return -1*row['size']
+            else:
+                return 0
+        
+        def get_ddoi_size_signed(row,okdf):
+            if row.side == 'ask':
+                return -1*row['size']
+            elif row.side == 'bid':
+                return row['size']
+            else:
+                return 0
+
+        if False:
+            df['size_signed'] = df.apply(lambda x: get_size_signed(x,df),axis=1)
+            df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
+        if True:
+            df['size_signed'] = df.apply(lambda x: get_ddoi_size_signed(x,df),axis=1)
+            df['contract_type_int'] = 1.0
+
+        self.symbol_list = df.option_chain_id.unique()
+        print('compute oi...')
         oi_list = []
-        for option_chain_id in tqdm(symbol_list):
+        for option_chain_id in tqdm(self.symbol_list):
             tmp_oi = df[df.option_chain_id==option_chain_id].copy()
             init_oi = 0
-            #print(option_chain_id,tmp_oi.shape)
             tmp_oi['oi'] = tmp_oi.size_signed
             tmp_oi.oi = tmp_oi.oi.cumsum().astype(float)+init_oi
             oi_list.append(tmp_oi)
         oi_df = pd.concat(oi_list)
-        print(oi_df.shape)
+
+        if self.debug:
+            print(oi_df.shape)
+
+        print('computing gex...')
         oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
         oi_df = oi_df.reset_index()
 
-        # TODO: determine if contract_type_int necessary
-        oi_df['contract_type_int'] = oi_df.option_type.apply(lambda x: -1 if x == 'put' else 1)
         oi_df['gex'] = \
             oi_df.gamma * oi_df.oi * 100 \
             * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
 
         self.oi_df = oi_df
         self.oi_df.to_csv('oi.csv',index=False)
+        print('getting gex...')
+        # get gex at each sec per contract.
+        mylist = []
+        for time_sec in tqdm(self.time_sec_list):
+            for symbol in self.symbol_list:
+                tmp = self.oi_df[(self.oi_df.tstamp_sec<=time_sec)&(self.oi_df.tstamp_sec==symbol)]
+                if len(tmp)>0:
+                    mydict = dict(tmp.iloc[-1,:])
+                    print(mydict)
+                    myrow = dict(
+                        expiration=mydict['expiration'],
+                        strike=mydict['strike'],
+                        underlying_price=mydict['underlying_price'],
+                        option_type=mydict['option_type'],
+                        tstamp_sec=time_sec,
+                        gex=mydict['gex'],
+                    )
+                    mylist.append(myrow)
+        gex_df = pd.DataFrame(mylist)
+        gex_df = gexdf.groupby(['expiration','strike']).agg(
+            gex=pd.NamedAgg(column="gex", aggfunc="sum"),
+        ).reset_index()
+
+        # moidf.ddoi_gex = moidf.ddoi_gex/1e9
+        # gexdf = gexdf.groupby(['expiration','strike']).agg(
+        #     naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
+        #     ddoi_gex=pd.NamedAgg(column="ddoi_gex", aggfunc="sum"),
+        # ).reset_index()
 
     """
-    index,executed_at,underlying_symbol,option_chain_id,side,strike,option_type,expiry,
-    underlying_price,nbbo_bid,nbbo_ask,ewma_nbbo_bid,ewma_nbbo_ask,price,size,premium,
-    volume,open_interest,implied_volatility,delta,theta,gamma,vega,rho,theo,
-    sector,exchange,report_flags,canceled,upstream_condition_detail,equity_type,
-    tstamp,tstamp_sec,size_signed,oi
-    """
-
-    """
-    Index(['executed_at', 'underlying_symbol', 'option_chain_id', 'side', 'strike',
-       'option_type', 'expiry', 'underlying_price', 'nbbo_bid', 'nbbo_ask',
-       'ewma_nbbo_bid', 'ewma_nbbo_ask', 'price', 'size', 'premium', 'volume',
-       'open_interest', 'implied_volatility', 'delta', 'theta', 'gamma',        
-       'vega', 'rho', 'theo', 'sector', 'exchange', 'report_flags', 'canceled',
-       'upstream_condition_detail', 'equity_type', 'tstamp', 'tstamp_sec'],
-      dtype='object')
 
     def compute_ddoi(self):
 
