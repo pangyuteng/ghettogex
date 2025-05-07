@@ -197,6 +197,9 @@ class GexService(object):
         
         # get gex at each sec per contract.
         mylist = []
+        
+        #??? TODO replace below with ?? df.groupby('a').resample('3min', include_groups=False).sum()
+
         for time_sec in tqdm(self.time_sec_list):
             for symbol in self.symbol_list:
                 tmp = self.oi_df[(self.oi_df.tstamp_sec<=time_sec)&(self.oi_df.option_chain_id==symbol)]
