@@ -35,7 +35,6 @@ class GexService(object):
         self.input_day_pq_file = None
         self.input_day_df = None
         self.time_sec_list = None
-        self.orders_df = None
         self.oi_df = None
 
     def _prepare(self):
@@ -127,17 +126,15 @@ class GexService(object):
         df = df.reset_index()
 
         df['size_signed'] = df.apply(lambda x: get_size_signed(x,df),axis=1)
-        self.orders_df = df
+        print(df.shape)
+        print(df.columns)
 
-        print(self.orders_df.shape)
-        print(self.orders_df.columns)
-
-        symbol_list = self.orders_df.option_chain_id.unique()
+        symbol_list = df.option_chain_id.unique()
         oi_list = []
-        for option_chain_id in symbol_list:
+        for option_chain_id in tqdm(symbol_list):
             tmp_oi = df[df.option_chain_id==option_chain_id].copy()
             init_oi = 0
-            print(option_chain_id,tmp_oi.shape)
+            #print(option_chain_id,tmp_oi.shape)
             tmp_oi['oi'] = tmp_oi.size_signed
             tmp_oi.oi = tmp_oi.oi.cumsum().astype(float)+init_oi
             oi_list.append(tmp_oi)
@@ -153,7 +150,7 @@ class GexService(object):
             * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
 
         self.oi_df = oi_df
-        self.oi_df.to_csv('ok.csv',index=False)
+        self.oi_df.to_csv('oi.csv',index=False)
 
     """
     index,executed_at,underlying_symbol,option_chain_id,side,strike,option_type,expiry,
