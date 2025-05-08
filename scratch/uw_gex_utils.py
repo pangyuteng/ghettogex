@@ -179,6 +179,7 @@ class GexService(object):
 
         print('computing gex...')
         oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
+        oi_df = oi_df.drop(['level_0'], axis=1) #??
         oi_df = oi_df.reset_index()
 
         oi_df['gex'] = \
@@ -195,6 +196,9 @@ class GexService(object):
         self.time_sec_list = pd.date_range(start=self.input_day_df.tstamp_sec.min(),end=self.input_day_df.tstamp_sec.max(),freq='s')
         print(self.time_sec_list[0],self.time_sec_list[-1])
         
+        return
+
+
         # get gex at each sec per contract.
         mylist = []
         

@@ -3,6 +3,13 @@
 ```
 
 
+sudo chown "aigonewrong:aigonewrong" -R .ipynb_checkpoints
+sudo chown "aigonewrong:aigonewrong" -R tmp
+
+docker run -it -u $(id -u):$(id -g) -w $PWD -v /mnt:/mnt -v $PWD/tmp:/.local -p 8888:8888 fi-notebook:latest bash
+
+jupyter notebook --ip=*
+
 docker run -it -u $(id -u):$(id -g) \
     --env-file=.env \
     -w $PWD -v /mnt:/mnt \
