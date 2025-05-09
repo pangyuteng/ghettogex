@@ -270,7 +270,7 @@ class GexService(object):
         mp4_file = os.path.join(tmp_folder,'ok.mp4')
 
         png_file_list = []
-        for time_sec in tqdm(self.time_sec_list):
+        for time_sec in tqdm(self.time_sec_list[::60]):
             png_file = os.path.join(png_folder,
                 f'{time_sec.strftime("%Y-%m-%d-%H-%M-%S")}.png')
             plot_func(time_sec,png_file,self.sg_df,self.price_df)
@@ -294,6 +294,7 @@ def plot_func(time_sec,png_file,sg_df,price_df):
         plt.plot(x,y,color=color)
         if n ==0:
             plt.axhline(row.underlying_price,color='black',linestyle='--')
+    plt.title(f"{str(time_sec)}")
     _ = plt.ylim(price_df.underlying_price.min()*0.90,price_df.underlying_price.max()*1.10)
     plt.grid(True)
     plt.show()
