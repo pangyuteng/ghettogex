@@ -11,14 +11,10 @@ import numpy as np
 import pandas as pd
 import time
 
+import matplotlib.pyplot as plt
 from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
 
-from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
-from tqdm import tqdm
 
-
-import datetime
-import os
 
 BOT_EOD_ROOT = "/mnt/hd2/data/finance/bot-eod-zip"
 CACHE_FOLDER = "/mnt/hd1/data/uw-options-cache"
@@ -217,7 +213,7 @@ class GexService(object):
             oi_df.gamma * oi_df.oi * 100 \
             * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
 
-        print('tranforming gex...')
+        print('transforming gex...')
 
         # setup "structured grid" for tstamp_sec,option_chain_id
         xv, yv = np.meshgrid(self.time_sec_list,self.symbol_list)
@@ -275,7 +271,8 @@ class GexService(object):
 
         png_file_list = []
         for time_sec in tqdm(self.time_sec_list):
-            png_file = os.path.join(png_folder,f'{time_sec.strftime("%Y-%m-%d-%H-%M-%S")}.png')
+            png_file = os.path.join(png_folder,
+                f'{time_sec.strftime("%Y-%m-%d-%H-%M-%S")}.png')
             plot_func(time_sec,png_file,self.sg_df,self.price_df)
             if os.path.exists(png_file):
                 png_file_list.append(png_file)
