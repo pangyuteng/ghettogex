@@ -1,4 +1,5 @@
-
+import warnings
+import traceback
 import os
 import sys
 import datetime
@@ -9,6 +10,16 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import time
+
+from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
+
+from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
+from tqdm import tqdm
+
+
+import datetime
+import os
+
 BOT_EOD_ROOT = "/mnt/hd2/data/finance/bot-eod-zip"
 CACHE_FOLDER = "/mnt/hd1/data/uw-options-cache"
 
@@ -30,10 +41,13 @@ class GexService(object):
         self.time_sec_list = None
         self.symbol_list = None
         self.oi_df = None
-        self.gex_df = None
+        self.price_df = None
 
+        self.sg_df = None # sum gex
+        
+        self.price_pq_file = 'price.parquet.gzip'
         self.oi_pq_file = 'oi.parquet.gzip'
-        self.gex_pq_file = 'gex.parquet.gzip'
+        self.sg_pq_file = 'sg.parquet.gzip'
 
     def _prepare(self):
         # save option flow parquet file.
@@ -150,9 +164,9 @@ class GexService(object):
         
         def get_ddoi_size_signed(row,okdf):
             if row.side == 'ask':
-                return -1*row['size']
-            elif row.side == 'bid':
                 return row['size']
+            elif row.side == 'bid':
+                return -1*row['size']
             else:
                 return 0
 
@@ -177,150 +191,74 @@ class GexService(object):
         if self.debug:
             print(oi_df.shape)
 
-        print('computing gex...')
-        oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
-        oi_df = oi_df.drop(['level_0'], axis=1) #??
-        oi_df = oi_df.reset_index()
-
-        oi_df['gex'] = \
-            oi_df.gamma * oi_df.oi * 100 \
-            * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
-
-        self.oi_df = oi_df
-        self.oi_df.to_parquet(self.oi_pq_file,compression='gzip')
-        print('getting gex...')
-
         self.input_day_pq_file = self.pq_file_list[pq_file_index]
         # get trading time seconds
         self.input_day_df = pd.read_parquet(self.input_day_pq_file)
         self.time_sec_list = pd.date_range(start=self.input_day_df.tstamp_sec.min(),end=self.input_day_df.tstamp_sec.max(),freq='s')
         print(self.time_sec_list[0],self.time_sec_list[-1])
-        
-        return
 
+        price_df = self.input_day_df.copy()
+        price_df = price_df[['underlying_price','tstamp_sec']]
+        price_df = price_df.groupby(['tstamp_sec']).agg(
+            underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
+        ).resample('1s').last().reset_index()
 
-        # get gex at each sec per contract.
-        mylist = []
-        
-        #??? TODO replace below with ?? df.groupby('a').resample('3min', include_groups=False).sum()
+        print('computing gex...')
+        oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
+        oi_df = oi_df.reset_index()
+        #oi_df = oi_df.drop(['level_0'], axis=1) #??
 
-        for time_sec in tqdm(self.time_sec_list):
-            for symbol in self.symbol_list:
-                tmp = self.oi_df[(self.oi_df.tstamp_sec<=time_sec)&(self.oi_df.option_chain_id==symbol)]
-                if len(tmp)>0:
-                    mydict = dict(tmp.iloc[-1,:])
-                    myrow = dict(
-                        strike=mydict['strike'],
-                        underlying_price=mydict['underlying_price'],
-                        option_type=mydict['option_type'],
-                        tstamp_sec=time_sec,
-                        gex=mydict['gex'],
-                    )
-                    mylist.append(myrow)
+        # leave only today's data
+        # gex doesn't matter anyways.
+        min_stamp = self.input_day_df.tstamp_sec.min()
+        oi_df = oi_df[oi_df.tstamp_sec >= min_stamp]
 
-        gex_df = pd.DataFrame(mylist)
-        gex_df = gexdf.groupby(['tstamp_sec','strike']).agg(
+        oi_df['gex'] = \
+            oi_df.gamma * oi_df.oi * 100 \
+            * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
+
+        print('tranforming gex...')
+
+        # setup "structured grid" for tstamp_sec,option_chain_id
+        xv, yv = np.meshgrid(self.time_sec_list,self.symbol_list)
+        sdf = pd.DataFrame({
+            "tstamp_sec":xv.flatten(),
+            "option_chain_id":yv.flatten(),
+        })
+        sdf = sdf.sort_values(['tstamp_sec','option_chain_id'])
+        print(sdf.shape)
+
+        # assuming greeks are computed at this time
+        cols =  [
+            'tstamp_sec','option_chain_id',
+            'strike', 'option_type', 'expiry',
+            'size_signed', 'contract_type_int', 'oi',
+            'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo','gex']
+            #'gex'] #?you can't compute gex like this.
+        oi_df = oi_df[cols]
+        oi_df = oi_df.sort_values(['tstamp_sec','option_chain_id'])
+        print(oi_df.shape)
+
+        # greeks and gex should be recomputed here.
+        warnings.warn("TODO: greeks and gex should be recomputed here")
+        gdf = pd.merge_asof(sdf,oi_df,on='tstamp_sec',direction='backward',by='option_chain_id')
+        print(gdf.shape)
+
+        sg_df = gdf[['tstamp_sec','strike','gex']].copy()
+        sg_df = sg_df.groupby(['tstamp_sec','strike']).agg(
             gex=pd.NamedAgg(column="gex", aggfunc="sum"),
         ).reset_index()
-        self.gex_df = gex_df
-        self.gex_df.to_parquet(self.gex_pq_file,compression='gzip')
-        
+        sg_df = sg_df.merge(price_df,how='left',on='tstamp_sec')
+        print(sg_df.shape)
 
-    """
+        self.price_df = price_df
+        self.price_df.to_parquet(self.price_pq_file,compression='gzip')        
+        self.oi_df = oi_df
+        self.oi_df.to_parquet(self.oi_pq_file,compression='gzip')
+        self.sg_df = sg_df
+        self.sg_df.to_parquet(self.sg_pq_file,compression='gzip')
 
-    def compute_ddoi(self):
-
-        moidf['spot_price'] = spot_price
-        moidf['contract_type_int'] = moidf.option_type.apply(lambda x: -1 if x == 'P' else 1)
-        moidf['naive_gex'] = \
-            moidf.gamma * moidf.open_interest * 100 \
-            * moidf.spot_price * moidf.spot_price * 0.01 * moidf.contract_type_int
-
-        moidf['ddoi_gex'] = \
-            moidf.gamma * moidf.mod_oi * 100 \
-            * moidf.spot_price * moidf.spot_price * 0.01 * moidf.contract_type_int
-
-        moidf.naive_gex = moidf.naive_gex/1e9
-        moidf.ddoi_gex = moidf.ddoi_gex/1e9
-
-        assert(len(moidf.expiration.unique())==1)
-        assert(len(moidf.strike.unique())*2==len(moidf))
-        cols = ['expiration','strike','naive_gex','ref_ddoi_gex','ddoi_gex']
-        gexdf = moidf[cols]
-        gexdf = gexdf.groupby(['expiration','strike']).agg(
-            naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
-            ddoi_gex=pd.NamedAgg(column="ddoi_gex", aggfunc="sum"),
-        ).reset_index()
-    """
     def todos(self):
-        sys.exit(1)
-        # TODO: update estimate price
-        if self.ticker == "SPX":
-            # determine if underlying_price is legit
-            underlying_price_requires_recompute = False
-            if underlying_price_requires_recompute is False:
-                pass
-        elif self.ticker == "NDX":
-            raise NotImplementedError()
-        else:
-            pass
-        
-        # determine ranges for time, strikes
-
-        # ??? index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
-        # time,expriation,strike,contract_type,underyling_price,gamma,
-
-        #df = df.resample('7s').first()
-        #df = df.resample(rule='1s')
-        
-        # group by contract id.
-        # cumsum? drop_duplicates()
-        # then resample 
-
-        strike_df = None
-        ddoi_gex_df = None
-
-
-
-        #sys.exit(1)
-        #     
-        #     self.alt_inst = GexService("SPY")
-        #     self.alt_inst._prepare()
-
-        #tstamp_sec
-        #time_sec_list
-        #df = pd.DataFrame(dict(A=[1, 1, 3], B=[5, None, 6], C=[1, 2, 3]))
-        #df.groupby("A").last()
-
-        
-        # get list of contract relevant contract.
-        # compute ddoi - dealer directional open interest.
-        # for each second
-        #  get estimated underlying price
-        #  (from uw, use percentage change from SPY, alternatively compute from theoretical)
-        #  get oi per contract.
-        #  get gamm (from uw, alternatively compute from theoretical)
-        #  gex per strike with gamma from 
-        # 
-
-        # day_stamp: is the day we will compute gex per strike per second
-        # using expiration betwen day_stamp to day_stamp+lookfoward_days
-
-
-        # get the contract of interest
-        # based on strike,expiry,..
-
-        # typically trading hr
-        # ET: 9:30 to 16:00
-        # UTC: 13:30 to 20:00
-        # totals to 23400 seconds for full trading day 6.5*60*60 
-
-        print(len(df.tstamp_sec.unique()),df.tstamp_sec.min(),df.tstamp_sec.max())
-        # assert(24000)
-        print('--')
-        sys.exit(1)
-        # day_stamp
-        # df = pd.read_parquet(PQ_FILE)
         if self.ticker == 'SPX':
             # SPX SPXW
             pass
@@ -330,9 +268,40 @@ class GexService(object):
         else:
             pass
 
-    def get_gex_total(self,tstamp):
-        df = get_gex_detailed(tstamp,5)
-        return df.gex.sum()
+    def gen_mp4(self,tmp_folder):
+        png_folder = os.path.join(tmp_folder,'pngs')
+        os.makedirs(png_folder,exist_ok=True)
+        mp4_file = os.path.join(tmp_folder,'ok.mp4')
+
+        png_file_list = []
+        for time_sec in tqdm(self.time_sec_list):
+            png_file = os.path.join(png_folder,f'{time_sec.strftime("%Y-%m-%d-%H-%M-%S")}.png')
+            plot_func(time_sec,png_file,self.sg_df,self.price_df)
+            if os.path.exists(png_file):
+                png_file_list.append(png_file)
+
+        fps = 24
+        clips = [ImageClip(m).with_duration(0.1) for m in png_file_list]
+        concat_clip = concatenate_videoclips(clips, method="compose")
+        concat_clip.write_videofile(mp4_file, fps=fps)
+        print(os.path.exists(mp4_file))
+
+def plot_func(time_sec,png_file,sg_df,price_df):
+    tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
+    
+    plt.figure()
+    for n,row in tmpdf.iterrows():
+        color = 'green' if row.gex > 0 else 'red'
+        x = [0,row.gex]
+        y = [row.strike,row.strike]
+        plt.plot(x,y,color=color)
+        if n ==0:
+            plt.axhline(row.underlying_price,color='black',linestyle='--')
+    _ = plt.ylim(price_df.underlying_price.min()*0.90,price_df.underlying_price.max()*1.10)
+    plt.grid(True)
+    plt.show()
+    plt.savefig(png_file)
+    plt.close()
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
@@ -340,6 +309,7 @@ if __name__ == "__main__":
     gs = GexService(ticker)
     lookfoward_days = 5 # +90 days
     gs.get_gex_detailed(day_stamp_str,lookfoward_days)
+    gs.gen_mp4('tmp')
 
 
 """
@@ -348,6 +318,6 @@ util to get gex from UW option flow data zip file.
 
 docker run -it -u $(id -u):$(id -g) -w $PWD -v /mnt:/mnt -p 8888:8888 fi-notebook:latest bash
 python uw_gex_utils.py SPY 2025-05-02
-python uw_gex_utils.py SPX
+python uw_gex_utils.py SPX 2025-05-05
 
 """
