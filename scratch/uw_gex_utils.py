@@ -65,6 +65,8 @@ class GexService(object):
                             df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="SPXW")]
                         elif self.ticker == 'NDX':
                             df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="NDXP")]
+                        elif self.ticker == 'VIX':
+                            df = df[(df.underlying_symbol==self.ticker)|(df.underlying_symbol=="VIXW")]
                         else:
                             df = df[df.underlying_symbol==self.ticker]
                         df['tstamp'] = df.executed_at.apply(lambda x: format_stamp(x))
@@ -74,8 +76,6 @@ class GexService(object):
         
         self.pq_file_list = sorted(str(x) for x in pathlib.Path(os.path.join(CACHE_FOLDER,self.ticker)).rglob("*.gzip"))
 
-        #SPX,SPXW
-        #NDX,NDXP
 
     def get_gex_detailed(self,day_stamp_str,lookfoward_days):
 
