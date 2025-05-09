@@ -170,11 +170,15 @@ class GexService(object):
 
         df['size_signed'] = df.apply(lambda x: get_ddoi_size_signed(x),axis=1)
         df['contract_type_int'] = 1.0
+        oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
+        oi_df = oi_df.reset_index()
+        #oi_df = oi_df.drop(['level_0'], axis=1) #??
 
         self.symbol_list = df.option_chain_id.unique()
         print('compute oi...')
         oi_list = []
         for option_chain_id in tqdm(self.symbol_list):
+            # assume this is sorted?
             tmp_oi = df[df.option_chain_id==option_chain_id].copy()
             init_oi = 0
             tmp_oi['oi'] = tmp_oi.size_signed
@@ -195,11 +199,8 @@ class GexService(object):
         ).resample('1s').last().reset_index()
 
         print('preparing gamma and gex compute...')
-        oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
-        oi_df = oi_df.reset_index()
-        #oi_df = oi_df.drop(['level_0'], axis=1) #??
 
-        # leave only today's data
+        # keep today's data
         # gex doesn't matter anyways.
         min_stamp = self.input_day_df.tstamp_sec.min()
         oi_df = oi_df[oi_df.tstamp_sec >= min_stamp]
@@ -322,7 +323,7 @@ if __name__ == "__main__":
     ticker = sys.argv[1]
     day_stamp_str = sys.argv[2] # "2025-04-25"
     gs = GexService(ticker)
-    lookfoward_days = 5 # +90 days
+    lookfoward_days = 1 # +90 days
     gs.get_gex_detailed(day_stamp_str,lookfoward_days)
     gs.gen_mp4('tmp')
 
