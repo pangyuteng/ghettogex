@@ -158,6 +158,9 @@ class GexService(object):
             else:
                 return 0 # SET TO ZERO NOT GOOD. TODO: FIX THIS USING HUA!
 
+        print("df.size.value_counts()")
+        print(df.size.value_counts())
+
         df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
         df['contract_type_int'] = 1.0
 
