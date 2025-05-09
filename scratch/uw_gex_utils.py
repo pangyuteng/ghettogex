@@ -154,24 +154,19 @@ class GexService(object):
         tstamp,tstamp_sec,size_signed,oi
         """
 
-        """
-        the DDOI is negative; when dealers are long the
-        option, the DDOI is positive. DDOI is created by assessing trade direction of all option volume
-        throughout the day, then comparing that volume to subsequent change in open interest
-        
-        """
+        if False:
+            # naive gex, dealer short put, long call
+            # https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
+            # A crude approximation is that the dealers are long the calls and short the puts,
+            df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
 
-        # ask implies it is bought, thus dealer is short -1
-        # 
+        """
+        The number of option contracts that are held by option dealers, and the direction in which those
+        contracts are held. When dealers are short the option, the DDOI is negative; when dealers are long the
+        option, the DDOI is positive. DDOI is created by assessing trade direction of all option volume
+        throughout the day, then comparing that volume to subsequent change in open interest.        
+        """
         def get_size_signed(row):
-            if row.side == 'ask':
-                return row['size']
-            elif row.side == 'bid':
-                return -1*row['size']
-            else:
-                return 0
-        
-        def get_ddoi_size_signed(row):
             if row.side == 'ask': # near ask, client bought, dealer short
                 return -1*row['size'] 
             elif row.side == 'bid': # near bid, client sold, dealer long
@@ -179,13 +174,7 @@ class GexService(object):
             else:
                 return 0 # SET TO ZERO NOT GOOD.
 
-        if False:
-            # naive gex, dealer short put, long call
-            # https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
-            # A crude approximation is that the dealers are long the calls and short the puts,
-            df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
-
-        df['size_signed'] = df.apply(lambda x: get_ddoi_size_signed(x),axis=1)
+        df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
         df['contract_type_int'] = 1.0
 
         self.symbol_list = df.option_chain_id.unique()
@@ -287,11 +276,15 @@ class GexService(object):
         os.makedirs(png_folder,exist_ok=True)
         mp4_file = os.path.join(tmp_folder,'ok.mp4')
 
+        tstamp_lim = [self.price_df.tstamp_sec.min(),self.price_df.tstamp_sec.max()]
+        price_lim = [self.price_df.underlying_price.min()*0.98,self.price_df.underlying_price.max()*1.02]
+        gex_lim = [self.sg_df.gex.min(),self.sg_df.gex.max()]
+
         png_file_list = []
         for time_sec in tqdm(self.time_sec_list[::30]):
             png_file = os.path.join(png_folder,
                 f'{time_sec.strftime("%Y-%m-%d-%H-%M-%S")}.png')
-            plot_func(self.ticker,time_sec,png_file,self.sg_df,self.price_df)
+            plot_func(self.ticker,time_sec,png_file,self.sg_df,self.price_df,tstamp_lim,gex_lim,price_lim)
             if os.path.exists(png_file):
                 png_file_list.append(png_file)
 
@@ -301,7 +294,7 @@ class GexService(object):
         concat_clip.write_videofile(mp4_file, fps=fps)
         print(os.path.exists(mp4_file))
 
-def plot_func(ticker,time_sec,png_file,sg_df,price_df):
+def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_lim):
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
     
     fig, ax1 = plt.subplots()
@@ -323,15 +316,15 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df):
     color_label = 'tab:blue'
     ax2.set_xlabel('time (utc)', color=color_label)
     tmp_price = price_df[price_df.tstamp_sec <= time_sec]
-    ax2.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color=black,linewidth=1)
+    ax2.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color='black',linewidth=1)
     ax2.tick_params(axis='y', labelcolor=color_label)
     
-    ax2.set_xlim([price_df.tstamp_sec.min(),price_df.tstamp_sec.max()])    
-    ax1.set_xlim([sg_df.gex.min(),sg_df.gex.max()])
-    ax1.set_ylim([price_df.underlying_price.min()*0.98,price_df.underlying_price.max()*1.02])\
-    plt.title(f"{str(time_sec)} {ticker} {row.underlying_price}")
-    plt.grid(True)
+    ax2.set_xlim(tstamp_lim)
+    ax1.set_xlim(gex_lim)
+    ax1.set_ylim(price_lim)
 
+    ax1.grid(True)
+    plt.title(f"{str(time_sec)} {ticker} {row.underlying_price}")
     fig.tight_layout()
     plt.show()
     plt.savefig(png_file)
