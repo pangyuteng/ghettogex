@@ -263,6 +263,7 @@ class GexService(object):
         tstamp_lim = [self.price_df.tstamp_sec.min(),self.price_df.tstamp_sec.max()]
         price_lim = [self.price_df.underlying_price.min()*0.98,self.price_df.underlying_price.max()*1.02]
         gex_lim = [self.sg_df.gex.min(),self.sg_df.gex.max()]
+        gex_lim = None
 
         png_file_list = []
         for time_sec in tqdm(self.time_sec_list[::30]):
@@ -302,10 +303,13 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
     tmp_price = price_df[price_df.tstamp_sec <= time_sec]
     ax2.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color='black',linewidth=1)
     ax2.tick_params(axis='y', labelcolor=color_label)
-    
-    ax2.set_xlim(tstamp_lim)
-    ax1.set_xlim(gex_lim)
-    ax1.set_ylim(price_lim)
+
+    if tstamp_lim:
+        ax2.set_xlim(tstamp_lim)
+    if gex_lim:
+        ax1.set_xlim(gex_lim)
+    if price_lim:
+        ax1.set_ylim(price_lim)
 
     ax1.grid(True)
     plt.title(f"{str(time_sec)} {ticker} {row.underlying_price}")
