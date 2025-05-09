@@ -40,10 +40,6 @@ class GexService(object):
         self.price_df = None
         self.sg_df = None # sum gex
 
-        self.use_only_data_from_one_day = True
-        if self.use_only_data_from_one_day:
-            warnings.warn("use_only_data_from_one_day set to True")
-
         self.price_pq_file = 'price.parquet.gzip'
         self.oi_pq_file = 'oi.parquet.gzip'
         self.sg_pq_file = 'sg.parquet.gzip'
@@ -76,23 +72,11 @@ class GexService(object):
                         df['tstamp_sec'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
                         df.to_parquet(pq_file,compression='gzip')
         
-        
         self.pq_file_list = sorted(str(x) for x in pathlib.Path(os.path.join(CACHE_FOLDER,self.ticker)).rglob("*.gzip"))
-
 
     def get_gex_detailed(self,day_stamp_str,lookfoward_days):
 
         self._prepare()
-        """
-        what you want ultimately want - higher to lower level
-            + net gex at each strike per second
-            + gex at each strike by put/call per second
-            + if ticker is SPX, then you need to get SPY price...
-            + ddoi, gamma per second, underlying price
-
-            # first get ddoi for each contract from all prior days.
-
-        """
         
         day_stamp = datetime.datetime.strptime(day_stamp_str,'%Y-%m-%d').date()
         expiration_list = []
@@ -136,8 +120,7 @@ class GexService(object):
             unq_price = df.underlying_price.unique()
             df = df[df.expiry.apply(lambda x: x in expiration_list)]
             mylist.append(df)
-            if self.use_only_data_from_one_day:
-                break
+
             if len(df) == 0:
                 zero_count+=1
             if zero_count > 10:
@@ -217,7 +200,8 @@ class GexService(object):
             'tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
             'size_signed', 'contract_type_int', 'oi',
-            'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo','gex']
+            'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo','gex'
+        ]
 
         oi_df = oi_df[cols]
         oi_df = oi_df.sort_values(['tstamp_sec','option_chain_id'])
