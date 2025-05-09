@@ -313,7 +313,7 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
         ax1.set_ylim(price_lim)
     gex_lim = [tmpdf.gex.min(),tmpdf.gex.max()]
     if gex_lim:
-    ax1.set_xlim(gex_lim)
+        ax1.set_xlim(gex_lim)
 
     ax1.grid(True)
     plt.title(f"{str(time_sec)} {ticker} {row.underlying_price}")
