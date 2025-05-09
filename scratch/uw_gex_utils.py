@@ -38,9 +38,12 @@ class GexService(object):
         self.symbol_list = None
         self.oi_df = None
         self.price_df = None
-
         self.sg_df = None # sum gex
-        
+
+        self.use_only_data_from_one_day = True
+        if self.use_only_data_from_one_day:
+            warnings.warn("use_only_data_from_one_day set to True")
+
         self.price_pq_file = 'price.parquet.gzip'
         self.oi_pq_file = 'oi.parquet.gzip'
         self.sg_pq_file = 'sg.parquet.gzip'
@@ -133,6 +136,8 @@ class GexService(object):
             unq_price = df.underlying_price.unique()
             df = df[df.expiry.apply(lambda x: x in expiration_list)]
             mylist.append(df)
+            if self.use_only_data_from_one_day:
+                break
             if len(df) == 0:
                 zero_count+=1
             if zero_count > 10:
@@ -283,7 +288,7 @@ class GexService(object):
         mp4_file = os.path.join(tmp_folder,'ok.mp4')
 
         png_file_list = []
-        for time_sec in tqdm(self.time_sec_list[::60]):
+        for time_sec in tqdm(self.time_sec_list[::30]):
             png_file = os.path.join(png_folder,
                 f'{time_sec.strftime("%Y-%m-%d-%H-%M-%S")}.png')
             plot_func(self.ticker,time_sec,png_file,self.sg_df,self.price_df)
@@ -299,20 +304,33 @@ class GexService(object):
 def plot_func(ticker,time_sec,png_file,sg_df,price_df):
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
     
-    plt.figure()
+    fig, ax1 = plt.subplots()
+
+    color_label = 'tab:red'
+    ax1.set_xlabel('GEX ($ bn/1% move)', color=color_label)
+    ax1.set_ylabel('Strike')
+
     for n,row in tmpdf.iterrows():
         color = 'green' if row.gex > 0 else 'red'
         x = [0,row.gex]
         y = [row.strike,row.strike]
-        plt.plot(x,y,color=color)
+        ax1.plot(x,y,color=color)
         if n == 0:
-            plt.axhline(row.underlying_price,color='gray',linestyle='--')
+            ax1.axhline(row.underlying_price,color='gray',linestyle='--')
+    ax1.tick_params(axis='x', labelcolor=color_label)
+    ax2 = ax1.twiny()  # instantiate a second Axes that shares the same x-axis
+
+    color_label = 'tab:blue'
+    ax2.set_xlabel('time (utc)', color=color_label)
+    tmp_price = price_df[price_df.tstamp_sec <= time_sec]
+    ax2.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color=color_label)
+    ax2.tick_params(axis='y', labelcolor=color_label)
+    ax2.set_xlim([price_df.tstamp_sec.min(),price_df.tstamp_sec.max()])
+
     plt.title(f"{str(time_sec)} {ticker} {row.underlying_price}")
-    _ = plt.ylim(price_df.underlying_price.min()*0.90,price_df.underlying_price.max()*1.10)
+    _ = plt.ylim(price_df.underlying_price.min()*0.98,price_df.underlying_price.max()*1.02)
     plt.grid(True)
-    plt.xlabel('Strikes')
-    plt.ylabel('GEX ($ bn/1% move)')
-    plt.axhline(y=0, color='grey', lw=1)
+    fig.tight_layout()
     plt.show()
     plt.savefig(png_file)
     plt.close()
