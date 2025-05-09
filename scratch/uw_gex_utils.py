@@ -211,6 +211,10 @@ class GexService(object):
         min_stamp = self.input_day_df.tstamp_sec.min()
         oi_df = oi_df[oi_df.tstamp_sec >= min_stamp]
 
+        oi_df['gex'] = \
+            oi_df.gamma * oi_df.oi * 100 \
+            * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
+
         # setup "structured grid" for tstamp_sec,option_chain_id
         xv, yv = np.meshgrid(self.time_sec_list,self.symbol_list)
         sdf = pd.DataFrame({
@@ -231,7 +235,7 @@ class GexService(object):
         oi_df = oi_df.sort_values(['tstamp_sec','option_chain_id'])
         print(oi_df.shape)
 
-        # greeks and gex should be recomputed here.
+        # NOTE: greeks and gex should be recomputed here.
         warnings.warn("TODO: greeks and gex should be recomputed here")
         gdf = pd.merge_asof(sdf,oi_df,on='tstamp_sec',direction='backward',by='option_chain_id')
         print(gdf.shape)
@@ -320,7 +324,7 @@ if __name__ == "__main__":
     gs = GexService(ticker)
     lookfoward_days = 5 # +90 days
     gs.get_gex_detailed(day_stamp_str,lookfoward_days)
-    #gs.gen_mp4('tmp')
+    gs.gen_mp4('tmp')
 
 
 """
