@@ -318,18 +318,20 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df):
         if n == 0:
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
     ax1.tick_params(axis='x', labelcolor=color_label)
-    ax2 = ax1.twiny()  # instantiate a second Axes that shares the same x-axis
-
+    
+    ax2 = ax1.twiny()
     color_label = 'tab:blue'
     ax2.set_xlabel('time (utc)', color=color_label)
     tmp_price = price_df[price_df.tstamp_sec <= time_sec]
-    ax2.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color=color_label)
+    ax2.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color=black,linewidth=1)
     ax2.tick_params(axis='y', labelcolor=color_label)
-    ax2.set_xlim([price_df.tstamp_sec.min(),price_df.tstamp_sec.max()])
-
+    
+    ax2.set_xlim([price_df.tstamp_sec.min(),price_df.tstamp_sec.max()])    
+    ax1.set_xlim([sg_df.gex.min(),sg_df.gex.max()])
+    ax1.set_ylim([price_df.underlying_price.min()*0.98,price_df.underlying_price.max()*1.02])\
     plt.title(f"{str(time_sec)} {ticker} {row.underlying_price}")
-    _ = plt.ylim(price_df.underlying_price.min()*0.98,price_df.underlying_price.max()*1.02)
     plt.grid(True)
+
     fig.tight_layout()
     plt.show()
     plt.savefig(png_file)
