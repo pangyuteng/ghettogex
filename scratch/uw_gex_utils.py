@@ -177,7 +177,7 @@ class GexService(object):
         oi_df = pd.concat(oi_list)
         oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
         oi_df = oi_df.reset_index()
-        #oi_df = oi_df.drop(['level_0'], axis=1) #??
+        
 
         print('preparing gamma and gex compute...')
 
@@ -185,6 +185,8 @@ class GexService(object):
         # gex doesn't matter anyways.
         min_stamp = self.input_day_df.tstamp_sec.min()
         oi_df = oi_df[oi_df.tstamp_sec >= min_stamp]
+        oi_df = oi_df.drop(['level_0'], axis=1) #??
+        oi_df = oi_df.reset_index()
 
         oi_df['gex'] = \
             oi_df.gamma * oi_df.oi * 100 \
@@ -203,7 +205,7 @@ class GexService(object):
         cols =  [
             'tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
-            'size_signed', 'contract_type_int', 'oi',
+            'side','size','size_signed', 'contract_type_int', 'oi',
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo','gex'
         ]
 
