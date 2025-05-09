@@ -6,6 +6,7 @@ import datetime
 import time
 import pathlib
 import tempfile
+import shutil
 import zipfile
 from tqdm import tqdm
 import numpy as np
@@ -33,7 +34,6 @@ class GexService(object):
         self.zip_file_list = None
         self.pq_file_list = None
 
-        self.debug = False
         self.input_day_pq_file = None
         self.input_day_df = None
         self.time_sec_list = None
@@ -131,10 +131,6 @@ class GexService(object):
         df = df.sort_values(['option_chain_id','tstamp'])
         df = df.reset_index()
 
-        if self.debug:
-            print(df.shape)
-            print(df.columns)
-
         """
         index,executed_at,underlying_symbol,option_chain_id,side,strike,option_type,expiry,
         underlying_price,nbbo_bid,nbbo_ask,ewma_nbbo_bid,ewma_nbbo_ask,price,size,premium,
@@ -161,19 +157,21 @@ class GexService(object):
                 return 0
         
         def get_ddoi_size_signed(row,okdf):
-            if row.side == 'ask':
+            if row.side == 'ask': # near ask, client bought, dealer short
+                return -1*row['size'] 
+            elif row.side == 'bid': # near bid, client sold, dealer long
                 return row['size']
-            elif row.side == 'bid':
-                return -1*row['size']
             else:
                 return 0
 
         if False:
-            df['size_signed'] = df.apply(lambda x: get_size_signed(x,df),axis=1)
+            # naive gex, dealer short put, long call
+            # https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
+            # A crude approximation is that the dealers are long the calls and short the puts,
             df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
-        if True:
-            df['size_signed'] = df.apply(lambda x: get_ddoi_size_signed(x,df),axis=1)
-            df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
+
+        df['size_signed'] = df.apply(lambda x: get_size_signed(x,df),axis=1)
+        df['contract_type_int'] = 1.0
 
         self.symbol_list = df.option_chain_id.unique()
         print('compute oi...')
@@ -185,9 +183,6 @@ class GexService(object):
             tmp_oi.oi = tmp_oi.oi.cumsum().astype(float)+init_oi
             oi_list.append(tmp_oi)
         oi_df = pd.concat(oi_list)
-
-        if self.debug:
-            print(oi_df.shape)
 
         self.input_day_pq_file = self.pq_file_list[pq_file_index]
         # get trading time seconds
@@ -230,7 +225,7 @@ class GexService(object):
             'strike', 'option_type', 'expiry',
             'size_signed', 'contract_type_int', 'oi',
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo','gex']
-            #'gex'] #?you can't compute gex like this.
+
         oi_df = oi_df[cols]
         oi_df = oi_df.sort_values(['tstamp_sec','option_chain_id'])
         print(oi_df.shape)
@@ -283,6 +278,7 @@ class GexService(object):
 
     def gen_mp4(self,tmp_folder):
         png_folder = os.path.join(tmp_folder,'pngs')
+        shutil.rmtree(png_folder)
         os.makedirs(png_folder,exist_ok=True)
         mp4_file = os.path.join(tmp_folder,'ok.mp4')
 
