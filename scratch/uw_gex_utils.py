@@ -332,6 +332,9 @@ if __name__ == "__main__":
 util to get gex from UW option flow data zip file.
 
 docker run -it -u $(id -u):$(id -g) -w $PWD -v /mnt:/mnt -p 8888:8888 fi-notebook:latest bash
+
+docker run -it -w $PWD -v /mnt:/mnt -v $PWD/tmp:/.local -p 8888:8888 fi-notebook:latest bash
+
 python uw_gex_utils.py SPY 2025-05-02
 python uw_gex_utils.py SPX 2025-05-05
 
