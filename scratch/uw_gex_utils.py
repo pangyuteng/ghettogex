@@ -17,8 +17,6 @@ import py_vollib_vectorized
 import matplotlib.pyplot as plt
 from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
 
-
-
 BOT_EOD_ROOT = "/mnt/hd2/data/finance/bot-eod-zip"
 CACHE_FOLDER = "/mnt/hd1/data/uw-options-cache"
 
@@ -148,7 +146,7 @@ class GexService(object):
 
         # ask implies it is bought, thus dealer is short -1
         # 
-        def get_size_signed(row,okdf):
+        def get_size_signed(row):
             if row.side == 'ask':
                 return row['size']
             elif row.side == 'bid':
@@ -156,13 +154,13 @@ class GexService(object):
             else:
                 return 0
         
-        def get_ddoi_size_signed(row,okdf):
+        def get_ddoi_size_signed(row):
             if row.side == 'ask': # near ask, client bought, dealer short
                 return -1*row['size'] 
             elif row.side == 'bid': # near bid, client sold, dealer long
                 return row['size']
             else:
-                return 0
+                return 0 # SET TO ZERO NOT GOOD.
 
         if False:
             # naive gex, dealer short put, long call
@@ -170,7 +168,7 @@ class GexService(object):
             # A crude approximation is that the dealers are long the calls and short the puts,
             df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
 
-        df['size_signed'] = df.apply(lambda x: get_size_signed(x,df),axis=1)
+        df['size_signed'] = df.apply(lambda x: get_ddoi_size_signed(x),axis=1)
         df['contract_type_int'] = 1.0
 
         self.symbol_list = df.option_chain_id.unique()
@@ -257,6 +255,7 @@ class GexService(object):
             gex=pd.NamedAgg(column="gex", aggfunc="sum"),
         ).reset_index()
         sg_df = sg_df.merge(price_df,how='left',on='tstamp_sec')
+        sg_df['gex'] = sg_df['gex']/ 10**9
         print(sg_df.shape)
         
         self.price_df = price_df
@@ -305,11 +304,16 @@ def plot_func(time_sec,png_file,sg_df,price_df):
         x = [0,row.gex]
         y = [row.strike,row.strike]
         plt.plot(x,y,color=color)
-        if n ==0:
-            plt.axhline(row.underlying_price,color='black',linestyle='--')
+        if n == 0:
+            plt.axhline(row.underlying_price,color='black',linestyle='--',lw=1, label="Spot: " + str("{:,.0f}".format(row.underlying_price)))
     plt.title(f"{str(time_sec)}")
     _ = plt.ylim(price_df.underlying_price.min()*0.90,price_df.underlying_price.max()*1.10)
     plt.grid(True)
+    plt.xlabel('Index Price', fontweight="bold")
+    plt.ylabel('Gamma Exposure ($ billions/1% move)', fontweight="bold")
+    #plt.axvline(x=spotPrice, color='r', lw=1, label="SPX Spot: " + str("{:,.0f}".format(spotPrice)))
+    #plt.axvline(x=zeroGamma, color='g', lw=1, label="Gamma Flip: " + str("{:,.0f}".format(zeroGamma)))
+    plt.axhline(y=0, color='grey', lw=1)
     plt.show()
     plt.savefig(png_file)
     plt.close()
