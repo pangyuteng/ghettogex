@@ -112,6 +112,18 @@ class GexService(object):
         if pq_file_index < 30:
             raise ValueError(f"Not enough data. pq_file_index {pq_file_index}!")
 
+        self.input_day_pq_file = self.pq_file_list[pq_file_index]
+        # get trading time seconds
+        self.input_day_df = pd.read_parquet(self.input_day_pq_file)
+        self.time_sec_list = pd.date_range(start=self.input_day_df.tstamp_sec.min(),end=self.input_day_df.tstamp_sec.max(),freq='s')
+        print(self.time_sec_list[0],self.time_sec_list[-1])
+
+        price_df = self.input_day_df.copy()
+        price_df = price_df[['underlying_price','tstamp_sec']]
+        price_df = price_df.groupby(['tstamp_sec']).agg(
+            underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
+        ).resample('1s').last().reset_index()
+
         # get order flow history
         print('gathering orders...')
         zero_count = 0
@@ -170,9 +182,6 @@ class GexService(object):
 
         df['size_signed'] = df.apply(lambda x: get_ddoi_size_signed(x),axis=1)
         df['contract_type_int'] = 1.0
-        oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
-        oi_df = oi_df.reset_index()
-        #oi_df = oi_df.drop(['level_0'], axis=1) #??
 
         self.symbol_list = df.option_chain_id.unique()
         print('compute oi...')
@@ -180,23 +189,14 @@ class GexService(object):
         for option_chain_id in tqdm(self.symbol_list):
             # assume this is sorted?
             tmp_oi = df[df.option_chain_id==option_chain_id].copy()
-            init_oi = 0
             tmp_oi['oi'] = tmp_oi.size_signed
-            tmp_oi.oi = tmp_oi.oi.cumsum().astype(float)+init_oi
+            tmp_oi.oi = tmp_oi.oi.cumsum().astype(float)
             oi_list.append(tmp_oi)
+
         oi_df = pd.concat(oi_list)
-
-        self.input_day_pq_file = self.pq_file_list[pq_file_index]
-        # get trading time seconds
-        self.input_day_df = pd.read_parquet(self.input_day_pq_file)
-        self.time_sec_list = pd.date_range(start=self.input_day_df.tstamp_sec.min(),end=self.input_day_df.tstamp_sec.max(),freq='s')
-        print(self.time_sec_list[0],self.time_sec_list[-1])
-
-        price_df = self.input_day_df.copy()
-        price_df = price_df[['underlying_price','tstamp_sec']]
-        price_df = price_df.groupby(['tstamp_sec']).agg(
-            underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
-        ).resample('1s').last().reset_index()
+        oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
+        oi_df = oi_df.reset_index()
+        #oi_df = oi_df.drop(['level_0'], axis=1) #??
 
         print('preparing gamma and gex compute...')
 
@@ -260,7 +260,7 @@ class GexService(object):
         print(sg_df.shape)
         
         self.price_df = price_df
-        self.price_df.to_parquet(self.price_pq_file,compression='gzip')        
+        self.price_df.to_parquet(self.price_pq_file,compression='gzip')
         self.oi_df = oi_df
         self.oi_df.to_parquet(self.oi_pq_file,compression='gzip')
         self.sg_df = sg_df
@@ -286,7 +286,7 @@ class GexService(object):
         for time_sec in tqdm(self.time_sec_list[::60]):
             png_file = os.path.join(png_folder,
                 f'{time_sec.strftime("%Y-%m-%d-%H-%M-%S")}.png')
-            plot_func(time_sec,png_file,self.sg_df,self.price_df)
+            plot_func(self.ticker,time_sec,png_file,self.sg_df,self.price_df)
             if os.path.exists(png_file):
                 png_file_list.append(png_file)
 
@@ -296,7 +296,7 @@ class GexService(object):
         concat_clip.write_videofile(mp4_file, fps=fps)
         print(os.path.exists(mp4_file))
 
-def plot_func(time_sec,png_file,sg_df,price_df):
+def plot_func(ticker,time_sec,png_file,sg_df,price_df):
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
     
     plt.figure()
@@ -306,14 +306,12 @@ def plot_func(time_sec,png_file,sg_df,price_df):
         y = [row.strike,row.strike]
         plt.plot(x,y,color=color)
         if n == 0:
-            plt.axhline(row.underlying_price,color='black',linestyle='--',lw=1, label="Spot: " + str("{:,.0f}".format(row.underlying_price)))
-    plt.title(f"{str(time_sec)}")
+            plt.axhline(row.underlying_price,color='gray',linestyle='--')
+    plt.title(f"{str(time_sec)} {ticker} {row.underlying_price}")
     _ = plt.ylim(price_df.underlying_price.min()*0.90,price_df.underlying_price.max()*1.10)
     plt.grid(True)
-    plt.xlabel('Index Price', fontweight="bold")
-    plt.ylabel('Gamma Exposure ($ billions/1% move)', fontweight="bold")
-    #plt.axvline(x=spotPrice, color='r', lw=1, label="SPX Spot: " + str("{:,.0f}".format(spotPrice)))
-    #plt.axvline(x=zeroGamma, color='g', lw=1, label="Gamma Flip: " + str("{:,.0f}".format(zeroGamma)))
+    plt.xlabel('Strikes')
+    plt.ylabel('GEX ($ bn/1% move)')
     plt.axhline(y=0, color='grey', lw=1)
     plt.show()
     plt.savefig(png_file)
