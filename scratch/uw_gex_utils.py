@@ -15,6 +15,7 @@ import py_vollib.black_scholes.greeks.numerical
 import py_vollib_vectorized
 
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
 
 BOT_EOD_ROOT = "/mnt/hd2/data/finance/bot-eod-zip"
@@ -155,7 +156,7 @@ class GexService(object):
             elif row.side == 'bid': # near bid, client sold, dealer long
                 return row['size']
             else:
-                return 0 # SET TO ZERO NOT GOOD.
+                return 0 # SET TO ZERO NOT GOOD. TODO: FIX THIS USING HUA!
 
         df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
         df['contract_type_int'] = 1.0
@@ -263,7 +264,7 @@ class GexService(object):
         tstamp_lim = [self.price_df.tstamp_sec.min(),self.price_df.tstamp_sec.max()]
         price_lim = [self.price_df.underlying_price.min()*0.98,self.price_df.underlying_price.max()*1.02]
         gex_lim = [self.sg_df.gex.min(),self.sg_df.gex.max()]
-        gex_lim = None
+        gex_lim = self.sg_df.gex.quantile([0.01,0.99]).to_list()
 
         png_file_list = []
         for time_sec in tqdm(self.time_sec_list[::30]):
@@ -302,6 +303,8 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
     ax2.set_xlabel('time (utc)', color=color_label)
     tmp_price = price_df[price_df.tstamp_sec <= time_sec]
     ax2.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color='black',linewidth=1)
+    ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+    ax2.tick_params(axis='x', rotation=30)
     ax2.tick_params(axis='y', labelcolor=color_label)
 
     if tstamp_lim:
