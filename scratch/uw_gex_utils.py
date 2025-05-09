@@ -3,13 +3,15 @@ import traceback
 import os
 import sys
 import datetime
+import time
 import pathlib
 import tempfile
 import zipfile
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
-import time
+import py_vollib.black_scholes.greeks.numerical
+import py_vollib_vectorized
 
 import matplotlib.pyplot as plt
 from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
@@ -171,7 +173,7 @@ class GexService(object):
             df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
         if True:
             df['size_signed'] = df.apply(lambda x: get_ddoi_size_signed(x,df),axis=1)
-            df['contract_type_int'] = 1.0
+            df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
 
         self.symbol_list = df.option_chain_id.unique()
         print('compute oi...')
@@ -199,7 +201,7 @@ class GexService(object):
             underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
         ).resample('1s').last().reset_index()
 
-        print('computing gex...')
+        print('preparing gamma and gex compute...')
         oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
         oi_df = oi_df.reset_index()
         #oi_df = oi_df.drop(['level_0'], axis=1) #??
@@ -208,12 +210,6 @@ class GexService(object):
         # gex doesn't matter anyways.
         min_stamp = self.input_day_df.tstamp_sec.min()
         oi_df = oi_df[oi_df.tstamp_sec >= min_stamp]
-
-        oi_df['gex'] = \
-            oi_df.gamma * oi_df.oi * 100 \
-            * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
-
-        print('transforming gex...')
 
         # setup "structured grid" for tstamp_sec,option_chain_id
         xv, yv = np.meshgrid(self.time_sec_list,self.symbol_list)
@@ -240,13 +236,30 @@ class GexService(object):
         gdf = pd.merge_asof(sdf,oi_df,on='tstamp_sec',direction='backward',by='option_chain_id')
         print(gdf.shape)
 
+        # 
+        # TODO: get implied_volatility and underlying and recompute gamma and gex
+        #
+        """
+        if self.ticker == "SPX":
+            flag = ['c', 'p']
+            S = 95
+            K = [100, 90]
+            t = .2
+            r = .2
+            sigma = .2
+        
+        gdf['gamma']=py_vollib.black_scholes.greeks.numerical.gamma(flag, S, K, t, r, sigma, return_as='series')
+        gdf['gex'] = \
+            oi_df.gamma * oi_df.oi * 100 \
+            * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
+        """
         sg_df = gdf[['tstamp_sec','strike','gex']].copy()
         sg_df = sg_df.groupby(['tstamp_sec','strike']).agg(
             gex=pd.NamedAgg(column="gex", aggfunc="sum"),
         ).reset_index()
         sg_df = sg_df.merge(price_df,how='left',on='tstamp_sec')
         print(sg_df.shape)
-
+        
         self.price_df = price_df
         self.price_df.to_parquet(self.price_pq_file,compression='gzip')        
         self.oi_df = oi_df
@@ -307,7 +320,7 @@ if __name__ == "__main__":
     gs = GexService(ticker)
     lookfoward_days = 5 # +90 days
     gs.get_gex_detailed(day_stamp_str,lookfoward_days)
-    gs.gen_mp4('tmp')
+    #gs.gen_mp4('tmp')
 
 
 """
