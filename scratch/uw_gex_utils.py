@@ -382,7 +382,7 @@ class GexService(object):
 def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_lim):
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
     
-    fig, ax1 = plt.subplots()
+    fig, ax1 = plt.subplots(1,2)
 
     color_label = 'tab:red'
     ax1.set_xlabel('GEX ($ bn/1% move)', color=color_label)
@@ -400,17 +400,17 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
     ax1.tick_params(axis='x', labelcolor=color_label)
     
-    ax2 = ax1.twiny()
+    ax1_twin = ax1.twiny()
     color_label = 'tab:blue'
-    ax2.set_xlabel('time (utc)', color=color_label)
+    ax1_twin.set_xlabel('time (utc)', color=color_label)
     tmp_price = price_df[price_df.tstamp_sec <= time_sec]
-    ax2.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color='black',linewidth=1)
-    ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
-    ax2.tick_params(axis='x', rotation=30)
-    ax2.tick_params(axis='y', labelcolor=color_label)
+    ax1_twin.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color='black',linewidth=1)
+    ax1_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+    ax1_twin.tick_params(axis='x', rotation=30)
+    ax1_twin.tick_params(axis='y', labelcolor=color_label)
 
     if tstamp_lim:
-        ax2.set_xlim(tstamp_lim)
+        ax1_twin.set_xlim(tstamp_lim)
     if price_lim:
         ax1.set_ylim(price_lim)
     gex_lim = [tmpdf.gex.min(),tmpdf.gex.max()]

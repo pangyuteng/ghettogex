@@ -19,3 +19,10 @@ to guess/determine aggressor_side.
 in `quote` event,
 you have `tstamp bid_price	ask_price	bid_size	ask_size`
 if ask_size drop, then likely aggressor is buy side.
+
+
+
+diy intraday directionalized GEX of SPX on 2025-05-08 (bart head pattern due to Trump tweet)
+Need to replot with major pos/neg gex levels and total gex by time
+
+https://x.com/aigonewrong/status/1920572344256565633
