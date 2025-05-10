@@ -284,11 +284,10 @@ class GexService(object):
             'side','size_mod','size','size_signed', 'contract_type_int', 'oi',
             'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled',
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo',
-            #'underlying_price',
-        ]
+            #'underlying_price', 
+        ] # once merged, underlying_price, price, greeks all likely outdated!
 
         oi_df = oi_df[cols]
-        oi_df = oi_df.rename(columns={'underlying_price':'outdated_underlying_price'})
         oi_df = oi_df.sort_values(['tstamp_sec','option_chain_id'],ignore_index=True)
         print(oi_df.shape)
 
@@ -324,7 +323,11 @@ class GexService(object):
             t = gdf.annualized_time_to_expiration
             r = interest_rate
             #sigma = gdf.vix*0.01
-            sigma = 0.2
+            # TODO: 
+            # every 15 or x sec, get price of available contracts.
+            # use above to compute IV and estimate IV surface
+            # then get volatility at each strike at time x.
+            sigma = 0.2 
             gamma = py_vollib.black_scholes.greeks.numerical.gamma(flag, S, K, t, r, sigma, return_as='series')
             gdf['updated_gamma'] = gamma
 
@@ -332,15 +335,12 @@ class GexService(object):
                 oi_df.updated_gamma * oi_df.oi * 100 \
                 * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
 
-        #sg_df = gdf[['tstamp_sec','strike','gex','updated_gex']].copy()
-        sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','outdated_underlying_price']].copy()
+        #sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','updated_gex']].copy()
+        sg_df = gdf[['tstamp_sec','strike','gex','underlying_price']].copy()
         sg_df = sg_df.groupby(['tstamp_sec','strike']).agg(
             gex=pd.NamedAgg(column="gex", aggfunc="sum"),
             underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
-            outdated_underlying_price=pd.NamedAgg(column="outdated_underlying_price", aggfunc="last"),
         ).reset_index()
-        # moved price merge to above so gex can be later recomputed for SPX
-        #sg_df = sg_df.merge(price_df,how='left',on='tstamp_sec')
         sg_df['gex'] = sg_df['gex']/ 10**9
         print(sg_df.shape)
         
