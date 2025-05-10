@@ -267,10 +267,6 @@ class GexService(object):
         oi_df = oi_df.drop(['level_0'], axis=1) #??
         oi_df = oi_df.reset_index()
 
-        oi_df['gex'] = \
-            oi_df.gamma * oi_df.oi * 100 \
-            * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
-
         # setup "structured grid" for tstamp_sec,option_chain_id
         xv, yv = np.meshgrid(self.time_sec_list,self.symbol_list)
         sdf = pd.DataFrame({
@@ -281,18 +277,18 @@ class GexService(object):
         sdf = sdf.sort_values(['tstamp_sec','option_chain_id'],ignore_index=True)
         print(sdf.shape)
 
-        # assuming greeks are computed at this time
+        # assuming greeks are computed at this time, this is the wrong assumption.
         cols =  [
             'tstamp','tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
             'side','size_mod','size','size_signed', 'contract_type_int', 'oi',
             'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled',
-            'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo', 'gex',
-            'underlying_price',
+            'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo',
+            #'underlying_price',
         ]
 
         oi_df = oi_df[cols]
-        oi_df = oi_df.rename(columns={'underlying_price':'old_underlying_price'})
+        oi_df = oi_df.rename(columns={'underlying_price':'outdated_underlying_price'})
         oi_df = oi_df.sort_values(['tstamp_sec','option_chain_id'],ignore_index=True)
         print(oi_df.shape)
 
@@ -300,11 +296,21 @@ class GexService(object):
         warnings.warn("TODO: greeks and gex should be recomputed here")
         gdf = pd.merge_asof(sdf,oi_df,on='tstamp_sec',direction='backward',by='option_chain_id')
         print(gdf.shape)
+
+        gdf['gex'] = \
+            gdf.gamma * gdf.oi * 100 \
+            * gdf.underlying_price * gdf.underlying_price * 0.01 * gdf.contract_type_int
+
         # 
         # TODO: get implied_volatility and underlying and recompute gamma and gex
         #
 
         if False: # self.ticker == "SPX":
+            #disable for now, below is flawed as 
+            # IV is surface, you can't just 
+            # so ideally you want, at each timepoint
+            # you need bid/ask prices for option chain
+            # to get IV curve, then you derive gamma.
             print(gdf.expiry.unique())
             expiry_mapper = {x:get_expiry_tstamp(x) for x in list(gdf.expiry.unique())}
 
@@ -327,10 +333,14 @@ class GexService(object):
                 * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
 
         #sg_df = gdf[['tstamp_sec','strike','gex','updated_gex']].copy()
-        sg_df = gdf[['tstamp_sec','strike','gex']].copy()
+        sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','outdated_underlying_price']].copy()
         sg_df = sg_df.groupby(['tstamp_sec','strike']).agg(
             gex=pd.NamedAgg(column="gex", aggfunc="sum"),
+            underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
+            outdated_underlying_price=pd.NamedAgg(column="outdated_underlying_price", aggfunc="last"),
         ).reset_index()
+        # moved price merge to above so gex can be later recomputed for SPX
+        #sg_df = sg_df.merge(price_df,how='left',on='tstamp_sec')
         sg_df['gex'] = sg_df['gex']/ 10**9
         print(sg_df.shape)
         
