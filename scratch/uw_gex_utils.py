@@ -18,6 +18,32 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
 
+import pandas_market_calendars as mcal
+
+def get_market_open_close(day_stamp,no_tzinfo=True):
+    nyse = mcal.get_calendar('NYSE')
+    early = nyse.schedule(start_date=day_stamp, end_date=day_stamp)
+    market_open = list(early.to_dict()['market_open'].values())[0]
+    market_close = list(early.to_dict()['market_close'].values())[0]
+    if no_tzinfo:
+        return market_open.replace(tzinfo=None),market_close.replace(tzinfo=None)
+    else:
+        return market_open,market_close
+
+TOTAL_SECONDS_ONE_YEAR = 365*24*60*60 # total seconds
+
+def get_expiry_tstamp(expiry):
+    expiry = datetime.datetime.strptime(expiry,"%Y-%m-%d")
+    _,expiry_tstamp = get_market_open_close(expiry)
+    return expiry_tstamp.replace(tzinfo=None)
+
+def get_annualized_time_to_expiration(row,expiry_mapper):
+    expiry_tstamp = expiry_mapper[row.expiry]
+    tstamp_sec = row.tstamp_sec
+    sec_to_expiration = (expiry_tstamp-tstamp_sec).total_seconds()
+    atte = sec_to_expiration/TOTAL_SECONDS_ONE_YEAR
+    return atte
+
 BOT_EOD_ROOT = "/mnt/hd2/data/finance/bot-eod-zip"
 CACHE_FOLDER = "/mnt/hd1/data/uw-options-cache"
 
@@ -40,6 +66,7 @@ class GexService(object):
         self.oi_df = None
         self.price_df = None
         self.sg_df = None # sum gex
+        self.day_stamp = None
         self.day_stamp_str = None
         self.expiration_list = None
         
@@ -98,7 +125,12 @@ class GexService(object):
         self.input_day_pq_file = self.pq_file_list[pq_file_index]
         # get trading time seconds
         self.input_day_df = pd.read_parquet(self.input_day_pq_file)
-        self.time_sec_list = pd.date_range(start=self.input_day_df.tstamp_sec.min(),end=self.input_day_df.tstamp_sec.max(),freq='s')
+
+        market_open, market_close = self.input_day_df.tstamp_sec.min(),self.input_day_df.tstamp_sec.max()
+        # you'll get nan for expiry
+        #market_open, market_close = get_market_open_close(day_stamp)
+        self.time_sec_list = pd.date_range(start=market_open,end=market_close,freq='s')
+        
         print(self.time_sec_list[0],self.time_sec_list[-1])
 
         print(self.input_day_df.columns)
@@ -107,6 +139,8 @@ class GexService(object):
         print("expiration_list",self.expiration_list)
         if day_stamp_str not in  self.expiration_list:
             warnings.warn(f"day_stamp_str {day_stamp_str} not in expiration_list")
+
+        # TODO: maybe above can be split to a seperate func.
 
         price_df = self.input_day_df.copy()
         price_df = price_df[['underlying_price','tstamp_sec']]
@@ -208,7 +242,7 @@ class GexService(object):
         print(df.canceled.value_counts())
 
         self.symbol_list = df.option_chain_id.unique()
-        print('compute oi...')
+        print('compute ddoi...')
         oi_list = []
         for option_chain_id in tqdm(self.symbol_list):
             # assume this is sorted?
@@ -219,7 +253,7 @@ class GexService(object):
 
         oi_df = pd.concat(oi_list)
         oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
-        oi_df = oi_df.reset_index()        
+        oi_df = oi_df.reset_index()
 
         print('preparing gamma and gex compute...')
 
@@ -240,21 +274,23 @@ class GexService(object):
             "tstamp_sec":xv.flatten(),
             "option_chain_id":yv.flatten(),
         })
-        sdf = sdf.sort_values(['tstamp_sec','option_chain_id'])
+        sdf = sdf.merge(price_df,how='left',on='tstamp_sec')
+        sdf = sdf.sort_values(['tstamp_sec','option_chain_id'],ignore_index=True)
         print(sdf.shape)
 
         # assuming greeks are computed at this time
         cols =  [
-            'tstamp_sec','option_chain_id',
+            'tstamp','tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
             'side','size_mod','size','size_signed', 'contract_type_int', 'oi',
-            'underlying_price',
             'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled',
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo', 'gex',
+            'underlying_price',
         ]
 
         oi_df = oi_df[cols]
-        oi_df = oi_df.sort_values(['tstamp_sec','option_chain_id'])
+        oi_df = oi_df.rename(columns={'underlying_price':'old_underlying_price'})
+        oi_df = oi_df.sort_values(['tstamp_sec','option_chain_id'],ignore_index=True)
         print(oi_df.shape)
 
         # NOTE: greeks and gex should be recomputed here.
@@ -265,25 +301,33 @@ class GexService(object):
         # 
         # TODO: get implied_volatility and underlying and recompute gamma and gex
         #
-        """
+
         if self.ticker == "SPX":
-            flag = ['c', 'p']
-            S = 95
-            K = [100, 90]
-            t = .2
-            r = .2
-            sigma = .2
-        
-        gdf['gamma']=py_vollib.black_scholes.greeks.numerical.gamma(flag, S, K, t, r, sigma, return_as='series')
-        gdf['gex'] = \
-            oi_df.gamma * oi_df.oi * 100 \
+            print(gdf.expiry.unique())
+            expiry_mapper = {x:get_expiry_tstamp(x) for x in list(gdf.expiry.unique())}
+
+            gdf['annualized_time_to_expiration'] = mdf.apply(
+                lambda x: get_annualized_time_to_expiration(x,expiry_mapper),axis=1)
+
+            interest_rate = 0.0
+            flag = gdf.option_type.apply(lambda x: 'c' if x == 'call' else 'p')
+            S = gdf.underlying_price
+            K = gdf.strike
+            t = gdf.annualized_time_to_expiration
+            r = interest_rate
+            #sigma = gdf.vix*0.01
+            sigma = 0.2
+            gamma = py_vollib.black_scholes.greeks.numerical.gamma(flag, S, K, t, r, sigma, return_as='series')
+            gdf['updated_gamma'] = gamma
+
+        gdf['updated_gex'] = \
+            oi_df.updated_gamma * oi_df.oi * 100 \
             * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
-        """
-        sg_df = gdf[['tstamp_sec','strike','gex']].copy()
+
+        sg_df = gdf[['tstamp_sec','strike','gex','updated_gex']].copy()
         sg_df = sg_df.groupby(['tstamp_sec','strike']).agg(
             gex=pd.NamedAgg(column="gex", aggfunc="sum"),
         ).reset_index()
-        sg_df = sg_df.merge(price_df,how='left',on='tstamp_sec')
         sg_df['gex'] = sg_df['gex']/ 10**9
         print(sg_df.shape)
         
@@ -293,6 +337,7 @@ class GexService(object):
         self.oi_df.to_parquet(self.oi_pq_file,compression='gzip')
         self.sg_df = sg_df
         self.sg_df.to_parquet(self.sg_pq_file,compression='gzip')
+        self.day_stamp = day_stamp
         self.day_stamp_str = day_stamp_str
 
     def gen_mp4(self,tmp_folder):
@@ -333,8 +378,11 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
     for n,row in tmpdf.iterrows():
         color = 'green' if row.gex > 0 else 'red'
         x = [0,row.gex]
+        ucolor = 'olive' if row.updated_gex > 0 else 'orange'
+        ux = [0,row.updated_gex]
         y = [row.strike,row.strike]
         ax1.plot(x,y,color=color)
+        ax1.plot(ux,y,color=ucolor,linestyle='--',alpha=0.5)
         if n == 0:
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
     ax1.tick_params(axis='x', labelcolor=color_label)
