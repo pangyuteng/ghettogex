@@ -150,21 +150,41 @@ class GexService(object):
         option, the DDOI is positive. DDOI is created by assessing trade direction of all option volume
         throughout the day, then comparing that volume to subsequent change in open interest.        
         """
-        def get_size_signed(row):
+        def get_side_mod(row,arg_df):
+            mod_side = None
             if row.side == 'ask': # near ask, client bought, dealer short
-                return -1*row['size'] 
+                mod_side = 'ask'
             elif row.side == 'bid': # near bid, client sold, dealer long
+                mod_side = 'bid'
+            else:
+                idx = row['index']
+                if arg_df.at[idx+1,"nbbo_ask"] > arg_df.at[idx,"nbbo_ask"]:
+                    mod_side = 'likely_ask'
+                elif arg_df.at[idx+1,"nbbo_bid"] > arg_df.at[idx,"nbbo_bid"]:
+                    mod_side = 'likely_ask'
+                else:
+                    mod_side = 'likely_bid' #???
+            return mod_side
+
+        def get_size_signed(row):
+            if row.side in ['ask','likely_ask']: # near ask, client bought, dealer short
+                return -1*row['size'] 
+            elif row.side == ['bid','likely_bid']: # near bid, client sold, dealer long
                 return row['size']
             else:
                 return 0 # SET TO ZERO NOT GOOD. TODO: FIX THIS USING HUA!
 
-        print("df.side.value_counts()")
-        print(df.side.value_counts())
-        print("df.canceled.value_counts()")
-        print(df.canceled.value_counts())
 
+        df['size_mod'] = df.apply(lambda x: get_side_mod(x,df),axis=1)
         df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
         df['contract_type_int'] = 1.0
+
+        print("df.side.value_counts()")
+        print(df.side.value_counts())
+        print("df.size_mod.value_counts()")
+        print(df.size_mod.value_counts())
+        print("df.canceled.value_counts()")
+        print(df.canceled.value_counts())
 
         self.symbol_list = df.option_chain_id.unique()
         print('compute oi...')
