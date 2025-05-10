@@ -167,9 +167,9 @@ class GexService(object):
             return mod_side
 
         def get_size_signed(row):
-            if row.side in ['ask','likely_ask']: # near ask, client bought, dealer short
+            if row.size_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
                 return -1*row['size'] 
-            elif row.side == ['bid','likely_bid']: # near bid, client sold, dealer long
+            elif row.size_mod == ['bid','likely_bid']: # near bid, client sold, dealer long
                 return row['size']
             else:
                 return 0 # SET TO ZERO NOT GOOD. TODO: FIX THIS USING HUA!
