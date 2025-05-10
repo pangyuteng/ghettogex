@@ -41,6 +41,7 @@ class GexService(object):
         self.price_df = None
         self.sg_df = None # sum gex
         self.day_stamp_str = None
+        self.expiration_list = None
         
         self.price_pq_file = 'price.parquet.gzip'
         self.oi_pq_file = 'oi.parquet.gzip'
@@ -76,19 +77,12 @@ class GexService(object):
         
         self.pq_file_list = sorted(str(x) for x in pathlib.Path(os.path.join(CACHE_FOLDER,self.ticker)).rglob("*.gzip"))
 
-    def get_gex_detailed(self,day_stamp_str,lookfoward_days):
+    def get_gex_detailed(self,day_stamp_str,expiration_count):
 
         self._prepare()
 
         day_stamp = datetime.datetime.strptime(day_stamp_str,'%Y-%m-%d').date()
-        expiration_list = []
-        for x in range(lookfoward_days):
-            expiration = day_stamp + datetime.timedelta(days=x)
-            expiration = expiration.strftime("%Y-%m-%d")
-            expiration_list.append(expiration)
-
         print("day_stamp",day_stamp)
-        print("expiration_list",expiration_list)
 
         # find zip file.
         day_pq_file_basename = f'{day_stamp_str}.parquet.gzip'
@@ -107,6 +101,13 @@ class GexService(object):
         self.time_sec_list = pd.date_range(start=self.input_day_df.tstamp_sec.min(),end=self.input_day_df.tstamp_sec.max(),freq='s')
         print(self.time_sec_list[0],self.time_sec_list[-1])
 
+        print(self.input_day_df.columns)
+        expiration_list = sorted(self.input_day_df.expiry.unique())
+        self.expiration_list = expiration_list[:expiration_count]
+        print("expiration_list",self.expiration_list)
+        if day_stamp_str not in  self.expiration_list:
+            warnings.warn(f"day_stamp_str {day_stamp_str} not in expiration_list")
+
         price_df = self.input_day_df.copy()
         price_df = price_df[['underlying_price','tstamp_sec']]
         price_df = price_df.groupby(['tstamp_sec']).agg(
@@ -120,7 +121,7 @@ class GexService(object):
         for pq_file in tqdm(self.pq_file_list[::-1]):
             df = pd.read_parquet(pq_file)
             unq_price = df.underlying_price.unique()
-            df = df[df.expiry.apply(lambda x: x in expiration_list)]
+            df = df[df.expiry.apply(lambda x: x in self.expiration_list)]
             mylist.append(df)
 
             if len(df) == 0:
@@ -354,8 +355,8 @@ if __name__ == "__main__":
     ticker = sys.argv[1]
     day_stamp_str = sys.argv[2]
     gs = GexService(ticker)
-    look_forward_days = 1
-    gs.get_gex_detailed(day_stamp_str,look_forward_days)
+    expiration_count = 1
+    gs.get_gex_detailed(day_stamp_str,expiration_count)
     gs.gen_mp4('tmp')
 
 

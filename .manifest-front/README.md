@@ -4,6 +4,11 @@
 
 ```
 
+kubectl create namespace gg
+
+metadata:
+    namespace: gg
+
 cd ..
 kubectl apply -f .manifest-front
 
