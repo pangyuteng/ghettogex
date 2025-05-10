@@ -110,6 +110,13 @@ class GexService(object):
 
         price_df = self.input_day_df.copy()
         price_df = price_df[['underlying_price','tstamp_sec']]
+        missing_underlying_price = np.sum(price_df.underlying_price.isna()) == len(price_df.underlying_price)
+        if missing_underlying_price:
+            raise ValueError("missing_underlying_price!")
+        print(price_df.underlying_price.notnull().sum())
+        print(len(price_df))
+        print(price_df)
+        sys.exit(1)
         price_df = price_df.groupby(['tstamp_sec']).agg(
             underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
         ).resample('1s').last().reset_index()
@@ -140,13 +147,12 @@ class GexService(object):
         tstamp,tstamp_sec,size_signed,oi
         """
 
-        if False:
-            # naive gex, dealer short put, long call
-            # https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
-            # A crude approximation is that the dealers are long the calls and short the puts,
-            df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
-
         """
+        # naive gex, dealer short put, long call
+        # https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
+        # A crude approximation is that the dealers are long the calls and short the puts,
+        df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
+
         The number of option contracts that are held by option dealers, and the direction in which those
         contracts are held. When dealers are short the option, the DDOI is negative; when dealers are long the
         option, the DDOI is positive. DDOI is created by assessing trade direction of all option volume
@@ -294,7 +300,7 @@ class GexService(object):
         price_lim = [self.price_df.underlying_price.min()*0.98,self.price_df.underlying_price.max()*1.02]
         gex_lim = [self.sg_df.gex.min(),self.sg_df.gex.max()]
         gex_lim = self.sg_df.gex.quantile([0.01,0.99]).to_list()
-
+        print(price_lim)
         png_file_list = []
         for time_sec in tqdm(self.time_sec_list[::30]):
             png_file = os.path.join(png_folder,
