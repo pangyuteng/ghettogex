@@ -113,10 +113,7 @@ class GexService(object):
         missing_underlying_price = np.sum(price_df.underlying_price.isna()) == len(price_df.underlying_price)
         if missing_underlying_price:
             raise ValueError("missing_underlying_price!")
-        print(price_df.underlying_price.notnull().sum())
-        print(len(price_df))
-        print(price_df)
-        sys.exit(1)
+
         price_df = price_df.groupby(['tstamp_sec']).agg(
             underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
         ).resample('1s').last().reset_index()
@@ -128,6 +125,7 @@ class GexService(object):
         for pq_file in tqdm(self.pq_file_list[::-1]):
             df = pd.read_parquet(pq_file)
             unq_price = df.underlying_price.unique()
+            # NOTE: use unq_price to ensure underlying_price is estimates.
             df = df[df.expiry.apply(lambda x: x in self.expiration_list)]
             mylist.append(df)
 
@@ -157,6 +155,15 @@ class GexService(object):
         contracts are held. When dealers are short the option, the DDOI is negative; when dealers are long the
         option, the DDOI is positive. DDOI is created by assessing trade direction of all option volume
         throughout the day, then comparing that volume to subsequent change in open interest.        
+
+        https://www.gexbot.com/static/media/hau.0fcbcd78dd6272834a38.pdf
+        Notice how the new best ask is lifted from 2.20 to 2.21, while the best bid remains the same. 
+        Furthermore, the contracts offered at 2.21 drops from 120 to 79, indicating less liquidity being
+        sold from market makers (liquidity was likely ‘eaten up’ by a buy order
+
+        tldr
+        if ask price increase, likely was buy order.
+
         """
         def get_side_mod(row,arg_df):
             try:
@@ -175,8 +182,6 @@ class GexService(object):
                         mod_side = 'likely_bid' #???
                 return mod_side
             except:
-                # traceback.print_exc()
-                # sys.exit(1)
                 return "exception"
 
         def get_size_signed(row):
@@ -243,6 +248,7 @@ class GexService(object):
             'tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
             'side','size_mod','size','size_signed', 'contract_type_int', 'oi',
+            'underlying_price',
             'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled',
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo', 'gex',
         ]
