@@ -382,7 +382,7 @@ class GexService(object):
 def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_lim):
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
     
-    fig, ax1 = plt.subplots(1,2)
+    fig, (ax1, ax2) = plt.subplots(1,2)
 
     color_label = 'tab:red'
     ax1.set_xlabel('GEX ($ bn/1% move)', color=color_label)
@@ -400,6 +400,8 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
     ax1.tick_params(axis='x', labelcolor=color_label)
     
+    # TODO: plot major pos/neg gex
+
     ax1_twin = ax1.twiny()
     color_label = 'tab:blue'
     ax1_twin.set_xlabel('time (utc)', color=color_label)
@@ -419,6 +421,10 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
 
     ax1.grid(True)
     plt.title(f"{str(time_sec)} {ticker} {row.underlying_price}")
+    
+    # TODO: plot total gex
+    ax2
+
     fig.tight_layout()
     plt.show()
     plt.savefig(png_file)
