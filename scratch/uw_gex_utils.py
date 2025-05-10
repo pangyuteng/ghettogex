@@ -127,7 +127,7 @@ class GexService(object):
             if zero_count > 10:
                 break
         df = pd.concat(mylist)
-        df = df.sort_values(['option_chain_id','tstamp'])
+        df = df.sort_values(['option_chain_id','tstamp'],ignore_index=True)
         df = df.reset_index()
 
         """
@@ -159,9 +159,9 @@ class GexService(object):
                     mod_side = 'bid'
                 else:
                     idx = row['index']
-                    if arg_df.iloc[idx+1,"nbbo_ask"] > arg_df.iloc[idx,"nbbo_ask"]:
+                    if arg_df.at[idx+1,"nbbo_ask"] > arg_df.at[idx,"nbbo_ask"]:
                         mod_side = 'likely_ask'
-                    elif arg_df.iloc[idx+1,"nbbo_bid"] > arg_df.iloc[idx,"nbbo_bid"]:
+                    elif arg_df.at[idx+1,"nbbo_bid"] > arg_df.at[idx,"nbbo_bid"]:
                         mod_side = 'likely_ask'
                     else:
                         mod_side = 'likely_bid' #???
@@ -172,19 +172,19 @@ class GexService(object):
                 return "exception"
 
         def get_size_signed(row):
-            #if row.size_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
-            if row.size in ['ask','likely_ask']: # near ask, client bought, dealer short
+            if row.size_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
                 return -1*row['size'] 
-            #elif row.size_mod == ['bid','likely_bid']: # near bid, client sold, dealer long
-            elif row.size == ['bid','likely_bid']: # near bid, client sold, dealer long
+            elif row.size_mod in ['bid','likely_bid']: # near bid, client sold, dealer long
                 return row['size']
             else:
                 return 0 # SET TO ZERO NOT GOOD. TODO: FIX THIS USING HUA!
 
-
         df['size_mod'] = df.apply(lambda x: get_side_mod(x,df),axis=1)
         df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
-        df['contract_type_int'] = 1.0
+
+        # if you are net long call, you gotta short, if you are net long put, you gotta long
+        # so we will need to flip based on contract type?!!
+        df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
         self._raw_df = df
 
         print("df.side.value_counts()")
@@ -234,7 +234,7 @@ class GexService(object):
         cols =  [
             'tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
-            'side','size','size_signed', 'contract_type_int', 'oi',
+            'side','size_mod','size','size_signed', 'contract_type_int', 'oi',
             'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled',
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo', 'gex',
         ]
