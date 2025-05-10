@@ -33,6 +33,8 @@ def get_market_open_close(day_stamp,no_tzinfo=True):
 TOTAL_SECONDS_ONE_YEAR = 365*24*60*60 # total seconds
 
 def get_expiry_tstamp(expiry):
+    if np.isnan(expiry):
+        return np.nan
     expiry = datetime.datetime.strptime(expiry,"%Y-%m-%d")
     _,expiry_tstamp = get_market_open_close(expiry)
     return expiry_tstamp.replace(tzinfo=None)
@@ -74,7 +76,7 @@ class GexService(object):
         self.oi_pq_file = 'oi.parquet.gzip'
         self.sg_pq_file = 'sg.parquet.gzip'
 
-    def _prepare(self):
+    def _cache_ticker_flow(self):
         # save option flow parquet file.
         self.zip_file_list = sorted(str(x) for x in pathlib.Path(BOT_EOD_ROOT).rglob("*.zip"))
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -106,7 +108,7 @@ class GexService(object):
 
     def get_gex_detailed(self,day_stamp_str,expiration_count):
 
-        self._prepare()
+        self._cache_ticker_flow()
 
         day_stamp = datetime.datetime.strptime(day_stamp_str,'%Y-%m-%d').date()
         print("day_stamp",day_stamp)
@@ -127,7 +129,8 @@ class GexService(object):
         self.input_day_df = pd.read_parquet(self.input_day_pq_file)
 
         market_open, market_close = self.input_day_df.tstamp_sec.min(),self.input_day_df.tstamp_sec.max()
-        # you'll get nan for expiry
+        
+        # TODO: you'll get nan for expiry_mapper
         #market_open, market_close = get_market_open_close(day_stamp)
         self.time_sec_list = pd.date_range(start=market_open,end=market_close,freq='s')
         
@@ -297,12 +300,11 @@ class GexService(object):
         warnings.warn("TODO: greeks and gex should be recomputed here")
         gdf = pd.merge_asof(sdf,oi_df,on='tstamp_sec',direction='backward',by='option_chain_id')
         print(gdf.shape)
-
         # 
         # TODO: get implied_volatility and underlying and recompute gamma and gex
         #
 
-        if self.ticker == "SPX":
+        if False: # self.ticker == "SPX":
             print(gdf.expiry.unique())
             expiry_mapper = {x:get_expiry_tstamp(x) for x in list(gdf.expiry.unique())}
 
@@ -320,11 +322,12 @@ class GexService(object):
             gamma = py_vollib.black_scholes.greeks.numerical.gamma(flag, S, K, t, r, sigma, return_as='series')
             gdf['updated_gamma'] = gamma
 
-        gdf['updated_gex'] = \
-            oi_df.updated_gamma * oi_df.oi * 100 \
-            * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
+            gdf['updated_gex'] = \
+                oi_df.updated_gamma * oi_df.oi * 100 \
+                * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
 
-        sg_df = gdf[['tstamp_sec','strike','gex','updated_gex']].copy()
+        #sg_df = gdf[['tstamp_sec','strike','gex','updated_gex']].copy()
+        sg_df = gdf[['tstamp_sec','strike','gex']].copy()
         sg_df = sg_df.groupby(['tstamp_sec','strike']).agg(
             gex=pd.NamedAgg(column="gex", aggfunc="sum"),
         ).reset_index()
@@ -378,11 +381,11 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
     for n,row in tmpdf.iterrows():
         color = 'green' if row.gex > 0 else 'red'
         x = [0,row.gex]
-        ucolor = 'olive' if row.updated_gex > 0 else 'orange'
-        ux = [0,row.updated_gex]
+        #ucolor = 'olive' if row.updated_gex > 0 else 'orange'
+        #ux = [0,row.updated_gex]
         y = [row.strike,row.strike]
         ax1.plot(x,y,color=color)
-        ax1.plot(ux,y,color=ucolor,linestyle='--',alpha=0.5)
+        #ax1.plot(ux,y,color=ucolor,linestyle='--',alpha=0.5)
         if n == 0:
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
     ax1.tick_params(axis='x', labelcolor=color_label)
