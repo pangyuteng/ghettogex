@@ -284,7 +284,8 @@ class GexService(object):
 
     def gen_mp4(self,tmp_folder):
         png_folder = os.path.join(tmp_folder,f'pngs-{self.ticker}-{self.day_stamp_str}')
-        shutil.rmtree(png_folder)
+        if os.path.exists(png_folder):
+            shutil.rmtree(png_folder)
         os.makedirs(png_folder,exist_ok=True)
         mp4_file = os.path.join(tmp_folder,f'{self.ticker}-{self.day_stamp_str}.mp4')
 
