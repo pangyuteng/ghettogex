@@ -207,8 +207,8 @@ class GexService(object):
             'tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
             'side','size','size_signed', 'contract_type_int', 'oi',
-            'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled'
-            'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo','gex'
+            'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled',
+            'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo', 'gex',
         ]
 
         oi_df = oi_df[cols]
