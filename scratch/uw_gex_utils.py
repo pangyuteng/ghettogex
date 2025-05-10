@@ -160,6 +160,8 @@ class GexService(object):
 
         print("df.side.value_counts()")
         print(df.side.value_counts())
+        print("df.canceled.value_counts()")
+        print(df.canceled.value_counts())
 
         df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
         df['contract_type_int'] = 1.0
@@ -176,8 +178,7 @@ class GexService(object):
 
         oi_df = pd.concat(oi_list)
         oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
-        oi_df = oi_df.reset_index()
-        
+        oi_df = oi_df.reset_index()        
 
         print('preparing gamma and gex compute...')
 
@@ -206,6 +207,7 @@ class GexService(object):
             'tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
             'side','size','size_signed', 'contract_type_int', 'oi',
+            'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled'
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo','gex'
         ]
 
