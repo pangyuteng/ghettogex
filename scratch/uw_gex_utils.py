@@ -151,25 +151,32 @@ class GexService(object):
         throughout the day, then comparing that volume to subsequent change in open interest.        
         """
         def get_side_mod(row,arg_df):
-            mod_side = None
-            if row.side == 'ask': # near ask, client bought, dealer short
-                mod_side = 'ask'
-            elif row.side == 'bid': # near bid, client sold, dealer long
-                mod_side = 'bid'
-            else:
-                idx = row['index']
-                if arg_df.at[idx+1,"nbbo_ask"] > arg_df.at[idx,"nbbo_ask"]:
-                    mod_side = 'likely_ask'
-                elif arg_df.at[idx+1,"nbbo_bid"] > arg_df.at[idx,"nbbo_bid"]:
-                    mod_side = 'likely_ask'
+            try:
+                mod_side = None
+                if row.side == 'ask': # near ask, client bought, dealer short
+                    mod_side = 'ask'
+                elif row.side == 'bid': # near bid, client sold, dealer long
+                    mod_side = 'bid'
                 else:
-                    mod_side = 'likely_bid' #???
-            return mod_side
+                    idx = row['index']
+                    if arg_df.iloc[idx+1,"nbbo_ask"] > arg_df.iloc[idx,"nbbo_ask"]:
+                        mod_side = 'likely_ask'
+                    elif arg_df.iloc[idx+1,"nbbo_bid"] > arg_df.iloc[idx,"nbbo_bid"]:
+                        mod_side = 'likely_ask'
+                    else:
+                        mod_side = 'likely_bid' #???
+                return mod_side
+            except:
+                # traceback.print_exc()
+                # sys.exit(1)
+                return "exception"
 
         def get_size_signed(row):
-            if row.size_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
+            #if row.size_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
+            if row.size in ['ask','likely_ask']: # near ask, client bought, dealer short
                 return -1*row['size'] 
-            elif row.size_mod == ['bid','likely_bid']: # near bid, client sold, dealer long
+            #elif row.size_mod == ['bid','likely_bid']: # near bid, client sold, dealer long
+            elif row.size == ['bid','likely_bid']: # near bid, client sold, dealer long
                 return row['size']
             else:
                 return 0 # SET TO ZERO NOT GOOD. TODO: FIX THIS USING HUA!
@@ -178,6 +185,7 @@ class GexService(object):
         df['size_mod'] = df.apply(lambda x: get_side_mod(x,df),axis=1)
         df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
         df['contract_type_int'] = 1.0
+        self._raw_df = df
 
         print("df.side.value_counts()")
         print(df.side.value_counts())
