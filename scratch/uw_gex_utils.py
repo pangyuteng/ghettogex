@@ -361,8 +361,8 @@ if __name__ == "__main__":
     ticker = sys.argv[1]
     day_stamp_str = sys.argv[2] # "2025-04-25"
     gs = GexService(ticker)
-    lookfoward_days = 7 # +90 days
-    gs.get_gex_detailed(day_stamp_str,lookfoward_days)
+    look_forward_days = 7 # +90 days
+    gs.get_gex_detailed(day_stamp_str,look_forward_days)
     gs.gen_mp4('tmp')
 
 
