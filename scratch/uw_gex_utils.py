@@ -40,7 +40,8 @@ class GexService(object):
         self.oi_df = None
         self.price_df = None
         self.sg_df = None # sum gex
-
+        self.day_stamp_str = None
+        
         self.price_pq_file = 'price.parquet.gzip'
         self.oi_pq_file = 'oi.parquet.gzip'
         self.sg_pq_file = 'sg.parquet.gzip'
@@ -78,7 +79,7 @@ class GexService(object):
     def get_gex_detailed(self,day_stamp_str,lookfoward_days):
 
         self._prepare()
-        
+
         day_stamp = datetime.datetime.strptime(day_stamp_str,'%Y-%m-%d').date()
         expiration_list = []
         for x in range(lookfoward_days):
@@ -279,6 +280,7 @@ class GexService(object):
         self.oi_df.to_parquet(self.oi_pq_file,compression='gzip')
         self.sg_df = sg_df
         self.sg_df.to_parquet(self.sg_pq_file,compression='gzip')
+        self.day_stamp_str = day_stamp_str
 
     def todos(self):
         if self.ticker == 'SPX':
@@ -294,7 +296,7 @@ class GexService(object):
         png_folder = os.path.join(tmp_folder,'pngs')
         shutil.rmtree(png_folder)
         os.makedirs(png_folder,exist_ok=True)
-        mp4_file = os.path.join(tmp_folder,'ok.mp4')
+        mp4_file = os.path.join(tmp_folder,f'{self.ticker}-{self.day_stamp_str}.mp4')
 
         tstamp_lim = [self.price_df.tstamp_sec.min(),self.price_df.tstamp_sec.max()]
         price_lim = [self.price_df.underlying_price.min()*0.98,self.price_df.underlying_price.max()*1.02]
@@ -359,9 +361,9 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
-    day_stamp_str = sys.argv[2] # "2025-04-25"
+    day_stamp_str = sys.argv[2]
     gs = GexService(ticker)
-    look_forward_days = 7 # +90 days
+    look_forward_days = 1
     gs.get_gex_detailed(day_stamp_str,look_forward_days)
     gs.gen_mp4('tmp')
 
@@ -375,6 +377,6 @@ docker run -it -u $(id -u):$(id -g) -w $PWD -v /mnt:/mnt -p 8888:8888 fi-noteboo
 docker run -it -w $PWD -v /mnt:/mnt -v $PWD/tmp:/.local -p 8888:8888 fi-notebook:latest bash
 
 python uw_gex_utils.py SPY 2025-05-02
-python uw_gex_utils.py SPX 2025-05-05
+python uw_gex_utils.py SPX 2025-05-09
 
 """
