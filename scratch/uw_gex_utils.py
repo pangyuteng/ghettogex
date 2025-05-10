@@ -282,16 +282,6 @@ class GexService(object):
         self.sg_df.to_parquet(self.sg_pq_file,compression='gzip')
         self.day_stamp_str = day_stamp_str
 
-    def todos(self):
-        if self.ticker == 'SPX':
-            # SPX SPXW
-            pass
-        elif self.ticker == 'NDX':
-            # NDX NDXP
-            pass
-        else:
-            pass
-
     def gen_mp4(self,tmp_folder):
         png_folder = os.path.join(tmp_folder,f'pngs-{self.ticker}-{self.day_stamp_str}')
         shutil.rmtree(png_folder)
