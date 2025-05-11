@@ -25,3 +25,13 @@ kubectl rollout restart deployment worker-default-deployment -n gg
 kubectl rollout restart deployment worker-stream-deployment -n gg
 
 ```
+
++ tail logs
+
+```
+
+kubectl logs -l app=worker-default -n gg -f --max-log-requests 12 --tail=2000
+kubectl logs -l app=worker-stream -n gg -f --max-log-requests 12 --tail=2000
+
+
+```
