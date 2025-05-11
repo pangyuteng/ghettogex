@@ -56,7 +56,7 @@ def format_stamp(x):
         return datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S+00')
 
 class GexService(object):
-    def __init__(self,ticker):
+    def __init__(self,ticker,output_folder):
         self.ticker = ticker
         self.zip_file_list = None
         self.pq_file_list = None
@@ -72,9 +72,10 @@ class GexService(object):
         self.day_stamp_str = None
         self.expiration_list = None
         
-        self.price_pq_file = 'price.parquet.gzip'
-        self.oi_pq_file = 'oi.parquet.gzip'
-        self.sg_pq_file = 'sg.parquet.gzip'
+        self.output_folder = output_folder
+        self.price_pq_file = None
+        self.oi_pq_file = None
+        self.sg_pq_file = None
 
     def _cache_ticker_flow(self):
         # save option flow parquet file.
@@ -344,6 +345,11 @@ class GexService(object):
         sg_df['gex'] = sg_df['gex']/ 10**9
         print(sg_df.shape)
         
+        os.makedirs(self.output_folder,exist_ok=True)
+        self.price_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-price.parquet.gzip')
+        self.oi_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-oi.parquet.gzip')
+        self.sg_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-sg.parquet.gzip')
+
         self.price_df = price_df
         self.price_df.to_parquet(self.price_pq_file,compression='gzip')
         self.oi_df = oi_df
@@ -353,12 +359,12 @@ class GexService(object):
         self.day_stamp = day_stamp
         self.day_stamp_str = day_stamp_str
 
-    def gen_mp4(self,tmp_folder):
-        png_folder = os.path.join(tmp_folder,f'pngs-{self.ticker}-{self.day_stamp_str}')
+    def gen_mp4(self):
+        png_folder = os.path.join(self.output_folder,f'pngs-{self.ticker}-{self.day_stamp_str}')
         if os.path.exists(png_folder):
             shutil.rmtree(png_folder)
         os.makedirs(png_folder,exist_ok=True)
-        mp4_file = os.path.join(tmp_folder,f'{self.ticker}-{self.day_stamp_str}.mp4')
+        mp4_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}.mp4')
 
         #tstamp_lim = [self.price_df.tstamp_sec.min(),self.true_market_close]
         tstamp_lim = [self.true_market_open,self.true_market_close]
@@ -461,10 +467,10 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
 if __name__ == "__main__":
     ticker = sys.argv[1]
     day_stamp_str = sys.argv[2]
-    gs = GexService(ticker)
+    gs = GexService(ticker,"tmp")
     expiration_count = 1
     gs.get_gex_detailed(day_stamp_str,expiration_count)
-    gs.gen_mp4('tmp')
+    gs.gen_mp4()
 
 
 """
@@ -475,7 +481,7 @@ docker run -it -u $(id -u):$(id -g) -w $PWD -v /mnt:/mnt -p 8888:8888 fi-noteboo
 
 docker run -it -w $PWD -v /mnt:/mnt -v $PWD/tmp:/.local -p 8888:8888 fi-notebook:latest bash
 
-python uw_gex_utils.py SPY 2025-05-02
+python uw_gex_utils.py SPY 2025-05-08
 python uw_gex_utils.py SPX 2025-05-09
 
 """
