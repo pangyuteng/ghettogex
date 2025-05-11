@@ -365,11 +365,30 @@ class GexService(object):
         gex_lim = [self.sg_df.gex.min(),self.sg_df.gex.max()]
         gex_lim = self.sg_df.gex.quantile([0.01,0.99]).to_list()
         print(price_lim)
+
+
+        major_df = self.sg_df.groupby(['tstamp_sec']).agg(
+                major_pos_gex_idx=pd.NamedAgg(column="gex", aggfunc="idxmax"),
+                major_neg_gex_idx=pd.NamedAgg(column="gex", aggfunc="idxmin"),
+                underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
+        ).reset_index()
+
+        def get_strike(row,df):
+            return df.at[row.major_pos_gex_idx,'strike'],df.at[row.major_neg_gex_idx,'strike']
+        major_df['major_pos_gex_strike'], major_df['major_neg_gex_strike']= \
+            zip(*major_df.apply(lambda row:get_strike(row,self.sg_df),axis=1))
+        # weed out noise
+        major_df = major_df[(major_df.major_pos_gex_strike>major_df.underlying_price/2)&(major_df.major_neg_gex_strike>major_df.underlying_price/2)]
+
+        total_gex_df = self.sg_df.groupby(['tstamp_sec']).agg(
+                total_gex=pd.NamedAgg(column="gex", aggfunc="sum"),
+            ).reset_index()
+            
         png_file_list = []
         for time_sec in tqdm(self.time_sec_list[::30]):
             png_file = os.path.join(png_folder,
                 f'{time_sec.strftime("%Y-%m-%d-%H-%M-%S")}.png')
-            plot_func(self.ticker,time_sec,png_file,self.sg_df,self.price_df,tstamp_lim,gex_lim,price_lim)
+            plot_func(self.ticker,time_sec,png_file,self.sg_df,self.price_df,major_df,total_gex_df,tstamp_lim,gex_lim,price_lim)
             if os.path.exists(png_file):
                 png_file_list.append(png_file)
 
@@ -379,10 +398,11 @@ class GexService(object):
         concat_clip.write_videofile(mp4_file, fps=fps)
         print(os.path.exists(mp4_file))
 
-def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_lim):
+def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tstamp_lim,gex_lim,price_lim):
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
+    tmpmajor_df = major_df[major_df.tstamp_sec==time_sec].reset_index()
+    fig, (ax1, ax2) = plt.subplots(2,1)
     
-    fig, (ax1, ax2) = plt.subplots(1,2)
 
     color_label = 'tab:red'
     ax1.set_xlabel('GEX ($ bn/1% move)', color=color_label)
@@ -398,15 +418,17 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
         #ax1.plot(ux,y,color=ucolor,linestyle='--',alpha=0.5)
         if n == 0:
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
+            ax1.title(f"{str(time_sec)} {ticker} {row.underlying_price}")
     ax1.tick_params(axis='x', labelcolor=color_label)
-    
-    # TODO: plot major pos/neg gex
 
     ax1_twin = ax1.twiny()
     color_label = 'tab:blue'
     ax1_twin.set_xlabel('time (utc)', color=color_label)
     tmp_price = price_df[price_df.tstamp_sec <= time_sec]
+    # plot price, major pos/neg gex (**different from gexbot**)
     ax1_twin.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color='black',linewidth=1)
+    ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_pos_gex_strike,color='green',alpha=0.5)
+    ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_neg_gex_strike,color='red',alpha=0.5)
     ax1_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
     ax1_twin.tick_params(axis='x', rotation=30)
     ax1_twin.tick_params(axis='y', labelcolor=color_label)
@@ -420,10 +442,11 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,tstamp_lim,gex_lim,price_l
         ax1.set_xlim(gex_lim)
 
     ax1.grid(True)
-    plt.title(f"{str(time_sec)} {ticker} {row.underlying_price}")
     
-    # TODO: plot total gex
-    ax2
+    # plot total gex
+    ax2.title("total gex")
+    ax2.scatter(total_gex_df.tstamp_sec,total_gex_df.total_gex,color='black',s=1)
+    ax2.axhline(0)
 
     fig.tight_layout()
     plt.show()
