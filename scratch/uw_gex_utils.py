@@ -404,7 +404,9 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     tmptotal_gex_df = total_gex_df[total_gex_df.tstamp_sec<=time_sec].reset_index()
     #fig, (ax1, ax2) = plt.subplots(2,1)
     fig, ax1 = plt.subplots()
+
     underlying_price = tmpdf.at[0,'underlying_price']
+    ax1.set_title(f"{str(time_sec)} {ticker} {underlying_price}")
 
     color_label = 'tab:red'
     ax1.set_xlabel('GEX ($ bn/1% move)', color=color_label)
@@ -421,7 +423,6 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         if n == 0:
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
     ax1.tick_params(axis='x', labelcolor=color_label)
-    ax1.set_title = f"{str(time_sec)} {ticker} {underlying_price}"
     ax1_twin = ax1.twiny()
     color_label = 'tab:blue'
     ax1_twin.set_xlabel('time (utc)', color=color_label)
