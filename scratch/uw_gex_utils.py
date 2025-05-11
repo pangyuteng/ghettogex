@@ -447,6 +447,7 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     ax2.title("total gex")
     ax2.scatter(total_gex_df.tstamp_sec,total_gex_df.total_gex,color='black',s=1)
     ax2.axhline(0)
+    ax2.grid(True)
 
     fig.tight_layout()
     plt.show()
