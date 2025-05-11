@@ -128,10 +128,10 @@ class GexService(object):
         # get trading time seconds
         self.input_day_df = pd.read_parquet(self.input_day_pq_file)
 
-        market_open, market_close = self.input_day_df.tstamp_sec.min(),self.input_day_df.tstamp_sec.max()
-        
-        # TODO: you'll get nan for expiry_mapper
-        #market_open, market_close = get_market_open_close(day_stamp)
+        market_open, _ = self.input_day_df.tstamp_sec.min(),self.input_day_df.tstamp_sec.max()
+
+        # TODO: you'll get nan for expiry_mapper using below as market_open
+        _, market_close = get_market_open_close(day_stamp)
         self.time_sec_list = pd.date_range(start=market_open,end=market_close,freq='s')
         
         print(self.time_sec_list[0],self.time_sec_list[-1])
@@ -400,7 +400,8 @@ class GexService(object):
 
 def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tstamp_lim,gex_lim,price_lim):
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
-    tmpmajor_df = major_df[major_df.tstamp_sec==time_sec].reset_index()
+    tmpmajor_df = major_df[major_df.tstamp_sec<=time_sec].reset_index()
+    tmptotal_gex_df = total_gex_df[total_gex_df.tstamp_sec<=time_sec].reset_index()
     fig, (ax1, ax2) = plt.subplots(2,1)
     
 
@@ -438,14 +439,14 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     if price_lim:
         ax1.set_ylim(price_lim)
     gex_lim = [tmpdf.gex.min(),tmpdf.gex.max()]
-    if gex_lim:
+    if gex_lim and gex_lim[0] != gex_lim[1]:
         ax1.set_xlim(gex_lim)
 
     ax1.grid(True)
     
     # plot total gex
     #ax2.title = "total gex"
-    ax2.scatter(total_gex_df.tstamp_sec,total_gex_df.total_gex,color='black',s=1)
+    ax2.scatter(tmptotal_gex_df.tstamp_sec,tmptotal_gex_df.total_gex,color='black',s=1)
     ax2.axhline(0)
     ax2.grid(True)
 
