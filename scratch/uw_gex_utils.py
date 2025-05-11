@@ -33,7 +33,7 @@ def get_market_open_close(day_stamp,no_tzinfo=True):
 TOTAL_SECONDS_ONE_YEAR = 365*24*60*60 # total seconds
 
 def get_expiry_tstamp(expiry):
-    if np.isnan(expiry):
+    if not isinstance(expiry,str):
         return np.nan
     expiry = datetime.datetime.strptime(expiry,"%Y-%m-%d")
     _,expiry_tstamp = get_market_open_close(expiry)
