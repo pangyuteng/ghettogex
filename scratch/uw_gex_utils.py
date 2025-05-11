@@ -128,11 +128,11 @@ class GexService(object):
         # get trading time seconds
         self.input_day_df = pd.read_parquet(self.input_day_pq_file)
 
-        market_open, _ = self.input_day_df.tstamp_sec.min(),self.input_day_df.tstamp_sec.max()
+        market_open, market_close = self.input_day_df.tstamp_sec.min(),self.input_day_df.tstamp_sec.max()
 
-        # TODO: you'll get nan for expiry_mapper using below as market_open
-        _, market_close = get_market_open_close(day_stamp)
-        self.time_sec_list = pd.date_range(start=market_open,end=market_close,freq='s')
+        # TODO: you'll get nan for expiry_mapper using below market_open
+        self.true_market_open, self.true_market_close = get_market_open_close(day_stamp)
+        self.time_sec_list = pd.date_range(start=market_open,end=self.true_market_close,freq='s')
         
         print(self.time_sec_list[0],self.time_sec_list[-1])
 
@@ -360,12 +360,12 @@ class GexService(object):
         os.makedirs(png_folder,exist_ok=True)
         mp4_file = os.path.join(tmp_folder,f'{self.ticker}-{self.day_stamp_str}.mp4')
 
-        tstamp_lim = [self.price_df.tstamp_sec.min(),self.price_df.tstamp_sec.max()]
+        #tstamp_lim = [self.price_df.tstamp_sec.min(),self.true_market_close]
+        tstamp_lim = [self.true_market_open,self.true_market_close]
         price_lim = [self.price_df.underlying_price.min()*0.98,self.price_df.underlying_price.max()*1.02]
         gex_lim = [self.sg_df.gex.min(),self.sg_df.gex.max()]
         gex_lim = self.sg_df.gex.quantile([0.01,0.99]).to_list()
         print(price_lim)
-
 
         major_df = self.sg_df.groupby(['tstamp_sec']).agg(
                 major_pos_gex_idx=pd.NamedAgg(column="gex", aggfunc="idxmax"),
@@ -383,7 +383,7 @@ class GexService(object):
         total_gex_df = self.sg_df.groupby(['tstamp_sec']).agg(
                 total_gex=pd.NamedAgg(column="gex", aggfunc="sum"),
             ).reset_index()
-            
+
         png_file_list = []
         for time_sec in tqdm(self.time_sec_list[::30]):
             png_file = os.path.join(png_folder,
@@ -402,9 +402,9 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
     tmpmajor_df = major_df[major_df.tstamp_sec<=time_sec].reset_index()
     tmptotal_gex_df = total_gex_df[total_gex_df.tstamp_sec<=time_sec].reset_index()
-    fig, (ax1, ax2) = plt.subplots(2,1)
+    #fig, (ax1, ax2) = plt.subplots(2,1)
+    fig, ax1 = plt.subplots()
     underlying_price = tmpdf.at[0,'underlying_price']
-    ax1.set_title = f"{str(time_sec)} {ticker} {underlying_price}"
 
     color_label = 'tab:red'
     ax1.set_xlabel('GEX ($ bn/1% move)', color=color_label)
@@ -421,7 +421,7 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         if n == 0:
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
     ax1.tick_params(axis='x', labelcolor=color_label)
-
+    ax1.set_title = f"{str(time_sec)} {ticker} {underlying_price}"
     ax1_twin = ax1.twiny()
     color_label = 'tab:blue'
     ax1_twin.set_xlabel('time (utc)', color=color_label)
@@ -443,13 +443,14 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         ax1.set_xlim(gex_lim)
 
     ax1.grid(True)
-    
+
     # plot total gex
-    ax2.scatter(tmptotal_gex_df.tstamp_sec,tmptotal_gex_df.total_gex,color='black',s=1)
-    ax2.axhline(0)
-    if tstamp_lim:
-        ax2.set_xlim(tstamp_lim)
-    ax2.grid(True)
+    if False:
+        ax2.scatter(tmptotal_gex_df.tstamp_sec,tmptotal_gex_df.total_gex,color='black',s=1)
+        ax2.axhline(0)
+        if tstamp_lim:
+            ax2.set_xlim(tstamp_lim)
+        ax2.grid(True)
 
     fig.tight_layout()
     plt.show()
