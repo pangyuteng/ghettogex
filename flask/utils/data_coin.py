@@ -10,10 +10,10 @@ import requests
 def scrape_btcusd():
     mydict = {}
     try:
-        url = f"https://api.coindesk.com/v1/bpi/currentprice.json"
+        url = "https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD"
         data = requests.get(url)
         mydict = data.json()
-        mydict['last_price']=float(mydict['bpi']['USD']['rate'].replace(',',''))
+        mydict['last_price']=float(mydict['USD'])
     except ValueError:
         traceback.print_exc()
     return mydict
