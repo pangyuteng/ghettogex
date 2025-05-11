@@ -12,16 +12,16 @@ kubectl apply -f .manifest-back
 + restart deployments
 
 ```
-kubectl rollout restart deployment fi-postgres-deployment -n default
-kubectl rollout restart deployment fi-adminer-deployment -n default
-kubectl rollout restart deployment fi-rabbitmq-deployment -n default
-kubectl rollout restart deployment fi-redis-deployment -n default
+kubectl rollout restart deployment postgres-deployment -n gg
+kubectl rollout restart deployment adminer-deployment -n gg
+kubectl rollout restart deployment rabbitmq-deployment -n gg
+kubectl rollout restart deployment redis-deployment -n gg
 
 
-kubectl rollout restart deployment fi-luigi-deployment -n default
-kubectl rollout restart deployment fi-enqueue-deployment -n default
-kubectl rollout restart deployment fi-beat-deployment -n default
-kubectl rollout restart deployment fi-worker-default-deployment -n default
-kubectl rollout restart deployment fi-worker-stream-deployment -n default
+kubectl rollout restart deployment luigi-deployment -n gg
+kubectl rollout restart deployment enqueue-deployment -n gg
+kubectl rollout restart deployment beat-deployment -n gg
+kubectl rollout restart deployment worker-default-deployment -n gg
+kubectl rollout restart deployment worker-stream-deployment -n gg
 
 ```

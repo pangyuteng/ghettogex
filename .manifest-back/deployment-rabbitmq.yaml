@@ -1,19 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fi-rabbitmq-deployment
+  namespace: gg
+  name: rabbitmq
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: fi-rabbitmq
+      app: rabbitmq
   template:
     metadata:
       labels:
-        app: fi-rabbitmq
+        app: rabbitmq
     spec:
       containers:
-      - name: fi-rabbitmq
+      - name: rabbitmq
         image: rabbitmq:management
         imagePullPolicy: Always
         ports:

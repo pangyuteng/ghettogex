@@ -1,21 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fi-postgres-deployment
+  namespace: gg
+  name: postgres
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: fi-postgres
+      app: postgres
   template:
     metadata:
       labels:
-        app: fi-postgres
+        app: postgres
     spec:
       imagePullSecrets:
       - name: registry-credentials
       containers:
-      - name: fi-postgres
+      - name: postgres
         image: docker.io/pangyuteng/private:fi-postgres-edge
         imagePullPolicy: Always
         resources:

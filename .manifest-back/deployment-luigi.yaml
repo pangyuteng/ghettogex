@@ -1,21 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fi-luigi-deployment
+  namespace: gg
+  name: luigi
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: fi-luigi
+      app: luigi
   template:
     metadata:
       labels:
-        app: fi-luigi
+        app: luigi
     spec:
       imagePullSecrets:
       - name: registry-credentials
       containers:
-      - name: fi-luigi
+      - name: luigi
         image: docker.io/pangyuteng/private:fi-flask-edge
         imagePullPolicy: Always
         command: ["luigid"]

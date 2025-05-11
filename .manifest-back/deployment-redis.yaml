@@ -1,19 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fi-redis-deployment
+  namespace: gg
+  name: redis
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: fi-redis
+      app: redis
   template:
     metadata:
       labels:
-        app: fi-redis
+        app: redis
     spec:
       containers:
-      - name: fi-redis
+      - name: redis
         image: redis:latest
         imagePullPolicy: Always
         ports:

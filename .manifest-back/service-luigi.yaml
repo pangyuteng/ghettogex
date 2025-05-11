@@ -1,10 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: fi-luigi
+  namespace: gg
+  name: luigi
 spec:
   selector:
-    app: fi-luigi
+    app: luigi
   type: ClusterIP
   ports:
   - protocol: TCP

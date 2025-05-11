@@ -1,12 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: fi-adminer
+  namespace: gg
+  name: adminer
   annotations:
     metallb.universe.tf/address-pool: first-pool
 spec:
   selector:
-    app: fi-adminer
+    app: adminer
   type: LoadBalancer
   ports:
   - protocol: TCP

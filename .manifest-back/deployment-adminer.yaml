@@ -1,19 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fi-adminer-deployment
+metadata:
+  namespace: gg
+  name: adminer
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: fi-adminer
+      app: adminer
   template:
     metadata:
       labels:
-        app: fi-adminer
+        app: adminer
     spec:
       containers:
-      - name: fi-adminer
+      - name: adminer
         image: adminer
         imagePullPolicy: Always
         ports:
