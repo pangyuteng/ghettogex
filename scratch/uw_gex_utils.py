@@ -428,8 +428,8 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     tmp_price = price_df[price_df.tstamp_sec <= time_sec]
     # plot price, major pos/neg gex (**different from gexbot**)
     ax1_twin.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color='black',linewidth=1)
-    ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_pos_gex_strike,color='green',alpha=0.5)
-    ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_neg_gex_strike,color='red',alpha=0.5)
+    ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_pos_gex_strike,color='green',alpha=1)
+    ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_neg_gex_strike,color='pink',alpha=1)
     ax1_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
     ax1_twin.tick_params(axis='x', rotation=30)
     ax1_twin.tick_params(axis='y', labelcolor=color_label)
@@ -448,6 +448,8 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     #ax2.title = "total gex"
     ax2.scatter(tmptotal_gex_df.tstamp_sec,tmptotal_gex_df.total_gex,color='black',s=1)
     ax2.axhline(0)
+    if tstamp_lim:
+        ax2.set_xlim(tstamp_lim)
     ax2.grid(True)
 
     fig.tight_layout()
