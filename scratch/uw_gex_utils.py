@@ -418,7 +418,7 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         #ax1.plot(ux,y,color=ucolor,linestyle='--',alpha=0.5)
         if n == 0:
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
-            ax1.title = f"{str(time_sec)} {ticker} {row.underlying_price}"
+            plt.title = f"{str(time_sec)} {ticker} {row.underlying_price}"
     ax1.tick_params(axis='x', labelcolor=color_label)
 
     ax1_twin = ax1.twiny()
@@ -444,7 +444,7 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     ax1.grid(True)
     
     # plot total gex
-    ax2.title = "total gex"
+    #ax2.title = "total gex"
     ax2.scatter(total_gex_df.tstamp_sec,total_gex_df.total_gex,color='black',s=1)
     ax2.axhline(0)
     ax2.grid(True)
