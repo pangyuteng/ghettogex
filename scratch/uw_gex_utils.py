@@ -403,7 +403,8 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     tmpmajor_df = major_df[major_df.tstamp_sec<=time_sec].reset_index()
     tmptotal_gex_df = total_gex_df[total_gex_df.tstamp_sec<=time_sec].reset_index()
     fig, (ax1, ax2) = plt.subplots(2,1)
-    
+    underlying_price = tmpdf.at[0,'underlying_price']
+    plt.title = f"{str(time_sec)} {ticker} {underlying_price}"
 
     color_label = 'tab:red'
     ax1.set_xlabel('GEX ($ bn/1% move)', color=color_label)
@@ -419,7 +420,6 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         #ax1.plot(ux,y,color=ucolor,linestyle='--',alpha=0.5)
         if n == 0:
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
-            plt.title = f"{str(time_sec)} {ticker} {row.underlying_price}"
     ax1.tick_params(axis='x', labelcolor=color_label)
 
     ax1_twin = ax1.twiny()
@@ -427,9 +427,9 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     ax1_twin.set_xlabel('time (utc)', color=color_label)
     tmp_price = price_df[price_df.tstamp_sec <= time_sec]
     # plot price, major pos/neg gex (**different from gexbot**)
-    ax1_twin.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color='black',linewidth=1)
     ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_pos_gex_strike,color='lightgreen',alpha=1)
     ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_neg_gex_strike,color='lightpink',alpha=1)
+    ax1_twin.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color='black',linewidth=1)
     ax1_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
     ax1_twin.tick_params(axis='x', rotation=30)
     ax1_twin.tick_params(axis='y', labelcolor=color_label)
@@ -445,7 +445,6 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     ax1.grid(True)
     
     # plot total gex
-    #ax2.title = "total gex"
     ax2.scatter(tmptotal_gex_df.tstamp_sec,tmptotal_gex_df.total_gex,color='black',s=1)
     ax2.axhline(0)
     if tstamp_lim:
