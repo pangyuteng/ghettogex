@@ -139,7 +139,7 @@ class GexService(object):
 
         # TODO: you'll get nan for expiry_mapper using below market_open
         self.true_market_open, self.true_market_close = get_market_open_close(self.day_stamp)
-        self.time_sec_list = pd.date_range(start=market_open,end=self.true_market_close,freq='s')
+        self.time_sec_list = pd.date_range(start=self.true_market_open,end=self.true_market_close,freq='s')
         
         print(self.time_sec_list[0],self.time_sec_list[-1])
 
@@ -272,8 +272,7 @@ class GexService(object):
 
         # keep today's data
         # gex doesn't matter anyways.
-        min_stamp = self.input_day_df.tstamp_sec.min()
-        oi_df = oi_df[oi_df.tstamp_sec >= min_stamp]
+        oi_df = oi_df[oi_df.tstamp_sec >= self.true_market_open]
         oi_df = oi_df.drop(['level_0'], axis=1) #??
         oi_df = oi_df.reset_index()
 
@@ -371,7 +370,6 @@ class GexService(object):
             shutil.rmtree(png_folder)
         os.makedirs(png_folder,exist_ok=True)
 
-        #tstamp_lim = [self.price_df.tstamp_sec.min(),self.true_market_close]
         tstamp_lim = [self.true_market_open,self.true_market_close]
         price_lim = [self.price_df.underlying_price.min()*0.98,self.price_df.underlying_price.max()*1.02]
         gex_lim = [self.sg_df.gex.min(),self.sg_df.gex.max()]
@@ -415,8 +413,11 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
     tmpmajor_df = major_df[major_df.tstamp_sec<=time_sec].reset_index()
     tmptotal_gex_df = total_gex_df[total_gex_df.tstamp_sec<=time_sec].reset_index()
+
+    # ??? why no df...
     if len(tmpdf) == 0:
         return
+
     if False:
         #DISABLE TOTAL_GEX PLOT
         fig, (ax1, ax2) = plt.subplots(2,1)
