@@ -344,6 +344,9 @@ class GexService(object):
         ).reset_index()
         sg_df['gex'] = sg_df['gex']/ 10**9
         print(sg_df.shape)
+
+        self.day_stamp = day_stamp
+        self.day_stamp_str = day_stamp_str
         
         os.makedirs(self.output_folder,exist_ok=True)
         self.price_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-price.parquet.gzip')
@@ -356,8 +359,7 @@ class GexService(object):
         self.oi_df.to_parquet(self.oi_pq_file,compression='gzip')
         self.sg_df = sg_df
         self.sg_df.to_parquet(self.sg_pq_file,compression='gzip')
-        self.day_stamp = day_stamp
-        self.day_stamp_str = day_stamp_str
+
 
     def gen_mp4(self):
         png_folder = os.path.join(self.output_folder,f'pngs-{self.ticker}-{self.day_stamp_str}')
