@@ -126,6 +126,10 @@ class GexService(object):
             raise ValueError(f"Not enough data. pq_file_index {pq_file_index}!")
 
         self.input_day_pq_file = self.pq_file_list[pq_file_index]
+        self.pq_file_list = self.pq_file_list[:pq_file_index+1]
+        print(self.input_day_pq_file)
+        print(self.pq_file_list[-1])
+        assert(self.input_day_pq_file==self.pq_file_list[-1])
         # get trading time seconds
         self.input_day_df = pd.read_parquet(self.input_day_pq_file)
 
@@ -141,7 +145,7 @@ class GexService(object):
         expiration_list = sorted(self.input_day_df.expiry.unique())
         self.expiration_list = expiration_list[:expiration_count]
         print("expiration_list",self.expiration_list)
-        if day_stamp_str not in  self.expiration_list:
+        if day_stamp_str not in self.expiration_list:
             warnings.warn(f"day_stamp_str {day_stamp_str} not in expiration_list")
 
         # TODO: maybe above can be split to a seperate func.
@@ -165,6 +169,7 @@ class GexService(object):
             unq_price = df.underlying_price.unique()
             # NOTE: use unq_price to ensure underlying_price is estimates.
             df = df[df.expiry.apply(lambda x: x in self.expiration_list)]
+            print(df.shape,pq_file)
             mylist.append(df)
 
             if len(df) == 0:
@@ -174,6 +179,7 @@ class GexService(object):
         df = pd.concat(mylist)
         df = df.sort_values(['option_chain_id','tstamp'],ignore_index=True)
         df = df.reset_index()
+        print(df.shape,'!!!!!!!!!!!!!!!!!!!')
 
         """
         index,executed_at,underlying_symbol,option_chain_id,side,strike,option_type,expiry,
@@ -246,6 +252,7 @@ class GexService(object):
         print(df.canceled.value_counts())
 
         self.symbol_list = df.option_chain_id.unique()
+        print(self.symbol_list)
         print('compute ddoi...')
         oi_list = []
         for option_chain_id in tqdm(self.symbol_list):
@@ -405,6 +412,8 @@ class GexService(object):
         concat_clip = concatenate_videoclips(clips, method="compose")
         concat_clip.write_videofile(mp4_file, fps=fps)
         print(os.path.exists(mp4_file))
+        if os.path.exists(png_folder):
+            shutil.rmtree(png_folder)
 
 def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tstamp_lim,gex_lim,price_lim):
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
