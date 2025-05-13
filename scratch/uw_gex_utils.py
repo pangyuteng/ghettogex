@@ -56,7 +56,7 @@ def format_stamp(x):
         return datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S+00')
 
 class GexService(object):
-    def __init__(self,ticker,output_folder):
+    def __init__(self,ticker,output_folder,day_stamp_str,expiration_count):
         self.ticker = ticker
         self.zip_file_list = None
         self.pq_file_list = None
@@ -68,14 +68,19 @@ class GexService(object):
         self.oi_df = None
         self.price_df = None
         self.sg_df = None # sum gex
-        self.day_stamp = None
-        self.day_stamp_str = None
+
+        self.day_stamp_str = day_stamp_str
+        self.day_stamp = datetime.datetime.strptime(self.day_stamp_str,'%Y-%m-%d').date()
+        print("day_stamp",self.day_stamp)
+
+        self.expiration_count = expiration_count
         self.expiration_list = None
         
         self.output_folder = output_folder
-        self.price_pq_file = None
-        self.oi_pq_file = None
-        self.sg_pq_file = None
+        self.mp4_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}.mp4')
+        self.price_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-price.parquet.gzip')
+        self.oi_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-oi.parquet.gzip')
+        self.sg_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-sg.parquet.gzip')
 
     def _cache_ticker_flow(self):
         # save option flow parquet file.
@@ -107,15 +112,12 @@ class GexService(object):
         
         self.pq_file_list = sorted(str(x) for x in pathlib.Path(os.path.join(CACHE_FOLDER,self.ticker)).rglob("*.gzip"))
 
-    def get_gex_detailed(self,day_stamp_str,expiration_count):
+    def get_gex_detailed(self,):
 
         self._cache_ticker_flow()
 
-        day_stamp = datetime.datetime.strptime(day_stamp_str,'%Y-%m-%d').date()
-        print("day_stamp",day_stamp)
-
         # find zip file.
-        day_pq_file_basename = f'{day_stamp_str}.parquet.gzip'
+        day_pq_file_basename = f'{self.day_stamp_str}.parquet.gzip'
         try:
             basename_pq_file_list = [os.path.basename(x) for x in self.pq_file_list]
             pq_file_index = basename_pq_file_list.index(day_pq_file_basename)
@@ -136,17 +138,17 @@ class GexService(object):
         market_open, market_close = self.input_day_df.tstamp_sec.min(),self.input_day_df.tstamp_sec.max()
 
         # TODO: you'll get nan for expiry_mapper using below market_open
-        self.true_market_open, self.true_market_close = get_market_open_close(day_stamp)
+        self.true_market_open, self.true_market_close = get_market_open_close(self.day_stamp)
         self.time_sec_list = pd.date_range(start=market_open,end=self.true_market_close,freq='s')
         
         print(self.time_sec_list[0],self.time_sec_list[-1])
 
         print(self.input_day_df.columns)
         expiration_list = sorted(self.input_day_df.expiry.unique())
-        self.expiration_list = expiration_list[:expiration_count]
+        self.expiration_list = expiration_list[:self.expiration_count]
         print("expiration_list",self.expiration_list)
-        if day_stamp_str not in self.expiration_list:
-            warnings.warn(f"day_stamp_str {day_stamp_str} not in expiration_list")
+        if self.day_stamp_str not in self.expiration_list:
+            warnings.warn(f"day_stamp_str {self.day_stamp_str} not in expiration_list")
 
         # TODO: maybe above can be split to a seperate func.
 
@@ -352,13 +354,8 @@ class GexService(object):
         sg_df['gex'] = sg_df['gex']/ 10**9
         print(sg_df.shape)
 
-        self.day_stamp = day_stamp
-        self.day_stamp_str = day_stamp_str
         
         os.makedirs(self.output_folder,exist_ok=True)
-        self.price_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-price.parquet.gzip')
-        self.oi_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-oi.parquet.gzip')
-        self.sg_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-sg.parquet.gzip')
 
         self.price_df = price_df
         self.price_df.to_parquet(self.price_pq_file,compression='gzip')
@@ -373,7 +370,6 @@ class GexService(object):
         if os.path.exists(png_folder):
             shutil.rmtree(png_folder)
         os.makedirs(png_folder,exist_ok=True)
-        mp4_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}.mp4')
 
         #tstamp_lim = [self.price_df.tstamp_sec.min(),self.true_market_close]
         tstamp_lim = [self.true_market_open,self.true_market_close]
@@ -410,8 +406,8 @@ class GexService(object):
         fps = 24
         clips = [ImageClip(m).with_duration(0.1) for m in png_file_list]
         concat_clip = concatenate_videoclips(clips, method="compose")
-        concat_clip.write_videofile(mp4_file, fps=fps)
-        print(os.path.exists(mp4_file))
+        concat_clip.write_videofile(self.mp4_file, fps=fps)
+        print(os.path.exists(self.mp4_file))
         if os.path.exists(png_folder):
             shutil.rmtree(png_folder)
 
@@ -419,10 +415,21 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
     tmpmajor_df = major_df[major_df.tstamp_sec<=time_sec].reset_index()
     tmptotal_gex_df = total_gex_df[total_gex_df.tstamp_sec<=time_sec].reset_index()
-    #fig, (ax1, ax2) = plt.subplots(2,1)
-    fig, ax1 = plt.subplots()
+    if len(tmpdf) == 0:
+        return
+    if False:
+        #DISABLE TOTAL_GEX PLOT
+        fig, (ax1, ax2) = plt.subplots(2,1)
+    else:
+        fig, ax1 = plt.subplots()
 
-    underlying_price = tmpdf.at[0,'underlying_price']
+    try:
+        underlying_price = tmpdf.at[0,'underlying_price']
+    except:
+        print(tmpdf.underlying_price)
+        underlying_price = np.nan
+        traceback.print_exc()
+
     ax1.set_title(f"{str(time_sec)} {ticker} {underlying_price}")
 
     color_label = 'tab:red'
@@ -478,10 +485,11 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
 if __name__ == "__main__":
     ticker = sys.argv[1]
     day_stamp_str = sys.argv[2]
-    gs = GexService(ticker,"tmp")
     expiration_count = 1
-    gs.get_gex_detailed(day_stamp_str,expiration_count)
-    gs.gen_mp4()
+    gs = GexService(ticker,"tmp",day_stamp_str,expiration_count)
+    if not os.path.exists(gs.mp4_file):
+        gs.get_gex_detailed()
+        gs.gen_mp4()
 
 
 """
