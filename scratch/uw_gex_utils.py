@@ -145,7 +145,14 @@ class GexService(object):
 
         print(self.input_day_df.columns)
         expiration_list = sorted(self.input_day_df.expiry.unique())
-        self.expiration_list = expiration_list[:self.expiration_count]
+
+        expiration_count_default = True
+        if expiration_count_default:
+            self.expiration_list = expiration_list[:self.expiration_count]
+        else:
+            is_tomorrow = False
+            if is_tomorrow:
+                self.expiration_list = expiration_list[1]
         print("expiration_list",self.expiration_list)
         if self.day_stamp_str not in self.expiration_list:
             warnings.warn(f"day_stamp_str {self.day_stamp_str} not in expiration_list")
@@ -411,6 +418,7 @@ class GexService(object):
 
 def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tstamp_lim,gex_lim,price_lim):
     tmpdf = sg_df[sg_df.tstamp_sec==time_sec].reset_index()
+    tmp_price = price_df[price_df.tstamp_sec <= time_sec].reset_index()
     tmpmajor_df = major_df[major_df.tstamp_sec<=time_sec].reset_index()
     tmptotal_gex_df = total_gex_df[total_gex_df.tstamp_sec<=time_sec].reset_index()
 
@@ -436,6 +444,11 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     color_label = 'tab:red'
     ax1.set_xlabel('GEX ($ bn/1% move)', color=color_label)
     ax1.set_ylabel('Strike')
+    # plot price, major pos/neg gex (**different from gexbot**)
+    ax1_twin = ax1.twiny()
+    ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_pos_gex_strike,color="lightgreen",alpha=0.5,linewidth=2)
+    ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_neg_gex_strike,color="lightpink",alpha=0.5,linewidth=2)
+    ax1_twin.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color="black",linewidth=1)
 
     for n,row in tmpdf.iterrows():
         color = 'green' if row.gex > 0 else 'red'
@@ -443,19 +456,15 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         #ucolor = 'olive' if row.updated_gex > 0 else 'orange'
         #ux = [0,row.updated_gex]
         y = [row.strike,row.strike]
-        ax1.plot(x,y,color=color)
+        ax1.plot(x,y,color=color,alpha=0.8)
         #ax1.plot(ux,y,color=ucolor,linestyle='--',alpha=0.5)
         if n == 0:
             ax1.axhline(row.underlying_price,color='gray',linestyle='--')
+
     ax1.tick_params(axis='x', labelcolor=color_label)
-    ax1_twin = ax1.twiny()
     color_label = 'tab:blue'
     ax1_twin.set_xlabel('time (utc)', color=color_label)
-    tmp_price = price_df[price_df.tstamp_sec <= time_sec]
-    # plot price, major pos/neg gex (**different from gexbot**)
-    ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_pos_gex_strike,color='lightgreen',alpha=1)
-    ax1_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_neg_gex_strike,color='lightpink',alpha=1)
-    ax1_twin.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color='black',linewidth=1)
+    
     ax1_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
     ax1_twin.tick_params(axis='x', rotation=30)
     ax1_twin.tick_params(axis='y', labelcolor=color_label)
