@@ -161,3 +161,7 @@ python uw_gex_utils.py SPX 2025-05-09
 python uw_gex_utils.py SPX 2025-05-10
 python uw_gex_utils.py SPX 2025-05-11
 python uw_gex_utils.py SPX 2025-05-12
+python uw_gex_utils.py SPX 2025-05-13
+python uw_gex_utils.py SPX 2025-05-14
+python uw_gex_utils.py SPX 2025-05-15
+python uw_gex_utils.py SPX 2025-05-16

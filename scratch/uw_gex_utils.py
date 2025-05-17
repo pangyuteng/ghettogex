@@ -15,6 +15,7 @@ import py_vollib.black_scholes.greeks.numerical
 import py_vollib_vectorized
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 import matplotlib.dates as mdates
 from moviepy import ImageClip, concatenate_videoclips, VideoFileClip
 
@@ -492,15 +493,54 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     plt.savefig(png_file)
     plt.close()
 
+def gex_heatmap(tstamp,price_file,oi_file,sg_file,png_file):
+    oi_df = pd.read_parquet(oi_file)
+    price_df = pd.read_parquet(price_file)
+    sg_df = pd.read_parquet(sg_file)
+    
+    print(price_df.columns)
+    print(sg_df.columns)
+    
+    df = sg_df.copy()
+    df["tstamp_min"] = df.tstamp_sec.apply(lambda x: x.replace(second=0))
+    df = df.groupby(['tstamp_min','strike']).agg(
+        gex=pd.NamedAgg(column="gex", aggfunc="last"),
+    ).reset_index()
+    
+    min_val,max_val = price_df.underlying_price.min()*0.98,price_df.underlying_price.max()*1.02
+    print(min_val,max_val)
+    df=df[(df.strike<=max_val)&(df.strike>=min_val)]
+    
+    filter = df.tstamp_min.apply(lambda x: x.time()) <= datetime.time(20,0,0)
+    tmp_df = df[filter]
+    ax=sns.scatterplot(data=tmp_df,x='tstamp_min',y='strike',hue='gex',
+       hue_norm=(-5,5),palette=sns.color_palette("coolwarm", as_cmap=True)
+    )
+    plt.title("gex from ddoi {}")
+
+    filter = price_df.tstamp_sec.apply(lambda x: x.time()) <= datetime.time(20,0,0)
+    tmp_price_df = price_df[filter]
+    sns.lineplot(data=tmp_price_df,x='tstamp_sec',y='underlying_price',color='green')
+    plt.grid(True)
+
+    plt.show()
+    plt.savefig(png_file)
+    plt.close()
+
+    return df
+
 if __name__ == "__main__":
     ticker = sys.argv[1]
     day_stamp_str = sys.argv[2]
     expiration_count = 1
-    gs = GexService(ticker,"tmp",day_stamp_str,expiration_count)
+    output_folder = "tmp"
+    gs = GexService(ticker,output_folder,day_stamp_str,expiration_count)
     if not os.path.exists(gs.mp4_file):
         gs.get_gex_detailed()
         gs.gen_mp4()
-
+    heatmap_png_file = os.path.join(output_folder,f"{gs.ticker}-{gs.day_stamp_str}-heatmap.png")
+    if not os.path.exists(heatmap_png_file):
+        gex_heatmap(gs.day_stamp_str,gs.price_pq_file,gs.oi_pq_file,gs.sg_pq_file,heatmap_png_file)
 
 """
 
