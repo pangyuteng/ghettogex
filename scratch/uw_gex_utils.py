@@ -511,11 +511,13 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     print(min_val,max_val)
     df=df[(df.strike<=max_val)&(df.strike>=min_val)]
     
+
     filter = df.tstamp_min.apply(lambda x: x.time()) <= datetime.time(20,0,0)
     tmp_df = df[filter]
-    ax=sns.scatterplot(data=tmp_df,x='tstamp_min',y='strike',hue='gex',
+    ax = sns.scatterplot(data=tmp_df,x='tstamp_min',y='strike',hue='gex',
        hue_norm=(-5,5),palette=sns.color_palette("coolwarm", as_cmap=True)
     )
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
     plt.title(f"gex from ddoi {ticker} {tstamp}")
 
     filter = price_df.tstamp_sec.apply(lambda x: x.time()) <= datetime.time(20,0,0)
