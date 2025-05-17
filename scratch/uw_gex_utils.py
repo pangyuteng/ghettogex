@@ -493,7 +493,7 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     plt.savefig(png_file)
     plt.close()
 
-def gex_heatmap(tstamp,price_file,oi_file,sg_file,png_file):
+def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     oi_df = pd.read_parquet(oi_file)
     price_df = pd.read_parquet(price_file)
     sg_df = pd.read_parquet(sg_file)
@@ -516,7 +516,7 @@ def gex_heatmap(tstamp,price_file,oi_file,sg_file,png_file):
     ax=sns.scatterplot(data=tmp_df,x='tstamp_min',y='strike',hue='gex',
        hue_norm=(-5,5),palette=sns.color_palette("coolwarm", as_cmap=True)
     )
-    plt.title("gex from ddoi {}")
+    plt.title(f"gex from ddoi {ticker} {tstamp}")
 
     filter = price_df.tstamp_sec.apply(lambda x: x.time()) <= datetime.time(20,0,0)
     tmp_price_df = price_df[filter]
@@ -540,7 +540,7 @@ if __name__ == "__main__":
         gs.gen_mp4()
     heatmap_png_file = os.path.join(output_folder,f"{gs.ticker}-{gs.day_stamp_str}-heatmap.png")
     if not os.path.exists(heatmap_png_file):
-        gex_heatmap(gs.day_stamp_str,gs.price_pq_file,gs.oi_pq_file,gs.sg_pq_file,heatmap_png_file)
+        gex_heatmap(gs.ticker,gs.day_stamp_str,gs.price_pq_file,gs.oi_pq_file,gs.sg_pq_file,heatmap_png_file)
 
 """
 

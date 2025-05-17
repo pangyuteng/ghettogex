@@ -1,15 +1,44 @@
+import pathlib
 import datetime
 import pandas as pd
+from jinja2 import Environment
+
 market_open = datetime.datetime(2024,12,1)
 market_close = datetime.datetime(2025,5,16)
 mylist = pd.date_range(start=market_open,end=market_close,freq='d')
-for item in mylist:
-    tstamp = item.strftime('%Y-%m-%d')
-    print(f"python uw_gex_utils.py SPX {tstamp}")
+
+SH_TEMPLATE="""
+{% for x in date_list %}
+python uw_gex_utils.py SPX {{x}}{% endfor %}
+"""
+date_list = [x.strftime('%Y-%m-%d') for x in mylist]
+
+with open('hola.sh','w') as f:
+    content = Environment().from_string(SH_TEMPLATE).render(date_list=date_list)
+    f.write(content)
+
+HTML_TEMPLATE = """
+<html>
+<head>
+</head>
+<body>
+{% for x in png_file_list %}
+<img src="{{ x }}"><br>
+{% endfor %}
+</body>
+</html>
+"""
+
+
+png_file_list = [str(x) for x in pathlib.Path("tmp").rglob("*heatmap.png")]
+with open('gex-heatmap.html','w') as f:
+    content = Environment().from_string(HTML_TEMPLATE).render(png_file_list=png_file_list)
+    f.write(content)
+
 
 
 """
 
-python gen_bash.py > hola.sh
+python gen_bash.py
 
 """
