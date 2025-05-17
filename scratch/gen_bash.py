@@ -22,7 +22,9 @@ HTML_TEMPLATE = """
 <head>
 </head>
 <body>
-{% for x in png_file_list %}
+{% for x in mylist %}
+<br>
+{{ x }}:<br>
 <img src="{{ x }}"><br>
 {% endfor %}
 </body>
@@ -30,9 +32,9 @@ HTML_TEMPLATE = """
 """
 
 
-png_file_list = [str(x) for x in pathlib.Path("tmp").rglob("*heatmap.png")]
+png_file_list = sorted([str(x) for x in pathlib.Path("tmp").rglob("*heatmap.png")])
 with open('gex-heatmap.html','w') as f:
-    content = Environment().from_string(HTML_TEMPLATE).render(png_file_list=png_file_list)
+    content = Environment().from_string(HTML_TEMPLATE).render(mylist=png_file_list)
     f.write(content)
 
 
