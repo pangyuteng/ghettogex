@@ -1,3 +1,5 @@
+import logging
+logger = logging.getLogger(__file__)
 import warnings
 import traceback
 import os
@@ -72,7 +74,7 @@ class GexService(object):
 
         self.day_stamp_str = day_stamp_str
         self.day_stamp = datetime.datetime.strptime(self.day_stamp_str,'%Y-%m-%d').date()
-        print("day_stamp",self.day_stamp)
+        logger.info(f"day_stamp {self.day_stamp}")
 
         self.expiration_count = expiration_count
         self.expiration_list = None
@@ -93,8 +95,7 @@ class GexService(object):
                 pq_file = os.path.join(CACHE_FOLDER,self.ticker,f"{tstamp_from_file}.parquet.gzip")
                 os.makedirs(os.path.dirname(pq_file),exist_ok=True)
                 if not os.path.exists(pq_file):
-                    print(pq_file)
-                    print('reading',zip_file)
+                    logger.info(f'gen pq, reading {zip_file}')
                     archive = zipfile.ZipFile(zip_file, 'r')
                     csv_file = os.path.basename(zip_file).replace(".zip",".csv")
                     with archive.open(csv_file) as f:
@@ -110,7 +111,8 @@ class GexService(object):
                         df['tstamp'] = df.executed_at.apply(lambda x: format_stamp(x))
                         df['tstamp_sec'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
                         df.to_parquet(pq_file,compression='gzip')
-        
+                else:
+                    logger.info(f'skip gen pq, found {pq_file}')
         self.pq_file_list = sorted(str(x) for x in pathlib.Path(os.path.join(CACHE_FOLDER,self.ticker)).rglob("*.gzip"))
 
     def get_gex_detailed(self,):
@@ -130,8 +132,8 @@ class GexService(object):
 
         self.input_day_pq_file = self.pq_file_list[pq_file_index]
         self.pq_file_list = self.pq_file_list[:pq_file_index+1]
-        print(self.input_day_pq_file)
-        print(self.pq_file_list[-1])
+        logger.info(self.input_day_pq_file)
+        logger.info(self.pq_file_list[-1])
         assert(self.input_day_pq_file==self.pq_file_list[-1])
         # get trading time seconds
         self.input_day_df = pd.read_parquet(self.input_day_pq_file)
@@ -142,9 +144,8 @@ class GexService(object):
         self.true_market_open, self.true_market_close = get_market_open_close(self.day_stamp)
         self.time_sec_list = pd.date_range(start=self.true_market_open,end=self.true_market_close,freq='s')
         
-        print(self.time_sec_list[0],self.time_sec_list[-1])
+        logger.info(f'{self.time_sec_list[0]} {self.time_sec_list[-1]}')
 
-        print(self.input_day_df.columns)
         expiration_list = sorted(self.input_day_df.expiry.unique())
 
         expiration_count_default = True
@@ -154,7 +155,7 @@ class GexService(object):
             is_tomorrow = False
             if is_tomorrow:
                 self.expiration_list = expiration_list[1]
-        print("expiration_list",self.expiration_list)
+        logger.info(f"expiration_list {self.expiration_list}")
         if self.day_stamp_str not in self.expiration_list:
             warnings.warn(f"day_stamp_str {self.day_stamp_str} not in expiration_list")
 
@@ -171,7 +172,7 @@ class GexService(object):
         ).resample('1s').last().reset_index()
 
         # get order flow history
-        print('gathering orders...')
+        logger.info('gathering orders...')
         zero_count = 0
         mylist = []
         for pq_file in tqdm(self.pq_file_list[::-1]):
@@ -179,7 +180,6 @@ class GexService(object):
             unq_price = df.underlying_price.unique()
             # NOTE: use unq_price to ensure underlying_price is estimates.
             df = df[df.expiry.apply(lambda x: x in self.expiration_list)]
-            print(df.shape,pq_file)
             mylist.append(df)
 
             if len(df) == 0:
@@ -189,7 +189,7 @@ class GexService(object):
         df = pd.concat(mylist)
         df = df.sort_values(['option_chain_id','tstamp'],ignore_index=True)
         df = df.reset_index()
-        print(df.shape,'!!!!!!!!!!!!!!!!!!!')
+
 
         """
         index,executed_at,underlying_symbol,option_chain_id,side,strike,option_type,expiry,
@@ -254,16 +254,16 @@ class GexService(object):
         df['contract_type_int'] = df.option_type.apply(lambda x: -1 if x == 'put' else 1)
         self._raw_df = df
 
-        print("df.side.value_counts()")
-        print(df.side.value_counts())
-        print("df.size_mod.value_counts()")
-        print(df.size_mod.value_counts())
-        print("df.canceled.value_counts()")
-        print(df.canceled.value_counts())
+        logger.info("df.side.value_counts()")
+        logger.info(df.side.value_counts())
+        logger.info("df.size_mod.value_counts()")
+        logger.info(df.size_mod.value_counts())
+        logger.info("df.canceled.value_counts()")
+        logger.info(df.canceled.value_counts())
 
         self.symbol_list = df.option_chain_id.unique()
-        print(self.symbol_list)
-        print('compute ddoi...')
+        logger.info(self.symbol_list)
+        logger.info('compute ddoi...')
         oi_list = []
         for option_chain_id in tqdm(self.symbol_list):
             # assume this is sorted?
@@ -276,7 +276,7 @@ class GexService(object):
         oi_df = oi_df.sort_values(['option_chain_id','tstamp'])
         oi_df = oi_df.reset_index()
 
-        print('preparing gamma and gex compute...')
+        logger.info('preparing gamma and gex compute...')
 
         # keep today's data
         # gex doesn't matter anyways.
@@ -292,7 +292,7 @@ class GexService(object):
         })
         sdf = sdf.merge(price_df,how='left',on='tstamp_sec')
         sdf = sdf.sort_values(['tstamp_sec','option_chain_id'],ignore_index=True)
-        print(sdf.shape)
+        logger.info(sdf.shape)
 
         # assuming greeks are computed at this time, this is the wrong assumption.
         cols =  [
@@ -306,12 +306,12 @@ class GexService(object):
 
         oi_df = oi_df[cols]
         oi_df = oi_df.sort_values(['tstamp_sec','option_chain_id'],ignore_index=True)
-        print(oi_df.shape)
+        logger.info(oi_df.shape)
 
         # NOTE: greeks and gex should be recomputed here.
         warnings.warn("TODO: greeks and gex should be recomputed here")
         gdf = pd.merge_asof(sdf,oi_df,on='tstamp_sec',direction='backward',by='option_chain_id')
-        print(gdf.shape)
+        logger.info(gdf.shape)
 
         gdf['gex'] = \
             gdf.gamma * gdf.oi * 100 \
@@ -327,7 +327,7 @@ class GexService(object):
             # so ideally you want, at each timepoint
             # you need bid/ask prices for option chain
             # to get IV curve, then you derive gamma.
-            print(gdf.expiry.unique())
+            logger.info(gdf.expiry.unique())
             expiry_mapper = {x:get_expiry_tstamp(x) for x in list(gdf.expiry.unique())}
 
             gdf['annualized_time_to_expiration'] = mdf.apply(
@@ -394,7 +394,7 @@ class GexService(object):
         price_lim = [self.price_df.underlying_price.min()*0.98,self.price_df.underlying_price.max()*1.02]
         gex_lim = [self.sg_df.gex.min(),self.sg_df.gex.max()]
         gex_lim = self.sg_df.gex.quantile([0.01,0.99]).to_list()
-        print(price_lim)
+        logger.info(price_lim)
 
         major_df = self.sg_df.groupby(['tstamp_sec']).agg(
                 major_pos_gex_idx=pd.NamedAgg(column="call_gex", aggfunc="idxmax"),
@@ -414,7 +414,7 @@ class GexService(object):
             ).reset_index()
 
         png_file_list = []
-        for time_sec in tqdm(self.time_sec_list[::30]):
+        for time_sec in tqdm(self.time_sec_list[::30]): # generate every 30 seconds.
             png_file = os.path.join(png_folder,
                 f'{time_sec.strftime("%Y-%m-%d-%H-%M-%S")}.png')
             plot_func(self.ticker,time_sec,png_file,self.sg_df,self.price_df,major_df,total_gex_df,tstamp_lim,gex_lim,price_lim)
@@ -425,7 +425,7 @@ class GexService(object):
         clips = [ImageClip(m).with_duration(0.1) for m in png_file_list]
         concat_clip = concatenate_videoclips(clips, method="compose")
         concat_clip.write_videofile(self.mp4_file, fps=fps)
-        print(os.path.exists(self.mp4_file))
+        logger.info(os.path.exists(self.mp4_file))
         if os.path.exists(png_folder):
             shutil.rmtree(png_folder)
 
@@ -448,9 +448,9 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     try:
         underlying_price = tmpdf.at[0,'underlying_price']
     except:
-        print(tmpdf.underlying_price)
+        logger.info(tmpdf.underlying_price)
         underlying_price = np.nan
-        traceback.print_exc()
+        traceback.logger.info_exc()
 
     ax1.set_title(f"{str(time_sec)} {ticker} {underlying_price}")
 
@@ -510,8 +510,8 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     price_df = pd.read_parquet(price_file)
     sg_df = pd.read_parquet(sg_file)
     
-    print(price_df.columns)
-    print(sg_df.columns)
+    logger.info(price_df.columns)
+    logger.info(sg_df.columns)
     
     df = sg_df.copy()
     df["tstamp_min"] = df.tstamp_sec.apply(lambda x: x.replace(second=0))
@@ -520,7 +520,7 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     ).reset_index()
     
     min_val,max_val = price_df.underlying_price.min()*0.98,price_df.underlying_price.max()*1.02
-    print(min_val,max_val)
+    logger.info(min_val,max_val)
     df=df[(df.strike<=max_val)&(df.strike>=min_val)]
     
 
@@ -544,6 +544,13 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     return df
 
 if __name__ == "__main__":
+    logger.setLevel(logging.INFO)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
     ticker = sys.argv[1]
     day_stamp_str = sys.argv[2]
     expiration_count = 1
