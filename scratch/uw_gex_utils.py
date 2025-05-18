@@ -352,16 +352,28 @@ class GexService(object):
                 oi_df.updated_gamma * oi_df.oi * 100 \
                 * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
 
-        #sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','updated_gex']].copy()
-        sg_df = gdf[['tstamp_sec','strike','gex','underlying_price']].copy()
-        sg_df = sg_df.groupby(['tstamp_sec','strike']).agg(
+        sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','option_type','gamma','implied_volatility','oi']].copy()
+        main_df = sg_df.groupby(['tstamp_sec','strike']).agg(
             gex=pd.NamedAgg(column="gex", aggfunc="sum"),
             underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
+            gamma=pd.NamedAgg(column="gamma", aggfunc="last"),
         ).reset_index()
+        put_df = sg_df[sg_df.option_type=='put'].groupby(['tstamp_sec','strike']).agg(
+            put_iv=pd.NamedAgg(column="implied_volatility", aggfunc="last"),
+            put_gex=pd.NamedAgg(column="gex", aggfunc="last"),
+            put_oi=pd.NamedAgg(column="oi", aggfunc="last"),
+        ).reset_index()
+        call_df = sg_df[sg_df.option_type=='call'].groupby(['tstamp_sec','strike']).agg(
+            call_iv=pd.NamedAgg(column="implied_volatility", aggfunc="last"),
+            call_gex=pd.NamedAgg(column="gex", aggfunc="last"),
+            call_oi=pd.NamedAgg(column="oi", aggfunc="last"),
+        ).reset_index()
+        sg_df = main_df.merge(put_df,how='left',on=['tstamp_sec','strike'])
+        sg_df = sg_df.merge(call_df,how='left',on=['tstamp_sec','strike'])
         sg_df['gex'] = sg_df['gex']/ 10**9
-        print(sg_df.shape)
+        sg_df['call_gex'] = sg_df['call_gex']/ 10**9
+        sg_df['put_gex'] = sg_df['put_gex']/ 10**9
 
-        
         os.makedirs(self.output_folder,exist_ok=True)
 
         self.price_df = price_df
@@ -385,8 +397,8 @@ class GexService(object):
         print(price_lim)
 
         major_df = self.sg_df.groupby(['tstamp_sec']).agg(
-                major_pos_gex_idx=pd.NamedAgg(column="gex", aggfunc="idxmax"),
-                major_neg_gex_idx=pd.NamedAgg(column="gex", aggfunc="idxmin"),
+                major_pos_gex_idx=pd.NamedAgg(column="call_gex", aggfunc="idxmax"),
+                major_neg_gex_idx=pd.NamedAgg(column="put_gex", aggfunc="idxmin"),
                 underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
         ).reset_index()
 
