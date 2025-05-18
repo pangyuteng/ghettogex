@@ -111,8 +111,7 @@ class GexService(object):
                         df['tstamp'] = df.executed_at.apply(lambda x: format_stamp(x))
                         df['tstamp_sec'] = df.tstamp.apply(lambda x: x.replace(microsecond=0))
                         df.to_parquet(pq_file,compression='gzip')
-                else:
-                    logger.info(f'skip gen pq, found {pq_file}')
+
         self.pq_file_list = sorted(str(x) for x in pathlib.Path(os.path.join(CACHE_FOLDER,self.ticker)).rglob("*.gzip"))
 
     def get_gex_detailed(self,):
@@ -403,7 +402,10 @@ class GexService(object):
         ).reset_index()
 
         def get_strike(row,df):
-            return df.at[row.major_pos_gex_idx,'strike'],df.at[row.major_neg_gex_idx,'strike']
+            try:
+                return df.at[row.major_pos_gex_idx,'strike'],df.at[row.major_neg_gex_idx,'strike']
+            except:
+                return np.nan,np.nan
         major_df['major_pos_gex_strike'], major_df['major_neg_gex_strike']= \
             zip(*major_df.apply(lambda row:get_strike(row,self.sg_df),axis=1))
         # weed out noise
