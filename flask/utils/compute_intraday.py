@@ -245,12 +245,12 @@ def compute_gex_core(df,from_scratch):
     # UNSURE HERE... stil at debug phase
     # KISS.
     # `naive_gex` update summary based on bid-ask volume using summary open_interest
-    # `true_gex` uses timeandsale and true_oi
+    # `true_gex` uses timeandsale and true_oi (for now starts from 0 at start of day)
     
     # naive_gex is wrong
     merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
 
-    merged_df['true_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
+    merged_df['true_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
 
     merged_df.naive_gex = merged_df.naive_gex.fillna(value=0)
     merged_df.true_gex = merged_df.true_gex.fillna(value=0)
