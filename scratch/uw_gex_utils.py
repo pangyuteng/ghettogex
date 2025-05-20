@@ -522,7 +522,7 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     ).reset_index()
     
     min_val,max_val = price_df.underlying_price.min()*0.98,price_df.underlying_price.max()*1.02
-    logger.info(min_val,max_val)
+    logger.info(f'{min_val},{max_val}')
     df=df[(df.strike<=max_val)&(df.strike>=min_val)]
     
 
