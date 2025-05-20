@@ -532,7 +532,7 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
        hue_norm=(-5,5),palette=sns.color_palette("coolwarm", as_cmap=True)
     )
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
-    plt.title(f"gex from ddoi {ticker} {tstamp}")
+    plt.title(f"{ticker} {tstamp}\n directionalized gex ($ bn/1% move)")
 
     filter = price_df.tstamp_sec.apply(lambda x: x.time()) <= datetime.time(20,0,0)
     tmp_price_df = price_df[filter]
