@@ -166,9 +166,15 @@ class GexService(object):
         if missing_underlying_price:
             raise ValueError("missing_underlying_price!")
 
-        price_df = price_df.groupby(['tstamp_sec']).agg(
-            underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
-        ).resample('1s').last().reset_index()
+        isfillna = True
+        if isfillna:
+            price_df = price_df.groupby(['tstamp_sec']).agg(
+                underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
+            ).resample('1s').ffill().reset_index()
+        else:
+            price_df = price_df.groupby(['tstamp_sec']).agg(
+                underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
+            ).resample('1s').last().reset_index()
 
         # get order flow history
         logger.info('gathering orders...')
@@ -520,16 +526,20 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     df = df.groupby(['tstamp_min','strike']).agg(
         gex=pd.NamedAgg(column="gex", aggfunc="last"),
     ).reset_index()
-    
-    min_val,max_val = price_df.underlying_price.min()*0.98,price_df.underlying_price.max()*1.02
+
+    if ticker == 'VIX':
+        hue_norm = (-0.03,0.03)
+        min_val,max_val = price_df.underlying_price.min()*0.80,price_df.underlying_price.max()*1.20
+    else:
+        hue_norm = (-5,5)
+        min_val,max_val = price_df.underlying_price.min()*0.98,price_df.underlying_price.max()*1.02
     logger.info(f'{min_val},{max_val}')
     df=df[(df.strike<=max_val)&(df.strike>=min_val)]
-    
 
     filter = df.tstamp_min.apply(lambda x: x.time()) <= datetime.time(20,0,0)
     tmp_df = df[filter]
     ax = sns.scatterplot(data=tmp_df,x='tstamp_min',y='strike',hue='gex',
-       hue_norm=(-5,5),palette=sns.color_palette("coolwarm", as_cmap=True)
+       hue_norm=hue_norm,palette=sns.color_palette("coolwarm", as_cmap=True)
     )
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
     plt.title(f"{ticker} {tstamp}\n directionalized gex ($ bn/1% move)")
