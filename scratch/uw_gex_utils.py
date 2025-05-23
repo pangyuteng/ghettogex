@@ -583,7 +583,7 @@ if __name__ == "__main__":
     if not os.path.exists(gs.mp4_file):
         gs.get_gex_detailed()
         gs.gen_mp4()
-    heatmap_png_file = os.path.join(output_folder,f"{gs.ticker}-{gs.day_stamp_str}-heatmap.png")
+    heatmap_png_file = os.path.join(gs.output_folder,f"{gs.ticker}-{gs.day_stamp_str}-heatmap.png")
     if not os.path.exists(heatmap_png_file):
         gex_heatmap(gs.ticker,gs.day_stamp_str,gs.price_pq_file,gs.oi_pq_file,gs.sg_pq_file,heatmap_png_file)
 
