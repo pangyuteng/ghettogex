@@ -116,7 +116,7 @@ async def redirect_to_login(*_):
 async def eod_gex():
     enable_live = request.args.get("live","false")
     ticker = request.args.get("ticker",BTC_TICKER)
-    return await render_template("guest.html",
+    return await render_template("eod-gex.html",
         ticker=ticker,
         enable_live=enable_live,
         ticker_list=','.join(BTC_MSTR_TICKER_LIST))
@@ -172,7 +172,7 @@ async def ws_eod_gex():
                 strike_list = surf_df.columns.to_list()
                 expiration_list = [x.strftime("%Y-%m-%d") for x in surf_df.index.to_list()]
                 surf_list = surf_df.values.tolist()
-                data_str = render_html("guest-ws.html",
+                data_str = render_html("ws-eod-guest.html",
                     ticker=ticker,
                     strike_df=strike_df,
                     surf_list=surf_list,
@@ -220,10 +220,7 @@ async def ws_prices():
 async def overview():
     ticker = request.args.get("ticker")
     ticker = ticker.replace("^","")
-    if ticker == 'SPX':
-        return await render_template("sample-gex.html",ticker=ticker)
-    else:
-        return await render_template("overview.html",ticker=ticker)
+    return await render_template("overview.html",ticker=ticker)
 
 @app.websocket("/ticker/daily-ws-gex-strike")
 @login_required
@@ -268,15 +265,15 @@ async def daily_ws_gex_strike():
         app.logger.error('Client disconnected')
         raise
 
-@app.route("/gex")
+@app.route("/sec-gex")
 @login_required
-async def sample_gex():
+async def sec_gex():
     ticker = request.args.get("ticker")
-    return await render_template("sample-gex.html",ticker=ticker)
+    return await render_template("sec-gex.html",ticker=ticker)
 
-@app.websocket('/ticker/ws-gex-sample')
+@app.websocket('/ticker/ws-sec-gex')
 @login_required
-async def ws_gex_sample():
+async def ws_sec_gex():
     try:
         while True:
             ticker = websocket.args.get("ticker")
@@ -372,7 +369,7 @@ async def ws_gex_sample():
                 min_gex = -100
                 xlim = 999
 
-            data_str = render_html("ws-sample-gex.html",
+            data_str = render_html("ws-sec-gex.html",
                 ticker=ticker,
                 spot_price=spot_price,
                 df=latest_df,
