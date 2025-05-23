@@ -5,6 +5,7 @@ import traceback
 import os
 import sys
 import datetime
+import pytz
 import time
 import pathlib
 import tempfile
@@ -58,6 +59,8 @@ def format_stamp(x):
     else:
         return datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S+00')
 
+et_tz = "America/New_York"
+
 class GexService(object):
     def __init__(self,ticker,output_folder,day_stamp_str,expiration_count):
         self.ticker = ticker
@@ -79,7 +82,7 @@ class GexService(object):
         self.expiration_count = expiration_count
         self.expiration_list = None
         
-        self.output_folder = output_folder
+        self.output_folder = os.path.join(output_folder,self.ticker)
         self.mp4_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}.mp4')
         self.price_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-price.parquet.gzip')
         self.oi_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-oi.parquet.gzip')
@@ -536,12 +539,21 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     logger.info(f'{min_val},{max_val}')
     df=df[(df.strike<=max_val)&(df.strike>=min_val)]
 
+    color_palette = "coolwarm"
     filter = df.tstamp_min.apply(lambda x: x.time()) <= datetime.time(20,0,0)
     tmp_df = df[filter]
     ax = sns.scatterplot(data=tmp_df,x='tstamp_min',y='strike',hue='gex',
-       hue_norm=hue_norm,palette=sns.color_palette("coolwarm", as_cmap=True)
+       hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),
+       legend=False
     )
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+
+    norm = plt.Normalize(*hue_norm)
+    sm = plt.cm.ScalarMappable(cmap=color_palette, norm=norm)
+    ax.figure.colorbar(sm, ax=ax)
+
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
+    plt.xticks(rotation=30)
+
     plt.title(f"{ticker} {tstamp}\n directionalized gex ($ bn/1% move)")
 
     filter = price_df.tstamp_sec.apply(lambda x: x.time()) <= datetime.time(20,0,0)
