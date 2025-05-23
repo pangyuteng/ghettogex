@@ -86,7 +86,7 @@ async def login():
             password = form["password"]
             if check_password(password, EXPECTED_HASH):
                 login_user(AuthUser(username))
-                return redirect(url_for("home"))
+                return redirect(url_for("index"))
             else:
                 return jsonify("failed"), 400
             #token = auth_manager.dump_token(username)
@@ -112,17 +112,19 @@ async def logout():
 async def redirect_to_login(*_):
     return redirect(url_for("login"))
 
-@app.route("/")
+@app.route("/eod-gex")
+
 async def guest():
-    enable_live = request.args.get("live")
+    enable_live = request.args.get("live","false")
     ticker = request.args.get("ticker",BTC_TICKER)
     return await render_template("guest.html",
         ticker=ticker,
         enable_live=enable_live,
         ticker_list=','.join(BTC_MSTR_TICKER_LIST))
 
-@app.route("/home")
-async def home():
+@app.route("/")
+@login_required
+async def index():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
     return await render_template("index.html")
@@ -394,5 +396,13 @@ if __name__ == '__main__':
     app.run(debug=args.debug,host="0.0.0.0",port=args.port)
 
 """
-asdf asdfadasdfs
+
+kubectl port-forward --address 0.0.0.0 svc/postgres -n gg 5432:5432
+
+docker run -it -u $(id -u):$(id -g) \
+    -e CACHE_FOLDER="/mnt/hd1/data/fi" \
+    -e CACHE_TASTY_FOLDER="/mnt/hd1/data/tastyfi" \
+    -e POSTGRES_URI="postgres://postgres:postgres@192.168.68.143:5432/postgres" \
+    -w $PWD -v /mnt:/mnt -p 80:80 fi-notebook:latest bash
+
 """
