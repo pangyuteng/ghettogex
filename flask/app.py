@@ -53,6 +53,8 @@ from utils.postgres_utils import (
     psycopg_pool,postgres_uri,
 )
 
+et_tz = "America/New_york"
+
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(THIS_DIR,"templates")
 
@@ -293,33 +295,29 @@ async def ws_sec_gex():
             try:
                 df = pd.DataFrame([x for x in fetched])
                 tstamp_utc = df.tstamp.to_list()[-1]
+                day_stamp = tstamp_utc.strftime("%Y-%m-%d")
             except:
                 tstamp_utc = None
+                day_stamp = None
                 spot_price = -1
 
 
-            net_query_str = """
-                select * from gex_net
-                where ticker = %s
-                and tstamp = %s
-                order by tstamp
-            """
-
-            strike_query_str = """
-                select * from gex_strike
-                where ticker = %s
-                and tstamp = %s
-                order by tstamp
-            """
+            net_query_str = "select * from gex_net where ticker = %s and tstamp = %s order by tstamp"
+            strike_query_str = "select * from gex_strike where ticker = %s and tstamp = %s order by tstamp"
+            net_day_query_str = "select * from gex_net where ticker = %s and tstamp >= %s order by tstamp"
+            strike_day_query_str = "select * from gex_strike where ticker = %s and tstamp >= %s order by tstamp"
             if tstamp_utc:
+                # TODO: use 1 query per table if you want to do scatter plots.
+                #'net-day': {'query_str':net_day_query_str,'query_args':(ticker,day_stamp)},
+                #'strike-day': {'query_str':strike_day_query_str,'query_args':(ticker,day_stamp)},
                 query_dict = {
-                    'net': {'tstamp':tstamp_utc},
-                    'strike': {'tstamp':tstamp_utc},
-                    'strike-1min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=1)},
-                    'strike-5min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=5)},
-                    'strike-10min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=10)},
-                    'strike-15min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=15)},
-                    'strike-30min': {'tstamp':tstamp_utc-datetime.timedelta(minutes=30)},
+                    'net': {'query_str':net_query_str,'query_args':(ticker,tstamp_utc)},
+                    'strike': {'query_str':strike_query_str,'query_args':(ticker,tstamp_utc)},
+                    'strike-1min': {'query_str':strike_query_str,'query_args':(ticker,tstamp_utc-datetime.timedelta(minutes=1))},
+                    'strike-5min': {'query_str':strike_query_str,'query_args':(ticker,tstamp_utc-datetime.timedelta(minutes=5))},
+                    'strike-10min': {'query_str':strike_query_str,'query_args':(ticker,tstamp_utc-datetime.timedelta(minutes=10))},
+                    'strike-15min': {'query_str':strike_query_str,'query_args':(ticker,tstamp_utc-datetime.timedelta(minutes=15))},
+                    'strike-30min': {'query_str':strike_query_str,'query_args':(ticker,tstamp_utc-datetime.timedelta(minutes=30))},
                 }
             else:
                 query_dict = {}
@@ -327,12 +325,9 @@ async def ws_sec_gex():
             lookback_keys = ['strike-1min','strike-5min','strike-10min','strike-15min','strike-30min']
             query_list = []
             for query_kind, item_dict in query_dict.items():
-                tstamp = item_dict['tstamp']
-                query_args = (ticker,tstamp)
-                if query_kind == 'net':
-                    query_func = apostgres_execute(None,net_query_str,query_args)
-                else:
-                    query_func = apostgres_execute(None,strike_query_str,query_args)
+                query_str = item_dict["query_str"]
+                query_args = item_dict["query_args"]
+                query_func = apostgres_execute(None,query_str,query_args)
                 query_list.append(query_func)
             gathered_res = await asyncio.gather(*query_list)
 
@@ -341,20 +336,25 @@ async def ws_sec_gex():
                 if query_kind == 'net':
                     columns = ['ticker','tstamp','spot_price','naive_gex','true_gex']
                     try:
-                        df = pd.DataFrame([x for x in res])
+                        df = pd.DataFrame([x for x in res],columns=columns)
+                        df.naive_gex = df.naive_gex/1e9
+                        df.true_gex = df.true_gex/1e9
                         spot_price = df.spot_price.to_list()[-1]
                     except:
                         df = pd.DataFrame([],columns=columns)
                         spot_price = -1
+                        app.logger.error(traceback.format_exc())
 
                 else:
                     columns = ['ticker','tstamp','strike','naive_gex','true_gex']
                     try:
-                        df = pd.DataFrame([x for x in res])
+                        df = pd.DataFrame([x for x in res],columns=columns)
                         df = df.replace({np.nan: None})
+                        df.naive_gex = df.naive_gex/1e9
                         df.true_gex = df.true_gex/1e9
                     except:
                         df = pd.DataFrame([],columns=columns)
+                        app.logger.error(traceback.format_exc())
 
                 query_dict[query_kind]["df"]=df
 
@@ -400,5 +400,7 @@ docker run -it -u $(id -u):$(id -g) \
     -e CACHE_TASTY_FOLDER="/mnt/hd1/data/tastyfi" \
     -e POSTGRES_URI="postgres://postgres:postgres@192.168.68.143:5432/postgres" \
     -w $PWD -v /mnt:/mnt -p 80:80 fi-notebook:latest bash
+
+python app.py 80
 
 """
