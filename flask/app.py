@@ -113,8 +113,7 @@ async def redirect_to_login(*_):
     return redirect(url_for("login"))
 
 @app.route("/eod-gex")
-
-async def guest():
+async def eod_gex():
     enable_live = request.args.get("live","false")
     ticker = request.args.get("ticker",BTC_TICKER)
     return await render_template("guest.html",
