@@ -132,8 +132,8 @@ async def index():
 async def about():
     return await render_template("about.html")
 
-@app.websocket('/ws-guest')
-async def ws_guest():
+@app.websocket('/ws-eod-gex')
+async def ws_eod_gex():
     try:
 
         enable_live = True if websocket.args.get("live","false")=="true" else False

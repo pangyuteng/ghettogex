@@ -107,10 +107,10 @@
 
 </script>
 {% if ticker %}
-<div hx-ext="ws" ws-connect="/ws-guest?live={{enable_live}}&ticker={{ticker}}">
+<div hx-ext="ws" ws-connect="/ws-eod-gex?live={{enable_live}}&ticker={{ticker}}">
 </div>
 {% else %}
-<div hx-ext="ws" ws-connect="/ws-guest?live={{enable_live}}">
+<div hx-ext="ws" ws-connect="/ws-eod-gex?live={{enable_live}}">
 </div>
 {% endif %}
 <div id="surfUpdate"></div>
