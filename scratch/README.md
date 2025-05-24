@@ -77,6 +77,11 @@ docker run -it -u $(id -u):$(id -g) \
           need contract_type_int, since while gamma is same for put and call
           once open interest can be tracked with the same method,
           to remain delta neutral, to long or short the underlying is different based on contract type.
++ [x] get `time` from below events, consider using time when inserting to events table?
+    tables:
+    candle, greeks, theoprice, timeandsale, underlying, trade
+    # NOTE: TODO: datetime.datetime.fromtimestamp(row['time']//1000,tz=datetime.timezone.utc)
+    # time is epoch at utc, later if you need to merge events
 + [ ] postgres insert and query got slow...
     + [ ] look into how to do table partition
 + [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI

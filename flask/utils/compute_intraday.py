@@ -42,21 +42,21 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_
 
     # the first minute, grab everything
     columns = [
-        'event_type','event_symbol',
+        'event_type','event_symbol','time',
         'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
-        'open_interest','price','volatility','delta','gamma','theta','rho','vega',
+        'open_interest','price','bid_price','ask_price','volatility','delta','gamma','theta','rho','vega',
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
 
     query_str = """
-    select 'underlying_candle' as event_type,event_symbol,close as spot_price,tstamp from candle
+    select 'underlying_candle' as event_type,event_symbol,close as spot_price,time,tstamp from candle
     where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
     """
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker)
     uc = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
-    select 'candle' as event_type,event_symbol,open,high,low,close,volume,ask_volume,bid_volume,tstamp,ticker,expiration,contract_type,strike from candle
+    select 'candle' as event_type,event_symbol,open,high,low,close,volume,ask_volume,bid_volume,tstamp,ticker,expiration,contract_type,time,strike from candle
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
@@ -70,14 +70,14 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_
     os = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
-    select 'greeks' as event_type,event_symbol,price,volatility,delta,gamma,theta,rho,vega,tstamp,ticker,expiration,contract_type,strike from greeks
+    select 'greeks' as event_type,event_symbol,price,volatility,delta,gamma,theta,rho,vega,time,tstamp,ticker,expiration,contract_type,strike from greeks
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
     og = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
-    select 'timeandsale' as event_type,event_symbol,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
+    select 'timeandsale' as event_type,event_symbol,size,price,bid_price,ask_price,aggressor_side,time,tstamp,ticker,expiration,contract_type,strike from timeandsale
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (lookback_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
@@ -103,21 +103,21 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
         ticker_alt = ticker
     expiration = utc_tstamp.date()
     columns = [
-        'event_type','event_symbol',
+        'event_type','event_symbol','time',
         'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
-        'true_oi','open_interest','price','volatility','delta','gamma','theta','rho','vega',
+        'true_oi','open_interest','price','bid_price','ask_price','volatility','delta','gamma','theta','rho','vega',
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
 
     query_str = """
-    select 'underlying_candle' as event_type,event_symbol,close as spot_price,tstamp from candle
+    select 'underlying_candle' as event_type,event_symbol,close as spot_price,time,tstamp from candle
     where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
     """
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker) # underlying_candle
     uc = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
-    select 'candle' as event_type,event_symbol,open,high,low,close,volume,ask_volume,bid_volume,tstamp,ticker,expiration,contract_type,strike from candle
+    select 'candle' as event_type,event_symbol,open,high,low,close,volume,ask_volume,bid_volume,time,tstamp,ticker,expiration,contract_type,strike from candle
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (utc_tstamp,max_utc_tstamp,ticker_alt,expiration) # candle
@@ -131,14 +131,14 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     os = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
-    select 'greeks' as event_type,event_symbol,price,volatility,delta,gamma,theta,rho,vega,tstamp,ticker,expiration,contract_type,strike from greeks
+    select 'greeks' as event_type,event_symbol,price,volatility,delta,gamma,theta,rho,vega,time,tstamp,ticker,expiration,contract_type,strike from greeks
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration) # greeks
     og = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
-    select 'timeandsale' as event_type,event_symbol,size,aggressor_side,tstamp,ticker,expiration,contract_type,strike from timeandsale
+    select 'timeandsale' as event_type,event_symbol,size,price,bid_price,ask_price,aggressor_side,time,tstamp,ticker,expiration,contract_type,strike from timeandsale
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (utc_tstamp,max_utc_tstamp,ticker_alt,expiration) # timeandsale
@@ -169,7 +169,15 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
 # + spot needs to be updated if candle, and you got underlying quotes.
 # + summary event seems to be only once a day?
 
-def get_size_signed(row):
+def get_naive_size_signed(row):
+    if row.aggressor_side == 'BUY':
+        return -1*row['size'] # buy means dealer is short the contract
+    elif row.aggressor_side == 'SELL':
+        return row['size'] # sell means dealer is long the contract
+    else:
+        return 0 # hau voaltility 2021 ????
+
+def get_hua_size_signed(row):
     if row.aggressor_side == 'BUY':
         return -1*row['size'] # buy means dealer is short the contract
     elif row.aggressor_side == 'SELL':
@@ -178,12 +186,13 @@ def get_size_signed(row):
         return 0 # hau voaltility 2021 ????
 
 def compute_gex_core(df,from_scratch):
-    df = df.sort_values(by=['event_type','tstamp'])
-    df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
+    # NOTE: we sort by time first, since tstamp is postgres insert time.
+    df = df.sort_values(by=['event_type','time','tstamp'])
+    df['naive_size_signed'] = df.apply(lambda x: get_naive_size_signed(x),axis=1)
+    df['hua_size_signed'] = df.apply(lambda x: get_hua_size_signed(x),axis=1)
 
     underlying_candle_df = df[df.event_type=='underlying_candle']
     if len(underlying_candle_df)>0:
-        underlying_candle_df = df[df.event_type=='underlying_candle']
         spot_price = underlying_candle_df.spot_price.to_list()[-1]
     else:
         spot_price = np.nan
@@ -210,9 +219,15 @@ def compute_gex_core(df,from_scratch):
     greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega']]
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
 
-    timeandsale_df = timeandsale_df[['event_symbol','size_signed']]
+    # compute and interpolate IV from price for put and calls
+    # then determine side by checking if price is above or below theoretical price
+    
+    #timeandsale_df = timeandsale_df[['event_symbol','size_signed']]
+    timeandsale_df = timeandsale_df[['event_symbol','naive_size_signed','hua_size_signed','price']] # 'ask_price','bid_price'
     timeandsale_df = timeandsale_df.groupby(['event_symbol']).sum().reset_index()
-
+    timeandsale_df["size_signed"] = timeandsale_df['hua_size_signed']
+    # timeandsale_df = timeandsale_df.rename(columns:{"hua_size_signed":"size_signed"})
+    
     merged_df = greeks_df.merge(summary_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
@@ -221,23 +236,25 @@ def compute_gex_core(df,from_scratch):
     merged_df['contract_type_int'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['spot_price']=spot_price
 
-    for col_name in ['gamma','open_interest','true_oi','spot_price','contract_type_int','size_signed','volume','ask_volume','bid_volume']:
+    for col_name in ['gamma','open_interest','true_oi','spot_price','contract_type_int','size_signed','price','volume','ask_volume','bid_volume']:
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
 
     merged_df.true_oi = merged_df.true_oi.fillna(value=0)
     merged_df.open_interest = merged_df.open_interest.fillna(value=0)
+    merged_df.price = merged_df.price.fillna(value=0)
     merged_df.size_signed = merged_df.size_signed.fillna(value=0)
     merged_df.volume = merged_df.volume.fillna(value=0)
     merged_df.ask_volume = merged_df.ask_volume.fillna(value=0)
     merged_df.bid_volume = merged_df.bid_volume.fillna(value=0)
 
-
-    # let naive_gex open_interest be updated using 
+    # NOTE: let `naive_gex` open_interest be updated using
     # ask means buy, dealer is short, bid means sell, dealer is long
     merged_df.open_interest = merged_df.open_interest-merged_df.ask_volume+merged_df.bid_volume
+    
+    # NOTE: let `true_oi` be computed using theo_aggressor_side
+    # TODO: missing component: prior day true_oi
     if from_scratch:
         merged_df['true_oi'] = merged_df.size_signed
-    
     else:
         # update oi
         merged_df['true_oi'] += merged_df.size_signed
