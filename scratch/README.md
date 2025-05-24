@@ -72,7 +72,13 @@ docker run -it -u $(id -u):$(id -g) \
     + [x] postgres optimization - tuple as index, see postgres/README.md
     + [x] async insert https://stackoverflow.com/questions/67944791/fastest-way-to-apply-an-async-function-to-pandas-dataframe
     + [x] added true_gex 
-+ [ ] verify again GEX
++ [x] verify again GEX
+    + [x] made uw_gex_utils.py, verified GEX
+          need contract_type_int, since while gamma is same for put and call
+          once open interest can be tracked with the same method,
+          to remain delta neutral, to long or short the underlying is different based on contract type.
++ [ ] postgres insert and query got slow...
+    + [ ] look into how to do table partition
 + [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
 + [ ] play sound during events.
     + [ ] flash crash
