@@ -525,7 +525,7 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     logger.info(sg_df.columns)
     
     df = sg_df.copy()
-    df["tstamp_min"] = df.tstamp_sec.apply(lambda x: x.replace(second=0))
+    df["tstamp_min"] = df.tstamp_sec.apply(lambda x: x.replace(second=0,microsecond=0))
     df = df.groupby(['tstamp_min','strike']).agg(
         gex=pd.NamedAgg(column="gex", aggfunc="last"),
     ).reset_index()

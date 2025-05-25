@@ -2,7 +2,7 @@
 import datetime
 import pytz
 import numpy as np
-
+import pandas as pd
 import pandas_market_calendars as mcal
 
 import py_vollib.black_scholes_merton.implied_volatility
@@ -11,17 +11,8 @@ import py_vollib_vectorized
 
 import scipy.interpolate as interpolate
 
+from .misc import get_market_open_close
 
-
-def get_market_open_close(day_stamp,no_tzinfo=True):
-    nyse = mcal.get_calendar('NYSE')
-    early = nyse.schedule(start_date=day_stamp, end_date=day_stamp)
-    market_open = list(early.to_dict()['market_open'].values())[0]
-    market_close = list(early.to_dict()['market_close'].values())[0]
-    if no_tzinfo:
-        return market_open.replace(tzinfo=None),market_close.replace(tzinfo=None)
-    else:
-        return market_open,market_close
 
 TOTAL_SECONDS_ONE_YEAR = 365*24*60*60 # total seconds
 
@@ -32,13 +23,13 @@ def get_expiry_tstamp(expiry):
     _,expiry_tstamp = get_market_open_close(expiry)
     return expiry_tstamp.replace(tzinfo=None)
 
-def get_annualized_time_to_expiration(expiration,tstamp_sec,expiry_mapper):
-    expiry_tstamp = expiry_mapper[expiration]
-    sec_to_expiration = (expiry_tstamp-tstamp_sec).total_seconds()
+def get_annualized_time_to_expiration(row,expiry_mapper):
+    if not isinstance(row.expiration,str):
+        return np.nan
+    expiry_tstamp = expiry_mapper[row.expiration]
+    sec_to_expiration = (expiry_tstamp-row.tstamp).total_seconds()
     atte = sec_to_expiration/TOTAL_SECONDS_ONE_YEAR
     return atte
-
-
 
 #
 # https://www.stephendiehl.com/posts/volatility_surface
@@ -47,25 +38,31 @@ def get_annualized_time_to_expiration(expiration,tstamp_sec,expiry_mapper):
 # 
 # see doc/hau.0fcbcd78dd6272834a38.pdf
 # 
+
 def interp_implied_volatility(df,s=None,return_fine=False):
-    # Prepare interpolation data
+
+    assert(len(df.contract_type.unique())==1)
+    # TODO: support multi expiry
+    assert(len(df.expiration.unique())==1)
+
     df = df.sort_values(["strike"])
-    y = df.tte # only 1 kind of expiration.
+    # Prepare interpolation data
+    y = df.tte
     x = df.strike
     z = df.iv
-    x_new = x
     # Perform interpolation
     spline = interpolate.UnivariateSpline(
         x, z, s=s
     )
     if return_fine:
+        x = df.strike
         x_new = np.linspace(x.min(), x.max(), 100)
         z_smooth = spline(x_new)
-        iv_df = pd.DataFrame({'iv':z_smooth,'strike':x_new,'tte':np.nan})
+        iv_df = pd.DataFrame({'iv':z_smooth,'strike':x_new})
+        iv_df['contract_type']=contract_type
         return iv_df
     else:
-        z_smooth = spline(x)
-        df['interp_iv'] = spline(x)
+        df['iv']=spline(df.strike)
         return df
 
 def compute_theo_price(df,df_call_symbol='C'):
@@ -78,7 +75,6 @@ def compute_theo_price(df,df_call_symbol='C'):
     q = 0 # annualized continuous dividend yield.
     theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, sigma, q, return_as='numpy')
     df['theo_price'] = theo_price
-    df['theo_aggressor_side'] = np.where(df['price']>=df['theo_price'], 'BUY', 'SELL')
     return df
 
 def compute_iv(df):

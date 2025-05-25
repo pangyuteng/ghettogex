@@ -28,6 +28,7 @@ from .postgres_utils import (
 
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
+from .iv_utils import get_expiry_tstamp,get_annualized_time_to_expiration,compute_theo_price,compute_iv,interp_implied_volatility
 
 async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp,lookback_utc_tstamp):
     if ticker == 'SPX':
@@ -62,6 +63,7 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
     oc = apostgres_execute(apool,query_str,query_args)
 
+    # NOTE: for now gather open_interest, but don't use it since there is no directionality.
     query_str = """
     select 'summary' as event_type,event_symbol,open_interest,tstamp,ticker,expiration,contract_type,strike from summary
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
@@ -169,29 +171,27 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
 # + spot needs to be updated if candle, and you got underlying quotes.
 # + summary event seems to be only once a day?
 
-def get_naive_size_signed(row):
-    if row.aggressor_side == 'BUY':
-        return -1*row['size'] # buy means dealer is short the contract
-    elif row.aggressor_side == 'SELL':
-        return row['size'] # sell means dealer is long the contract
+def get_size_signed(row,method):
+    if method == 'naive':
+        if row.aggressor_side == 'BUY':
+            return -1*row['size'] # buy means dealer is short the contract
+        elif row.aggressor_side == 'SELL':
+            return row['size'] # sell means dealer is long the contract
+        else:
+            return 0 # hau voaltility 2021 ????
+    elif method == 'vol_surface':
+        if row.theo_aggressor_side == 'BUY':
+            return -1*row['size'] # buy means dealer is short the contract
+        elif row.theo_aggressor_side == 'SELL':
+            return row['size'] # sell means dealer is long the contract
+        else:
+            return 0 # hau voaltility 2021 ????
     else:
-        return 0 # hau voaltility 2021 ????
+        raise NotImplementedError()
 
-def get_theo_size_signed(row):
-    raise NotImplementedError()
-    if row.theo_aggressor_side == 'BUY':
-        return -1*row['size'] # buy means dealer is short the contract
-    elif row.theo_aggressor_side == 'SELL':
-        return row['size'] # sell means dealer is long the contract
-    else:
-        return 0 # hau voaltility 2021 ????
-
-def compute_gex_core(df,from_scratch):
+def compute_gex_core(df,from_scratch,ddoi_method='vol_surface'):
     # NOTE: we sort by time first, since tstamp is postgres insert time.
     df = df.sort_values(by=['event_type','time','tstamp'])
-    df['size_signed'] = df.apply(lambda x: get_naive_size_signed(x),axis=1)
-    #df['theo_size_signed'] = df.apply(lambda x: get_theo_size_signed(x),axis=1)
-
 
     underlying_candle_df = df[df.event_type=='underlying_candle']
     if len(underlying_candle_df)>0:
@@ -202,7 +202,33 @@ def compute_gex_core(df,from_scratch):
     candle_df = df[df.event_type=='candle']
     summary_df = df[df.event_type=='summary']
     greeks_df = df[df.event_type=='greeks']
-    timeandsale_df = df[df.event_type=='timeandsale']
+    ts_df = df[df.event_type=='timeandsale'].copy()
+    
+    call_count = (ts_df.contract_type=='C').sum()
+    put_count = (ts_df.contract_type=='P').sum()
+
+    if call_count < 10 or put_count < 10:
+        ddoi_method = 'naive'
+
+    if ddoi_method == 'naive':
+        pass
+    elif ddoi_method == 'vol_surface':
+        # compute and interpolate IV from price for put and calls
+        # then determine side by checking if price is above or below theoretical price
+        expiration_series = ts_df.expiration[ts_df.expiration.notnull()]
+        expiry_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d"))  for x in list(expiration_series.unique())}
+
+        ts_df['tte'] = ts_df.apply(lambda x: get_annualized_time_to_expiration(x,expiry_mapper),axis=1)
+        ts_df = compute_iv(ts_df)
+        call_ts_df = interp_implied_volatility(ts_df[ts_df.contract_type=='C'].copy())
+        puts_ts_df = interp_implied_volatility(ts_df[ts_df.contract_type=='P'].copy())
+        ts_df = pd.concat([call_ts_df,puts_ts_df])
+        ts_df = compute_theo_price(ts_df)
+        ts_df['theo_aggressor_side'] = np.where(ts_df['price']>=ts_df['theo_price'], 'BUY', 'SELL')
+    else:
+        raise NotImplementedError()
+
+    ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x,ddoi_method),axis=1)
 
     candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
     candle_df = candle_df.groupby(['event_symbol']).agg(
@@ -221,15 +247,9 @@ def compute_gex_core(df,from_scratch):
     greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega']]
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
 
-    # compute and interpolate IV from price for put and calls
-    # then determine side by checking if price is above or below theoretical price
-    
-
-    timeandsale_df = timeandsale_df[['event_symbol','size_signed']]
+    timeandsale_df = ts_df[['event_symbol','size_signed']]
     timeandsale_df = timeandsale_df.groupby(['event_symbol']).sum().reset_index()
-    #timeandsale_df["size_signed"] = timeandsale_df['naive_size_signed']
-    # timeandsale_df = timeandsale_df.rename(columns:{"theo_size_signed":"size_signed"})
-    
+
     merged_df = greeks_df.merge(summary_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
@@ -336,7 +356,6 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
         if from_scratch:
             time_a = time.time()
             event_df = await get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,market_open_tstamp_utc,lookback_tstamp_utc)
-
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)

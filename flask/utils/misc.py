@@ -30,6 +30,14 @@ def is_market_open(tstamp=None):
     else:
         return False
 
+def get_market_open_close(day_stamp,no_tzinfo=True):
+    early = nyse.schedule(start_date=day_stamp, end_date=day_stamp)
+    market_open = list(early.to_dict()['market_open'].values())[0]
+    market_close = list(early.to_dict()['market_close'].values())[0]
+    if no_tzinfo:
+        return market_open.replace(tzinfo=None),market_close.replace(tzinfo=None)
+    else:
+        return market_open,market_close
 def timedelta_from_market_open(now_tstamp_et):
     if now_tstamp_et is None:
         tstamp = now_in_new_york()
