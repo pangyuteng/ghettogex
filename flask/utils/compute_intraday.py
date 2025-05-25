@@ -177,10 +177,11 @@ def get_naive_size_signed(row):
     else:
         return 0 # hau voaltility 2021 ????
 
-def get_hua_size_signed(row):
-    if row.aggressor_side == 'BUY':
+def get_theo_size_signed(row):
+    raise NotImplementedError()
+    if row.theo_aggressor_side == 'BUY':
         return -1*row['size'] # buy means dealer is short the contract
-    elif row.aggressor_side == 'SELL':
+    elif row.theo_aggressor_side == 'SELL':
         return row['size'] # sell means dealer is long the contract
     else:
         return 0 # hau voaltility 2021 ????
@@ -188,8 +189,9 @@ def get_hua_size_signed(row):
 def compute_gex_core(df,from_scratch):
     # NOTE: we sort by time first, since tstamp is postgres insert time.
     df = df.sort_values(by=['event_type','time','tstamp'])
-    df['naive_size_signed'] = df.apply(lambda x: get_naive_size_signed(x),axis=1)
-    df['hua_size_signed'] = df.apply(lambda x: get_hua_size_signed(x),axis=1)
+    df['size_signed'] = df.apply(lambda x: get_naive_size_signed(x),axis=1)
+    #df['theo_size_signed'] = df.apply(lambda x: get_theo_size_signed(x),axis=1)
+
 
     underlying_candle_df = df[df.event_type=='underlying_candle']
     if len(underlying_candle_df)>0:
@@ -222,11 +224,11 @@ def compute_gex_core(df,from_scratch):
     # compute and interpolate IV from price for put and calls
     # then determine side by checking if price is above or below theoretical price
     
-    #timeandsale_df = timeandsale_df[['event_symbol','size_signed']]
-    timeandsale_df = timeandsale_df[['event_symbol','naive_size_signed','hua_size_signed','price']] # 'ask_price','bid_price'
+
+    timeandsale_df = timeandsale_df[['event_symbol','size_signed']]
     timeandsale_df = timeandsale_df.groupby(['event_symbol']).sum().reset_index()
-    timeandsale_df["size_signed"] = timeandsale_df['hua_size_signed']
-    # timeandsale_df = timeandsale_df.rename(columns:{"hua_size_signed":"size_signed"})
+    #timeandsale_df["size_signed"] = timeandsale_df['naive_size_signed']
+    # timeandsale_df = timeandsale_df.rename(columns:{"theo_size_signed":"size_signed"})
     
     merged_df = greeks_df.merge(summary_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
