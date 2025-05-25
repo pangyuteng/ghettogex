@@ -247,14 +247,14 @@ class GexService(object):
                 return "exception"
 
         def get_size_signed(row):
-            if row.size_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
+            if row.side_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
                 return -1*row['size'] 
-            elif row.size_mod in ['bid','likely_bid']: # near bid, client sold, dealer long
+            elif row.side_mod in ['bid','likely_bid']: # near bid, client sold, dealer long
                 return row['size']
             else:
                 return 0 # SET TO ZERO NOT GOOD. TODO: FIX THIS USING HUA!
 
-        df['size_mod'] = df.apply(lambda x: get_side_mod(x,df),axis=1)
+        df['side_mod'] = df.apply(lambda x: get_side_mod(x,df),axis=1)
         df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
 
         # if you are net long call, you gotta short, if you are net long put, you gotta long
@@ -264,7 +264,7 @@ class GexService(object):
 
         logger.info("df.side.value_counts()")
         logger.info(df.side.value_counts())
-        logger.info("df.size_mod.value_counts()")
+        logger.info("df.side_mod.value_counts()")
         logger.info(df.size_mod.value_counts())
         logger.info("df.canceled.value_counts()")
         logger.info(df.canceled.value_counts())
