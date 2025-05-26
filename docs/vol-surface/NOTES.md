@@ -53,5 +53,4 @@ https://quant.stackexchange.com/questions/77365/fitting-volatility-using-sabr
 "There is no way SABR will be able to match this shape. It's only a few parameters after all. – 
 user70573 CommentedJan 6, 2024 at 0:43"
 
-
 https://quant.stackexchange.com/questions/67889/cant-fit-bloomberg-volatility-smile-with-pysabr-what-am-i-doing-wrong
