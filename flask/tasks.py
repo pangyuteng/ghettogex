@@ -16,8 +16,6 @@ import threading
 import luigi
 from celery import Celery
 
-# from gex_utils import persist_spot_gex
-
 from utils.postgres_utils import postgres_execute
 from utils.data_tasty import background_subscribe, is_market_open, now_in_new_york
 from utils.compute_intraday import compute_gex

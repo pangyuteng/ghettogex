@@ -7,6 +7,41 @@
 
 # SVI SABR
 
+
+https://www.reddit.com/r/algotrading/comments/lqpoqi/best_way_to_fit_implied_volatility_to_a_surface/
+https://emanuelderman.com/wp-content/uploads/1996/06/gs-local_volatility_surface.pdf
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RBFInterpolator.html
+
+https://numba.pydata.org/numba-doc/dev/index.html
+
+https://medium.com/@alexander.tsoskounoglou/pricing-options-with-fourier-series-p3-the-heston-model-d157369a217a
+corresponding notebook https://github.com/ithakis/Pricing-Options-with-Black-Scholes/blob/main/Heston%20Model%20Calibration.ipynb
+
+
+https://github.com/JunbeomL22/SurfaceFitting/blob/master/Code/SurfaceFitting.py
+https://github.com/JunbeomL22/SurfaceFitting/blob/master/Code/ssvi.py
+
 https://github.com/clf110510/stochastic-volatility
 https://github.com/ynouri/pysabr
 
+https://colab.research.google.com/drive/1M1YJncdswd-A9SgIOAjw6g6Se7NHU9mG?usp=sharing
+
+https://www.quantlib.org/
+
+https://www.quantconnect.com/learning/articles/introduction-to-options/local-volatility-and-stochastic-volatility
+
+https://quant.stackexchange.com/questions/73488/pricing-a-digital-barrier-option-using-quantlib-in-python
+https://quant.stackexchange.com/questions/44300/mixed-local-stochastic-volatility-model-in-quantlib
+https://quant.stackexchange.com/questions/51749/heston-volatility-surface-in-python-quantlib
+
+https://www.linkedin.com/pulse/creating-volatility-surface-quantlib-colman-marcus-quinn-ehoye/
+https://quantlib-python-docs.readthedocs.io/en/latest/stochastic_processes.html#ql.HestonSLVProcess
+
+good example: https://github.com/ynouri/pysabr/pull/7/files
+https://github.com/ynouri/pysabr/blob/master/notebooks/Lognormal%20SABR%20vs%20Normal%20SABR.ipynb
+
+https://www.pyquantnews.com/the-pyquant-newsletter/calibrating-volatility-smiles-with-sabr
+
+finally back to pysabr
+https://quant.stackexchange.com/questions/68141/fitting-a-volatility-smile-with-pysabr-python-implementation-of-sabr-model
+https://greektrader.wordpress.com/2020/08/29/sabr-volatility-model/
