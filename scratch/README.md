@@ -86,6 +86,8 @@ docker run -it -u $(id -u):$(id -g) \
     and per aggregated time slot, lump timeandsale  for oi
     using time, means you have to wait and guess, since events don't come in at fix frequency.
 + [o] study hua volatility
+    + when do you pick naive vs order-book vs iv-surface?
+    + [ ] naive method - price near bid/ask price.
     + [ ] use order book (quote events) to determine bid/ask side 
     + [ ] use price to derive IV, create IV surface, then compute theo_price
       use diff between price vs theo_price to determine bid/ask side 
