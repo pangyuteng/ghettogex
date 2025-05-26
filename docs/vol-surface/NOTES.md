@@ -45,3 +45,13 @@ https://www.pyquantnews.com/the-pyquant-newsletter/calibrating-volatility-smiles
 finally back to pysabr
 https://quant.stackexchange.com/questions/68141/fitting-a-volatility-smile-with-pysabr-python-implementation-of-sabr-model
 https://greektrader.wordpress.com/2020/08/29/sabr-volatility-model/
+
+
+pysabr 0dte volatility surface
+
+https://quant.stackexchange.com/questions/77365/fitting-volatility-using-sabr
+"There is no way SABR will be able to match this shape. It's only a few parameters after all. – 
+user70573 CommentedJan 6, 2024 at 0:43"
+
+
+https://quant.stackexchange.com/questions/67889/cant-fit-bloomberg-volatility-smile-with-pysabr-what-am-i-doing-wrong
