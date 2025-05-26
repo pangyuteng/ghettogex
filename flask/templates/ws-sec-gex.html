@@ -1,16 +1,28 @@
 <div id="myDiv" hx-swap-oob="true">
   <script>
-  var updateData = []
+  var updateData = [];
+  var updateData2 = [];
+
   {% for n,row in df.iterrows() %}
   updateData.push({
-      x: [0, {{row.true_gex}}],
-      y: [{{row.strike}}, {{row.strike}}],
-      mode: 'lines',
-      {% if row.true_gex > 0 %}
-      line: {color: 'rgb(50, 255, 50)', width: 3}
-      {% else %}
-      line: {color: 'rgb(255, 50, 50)', width: 3}
-      {% endif %}
+    x: [0, {{row.true_gex}}],
+    y: [{{row.strike}}, {{row.strike}}],
+    mode: 'lines',
+    {% if row.true_gex > 0 %}
+    line: {color: 'rgb(50, 255, 50)', width: 3}
+    {% else %}
+    line: {color: 'rgb(255, 50, 50)', width: 3}
+    {% endif %}
+  })
+  updateData2.push({
+    x: [0, {{row.naive_gex}}],
+    y: [{{row.strike}}, {{row.strike}}],
+    mode: 'lines',
+    {% if row.naive_gex > 0 %}
+    line: {color: 'rgb(50, 255, 50)', width: 3}
+    {% else %}
+    line: {color: 'rgb(255, 50, 50)', width: 3}
+    {% endif %}
   })
   {% endfor %}
 
@@ -19,6 +31,24 @@
   {% for n,row in query_dict[lookback].df.iterrows() %}
   updateData.push({
       x: [{{row.true_gex}}, {{row.true_gex}}],
+      y: [{{row.strike}}, {{row.strike}}],
+      mode: 'markers',
+      {% if lookback == 'strike-1min' %}
+      marker: {color: 'rgb(200, 200, 255)', size: 5}
+      {% elif lookback == 'strike-5min' %}
+      marker: {color: 'rgb(200, 200, 250)', size: 5}
+      {% elif lookback == 'strike-10min' %}
+      marker: {color: 'rgb(150, 150, 200)', size: 3}
+      {% elif lookback == 'strike-15min' %}
+      marker: {color: 'rgb(100, 100, 150)', size: 3}
+      {% elif lookback == 'strike-30min' %}
+      marker: {color: 'rgb(100, 100, 100)', size: 3}
+      {% else %}
+      marker: {color: 'rgb(100, 100, 50)', size: 3}
+      {% endif %}
+  })
+  updateData2.push({
+      x: [{{row.naive_gex}}, {{row.naive_gex}}],
       y: [{{row.strike}}, {{row.strike}}],
       mode: 'markers',
       {% if lookback == 'strike-1min' %}
@@ -50,6 +80,16 @@
           width: 2,
       }
   })
+  updateData2.push({
+      x: [ {{ -1*xlim }}, {{ xlim }} ],
+      y: [ {{ spot_price }}, {{ spot_price }} ],
+      mode: 'lines',
+      line: {
+          color: 'rgb(255,255,255)',
+          dash: 'dot',
+          width: 2,
+      }
+  })
   {% endif %}
 
   {% if max_gex %}
@@ -63,9 +103,29 @@
           width: 2,
       }
   })
+  updateData2.push({
+      x: [ {{ -1*xlim }}, {{ xlim }} ],
+      y: [ {{ max_gex }}, {{ max_gex }} ],
+      mode: 'lines',
+      line: {
+          color: 'rgb(0,255,0)',
+          dash: 'dot',
+          width: 2,
+      }
+  })
   {% endif %}
   {% if min_gex %}
   updateData.push({
+      x: [ {{ -1*xlim }}, {{ xlim }} ],
+      y: [ {{ min_gex }}, {{ min_gex }} ],
+      mode: 'lines',
+      line: {
+          color: 'rgb(255,0,0)',
+          dash: 'dot',
+          width: 2,
+      }
+  })
+  updateData2.push({
       x: [ {{ -1*xlim }}, {{ xlim }} ],
       y: [ {{ min_gex }}, {{ min_gex }} ],
       mode: 'lines',
@@ -99,8 +159,52 @@
         color: 'rgba(200,200,200,1)'
     }
   };
-
+var updateLayout = {
+    title: {text: '{{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    width: 512,
+    height: 512,
+    autosize: false,
+    showlegend: false,
+    yaxis: {
+        showgrid: true,
+        range: [ {{spot_price*0.98}}, {{spot_price*1.02}} ]
+    },
+    xaxis: {
+        showgrid: true,
+        range: [ {{ -1*xlim }},{{ xlim }} ]
+    },
+    font: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: 'rgba(200,200,200,1)'
+    }
+  };
+var updateLayout2 = {
+    title: {text: 'naive {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    width: 512,
+    height: 512,
+    autosize: false,
+    showlegend: false,
+    yaxis: {
+        showgrid: true,
+        range: [ {{spot_price*0.98}}, {{spot_price*1.02}} ]
+    },
+    xaxis: {
+        showgrid: true,
+        range: [ {{ -1*xlim }},{{ xlim }} ]
+    },
+    font: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: 'rgba(200,200,200,1)'
+    }
+  };
   Plotly.react(plotDiv, updateData, updateLayout);
+  Plotly.react(plotDiv2, updateData2, updateLayout2);
 
   /*
   // cannot set title to plotDiv.layout
