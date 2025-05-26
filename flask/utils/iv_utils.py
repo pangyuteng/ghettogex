@@ -37,7 +37,8 @@ def get_annualized_time_to_expiration(row,expiry_mapper):
 # NOTE: THIS METHOD interp_implied_volatility IS CRUDE AND VERY WRONG
 # 
 # see doc/hau.0fcbcd78dd6272834a38.pdf
-# 
+# see doc/vol-surface 
+
 
 def interp_implied_volatility(df,s=None,return_fine=False):
 
