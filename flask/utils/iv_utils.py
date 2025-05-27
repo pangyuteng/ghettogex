@@ -24,9 +24,11 @@ def get_expiry_tstamp(expiry):
     return expiry_tstamp.replace(tzinfo=None)
 
 def get_annualized_time_to_expiration(row,expiry_mapper):
-    if not isinstance(row.expiration,str):
-        return np.nan
-    expiry_tstamp = expiry_mapper[row.expiration]
+    if isinstance(row.expiration,str):
+        expiry = row.expiration
+    else:
+        expiry = row.expiration.strftime("%Y-%m-%d")
+    expiry_tstamp = expiry_mapper[expiry]
     sec_to_expiration = (expiry_tstamp-row.tstamp).total_seconds()
     atte = sec_to_expiration/TOTAL_SECONDS_ONE_YEAR
     return atte
@@ -41,7 +43,6 @@ def get_annualized_time_to_expiration(row,expiry_mapper):
 
 
 def interp_implied_volatility(df,s=None,return_fine=False):
-
     assert(len(df.contract_type.unique())==1)
     # TODO: support multi expiry
     assert(len(df.expiration.unique())==1)

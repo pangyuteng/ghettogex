@@ -216,9 +216,9 @@ def compute_gex_core(df,from_scratch,ddoi_method='vol_surface'):
         # compute and interpolate IV from price for put and calls
         # then determine side by checking if price is above or below theoretical price
         expiration_series = ts_df.expiration[ts_df.expiration.notnull()]
-        expiry_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d"))  for x in list(expiration_series.unique())}
-
+        expiry_mapper = {x.strftime("%Y-%m-%d"):get_expiry_tstamp(x.strftime("%Y-%m-%d"))  for x in list(expiration_series.unique())}
         ts_df['tte'] = ts_df.apply(lambda x: get_annualized_time_to_expiration(x,expiry_mapper),axis=1)
+        ts_df['spot_price'] = spot_price
         ts_df = compute_iv(ts_df)
         call_ts_df = interp_implied_volatility(ts_df[ts_df.contract_type=='C'].copy())
         puts_ts_df = interp_implied_volatility(ts_df[ts_df.contract_type=='P'].copy())
