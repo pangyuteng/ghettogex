@@ -54,3 +54,9 @@ https://quant.stackexchange.com/questions/77365/fitting-volatility-using-sabr
 user70573 CommentedJan 6, 2024 at 0:43"
 
 https://quant.stackexchange.com/questions/67889/cant-fit-bloomberg-volatility-smile-with-pysabr-what-am-i-doing-wrong
+
+https://dybeta2021.github.io/2021/07/13/svi/
+
+https://github.com/wangys96/SVI-Volatility-Surface-Calibration/tree/master
+
+https://quant.stackexchange.com/questions/76366/option-pricing-for-illiquid-case/76367#76367
