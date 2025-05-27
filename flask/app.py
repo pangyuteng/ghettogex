@@ -475,21 +475,19 @@ async def ws_sec_heatmap():
                 price_df = gex_net_df.groupby(['tstamp_sec']).agg(
                     spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
                 ).reset_index()
-                print(price_df.head())
 
                 df = gex_strike_df.copy()
-                print(df.head())
-                print(df.shape)
-                df.true_gex=df.true_gex/1e9
-                df.naive_gex=df.naive_gex/1e9
+                #df.true_gex=df.true_gex/1e9
+                #df.naive_gex=df.naive_gex/1e9
 
                 min_val,max_val = price_df.spot_price.min()*0.98,price_df.spot_price.max()*1.02
                 df=df[(df.strike<=max_val)&(df.strike>=min_val)]
 
-                color_palette = "coolwarm"
                 hue_norm = (-2,2)
                 myval = np.ceil(df.true_gex.abs().max())
-                #hue_norm = (-myval,myval)
+                hue_norm = (-myval,myval)
+
+                color_palette = "coolwarm"
                 plt.figure(1)
                 ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='true_gex',
                     hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
