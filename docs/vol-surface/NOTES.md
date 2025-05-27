@@ -71,3 +71,10 @@ https://github.com/wangys96/SVI-Volatility-Surface-Calibration/blob/master/SVI_C
 https://quant.stackexchange.com/questions/19344/how-to-calibrate-a-volatility-surface-using-svi
 https://quant.stackexchange.com/questions/16909/local-volatility-svi-parametrization
 https://github.com/mChataign/Beyond-Surrogate-Modeling-Learning-the-Local-Volatility-Via-Shape-Constraints/blob/Marc/GP/code/SSVI.py
+
+https://quant.stackexchange.com/questions/59396/question-about-svi-and-ssvi-tradeoff-between-fitness-and-no-arbitrage
+https://github.com/JackJacquier/SSVI
+
+SSVI SVI
+
+keywords: SSVI volatility surface python
