@@ -539,7 +539,7 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     logger.info(f'{min_val},{max_val}')
     df=df[(df.strike<=max_val)&(df.strike>=min_val)]
 
-    color_palette = "coolwarm"
+    color_palette = "RdYlBu"
     filter = df.tstamp_min.apply(lambda x: x.time()) <= datetime.time(20,0,0)
     tmp_df = df[filter]
     ax = sns.scatterplot(data=tmp_df,x='tstamp_min',y='strike',hue='gex',
