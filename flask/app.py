@@ -466,7 +466,7 @@ async def ws_sec_heatmap():
                 ).reset_index()
                 
                 gex_net_df = gex_net_df.groupby(['tstamp_sec']).agg(
-                    naive_gex=pd.NamedAgg(column="spot_price", aggfunc="last"),
+                    spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
                     naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="median"),
                     true_gex=pd.NamedAgg(column="true_gex", aggfunc="median"),
                 ).reset_index()
