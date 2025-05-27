@@ -481,7 +481,7 @@ async def ws_sec_heatmap():
                 plt.close()
 
 
-                min_val,max_val = price_df.spot_price.min()*0.98,price_df.spot_price.max()*1.02
+                min_val,max_val = price_df.spot_price.min()*0.91,price_df.spot_price.max()*1.01
                 df = gex_strike_df.copy()
                 df=df[(df.strike<=max_val)&(df.strike>=min_val)]
 
