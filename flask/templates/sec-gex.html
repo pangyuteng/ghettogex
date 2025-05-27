@@ -21,6 +21,8 @@
 <body>
 
 <div hx-ext="ws" ws-connect="/ticker/ws-sec-gex?ticker={{ticker}}"></div>
+<div hx-ext="ws" ws-connect="/ticker/ws-sec-heatmap?ticker={{ticker}}"></div>
+
 
 <div class="container">
     <div class="row">
@@ -58,6 +60,9 @@ Plotly.newPlot(plotDiv2, data, layout);
 </script>
 
 <div id="myDiv">
+</div>
+
+<div id="myHeatMapDiv">
 </div>
 
 </body>

@@ -5,8 +5,14 @@ import traceback
 import asyncio
 import pytz
 import datetime
+import tempfile
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.dates as mdates
+import base64
+
 from jinja2 import Environment, FileSystemLoader
 from quart import (
     Quart,
@@ -384,6 +390,143 @@ async def ws_sec_gex():
         app.logger.error('Client disconnected')
         raise
 
+@app.websocket('/ticker/ws-sec-heatmap')
+@login_required
+async def ws_sec_heatmap():
+    try:
+        while True:
+            ticker = websocket.args.get("ticker")
+            mysec = 60
+
+            eastern = pytz.timezone('US/Eastern')
+            utc = pytz.timezone('UTC')
+            tstamp_et = now_in_new_york()
+            ws_tstamp_utc = tstamp_et.astimezone(tz=utc)
+            day_stamp = "2025-05-23"#tstamp_et.strftime("%Y-%m-%d")
+            net_day_query_str = "select * from gex_net where ticker = %s and tstamp::date = %s order by tstamp"
+            strike_day_query_str = """
+                SELECT DISTINCT ON (ticker,date_trunc('minute', tstamp),strike) 
+                date_trunc('minute', tstamp) AS tstamp, ticker, strike,
+                AVG(naive_gex) as naive_gex, AVG(true_gex) as true_gex 
+                FROM gex_strike 
+                WHERE ticker = %s and tstamp::date = %s
+                GROUP BY ticker,tstamp,strike
+                ORDER BY tstamp, strike DESC
+            """
+
+            query_dict = {
+                'net-day': {'query_str':net_day_query_str,'query_args':(ticker,day_stamp)},
+                'strike-day': {'query_str':strike_day_query_str,'query_args':(ticker,day_stamp)},
+            }
+            
+            query_list = []
+            for query_kind, item_dict in query_dict.items():
+                query_str = item_dict["query_str"]
+                query_args = item_dict["query_args"]
+                query_func = apostgres_execute(None,query_str,query_args)
+                query_list.append(query_func)
+            gathered_res = await asyncio.gather(*query_list)
+
+            for query_idx,query_kind in enumerate(query_dict.keys()):
+                res = gathered_res[query_idx]
+                if query_kind == 'net-day':
+                    columns = ['ticker','tstamp','spot_price','naive_gex','true_gex']
+                    try:
+                        df = pd.DataFrame([x for x in res],columns=columns)
+                        df.naive_gex = df.naive_gex/1e9
+                        df.true_gex = df.true_gex/1e9
+                        spot_price = df.spot_price.to_list()[-1]
+                    except:
+                        df = pd.DataFrame([],columns=columns)
+                        spot_price = -1
+                        app.logger.error(traceback.format_exc())
+
+                else:
+                    columns = ['ticker','tstamp','strike','naive_gex','true_gex']
+                    try:
+                        df = pd.DataFrame([x for x in res],columns=columns)
+                        #df = df.replace({np.nan: None})
+                        df.naive_gex = df.naive_gex/1e9
+                        df.true_gex = df.true_gex/1e9
+                    except:
+                        df = pd.DataFrame([],columns=columns)
+                        app.logger.error(traceback.format_exc())
+
+                query_dict[query_kind]["df"]=df
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                net_gex_png_file = os.path.join(tmpdir,'net-gex.png')
+                heatmap_gex_png_file = os.path.join(tmpdir,'heatmap-gex.png')
+
+                gex_net_df = query_dict["net-day"]["df"]
+                gex_strike_df = query_dict["strike-day"]["df"]
+
+                plt.figure(1)
+                plt.plot(gex_net_df.tstamp,gex_net_df.naive_gex,label='naive_gex')
+                plt.plot(gex_net_df.tstamp,gex_net_df.true_gex,label='true_gex')
+                plt.grid(True)
+                plt.legend()
+                plt.savefig(net_gex_png_file)
+                plt.close()
+
+
+                gex_net_df["tstamp_sec"] = gex_net_df.tstamp.apply(lambda x: x.replace(second=0))
+
+                price_df = gex_net_df.groupby(['tstamp_sec']).agg(
+                    spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
+                ).reset_index()
+                print(price_df.head())
+
+                df = gex_strike_df.copy()
+                print(df.head())
+                print(df.shape)
+                df.true_gex=df.true_gex/1e9
+                df.naive_gex=df.naive_gex/1e9
+
+                min_val,max_val = price_df.spot_price.min()*0.98,price_df.spot_price.max()*1.02
+                df=df[(df.strike<=max_val)&(df.strike>=min_val)]
+
+                color_palette = "coolwarm"
+                hue_norm = (-2,2)
+                myval = np.ceil(df.true_gex.abs().max())
+                #hue_norm = (-myval,myval)
+                plt.figure(1)
+                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='true_gex',
+                    hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
+
+                norm = plt.Normalize(*hue_norm)
+                sm = plt.cm.ScalarMappable(cmap=color_palette, norm=norm)
+                ax.figure.colorbar(sm, ax=ax)
+
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
+                plt.xticks(rotation=30)
+
+                plt.title(f"0DTE GEX ($bn/1%move)*\n{ticker} {tstamp_et}\n")
+                ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
+                plt.savefig(heatmap_gex_png_file)
+                plt.close()
+
+                with open(net_gex_png_file,'rb') as f:
+                    net_gex_binary = base64.b64encode(f.read()).decode("utf-8")
+
+                with open(heatmap_gex_png_file,'rb') as f:
+                    heatmap_strike_gex_binary = base64.b64encode(f.read()).decode("utf-8")
+                
+            data_str = render_html("ws-sec-heatmap.html",
+                ticker=ticker,
+                net_gex_binary=net_gex_binary,
+                heatmap_strike_gex_binary=heatmap_strike_gex_binary,
+                ws_tstamp=ws_tstamp_utc
+            )
+            await websocket.send(data_str)
+            await asyncio.sleep(mysec)
+
+    except asyncio.CancelledError:
+        app.logger.error(traceback.format_exc())
+        app.logger.error('Client disconnected')
+        raise
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("port",type=int)
@@ -395,11 +538,14 @@ if __name__ == '__main__':
 
 kubectl port-forward --address 0.0.0.0 svc/postgres -n gg 5432:5432
 
-docker run -it -u $(id -u):$(id -g) \
+-u $(id -u):$(id -g)
+-v $PWD/tmp:/.local 
+
+docker run -it \
     -e CACHE_FOLDER="/mnt/hd1/data/fi" \
     -e CACHE_TASTY_FOLDER="/mnt/hd1/data/tastyfi" \
     -e POSTGRES_URI="postgres://postgres:postgres@192.168.68.143:5432/postgres" \
-    -w $PWD -v $PWD/tmp:/.local -v /mnt:/mnt \
+    -w $PWD -v /mnt:/mnt \
     -p 80:80 -p 8888:8888 fi-notebook:latest bash
 
 python app.py 80
