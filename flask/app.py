@@ -476,6 +476,7 @@ async def ws_sec_heatmap():
                 plt.plot(gex_net_df.tstamp_sec,gex_net_df.true_gex,label='true_gex')
                 plt.grid(True)
                 plt.legend()
+                plt.tight_layout()
                 plt.savefig(net_gex_png_file)
                 plt.close()
 
@@ -502,6 +503,7 @@ async def ws_sec_heatmap():
 
                 plt.title(f"0DTE GEX ($bn/1%move)*\n{ticker} {tstamp_et}\n")
                 ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
+                plt.tight_layout()
                 plt.savefig(heatmap_gex_png_file)
                 plt.close()
 
