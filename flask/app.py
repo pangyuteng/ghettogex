@@ -402,7 +402,7 @@ async def ws_sec_heatmap():
             utc = pytz.timezone('UTC')
             tstamp_et = now_in_new_york()
             ws_tstamp_utc = tstamp_et.astimezone(tz=utc)
-            day_stamp = "2025-05-23"#tstamp_et.strftime("%Y-%m-%d")
+            day_stamp = tstamp_et.strftime("%Y-%m-%d")
             net_day_query_str = "select * from gex_net where ticker = %s and tstamp::date = %s order by tstamp"
             strike_day_query_str = """
                 SELECT DISTINCT ON (ticker,date_trunc('minute', tstamp),strike) 
