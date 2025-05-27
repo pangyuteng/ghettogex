@@ -59,4 +59,15 @@ https://dybeta2021.github.io/2021/07/13/svi/
 
 https://github.com/wangys96/SVI-Volatility-Surface-Calibration/tree/master
 
+
+https://quant.stackexchange.com/questions/31151/which-models-do-bloomberg-reuters-use-to-derive-implied-volatility-for-interest/74179#74179
+
+**COOLIOS!! below **
 https://quant.stackexchange.com/questions/76366/option-pricing-for-illiquid-case/76367#76367
+ https://quant.stackexchange.com/q/49034/54838
+ https://quant.stackexchange.com/questions/74325/svi-calibration/74336#74336
+https://github.com/wangys96/SVI-Volatility-Surface-Calibration/blob/master/svi.py
+https://github.com/wangys96/SVI-Volatility-Surface-Calibration/blob/master/SVI_Calibration.ipynb
+https://quant.stackexchange.com/questions/19344/how-to-calibrate-a-volatility-surface-using-svi
+https://quant.stackexchange.com/questions/16909/local-volatility-svi-parametrization
+https://github.com/mChataign/Beyond-Surrogate-Modeling-Learning-the-Local-Volatility-Via-Shape-Constraints/blob/Marc/GP/code/SSVI.py
