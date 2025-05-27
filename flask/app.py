@@ -461,7 +461,12 @@ async def ws_sec_heatmap():
                 gex_strike_df = query_dict["strike-day"]["df"]
 
                 gex_net_df["tstamp_sec"] = gex_net_df.tstamp.apply(lambda x: x.replace(second=0))
+                price_df = gex_net_df.groupby(['tstamp_sec']).agg(
+                    spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
+                ).reset_index()
+                
                 gex_net_df = gex_net_df.groupby(['tstamp_sec']).agg(
+                    naive_gex=pd.NamedAgg(column="spot_price", aggfunc="last"),
                     naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="median"),
                     true_gex=pd.NamedAgg(column="true_gex", aggfunc="median"),
                 ).reset_index()
@@ -474,12 +479,6 @@ async def ws_sec_heatmap():
                 plt.savefig(net_gex_png_file)
                 plt.close()
 
-
-                gex_net_df["tstamp_sec"] = gex_net_df.tstamp.apply(lambda x: x.replace(second=0))
-
-                price_df = gex_net_df.groupby(['tstamp_sec']).agg(
-                    spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
-                ).reset_index()
 
                 min_val,max_val = price_df.spot_price.min()*0.98,price_df.spot_price.max()*1.02
                 df = gex_strike_df.copy()
