@@ -445,7 +445,6 @@ async def ws_sec_heatmap():
                     columns = ['ticker','tstamp','strike','naive_gex','true_gex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
-                        #df = df.replace({np.nan: None})
                         df.naive_gex = df.naive_gex/1e9
                         df.true_gex = df.true_gex/1e9
                     except:
@@ -461,9 +460,15 @@ async def ws_sec_heatmap():
                 gex_net_df = query_dict["net-day"]["df"]
                 gex_strike_df = query_dict["strike-day"]["df"]
 
+                gex_net_df["tstamp_sec"] = gex_net_df.tstamp.apply(lambda x: x.replace(second=0))
+                gex_net_df = gex_net_df.groupby(['tstamp_sec']).agg(
+                    naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="median"),
+                    true_gex=pd.NamedAgg(column="true_gex", aggfunc="median"),
+                ).reset_index()
+
                 plt.figure(1)
-                plt.plot(gex_net_df.tstamp,gex_net_df.naive_gex,label='naive_gex')
-                plt.plot(gex_net_df.tstamp,gex_net_df.true_gex,label='true_gex')
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df.naive_gex,label='naive_gex')
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df.true_gex,label='true_gex')
                 plt.grid(True)
                 plt.legend()
                 plt.savefig(net_gex_png_file)
@@ -476,11 +481,8 @@ async def ws_sec_heatmap():
                     spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
                 ).reset_index()
 
-                df = gex_strike_df.copy()
-                #df.true_gex=df.true_gex/1e9
-                #df.naive_gex=df.naive_gex/1e9
-
                 min_val,max_val = price_df.spot_price.min()*0.98,price_df.spot_price.max()*1.02
+                df = gex_strike_df.copy()
                 df=df[(df.strike<=max_val)&(df.strike>=min_val)]
 
                 hue_norm = (-2,2)
