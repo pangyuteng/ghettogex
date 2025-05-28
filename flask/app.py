@@ -366,13 +366,17 @@ async def ws_sec_gex():
 
             try:
                 latest_df = query_dict["strike"]["df"]
-                max_gex = latest_df.at[latest_df.true_gex.argmax(),'strike']
-                min_gex = latest_df.at[latest_df.true_gex.argmin(),'strike']
+                max_true_gex = latest_df.at[latest_df.true_gex.argmax(),'strike']
+                min_true_gex = latest_df.at[latest_df.true_gex.argmin(),'strike']
+                max_naive_gex = latest_df.at[latest_df.naive_gex.argmax(),'strike']
+                min_naive_gex = latest_df.at[latest_df.naive_gex.argmin(),'strike']
                 xlim = latest_df.true_gex.abs().max()*1.5
             except:
                 latest_df = pd.DataFrame([])
-                max_gex = 100
-                min_gex = -100
+                max_true_gex = 100
+                min_true_gex = -100
+                max_naive_gex = 100
+                min_naive_gex = -100
                 xlim = 999
 
             data_str = render_html("ws-sec-gex.html",
@@ -380,7 +384,9 @@ async def ws_sec_gex():
                 spot_price=spot_price,
                 df=latest_df,
                 query_dict=query_dict,lookback_keys=lookback_keys,
-                max_gex=max_gex,min_gex=min_gex,xlim=xlim,
+                max_true_gex=max_true_gex,min_true_gex=min_true_gex,
+                max_naive_gex=max_naive_gex,min_naive_gex=min_naive_gex,
+                xlim=xlim,
                 tstamp=tstamp_utc,ws_tstamp=ws_tstamp_utc)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
@@ -456,9 +462,13 @@ async def ws_sec_heatmap():
             with tempfile.TemporaryDirectory() as tmpdir:
                 net_gex_png_file = os.path.join(tmpdir,'net-gex.png')
                 heatmap_gex_png_file = os.path.join(tmpdir,'heatmap-gex.png')
+                heatmap_true_gex_png_file = os.path.join(tmpdir,'heatmap-true-gex.png')
+                heatmap_naive_gex_png_file = os.path.join(tmpdir,'heatmap-naive-gex.png')
 
                 gex_net_df = query_dict["net-day"]["df"]
                 gex_strike_df = query_dict["strike-day"]["df"]
+
+                ####################
 
                 gex_net_df["tstamp_sec"] = gex_net_df.tstamp.apply(lambda x: x.replace(second=0))
                 price_df = gex_net_df.groupby(['tstamp_sec']).agg(
@@ -480,10 +490,13 @@ async def ws_sec_heatmap():
                 plt.savefig(net_gex_png_file)
                 plt.close()
 
+                ####################
 
                 min_val,max_val = price_df.spot_price.min()*0.99,price_df.spot_price.max()*1.01
                 df = gex_strike_df.copy()
                 df=df[(df.strike<=max_val)&(df.strike>=min_val)]
+
+                ####################
 
                 hue_norm = (-2,2)
                 myval = np.ceil(df.true_gex.abs().max())
@@ -504,19 +517,47 @@ async def ws_sec_heatmap():
                 plt.title(f"0DTE GEX ($bn/1%move)*\n{ticker} {tstamp_et}\n")
                 ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
                 plt.tight_layout()
-                plt.savefig(heatmap_gex_png_file)
+                plt.savefig(heatmap_true_gex_png_file)
+                plt.close()
+                
+                ####################
+
+                hue_norm = (-2,2)
+                myval = np.ceil(df.naive_gex.abs().max())
+                hue_norm = (-myval,myval)
+
+                color_palette = "RdYlGn"
+                plt.figure(1)
+                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='naive_gex',
+                    hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
+
+                norm = plt.Normalize(*hue_norm)
+                sm = plt.cm.ScalarMappable(cmap=color_palette, norm=norm)
+                ax.figure.colorbar(sm, ax=ax)
+
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
+                plt.xticks(rotation=30)
+
+                plt.title(f"0DTE GEX ($bn/1%move)*\n{ticker} {tstamp_et}\n")
+                ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
+                plt.tight_layout()
+                plt.savefig(heatmap_naive_gex_png_file)
                 plt.close()
 
                 with open(net_gex_png_file,'rb') as f:
                     net_gex_binary = base64.b64encode(f.read()).decode("utf-8")
 
-                with open(heatmap_gex_png_file,'rb') as f:
-                    heatmap_strike_gex_binary = base64.b64encode(f.read()).decode("utf-8")
+                with open(heatmap_naive_gex_png_file,'rb') as f:
+                    heatmap_naive_gex_png_file = base64.b64encode(f.read()).decode("utf-8")
+
+                with open(heatmap_true_gex_png_file,'rb') as f:
+                    heatmap_true_gex_binary = base64.b64encode(f.read()).decode("utf-8")
                 
             data_str = render_html("ws-sec-heatmap.html",
                 ticker=ticker,
                 net_gex_binary=net_gex_binary,
-                heatmap_strike_gex_binary=heatmap_strike_gex_binary,
+                heatmap_naive_gex_binary=heatmap_naive_gex_binary,
+                heatmap_true_gex_binary=heatmap_true_gex_binary,
                 ws_tstamp=ws_tstamp_utc
             )
             await websocket.send(data_str)

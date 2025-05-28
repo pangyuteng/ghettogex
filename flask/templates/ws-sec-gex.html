@@ -92,20 +92,10 @@
   })
   {% endif %}
 
-  {% if max_gex %}
+  {% if max_true_gex %}
   updateData.push({
       x: [ {{ -1*xlim }}, {{ xlim }} ],
-      y: [ {{ max_gex }}, {{ max_gex }} ],
-      mode: 'lines',
-      line: {
-          color: 'rgb(0,255,0)',
-          dash: 'dot',
-          width: 2,
-      }
-  })
-  updateData2.push({
-      x: [ {{ -1*xlim }}, {{ xlim }} ],
-      y: [ {{ max_gex }}, {{ max_gex }} ],
+      y: [ {{ max_true_gex }}, {{ max_true_gex }} ],
       mode: 'lines',
       line: {
           color: 'rgb(0,255,0)',
@@ -114,10 +104,24 @@
       }
   })
   {% endif %}
-  {% if min_gex %}
+
+  {% if max_naive_gex %}
+  updateData2.push({
+      x: [ {{ -1*xlim }}, {{ xlim }} ],
+      y: [ {{ max_naive_gex }}, {{ max_naive_gex }} ],
+      mode: 'lines',
+      line: {
+          color: 'rgb(0,255,0)',
+          dash: 'dot',
+          width: 2,
+      }
+  })
+  {% endif %}
+
+  {% if min_true_gex %}
   updateData.push({
       x: [ {{ -1*xlim }}, {{ xlim }} ],
-      y: [ {{ min_gex }}, {{ min_gex }} ],
+      y: [ {{ min_true_gex }}, {{ min_true_gex }} ],
       mode: 'lines',
       line: {
           color: 'rgb(255,0,0)',
@@ -125,9 +129,12 @@
           width: 2,
       }
   })
+  {% endif %}
+
+  {% if min_naive_gex %}
   updateData2.push({
       x: [ {{ -1*xlim }}, {{ xlim }} ],
-      y: [ {{ min_gex }}, {{ min_gex }} ],
+      y: [ {{ min_naive_gex }}, {{ min_naive_gex }} ],
       mode: 'lines',
       line: {
           color: 'rgb(255,0,0)',
