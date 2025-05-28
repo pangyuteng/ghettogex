@@ -548,7 +548,7 @@ async def ws_sec_heatmap():
                     net_gex_binary = base64.b64encode(f.read()).decode("utf-8")
 
                 with open(heatmap_naive_gex_png_file,'rb') as f:
-                    heatmap_naive_gex_png_file = base64.b64encode(f.read()).decode("utf-8")
+                    heatmap_naive_gex_binary = base64.b64encode(f.read()).decode("utf-8")
 
                 with open(heatmap_true_gex_png_file,'rb') as f:
                     heatmap_true_gex_binary = base64.b64encode(f.read()).decode("utf-8")
