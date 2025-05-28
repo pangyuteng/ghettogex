@@ -370,23 +370,26 @@ async def ws_sec_gex():
                 min_true_gex = latest_df.at[latest_df.true_gex.argmin(),'strike']
                 max_naive_gex = latest_df.at[latest_df.naive_gex.argmax(),'strike']
                 min_naive_gex = latest_df.at[latest_df.naive_gex.argmin(),'strike']
-                xlim = latest_df.true_gex.abs().max()*1.5
+                xlimTrue = latest_df.true_gex.abs().max()*1.5
+                xlimNaive = latest_df.naive_gex.abs().max()*1.5
             except:
                 latest_df = pd.DataFrame([])
                 max_true_gex = 100
                 min_true_gex = -100
                 max_naive_gex = 100
                 min_naive_gex = -100
-                xlim = 999
+                xlimTrue = 999
+                xlimNaive = 999
 
             data_str = render_html("ws-sec-gex.html",
                 ticker=ticker,
                 spot_price=spot_price,
                 df=latest_df,
                 query_dict=query_dict,lookback_keys=lookback_keys,
+                xlimTrue=xlimTrue,
+                xlimNaive=xlimNaive,
                 max_true_gex=max_true_gex,min_true_gex=min_true_gex,
                 max_naive_gex=max_naive_gex,min_naive_gex=min_naive_gex,
-                xlim=xlim,
                 tstamp=tstamp_utc,ws_tstamp=ws_tstamp_utc)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)

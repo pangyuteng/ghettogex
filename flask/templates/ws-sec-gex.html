@@ -71,7 +71,7 @@
 
   {% if spot_price %}
   updateData.push({
-      x: [ {{ -1*xlim }}, {{ xlim }} ],
+      x: [ {{ -1*xlimTrue }}, {{ xlimTrue }} ],
       y: [ {{ spot_price }}, {{ spot_price }} ],
       mode: 'lines',
       line: {
@@ -81,7 +81,7 @@
       }
   })
   updateData2.push({
-      x: [ {{ -1*xlim }}, {{ xlim }} ],
+      x: [ {{ -1*xlimNaive }}, {{ xlimNaive }} ],
       y: [ {{ spot_price }}, {{ spot_price }} ],
       mode: 'lines',
       line: {
@@ -94,7 +94,7 @@
 
   {% if max_true_gex %}
   updateData.push({
-      x: [ {{ -1*xlim }}, {{ xlim }} ],
+      x: [ {{ -1*xlimTrue }}, {{ xlimTrue }} ],
       y: [ {{ max_true_gex }}, {{ max_true_gex }} ],
       mode: 'lines',
       line: {
@@ -107,7 +107,7 @@
 
   {% if max_naive_gex %}
   updateData2.push({
-      x: [ {{ -1*xlim }}, {{ xlim }} ],
+      x: [ {{ -1*xlimNaive }}, {{ xlimNaive }} ],
       y: [ {{ max_naive_gex }}, {{ max_naive_gex }} ],
       mode: 'lines',
       line: {
@@ -120,7 +120,7 @@
 
   {% if min_true_gex %}
   updateData.push({
-      x: [ {{ -1*xlim }}, {{ xlim }} ],
+      x: [ {{ -1*xlimTrue }}, {{ xlimTrue }} ],
       y: [ {{ min_true_gex }}, {{ min_true_gex }} ],
       mode: 'lines',
       line: {
@@ -133,7 +133,7 @@
 
   {% if min_naive_gex %}
   updateData2.push({
-      x: [ {{ -1*xlim }}, {{ xlim }} ],
+      x: [ {{ -1*xlimNaive }}, {{ xlimNaive }} ],
       y: [ {{ min_naive_gex }}, {{ min_naive_gex }} ],
       mode: 'lines',
       line: {
@@ -158,7 +158,7 @@
     },
     xaxis: {
         showgrid: true,
-        range: [ {{ -1*xlim }},{{ xlim }} ]
+        range: [ {{ -1*xlimTrue }},{{ xlimTrue }} ]
     },
     font: {
         family: 'Courier New, monospace',
@@ -181,7 +181,7 @@ var updateLayout2 = {
     },
     xaxis: {
         showgrid: true,
-        range: [ {{ -1*xlim }},{{ xlim }} ]
+        range: [ {{ -1*xlimNaive }},{{ xlimNaive }} ]
     },
     font: {
         family: 'Courier New, monospace',
