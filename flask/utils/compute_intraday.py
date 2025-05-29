@@ -180,6 +180,13 @@ def get_size_signed(row,method):
         else:
             return 0 # hau voaltility 2021 ????
     elif method == 'vol_surface':
+        raise ValueError("no bueno, looks bad")
+        # kinda want to gow with below
+        # and then you can confirm with prior day summary.
+        # + for relatively normal small order, use price vs bid/ask
+        # + for relatively large order, go with orderbook liquidity (quote history, change in bid/ask size and price? so with 3 sec lag?)
+        # + unsure about volatility surface... dont have a method for now.
+        # 
         if row.theo_aggressor_side == 'BUY':
             return -1*row['size'] # buy means dealer is short the contract
         elif row.theo_aggressor_side == 'SELL':
@@ -189,7 +196,7 @@ def get_size_signed(row,method):
     else:
         raise NotImplementedError()
 
-def compute_gex_core(df,from_scratch,ddoi_method='vol_surface'):
+def compute_gex_core(df,from_scratch,ddoi_method='naive'):
     # NOTE: we sort by time first, since tstamp is postgres insert time.
     df = df.sort_values(by=['event_type','time','tstamp'])
 
