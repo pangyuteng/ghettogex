@@ -1,9 +1,14 @@
 
+
+
 # maybe start looking into proper but fast methods:
 # easy to read good intro from non-finance author https://www2.math.ethz.ch/EMIS/journals/DRNA/pdf/05_cuomo.pdf
 # https://quant.stackexchange.com/questions/77141/what-is-the-point-of-sabr-model-as-an-interpolation-tool-if-we-can-already-obser
 # https://quant.stackexchange.com/questions/68141/fitting-a-volatility-smile-with-pysabr-python-implementation-of-sabr-model
 
+
+# naive bad
+https://www.stephendiehl.com/posts/volatility_surface/
 
 # SVI SABR
 
@@ -77,4 +82,13 @@ https://github.com/JackJacquier/SSVI
 
 SSVI SVI
 
+https://quant.stackexchange.com/questions/73861/is-it-possible-to-have-only-one-volatility-surface-for-american-options-that-fi
+https://quant.stackexchange.com/questions/55545/implied-vol-smile-from-calls-puts-or-both?noredirect=1&lq=1
+
 keywords: SSVI volatility surface python
+
+https://github.com/JunbeomL22/SurfaceFitting/tree/master
+
+https://github.com/search?q=SSVI+volatility&type=repositories
+
+https://github.com/domokane/FinancePy

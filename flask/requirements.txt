@@ -27,5 +27,4 @@ redis==5.0.8
 psycopg2==2.9.10
 py_vollib_vectorized==0.1.1
 numba==0.61.0
-quantlib==1.38
-pysabr==0.4.1
+financepy==0.360
