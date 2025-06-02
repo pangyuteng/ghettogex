@@ -17,7 +17,11 @@ bash build_and_push.sh
 /mnt/hd1/data/pgdata/postgresql.conf
 
 +  increase connection
+    
     https://stackoverflow.com/questions/30778015/how-to-increase-the-max-connections-in-postgres
+    
+    vim /mnt/hd1/data/pgdata/postgresql.conf
+
     max_connections = 2000
     shared_buffers = 72MB
 
@@ -25,6 +29,7 @@ bash build_and_push.sh
     you need to stop postgres container and remove existing container
     k3s crictl rmi --prune
 
+    https://stackoverflow.com/questions/8288823/query-a-parameter-postgresql-conf-setting-like-max-connections
 
 + update index to be tuple of (tstamp,ticker/event_symbol)
     https://stackoverflow.com/a/35541546/868736
