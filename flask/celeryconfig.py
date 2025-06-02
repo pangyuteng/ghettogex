@@ -41,7 +41,7 @@ beat_schedule = {
    },
    'trigger_table_partition': {
        'task': 'tasks.trigger_table_partition',
-       'schedule': crontab(0, 0, day_of_month='1')
+       'schedule': crontab(0, 0, day_of_month='1'),
        'options': {'queue': 'default'},
        'args': [],
    },
