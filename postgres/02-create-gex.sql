@@ -1,6 +1,6 @@
 
 CREATE TABLE IF NOT EXISTS gex_strike (
-    gex_strike_id SERIAL PRIMARY KEY, 
+    gex_strike_id SERIAL,
     ticker text,
     tstamp TIMESTAMP,
     strike double precision,
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS gex_strike (
 ) PARTITION BY RANGE (tstamp);
 
 CREATE TABLE IF NOT EXISTS gex_net (
-    gex_net_id SERIAL PRIMARY KEY, 
+    gex_net_id SERIAL,
     ticker text,
     tstamp TIMESTAMP,
     spot_price double precision,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS gex_net (
 ) PARTITION BY RANGE (tstamp);
 
 CREATE TABLE IF NOT EXISTS event_agg (
-    event_agg_id SERIAL PRIMARY KEY,
+    event_agg_id SERIAL,
     event_symbol text NOT NULL,
     dstamp TIMESTAMP,
     spot_price double precision,

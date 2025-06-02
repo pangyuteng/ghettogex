@@ -1,8 +1,9 @@
 
+-- candle_id SERIAL PRIMARY KEY,
 
 CREATE TABLE IF NOT EXISTS candle (
     
-    candle_id SERIAL PRIMARY KEY,
+    candle_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     event_flags numeric,
@@ -30,7 +31,7 @@ CREATE TABLE IF NOT EXISTS candle (
 
 CREATE TABLE IF NOT EXISTS event (
     
-    event_id SERIAL PRIMARY KEY,
+    event_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     ticker text,
@@ -43,7 +44,7 @@ CREATE TABLE IF NOT EXISTS event (
 
 CREATE TABLE IF NOT EXISTS greeks (
     
-    greeks_id SERIAL PRIMARY KEY,
+    greeks_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     event_flags numeric,
@@ -67,7 +68,7 @@ CREATE TABLE IF NOT EXISTS greeks (
 
 CREATE TABLE IF NOT EXISTS profile (
     
-    profile_id SERIAL PRIMARY KEY,
+    profile_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     description text,
@@ -97,7 +98,7 @@ CREATE TABLE IF NOT EXISTS profile (
 
 CREATE TABLE IF NOT EXISTS quote (
     
-    quote_id SERIAL PRIMARY KEY,
+    quote_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     sequence numeric,
@@ -120,7 +121,7 @@ CREATE TABLE IF NOT EXISTS quote (
 
 CREATE TABLE IF NOT EXISTS summary (
     
-    summary_id SERIAL PRIMARY KEY,
+    summary_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     day_id numeric,
@@ -144,7 +145,7 @@ CREATE TABLE IF NOT EXISTS summary (
 
 CREATE TABLE IF NOT EXISTS theoprice (
     
-    theoprice_id SERIAL PRIMARY KEY,
+    theoprice_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     event_flags numeric,
@@ -167,7 +168,7 @@ CREATE TABLE IF NOT EXISTS theoprice (
 
 CREATE TABLE IF NOT EXISTS timeandsale (
     
-    timeandsale_id SERIAL PRIMARY KEY,
+    timeandsale_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     event_flags numeric,
@@ -199,7 +200,7 @@ CREATE TABLE IF NOT EXISTS timeandsale (
 
 CREATE TABLE IF NOT EXISTS trade (
     
-    trade_id SERIAL PRIMARY KEY,
+    trade_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     time numeric,
@@ -224,7 +225,7 @@ CREATE TABLE IF NOT EXISTS trade (
 
 CREATE TABLE IF NOT EXISTS underlying (
     
-    underlying_id SERIAL PRIMARY KEY,
+    underlying_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     event_flags numeric,
