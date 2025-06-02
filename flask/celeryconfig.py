@@ -51,10 +51,13 @@ beat_schedule = {
        'options': {'queue': 'default'},
        'args': [],
    },
+}
+
+"""
    'trigger_shutdown': {
        'task': 'tasks.trigger_shutdown',
        'schedule': crontab(minute=1, hour=13), # utc midnight, ~7pm et
        'options': {'queue': 'default'},
        'args': [],
    },
-}
+"""
