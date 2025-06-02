@@ -111,6 +111,13 @@ docker run -it -u $(id -u):$(id -g) \
 + [ ] postgres insert and query got slow...
     https://chriserwin.com/table-partitioning
     + [ ] look into how to do table partition
+    """
+    https://stackoverflow.com/questions/78373494/large-number-of-partitions
+    https://chriserwin.com/table-partitioning/
+    CREATE TABLE orders_2020_07 PARTITION OF orders
+        FOR VALUES FROM ('2020-07-01') TO ('2020-08-01');
+    ALTER TABLE orders DETACH PARTITION orders_2020_06;
+    """
 
 + [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
 + [ ] play sound during events.

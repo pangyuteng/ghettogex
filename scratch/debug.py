@@ -59,4 +59,6 @@ agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
 export CACHE_FOLDER="/mnt/hd1/data/fi"
 export CACHE_TASTY_FOLDER="/mnt/hd1/data/tastyfi"
 export POSTGRES_URI="postgres://postgres:postgres@192.168.68.143:5432/postgres"
+
+
 """

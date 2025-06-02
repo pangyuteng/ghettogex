@@ -67,6 +67,40 @@ def postgres_execute_many(query_dict):
         traceback.print_exc()
     return response
 
+def manage_table_partition(utc_tstamp):
+
+    table_list = 'candle,event,greeks,profile,quote,summary,theoprice,timeandsale,trade,underlying,gex_strike,gex_net,event_agg'.split(",")
+
+    month_stamp = f"{utc_tstamp.year}-{utc_tstamp.month}"
+
+    for table_name in table_list:
+        new_part_table_name = f"{table_name}_{utc_tstamp.year}_{utc_tstamp.month}"
+
+        try:
+            print(f"creating {new_part_table_name}")
+            create_query = f"""
+                CREATE TABLE {new_part_table_name} PARTITION OF {table_name}
+                FOR VALUES FROM ('{month_stamp}') TO ('{month_stamp}');
+            """
+            postgres_execute(create_query,(),is_commit=True)
+            print("done")
+        except:
+            traceback.print_exc()
+
+    for table_name in table_list:
+        old_part_table_name = f"{table_name}_{utc_tstamp.year-1}_{utc_tstamp.month}"
+        try:
+            print(f"dropping {old_part_table_name}")
+            drop_query = f"""
+            ALTER TABLE {table_name} DETACH PARTITION {old_part_table_name};
+            DROP TABLE {old_part_table_name};
+            """
+            postgres_execute(drop_query,(),is_commit=True)
+            print("done")
+        except:
+            traceback.print_exc()
+
+
 """
 ('INSERT INTO Quote (eventSymbol,eventTime,sequence,timeNanoPart,bidTime,bidExchangeCode,askTime,askExchangeCode,bidPrice,askPrice,bidSize,askSize) VALUES 
 (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',)                                                                                                        

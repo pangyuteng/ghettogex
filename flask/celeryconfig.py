@@ -39,6 +39,12 @@ beat_schedule = {
        'options': {'queue': 'default'},
        'args': [],
    },
+   'trigger_table_partition': {
+       'task': 'tasks.trigger_table_partition',
+       'schedule': crontab(0, 0, day_of_month='1')
+       'options': {'queue': 'default'},
+       'args': [],
+   },
    'trigger_cache_cboe': {
        'task': 'tasks.trigger_cache_cboe',
        'schedule': crontab(minute=1, hour=0), # utc midnight, ~7pm et

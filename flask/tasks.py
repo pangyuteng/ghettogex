@@ -16,7 +16,7 @@ import threading
 import luigi
 from celery import Celery
 
-from utils.postgres_utils import postgres_execute
+from utils.postgres_utils import postgres_execute, manage_table_partition
 from utils.data_tasty import background_subscribe, is_market_open, now_in_new_york
 from utils.compute_intraday import compute_gex
 from utils.data_cache import cache_cboe
@@ -93,6 +93,11 @@ def trigger_gex_cache(*args,**kwargs):
             from_scratch = row['from_scratch']
             logger.info(f"trigger_gex_cache {ticker}")
             output = asyncio.run(compute_gex(ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=True))
+
+@celery_app.task
+def trigger_table_partition(*args,**kwargs):
+    utc_tstamp = datetime.datetime.now(datetime.timezone.utc)
+    manage_table_partition(utc_tstamp)
 
 @celery_app.task
 def trigger_cache_cboe(*args,**kwargs):
