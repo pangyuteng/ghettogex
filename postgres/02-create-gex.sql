@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS gex_strike (
     naive_gex double precision,
     true_gex double precision,
     UNIQUE (ticker, tstamp, strike)
-);
+) PARTITION BY RANGE (tstamp);
 
 CREATE TABLE IF NOT EXISTS gex_net (
     gex_net_id SERIAL PRIMARY KEY, 
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS gex_net (
     naive_gex double precision,
     true_gex double precision,
     UNIQUE (ticker, tstamp)
-);
+) PARTITION BY RANGE (tstamp);
 
 CREATE TABLE IF NOT EXISTS event_agg (
     event_agg_id SERIAL PRIMARY KEY,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS event_agg (
     strike double precision,
     tstamp TIMESTAMP,
     UNIQUE (event_symbol, dstamp)
-);
+) PARTITION BY RANGE (tstamp);
 
 CREATE TABLE IF NOT EXISTS settings (
     settings_id bool PRIMARY KEY DEFAULT true

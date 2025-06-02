@@ -88,8 +88,10 @@ docker run -it -u $(id -u):$(id -g) \
 
 + [o] study hua volatility
     + when do you pick naive vs order-book vs iv-surface?
-    + [ ] naive method - price near bid/ask price.
-    + [ ] use order book (quote events) to determine bid/ask side 
+    + [x] naive method - price near bid/ask price.
+    + [o] use order book (quote events) to determine bid/ask side 
+      [x] postgres
+      [ ] uw
     + [ ] use price to derive IV, create IV surface, then compute theo_price
       use diff between price vs theo_price to determine bid/ask side 
       ? why not juse use UnivariateSpline <-- tried no good!
@@ -107,6 +109,7 @@ docker run -it -u $(id -u):$(id -g) \
     + [ ] verify beween DXLINK, UW, and GEXBOT
 
 + [ ] postgres insert and query got slow...
+    https://chriserwin.com/table-partitioning
     + [ ] look into how to do table partition
 
 + [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
