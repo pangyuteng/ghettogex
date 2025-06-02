@@ -71,16 +71,18 @@ def manage_table_partition(utc_tstamp):
 
     table_list = 'candle,event,greeks,profile,quote,summary,theoprice,timeandsale,trade,underlying,gex_strike,gex_net,event_agg'.split(",")
 
-    month_stamp = f"{utc_tstamp.year}-{utc_tstamp.month}"
+    month_stamp = f"{utc_tstamp.strftime('%Y')}-{utc_tstamp.strftime('%m')}-01"
+    next_month_utc_tstamp = utc_tstamp+datetime.timedelta(weeks=5)
+    next_month_stamp = f"{next_month_utc_tstamp.strftime('%Y')}-{next_month_utc_tstamp.strftime('%m')}-01"
 
     for table_name in table_list:
-        new_part_table_name = f"{table_name}_{utc_tstamp.year}_{utc_tstamp.month}"
+        new_part_table_name = f"{table_name}_{utc_tstamp.strftime('%Y')}_{utc_tstamp.strftime('%m')}"
 
         try:
             print(f"creating {new_part_table_name}")
             create_query = f"""
                 CREATE TABLE {new_part_table_name} PARTITION OF {table_name}
-                FOR VALUES FROM ('{month_stamp}') TO ('{month_stamp}');
+                FOR VALUES FROM ('{month_stamp}') TO ('{next_month_stamp}');
             """
             postgres_execute(create_query,(),is_commit=True)
             print("done")
@@ -88,7 +90,7 @@ def manage_table_partition(utc_tstamp):
             traceback.print_exc()
 
     for table_name in table_list:
-        old_part_table_name = f"{table_name}_{utc_tstamp.year-1}_{utc_tstamp.month}"
+        old_part_table_name = f"{table_name}_{utc_tstamp.year-1}_{utc_tstamp.strftime('%m')}"
         try:
             print(f"dropping {old_part_table_name}")
             drop_query = f"""

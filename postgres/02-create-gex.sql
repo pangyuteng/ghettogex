@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS event_agg (
     strike double precision,
     tstamp TIMESTAMP,
     UNIQUE (event_symbol, dstamp)
-) PARTITION BY RANGE (tstamp);
+) PARTITION BY RANGE (dstamp);
 
 CREATE TABLE IF NOT EXISTS settings (
     settings_id bool PRIMARY KEY DEFAULT true
