@@ -43,6 +43,7 @@ def get_annualized_time_to_expiration(row,expiry_mapper):
 
 
 def interp_implied_volatility(df,s=None,return_fine=False):
+    raise ValueError("todo replace with domokane/FinancePy")
     assert(len(df.contract_type.unique())==1)
     # TODO: support multi expiry
     assert(len(df.expiration.unique())==1)
@@ -90,3 +91,20 @@ def compute_iv(df):
     df['iv'] = bsm_iv
     return df
     
+"""
+
+from .iv_utils import get_expiry_tstamp,get_annualized_time_to_expiration,compute_theo_price,compute_iv,interp_implied_volatility
+# compute and interpolate IV from price for put and calls
+# then determine side by checking if price is above or below theoretical price
+expiration_series = ts_df.expiration[ts_df.expiration.notnull()]
+expiry_mapper = {x.strftime("%Y-%m-%d"):get_expiry_tstamp(x.strftime("%Y-%m-%d"))  for x in list(expiration_series.unique())}
+ts_df['tte'] = ts_df.apply(lambda x: get_annualized_time_to_expiration(x,expiry_mapper),axis=1)
+ts_df['spot_price'] = spot_price
+ts_df = compute_iv(ts_df)
+call_ts_df = interp_implied_volatility(ts_df[ts_df.contract_type=='C'].copy())
+puts_ts_df = interp_implied_volatility(ts_df[ts_df.contract_type=='P'].copy())
+ts_df = pd.concat([call_ts_df,puts_ts_df])
+ts_df = compute_theo_price(ts_df)
+ts_df['theo_aggressor_side'] = np.where(ts_df['price']>=ts_df['theo_price'], 'BUY', 'SELL')
+
+"""

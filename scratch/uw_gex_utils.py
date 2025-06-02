@@ -229,20 +229,24 @@ class GexService(object):
         """
         def get_side_mod(row,arg_df):
             try:
-                mod_side = None
-                if row.side == 'ask': # near ask, client bought, dealer short
-                    mod_side = 'ask'
-                elif row.side == 'bid': # near bid, client sold, dealer long
-                    mod_side = 'bid'
-                else:
+                # TODO: if relatively_large order,
+                # use quote or timeandsale to bid/ask trend to determine side
+                # if mid, assume buy/sell is matched, return 0
+                side_mod = None
+                if row.large_order:
                     idx = row['index']
                     if arg_df.at[idx+1,"nbbo_ask"] > arg_df.at[idx,"nbbo_ask"]:
-                        mod_side = 'likely_ask'
+                        side_mod = 'likely_ask'
                     elif arg_df.at[idx+1,"nbbo_bid"] > arg_df.at[idx,"nbbo_bid"]:
-                        mod_side = 'likely_ask'
+                        side_mod = 'likely_ask'
                     else:
-                        mod_side = 'likely_bid' #???
-                return mod_side
+                        side_mod = 'likely_bid' #???
+                else:
+                    if row.side == 'ask': # near ask, client bought, dealer short
+                        side_mod = 'ask'
+                    elif row.side == 'bid': # near bid, client sold, dealer long
+                        side_mod = 'bid'
+                return side_mod
             except:
                 return "exception"
 
@@ -254,6 +258,9 @@ class GexService(object):
             else:
                 return 0 # SET TO ZERO NOT GOOD. TODO: FIX THIS USING HUA!
 
+        # TODO: insert logic to flag large orders
+        df['large_order'] = False
+        # TODO: use future order flow history to flag large_order (since no quote events)
         df['side_mod'] = df.apply(lambda x: get_side_mod(x,df),axis=1)
         df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
 

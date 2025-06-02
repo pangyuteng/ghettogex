@@ -85,18 +85,30 @@ docker run -it -u $(id -u):$(id -g) \
     Decided to to do this, since we want to gather local server stamp timeandsale 
     and per aggregated time slot, lump timeandsale  for oi
     using time, means you have to wait and guess, since events don't come in at fix frequency.
+
 + [o] study hua volatility
     + when do you pick naive vs order-book vs iv-surface?
     + [ ] naive method - price near bid/ask price.
     + [ ] use order book (quote events) to determine bid/ask side 
     + [ ] use price to derive IV, create IV surface, then compute theo_price
       use diff between price vs theo_price to determine bid/ask side 
-      ? why not juse use UnivariateSpline
+      ? why not juse use UnivariateSpline <-- tried no good!
       ? why do we HAVE to use modeles like SABR? docs/vol-surface/README.md
-    + [ ] how do you do above in near real time? also do this with UW data?
+      A:   arb free and many firms use this for modeling price & vol!
+    + ? how do you do above in near real time? also do this with UW data?
+      A: instead of using quote event
+    
+    + for relatively large orders
+      start with 2 sec lag
+      query 1 sec in future for candle and timeandsale price
+      to determine bid/ask side.
+    + MAYBE/Think about for price at mid, use domokane/FinancePy ???
+    
     + [ ] verify beween DXLINK, UW, and GEXBOT
+
 + [ ] postgres insert and query got slow...
     + [ ] look into how to do table partition
+
 + [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
 + [ ] play sound during events.
     + [ ] flash crash
@@ -120,3 +132,21 @@ gex/$TICKER/YYYY-MM-DD/YYYY-MM-DD-HH-MM-SS.csv
 
 
 # logic to 
+
+select * from quote where event_symbol = '.SPXW250530C5900'
+order by tstamp
+
+select * from summary where event_symbol = '.SPXW250530C5900'
+order by tstamp
+
+select * from summary where event_symbol = '.SPXW250602C6200'
+order by tstamp
+
+select * from timeandsale where event_symbol = '.SPXW250523C5890'
+order by tstamp
+
+select * from candle where event_symbol = '.SPXW250602C7000'
+order by tstamp
+
+select * from quote where event_symbol = '.SPXW250602C7000'
+order by tstamp

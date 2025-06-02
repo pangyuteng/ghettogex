@@ -28,9 +28,8 @@ from .postgres_utils import (
 
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
-from .iv_utils import get_expiry_tstamp,get_annualized_time_to_expiration,compute_theo_price,compute_iv,interp_implied_volatility
 
-async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp,lookback_utc_tstamp):
+async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,min_utc_tstamp,lookback_utc_tstamp):
     if ticker == 'SPX':
         ticker_alt = 'SPXW'
     elif ticker == 'NDX':
@@ -46,6 +45,7 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_
         'event_type','event_symbol','time',
         'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
         'open_interest','price','bid_price','ask_price','volatility','delta','gamma','theta','rho','vega',
+        'bid_time','ask_time','bid_size','ask_size',
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
 
@@ -85,7 +85,14 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_
     query_args = (lookback_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
     ot = apostgres_execute(apool,query_str,query_args)
 
-    all_groups = await asyncio.gather(uc,oc,os,og,ot)
+    query_str = """
+    select 'quote' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
+    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
+    """
+    query_args = (min_utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
+    oq = apostgres_execute(apool,query_str,query_args)
+
+    all_groups = await asyncio.gather(uc,oc,os,og,ot,oq)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
@@ -93,7 +100,7 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,min_
         df['true_oi']=None
     return df
 
-async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
+async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,min_utc_tstamp):
 
     if ticker == 'SPX':
         ticker_alt = 'SPXW'
@@ -108,6 +115,7 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
         'event_type','event_symbol','time',
         'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
         'true_oi','open_interest','price','bid_price','ask_price','volatility','delta','gamma','theta','rho','vega',
+        'bid_time','ask_time','bid_size','ask_size',
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
 
@@ -146,7 +154,14 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
     query_args = (utc_tstamp,max_utc_tstamp,ticker_alt,expiration) # timeandsale
     ot = apostgres_execute(apool,query_str,query_args)
 
-    all_groups = await asyncio.gather(uc,oc,os,og,ot)
+    query_str = """
+    select 'quote' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
+    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
+    """
+    query_args = (min_utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
+    oq = apostgres_execute(apool,query_str,query_args)
+
+    all_groups = await asyncio.gather(uc,oc,os,og,ot,oq)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
@@ -171,32 +186,79 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,min_utc_tstamp):
 # + spot needs to be updated if candle, and you got underlying quotes.
 # + summary event seems to be only once a day?
 
-def get_size_signed(row,method):
-    if method == 'naive':
-        if row.aggressor_side == 'BUY':
-            return -1*row['size'] # buy means dealer is short the contract
-        elif row.aggressor_side == 'SELL':
-            return row['size'] # sell means dealer is long the contract
-        else:
-            return 0 # hau voaltility 2021 ????
-    elif method == 'vol_surface':
-        raise ValueError("no bueno, looks bad")
-        # kinda want to gow with below
-        # and then you can confirm with prior day summary.
-        # + for relatively normal small order, use price vs bid/ask
-        # + for relatively large order, go with orderbook liquidity (quote history, change in bid/ask size and price? so with 3 sec lag?)
-        # + unsure about volatility surface... dont have a method for now.
-        # 
-        if row.theo_aggressor_side == 'BUY':
-            return -1*row['size'] # buy means dealer is short the contract
-        elif row.theo_aggressor_side == 'SELL':
-            return row['size'] # sell means dealer is long the contract
-        else:
-            return 0 # hau voaltility 2021 ????
-    else:
-        raise NotImplementedError()
 
-def compute_gex_core(df,from_scratch,ddoi_method='naive'):
+# kinda want to gow with below
+# and then you can confirm with prior day summary.
+# + for relatively normal small order, use price vs bid/ask
+# + for relatively large order, go with orderbook liquidity (quote history, change in bid/ask size and price? so with 3 sec lag?)
+# + unsure about volatility surface... dont have a method for now.
+
+# TODO: if relatively_large order,
+# use quote or timeandsale to bid/ask trend to determine side
+# if mid, assume buy/sell is matched, return 0
+
+def get_side_mod(row,quote_df=None,datasource='tasty'):
+    try:
+        side_mod = None
+        if datasource == 'tasty':
+            tmp_df = quote_df[quote_df.event_symbol==row.event_symbol]
+            cond_met = True if len(tmp_df) > 2 else False
+            if row.large_order and cond_met:
+                #cols = ['bid_size','bid_price','ask_price','ask_size','ask_time','bid_time','tstamp']
+                #print(tmp_df[cols],'!!!!!!!!!!!!!!!!!!!1')
+                ask_price_list = tmp_df.ask_price.to_list()
+                bid_price_list = tmp_df.bid_price.to_list()
+                # TODO: hau volatility also uses ask_size and bid_size
+                if ask_price_list[-1] > ask_price_list[0]:
+                    side_mod = 'likely_ask'
+                elif bid_price_list[-1] > bid_price_list[0]:
+                    side_mod = 'likely_ask'
+                else:
+                    side_mod = 'likely_bid' #???
+            else:
+                if row.aggressor_side == 'BUY':
+                    side_mod = 'ask' # BUY or near ask
+                elif row.aggressor_side == 'SELL':
+                    side_mod = 'bid' # SELL or near bid
+                elif row.aggressor_side == 'UNDEFINED':
+                    pass # assume mid is matched.
+        elif datasource == 'uw':
+            # uw data have no quote event, instead, we use the nbbo_ask,nbbo_bid from flow data.
+            idx = row['index']
+            cond_met = row.strike == quote_df.at[idx+1,"strike"]
+            print(cond_met)
+            if row.large_order and cond_met:
+                if quote_df.at[idx+1,"nbbo_ask"] > quote_df.at[idx,"nbbo_ask"]:
+                    side_mod = 'likely_ask'
+                elif arg_df.at[idx+1,"nbbo_bid"] > arg_df.at[idx,"nbbo_bid"]:
+                    side_mod = 'likely_ask'
+                else:
+                    side_mod = 'likely_bid' #???
+            else:
+                if row.side == 'ask': # near ask, client bought, dealer short
+                    side_mod = 'ask'
+                elif row.side == 'bid': # near bid, client sold, dealer long
+                    side_mod = 'bid'
+                else:
+                    pass # assume mid is matched.
+        else:
+            raise NotImplementedError()
+
+        return side_mod
+    except:
+        raise ValueError()
+        traceback.print_exc()
+        return "exception"
+
+def get_size_signed(row):
+    if row.side_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
+        return -1*row['size'] 
+    elif row.side_mod in ['bid','likely_bid']: # near bid, client sold, dealer long
+        return row['size']
+    else:
+        return 0
+
+def compute_gex_core(df,from_scratch,quote_df=None):
     # NOTE: we sort by time first, since tstamp is postgres insert time.
     df = df.sort_values(by=['event_type','time','tstamp'])
 
@@ -209,33 +271,16 @@ def compute_gex_core(df,from_scratch,ddoi_method='naive'):
     candle_df = df[df.event_type=='candle']
     summary_df = df[df.event_type=='summary']
     greeks_df = df[df.event_type=='greeks']
+    quote_df = df[df.event_type=='quote']
     ts_df = df[df.event_type=='timeandsale'].copy()
-    
-    call_count = (ts_df.contract_type=='C').sum()
-    put_count = (ts_df.contract_type=='P').sum()
 
-    if call_count < 10 or put_count < 10:
-        ddoi_method = 'naive'
-
-    if ddoi_method == 'naive':
-        pass
-    elif ddoi_method == 'vol_surface':
-        # compute and interpolate IV from price for put and calls
-        # then determine side by checking if price is above or below theoretical price
-        expiration_series = ts_df.expiration[ts_df.expiration.notnull()]
-        expiry_mapper = {x.strftime("%Y-%m-%d"):get_expiry_tstamp(x.strftime("%Y-%m-%d"))  for x in list(expiration_series.unique())}
-        ts_df['tte'] = ts_df.apply(lambda x: get_annualized_time_to_expiration(x,expiry_mapper),axis=1)
-        ts_df['spot_price'] = spot_price
-        ts_df = compute_iv(ts_df)
-        call_ts_df = interp_implied_volatility(ts_df[ts_df.contract_type=='C'].copy())
-        puts_ts_df = interp_implied_volatility(ts_df[ts_df.contract_type=='P'].copy())
-        ts_df = pd.concat([call_ts_df,puts_ts_df])
-        ts_df = compute_theo_price(ts_df)
-        ts_df['theo_aggressor_side'] = np.where(ts_df['price']>=ts_df['theo_price'], 'BUY', 'SELL')
-    else:
-        raise NotImplementedError()
-
-    ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x,ddoi_method),axis=1)
+    # flag large orders using timeandsale (TODO: alternatively use size relative to bid/ask size in quote event)
+    ts_df['size'] = ts_df['size'].astype(float)
+    large_order_th = ts_df['size'].mean()+2*ts_df['size'].std()
+    ts_df['large_order'] = ts_df['size'].apply(lambda x:x > large_order_th)
+    # TODO: use future quote flow history to flag
+    ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quote_df=quote_df),axis=1)
+    ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
 
     candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
     candle_df = candle_df.groupby(['event_symbol']).agg(
@@ -328,6 +373,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     utc = pytz.timezone('UTC')
     utc_tstamp = et_tstamp.astimezone(tz=utc)
     max_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=1)
+    future_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=2) # grab quotes
     prior_minute_utc_tstamp = utc_tstamp-datetime.timedelta(seconds=60)
     
     delta, market_open_tstamp_et = timedelta_from_market_open(et_tstamp)
@@ -362,7 +408,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     if len(fetched) == 0:
         if from_scratch:
             time_a = time.time()
-            event_df = await get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,market_open_tstamp_utc,lookback_tstamp_utc)
+            event_df = await get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,market_open_tstamp_utc,lookback_tstamp_utc)
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
@@ -375,7 +421,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
         else:
             time_a = time.time()
-            event_df = await get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,prior_minute_utc_tstamp)
+            event_df = await get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,prior_minute_utc_tstamp)
 
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
