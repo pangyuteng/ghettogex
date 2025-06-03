@@ -108,7 +108,7 @@ docker run -it -u $(id -u):$(id -g) \
     
     + [ ] verify beween DXLINK, UW, and GEXBOT
 
-+ [ ] postgres insert and query got slow...
++ [x] postgres insert and query got slow...
     https://chriserwin.com/table-partitioning
     + [ ] look into how to do table partition
     """
@@ -118,6 +118,10 @@ docker run -it -u $(id -u):$(id -g) \
         FOR VALUES FROM ('2020-07-01') TO ('2020-08-01');
     ALTER TABLE orders DETACH PARTITION orders_2020_06;
     """
++ [ ] insert call_dex, put_dex, call_gex, put_gex
+    + [ ] copy order flow gex from gex bot
+        plot dex by second.
+        plot gex by second.
 
 + [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
 + [ ] play sound during events.
