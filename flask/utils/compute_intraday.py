@@ -89,7 +89,7 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,futu
     select 'quote' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (min_utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
+    query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
     oq = apostgres_execute(apool,query_str,query_args)
 
     all_groups = await asyncio.gather(uc,oc,os,og,ot,oq)
@@ -158,7 +158,7 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     select 'quote' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (min_utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
+    query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
     oq = apostgres_execute(apool,query_str,query_args)
 
     all_groups = await asyncio.gather(uc,oc,os,og,ot,oq)
@@ -283,7 +283,7 @@ def compute_gex_core(df,from_scratch):
 
     # flag large orders using timeandsale (TODO: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
-    large_order_th = ts_df['size'].mean()+2*ts_df['size'].std()
+    large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
     ts_df['large_order'] = ts_df['size'].apply(lambda x:x > large_order_th)
     # TODO: use future quote flow history to flag
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quote_df=quote_df),axis=1)
