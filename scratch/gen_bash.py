@@ -4,14 +4,14 @@ import pandas as pd
 from jinja2 import Environment
 
 market_open = datetime.datetime(2024,12,1)
-market_close = datetime.datetime(2025,5,21)
+market_close = datetime.datetime.now()
 mylist = pd.date_range(start=market_open,end=market_close,freq='d')
 
 SH_TEMPLATE="""
 {% for x in date_list %}
-python uw_gex_utils.py SPY {{x}}
-python uw_gex_utils.py QQQ {{x}}
-python uw_gex_utils.py NDX {{x}}
+# python uw_gex_utils.py SPY {{x}}
+# python uw_gex_utils.py QQQ {{x}}
+# python uw_gex_utils.py NDX {{x}}
 python uw_gex_utils.py SPX {{x}}{% endfor %}
 """
 date_list = [x.strftime('%Y-%m-%d') for x in mylist]
