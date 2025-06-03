@@ -9,5 +9,7 @@ CREATE TRIGGER theoprice_trigger BEFORE insert or update on theoprice FOR EACH R
 CREATE TRIGGER timeandsale_trigger BEFORE insert or update on timeandsale FOR EACH ROW execute procedure notify_trigger();
 CREATE TRIGGER trade_trigger BEFORE insert or update on trade FOR EACH ROW execute procedure notify_trigger();
 CREATE TRIGGER underlying_trigger BEFORE insert or update on underlying FOR EACH ROW execute procedure notify_trigger();
-CREATE TRIGGER watchlist_trigger BEFORE insert or update on watchlist FOR EACH ROW execute procedure notify_trigger();
 */
+
+CREATE TRIGGER watchlist_trigger BEFORE insert or update on watchlist FOR EACH ROW execute procedure notify_trigger();
+
