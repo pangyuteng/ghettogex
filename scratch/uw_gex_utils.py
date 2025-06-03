@@ -266,7 +266,7 @@ class GexService(object):
 
         # TODO: insert logic to flag large orders
         # crude rolling mean and std of size - flawed since you are mixing strike and time
-        df['large_order_th'] = df['size'].rolling(60).mean()+2*df['size'].rolling(60).std()
+        df['large_order_th'] = df['size'].rolling(60).mean()+3*df['size'].rolling(60).std()
         df['large_order'] = np.where(df['size']>=df['large_order_th'], True,False)
         # TODO: use future order flow history to flag large_order (since no quote events)
         df['side_mod'] = df.apply(lambda x: get_side_mod(x, df),axis=1)
