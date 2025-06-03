@@ -201,20 +201,28 @@ def get_side_mod(row,quote_df=None,datasource='tasty'):
     try:
         side_mod = None
         if datasource == 'tasty':
-            tmp_df = quote_df[quote_df.event_symbol==row.event_symbol]
-            cond_met = True if len(tmp_df) > 2 else False
-            if row.large_order and cond_met:
-                #cols = ['bid_size','bid_price','ask_price','ask_size','ask_time','bid_time','tstamp']
-                #print(tmp_df[cols],'!!!!!!!!!!!!!!!!!!!1')
-                ask_price_list = tmp_df.ask_price.to_list()
-                bid_price_list = tmp_df.bid_price.to_list()
-                # TODO: hau volatility also uses ask_size and bid_size
-                if ask_price_list[-1] > ask_price_list[0]:
-                    side_mod = 'likely_ask'
-                elif bid_price_list[-1] > bid_price_list[0]:
-                    side_mod = 'likely_ask'
+            if row.large_order:
+                tmp_df = quote_df[quote_df.event_symbol==row.event_symbol]
+                cond_met = True if len(tmp_df) > 2 else False
+                if cond_met:
+                    #cols = ['bid_size','bid_price','ask_price','ask_size','ask_time','bid_time','tstamp']
+                    #print(tmp_df[cols],'!!!!!!!!!!!!!!!!!!!1')
+                    ask_price_list = tmp_df.ask_price.to_list()
+                    bid_price_list = tmp_df.bid_price.to_list()
+                    # TODO: hau volatility also uses ask_size and bid_size
+                    if ask_price_list[-1] > ask_price_list[0]:
+                        side_mod = 'likely_ask'
+                    elif bid_price_list[-1] > bid_price_list[0]:
+                        side_mod = 'likely_ask'
+                    else:
+                        side_mod = 'likely_bid' #???
                 else:
-                    side_mod = 'likely_bid' #???
+                    if row.aggressor_side == 'BUY':
+                        side_mod = 'ask' # BUY or near ask
+                    elif row.aggressor_side == 'SELL':
+                        side_mod = 'bid' # SELL or near bid
+                    elif row.aggressor_side == 'UNDEFINED':
+                        pass # assume mid is matched.
             else:
                 if row.aggressor_side == 'BUY':
                     side_mod = 'ask' # BUY or near ask
@@ -246,7 +254,6 @@ def get_side_mod(row,quote_df=None,datasource='tasty'):
 
         return side_mod
     except:
-        raise ValueError()
         traceback.print_exc()
         return "exception"
 

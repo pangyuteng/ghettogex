@@ -283,7 +283,7 @@ class GexService(object):
         logger.info(df.side_mod.value_counts())
         logger.info("df.canceled.value_counts()")
         logger.info(df.canceled.value_counts())
-        sys.exit(1)
+
         self.symbol_list = df.option_chain_id.unique()
         logger.info(self.symbol_list)
         logger.info('compute ddoi...')
