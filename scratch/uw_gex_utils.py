@@ -61,6 +61,42 @@ def format_stamp(x):
 
 et_tz = "America/New_York"
 
+def get_side_mod(row,arg_df):
+    try:
+        side_mod = None
+        # if mid, assume buy/sell is matched, return 0
+        # uw data have no quote event, instead, we use the nbbo_ask,nbbo_bid from flow data.
+        idx = row['index']
+        cond_met = row.strike == arg_df.at[idx+1,"strike"]
+        if row.large_order and cond_met:
+            if arg_df.at[idx+1,"nbbo_ask"] > arg_df.at[idx,"nbbo_ask"]:
+                side_mod = 'likely_ask'
+            elif arg_df.at[idx+1,"nbbo_bid"] > arg_df.at[idx,"nbbo_bid"]:
+                side_mod = 'likely_ask'
+            else:
+                side_mod = 'likely_bid' #???
+        else:
+            if row.side == 'ask': # near ask, client bought, dealer short
+                side_mod = 'ask'
+            elif row.side == 'bid': # near bid, client sold, dealer long
+                side_mod = 'bid'
+            else:
+                pass # assume mid is matched??
+                # TODO: volatility surface fitting
+        return side_mod
+    except:
+        traceback.print_exc()
+        return "exception"
+
+def get_size_signed(row):
+    if row.side_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
+        return -1*row['size'] 
+    elif row.side_mod in ['bid','likely_bid']: # near bid, client sold, dealer long
+        return row['size']
+    else:
+        return 0 # assume mid is matched
+
+
 class GexService(object):
     def __init__(self,ticker,output_folder,day_stamp_str,expiration_count):
         self.ticker = ticker
@@ -227,41 +263,13 @@ class GexService(object):
         if ask price increase, likely was buy order.
 
         """
-        def get_side_mod(row,arg_df):
-            try:
-                # TODO: if relatively_large order,
-                # use quote or timeandsale to bid/ask trend to determine side
-                # if mid, assume buy/sell is matched, return 0
-                side_mod = None
-                if row.large_order:
-                    idx = row['index']
-                    if arg_df.at[idx+1,"nbbo_ask"] > arg_df.at[idx,"nbbo_ask"]:
-                        side_mod = 'likely_ask'
-                    elif arg_df.at[idx+1,"nbbo_bid"] > arg_df.at[idx,"nbbo_bid"]:
-                        side_mod = 'likely_ask'
-                    else:
-                        side_mod = 'likely_bid' #???
-                else:
-                    if row.side == 'ask': # near ask, client bought, dealer short
-                        side_mod = 'ask'
-                    elif row.side == 'bid': # near bid, client sold, dealer long
-                        side_mod = 'bid'
-                return side_mod
-            except:
-                return "exception"
-
-        def get_size_signed(row):
-            if row.side_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
-                return -1*row['size'] 
-            elif row.side_mod in ['bid','likely_bid']: # near bid, client sold, dealer long
-                return row['size']
-            else:
-                return 0 # SET TO ZERO NOT GOOD. TODO: FIX THIS USING HUA!
 
         # TODO: insert logic to flag large orders
-        df['large_order'] = False
+        # crude rolling mean and std of size - flawed since you are mixing strike and time
+        df['large_order_th'] = df['size'].rolling(60).mean()+2*df['size'].rolling(60).std()
+        df['large_order'] = np.where(df['size']>=df['large_order_th'], True,False)
         # TODO: use future order flow history to flag large_order (since no quote events)
-        df['side_mod'] = df.apply(lambda x: get_side_mod(x,df),axis=1)
+        df['side_mod'] = df.apply(lambda x: get_side_mod(x, df),axis=1)
         df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
 
         # if you are net long call, you gotta short, if you are net long put, you gotta long
@@ -272,10 +280,10 @@ class GexService(object):
         logger.info("df.side.value_counts()")
         logger.info(df.side.value_counts())
         logger.info("df.side_mod.value_counts()")
-        logger.info(df.size_mod.value_counts())
+        logger.info(df.side_mod.value_counts())
         logger.info("df.canceled.value_counts()")
         logger.info(df.canceled.value_counts())
-
+        sys.exit(1)
         self.symbol_list = df.option_chain_id.unique()
         logger.info(self.symbol_list)
         logger.info('compute ddoi...')
@@ -313,9 +321,10 @@ class GexService(object):
         cols =  [
             'tstamp','tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
-            'side','size_mod','size','size_signed', 'contract_type_int', 'oi',
+            'side','side_mod','size','size_signed', 'contract_type_int', 'oi',
             'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled',
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo',
+            'large_order',
             #'underlying_price', 
         ] # once merged, underlying_price, price, greeks all likely outdated!
 

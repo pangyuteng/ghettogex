@@ -226,7 +226,6 @@ def get_side_mod(row,quote_df=None,datasource='tasty'):
             # uw data have no quote event, instead, we use the nbbo_ask,nbbo_bid from flow data.
             idx = row['index']
             cond_met = row.strike == quote_df.at[idx+1,"strike"]
-            print(cond_met)
             if row.large_order and cond_met:
                 if quote_df.at[idx+1,"nbbo_ask"] > quote_df.at[idx,"nbbo_ask"]:
                     side_mod = 'likely_ask'
@@ -241,6 +240,7 @@ def get_side_mod(row,quote_df=None,datasource='tasty'):
                     side_mod = 'bid'
                 else:
                     pass # assume mid is matched.
+                    # TODO: volatility surface fitting
         else:
             raise NotImplementedError()
 
@@ -256,9 +256,9 @@ def get_size_signed(row):
     elif row.side_mod in ['bid','likely_bid']: # near bid, client sold, dealer long
         return row['size']
     else:
-        return 0
+        return 0 # assume mid is matched
 
-def compute_gex_core(df,from_scratch,quote_df=None):
+def compute_gex_core(df,from_scratch):
     # NOTE: we sort by time first, since tstamp is postgres insert time.
     df = df.sort_values(by=['event_type','time','tstamp'])
 
