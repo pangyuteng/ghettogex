@@ -177,23 +177,18 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
 # event: timeandsale
 # size, aggressor_side
 
-# aggressor_side_int =
-# latest_open_interest = 
-#event_type,event_symbol,close,spot_price,open_interest,gamma,size,aggressor_side,ticker,expiration,contract_type,strike,tstamp
-# grab last close,spot_price, 
 # observations
 # + greeks needs to be updated if no greeks and options candle exists
 # + spot needs to be updated if candle, and you got underlying quotes.
 # + summary event seems to be only once a day?
 
-
-# kinda want to gow with below
+# NOTE:
+# kinda want to go with below
 # and then you can confirm with prior day summary.
-# + for relatively normal small order, use price vs bid/ask
+# + for relatively normal sizsed orders, use price vs bid/ask
 # + for relatively large order, go with orderbook liquidity (quote history, change in bid/ask size and price? so with 3 sec lag?)
 # + unsure about volatility surface... dont have a method for now.
-
-# TODO: if relatively_large order,
+#
 # use quote or timeandsale to bid/ask trend to determine side
 # if mid, assume buy/sell is matched, return 0
 
@@ -281,11 +276,10 @@ def compute_gex_core(df,from_scratch):
     quote_df = df[df.event_type=='quote']
     ts_df = df[df.event_type=='timeandsale'].copy()
 
-    # flag large orders using timeandsale (TODO: alternatively use size relative to bid/ask size in quote event)
+    # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
     large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
     ts_df['large_order'] = ts_df['size'].apply(lambda x:x > large_order_th)
-    # TODO: use future quote flow history to flag
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quote_df=quote_df),axis=1)
     ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
 
@@ -363,9 +357,6 @@ def compute_gex_core(df,from_scratch):
         qc_pass = True
 
     return merged_df, qc_pass
-
-
-# TODO: create from_scratch cron job every 5 minute 
 
 async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=30,open=False) as apool:

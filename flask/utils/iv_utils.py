@@ -43,9 +43,9 @@ def get_annualized_time_to_expiration(row,expiry_mapper):
 
 
 def interp_implied_volatility(df,s=None,return_fine=False):
-    raise ValueError("todo replace with domokane/FinancePy")
+    # TODO: replace with domokane/FinancePy, support multi expiry
+    raise ValueError("replace with domokane/FinancePy")
     assert(len(df.contract_type.unique())==1)
-    # TODO: support multi expiry
     assert(len(df.expiration.unique())==1)
 
     df = df.sort_values(["strike"])

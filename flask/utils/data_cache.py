@@ -144,7 +144,6 @@ if __name__== "__main__":
             cache_cboe()
         else:
             pass
-        # TODO: add celery
         logger.info('sleeping...')
         time.sleep(30)
 
