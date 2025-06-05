@@ -454,6 +454,8 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 query_args = [row.event_symbol,row.dstamp,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
                 return query_args
             query_dict[event_agg_query_str] = await asyncio.gather(*(insert_event_agg(row) for n,row in agg_df.iterrows()))
+            
+            # TODO: grab call_oi,put_oi,naive_dex,true_dex,
 
             table_cols = ['ticker','strike','tstamp','naive_gex','true_gex']
             agg_df['ticker'] = ticker

@@ -740,3 +740,7 @@ python uw_gex_utils.py SPX 2025-06-02
 # python uw_gex_utils.py QQQ 2025-06-03
 # python uw_gex_utils.py NDX 2025-06-03
 python uw_gex_utils.py SPX 2025-06-03
+# python uw_gex_utils.py SPY 2025-06-04
+# python uw_gex_utils.py QQQ 2025-06-04
+# python uw_gex_utils.py NDX 2025-06-04
+python uw_gex_utils.py SPX 2025-06-04
