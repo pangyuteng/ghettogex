@@ -205,6 +205,9 @@ class GexService(object):
         if missing_underlying_price:
             raise ValueError("missing_underlying_price!")
 
+        # default is last
+        # for SPX-2025-04-07, used mean, volatile day?
+        # for SPX-2025-04-08, used max, noisy day with bad price.
         isfillna = True
         if isfillna:
             price_df = price_df.groupby(['tstamp_sec']).agg(
@@ -222,7 +225,10 @@ class GexService(object):
         for pq_file in tqdm(self.pq_file_list[::-1]):
             df = pd.read_parquet(pq_file)
             unq_price = df.underlying_price.unique()
-            # NOTE: use unq_price to ensure underlying_price is estimates.
+            price_diff_count = len(price_df.underlying_price.diff().unique())
+            if price_diff_count < 100:
+                warnings.warn("price is likely approximated!!!")
+                raise ValueError("price is likely approximated!!!")
             df = df[df.expiry.apply(lambda x: x in self.expiration_list)]
             mylist.append(df)
 
