@@ -21,7 +21,14 @@ BTC_TICKER = "BTC-USD"
 INDEX_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX','^VIX']
 # https://etfdb.com/themes/bitcoin-etfs/#complete-list__overview&sort_name=assets_under_management&sort_order=desc&page=1
 BTC_TICKER_LIST = ['IBIT','GBTC','FBTC','ARKB','BTC','BITO','BITX','BITU','^CBTX','^MBTX']
-OTHER_TICKER_LIST = ['MSTR','COIN','TSLA','NVDA','AAPL','MSFT','AMZN','META','GOOGL','GOOG','AVGO','COST','TSM']
+OTHER_TICKER_LIST = [
+    'MSTR','COIN','TSLA','NVDA','AAPL','MSFT',
+    'AMZN','META','GOOGL','GOOG','AVGO','COST','TSM',
+    'NFLX','ORCL','JPM','V','LLY','WMT',
+    'MA','PG','JNJ','HD','BAC','ABBV','NVO',
+    'PLTR','KO','ASML','UNH'
+
+]
 BTC_MSTR_TICKER_LIST = list(BTC_TICKER_LIST)
 BTC_MSTR_TICKER_LIST.append("MSTR")
 USMARKET_TICKER = "USMARKET"
@@ -32,6 +39,8 @@ HOME_TICKER_LIST_OF_LIST = [
     ['MSFT','NVDA','AAPL'], # TODO: sort by marketcap
     ['AMZN','GOOGL','META'],
     ['TSLA','AVGO','COST'],
+    ['JPM','ORCL','NFLX'],
+    ['WMT','PLTR','LLY'],
 ]
 
 def cache_cboe():
@@ -45,6 +54,7 @@ def cache_cboe():
     ticker_list.extend(BTC_TICKER_LIST)
     ticker_list.extend(OTHER_TICKER_LIST)
     ticker_list.extend(USMARKET_TICKER_LIST)
+    ticker_list = sorted(list(set(ticker_list)))
     for ticker in ticker_list:
         logger.info(f'{ticker} underlying')
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
@@ -61,7 +71,7 @@ def cache_cboe():
 
                 with open(json_file,'w') as f:
                     f.write(json.dumps(info_dict))
-
+                time.sleep(np.random.rand())
             except:
                 traceback.print_exc()
 
@@ -73,6 +83,7 @@ def cache_cboe():
     ticker_list.extend(BTC_TICKER_LIST)
     ticker_list.extend(OTHER_TICKER_LIST)
     ticker_list.extend(USMARKET_TICKER_LIST)
+    ticker_list = sorted(list(set(ticker_list)))
     for ticker in ticker_list:
         logger.info(f'{ticker} options')
         cache_folder = os.path.join(CACHE_FOLDER,ticker,year_stamp,date_stamp)
@@ -82,6 +93,7 @@ def cache_cboe():
         if not os.path.exists(csv_file):
             spot_price, df = scrape_options_data(ticker)
             df.to_csv(csv_file,index=False)
+            time.sleep(np.random.rand())
         else:
             logger.info('options found')
 
