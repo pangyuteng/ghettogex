@@ -44,6 +44,7 @@ from utils.data_cache import (
     BTC_MSTR_TICKER_LIST,
     USMARKET_TICKER,
     USMARKET_TICKER_LIST,
+    HOME_TICKER_LIST_OF_LIST,
     get_cache_latest,
     is_market_open,
     now_in_new_york,
@@ -122,19 +123,17 @@ async def redirect_to_login(*_):
 
 @app.route("/eod-gex")
 async def eod_gex():
-    enable_live = request.args.get("live","false")
-    ticker = request.args.get("ticker",BTC_TICKER)
+    ticker = request.args.get("ticker")
     return await render_template("eod-gex.html",
         ticker=ticker,
-        enable_live=enable_live,
         ticker_list=','.join(BTC_MSTR_TICKER_LIST))
 
 @app.route("/")
 @login_required
-async def index():
+async def home():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
-    return await render_template("index.html")
+    return await render_template("index.html",listoflist=HOME_TICKER_LIST_OF_LIST)
 
 @app.route("/about")
 async def about():
@@ -144,23 +143,22 @@ async def about():
 async def ws_eod_gex():
     try:
 
-        enable_live = True if websocket.args.get("live","false")=="true" else False
         ticker = websocket.args.get("ticker",BTC_TICKER)
+        livespotprice = True if websocket.args.get("livespotprice",'false') == 'true' else False
 
         if ticker == 'SPX':
             ticker_alt = '^SPX'
         elif ticker == 'NDX':
             ticker_alt = '^NDX'
+        elif ticker == 'VIX':
+            ticker_alt = '^VIX'
         else:
             ticker_alt = ticker
 
         now_et = now_in_new_york()
         year_stamp = datetime.datetime.strftime(now_et,'%Y')
-        cache_folder = os.path.join(CACHE_FOLDER,'FBTC',year_stamp)
-        if enable_live:
-            daystamp_list = sorted(os.listdir(cache_folder))
-        else:
-            daystamp_list = sorted(os.listdir(cache_folder))[:-7]
+        cache_folder = os.path.join(CACHE_FOLDER,ticker_alt,year_stamp)
+        daystamp_list = sorted(os.listdir(cache_folder))
         daystamp_list = [daystamp_list[-1]]
         while True:
             for daystamp in daystamp_list:
@@ -168,7 +166,7 @@ async def ws_eod_gex():
                 server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
 
                 if ticker == BTC_TICKER:
-                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp,enable_live=True)
+                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp,enable_live=livespotprice)
                 elif ticker == USMARKET_TICKER:
                     spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_us_market_gex(tstamp=tstamp)
                 else:
@@ -180,7 +178,7 @@ async def ws_eod_gex():
                 strike_list = surf_df.columns.to_list()
                 expiration_list = [x.strftime("%Y-%m-%d") for x in surf_df.index.to_list()]
                 surf_list = surf_df.values.tolist()
-                data_str = render_html("ws-eod-guest.html",
+                data_str = render_html("ws-eod-gex.html",
                     ticker=ticker,
                     strike_df=strike_df,
                     surf_list=surf_list,
@@ -192,7 +190,7 @@ async def ws_eod_gex():
                 )
 
                 await websocket.send(data_str)
-                if enable_live is False:
+                if livespotprice is False:
                     await websocket.close(1)
                 await asyncio.sleep(10)
     except asyncio.CancelledError:
@@ -208,13 +206,17 @@ async def ws_prices():
             tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
             mydict = {}
             for ticker in CBOEX_TICKER_LIST:
-                underlying_dict,options_df,last_json_file,data_tstamp = get_cache_latest(ticker)
+                underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker)
                 mydict[ticker.replace("^","")] = underlying_dict
+                data_tstamp = os.path.basename(os.path.dirname(last_csv_file))
 
-            underlying_dict,options_df,last_json_file,data_tstamp = get_cache_latest(BTC_TICKER)
+            underlying_dict,options_df,last_json_file,_ = get_cache_latest(BTC_TICKER)
             mydict[BTC_TICKER] = underlying_dict
+            
+            data_str = render_html("prices.html",
+                mydict=mydict,
+                data_tstamp=data_tstamp,tstamp=tstamp,market_open=is_market_open())
 
-            data_str = render_html("prices.html",mydict=mydict,tstamp=tstamp,market_open=is_market_open())
             await websocket.send(data_str)
             await websocket.close(1000)
             await asyncio.sleep(mysec)
@@ -227,7 +229,7 @@ async def ws_prices():
 @login_required
 async def overview():
     ticker = request.args.get("ticker")
-    ticker = ticker.replace("^","")
+    return redirect(url_for("eod_gex",ticker=ticker))
     return await render_template("overview.html",ticker=ticker)
 
 @app.websocket("/ticker/daily-ws-gex-strike")
@@ -236,17 +238,21 @@ async def daily_ws_gex_strike():
     try:
         now_et = now_in_new_york()
         year_stamp = datetime.datetime.strftime(now_et,'%Y')
-        cache_folder = os.path.join(CACHE_FOLDER,'FBTC',year_stamp)
-        daystamp_list = sorted(os.listdir(cache_folder))[-5:]
-        daystamp_list = [daystamp_list[-1]]
         while True:
             ticker = websocket.args.get("ticker")
             if ticker == 'SPX':
                 ticker_alt = '^SPX'
             elif ticker == 'NDX':
                 ticker_alt = '^NDX'
+            elif ticker == 'VIX':
+                ticker_alt = '^VIX'
             else:
                 ticker_alt = ticker
+
+            cache_folder = os.path.join(CACHE_FOLDER,ticker_alt,year_stamp)
+            daystamp_list = sorted(os.listdir(cache_folder))
+            daystamp_list = [daystamp_list[-1]]
+
             mysec = 5
             div_name = "div-"+ticker.replace("^","")
             server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")

@@ -26,8 +26,10 @@ data.push({
     }
 })
 
-var layout = { 
+var layout = {
     title: {text: '{{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
+    width: 320,
+    height: 320,
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
     yaxis: {
@@ -46,12 +48,14 @@ Plotly.newPlot("{{ticker}}-plot", data, layout);
 </script>
 
 <div id="{{ticker}}-plot"></div>
+
+<!--
 <span class="badge rounded-pill text-bg-dark">
 data_tstamp:{{ data_tstamp }}
 </span>
 <span class="badge rounded-pill text-bg-dark">
 server_tstamp:{{ server_tstamp }}
 </span>
-
+-->
 </div>
 
