@@ -67,6 +67,10 @@ def postgres_execute_many(query_dict):
         traceback.print_exc()
     return response
 
+def vaccum_full_analyze():
+    query = """vacuum full analyze"""
+    postgres_execute(query,(),is_commit=True)
+
 def manage_table_partition(utc_tstamp):
 
     table_list = 'candle,event,greeks,profile,quote,summary,theoprice,timeandsale,trade,underlying,gex_strike,gex_net,event_agg'.split(",")

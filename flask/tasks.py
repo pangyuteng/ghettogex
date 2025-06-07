@@ -16,7 +16,7 @@ import threading
 import luigi
 from celery import Celery
 
-from utils.postgres_utils import postgres_execute, manage_table_partition
+from utils.postgres_utils import postgres_execute, manage_table_partition, vaccum_full_analyze
 from utils.data_tasty import background_subscribe, is_market_open, now_in_new_york
 from utils.compute_intraday import compute_gex
 from utils.data_cache import cache_cboe
@@ -98,6 +98,10 @@ def trigger_gex_cache(*args,**kwargs):
 def trigger_table_partition(*args,**kwargs):
     utc_tstamp = datetime.datetime.now(datetime.timezone.utc)
     manage_table_partition(utc_tstamp)
+
+@celery_app.task
+def trigger_vaccum_full(*args,**kwargs):
+    vaccum_full_analyze()
 
 @celery_app.task
 def trigger_cache_cboe(*args,**kwargs):
