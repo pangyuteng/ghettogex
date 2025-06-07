@@ -86,6 +86,9 @@ docker run -it -u $(id -u):$(id -g) \
     and per aggregated time slot, lump timeandsale  for oi
     using time, means you have to wait and guess, since events don't come in at fix frequency.
 
++ [x] for naive-gex, added more tickers, and show on main page.
++ [x] added cron job to do vacuum
+
 + [o] study hua volatility
     + when do you pick naive vs order-book vs iv-surface?
     + [x] naive method - price near bid/ask price.

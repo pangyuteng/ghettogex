@@ -54,9 +54,9 @@ papaya-flask-celery/render-pdf-gradio
 https://github.com/pangyuteng/papaya-flask-celery/tree/master/render-pdf-gradio
 ```
 
-+ [ ] show gex given ticker
++ [x] show gex given ticker
 
-+ [ ] overallmarket gex??? (SPX+SPY+(weighted,but-how?)tickers-gex)
++ [x] overallmarket gex??? (SPX+SPY+(weighted,but-how?)tickers-gex)
 
 https://polygon.io/options
 https://x.com/ag_trader
