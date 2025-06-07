@@ -62,7 +62,7 @@ beat_schedule = {
 """
    'trigger_shutdown': {
        'task': 'tasks.trigger_shutdown',
-       'schedule': crontab(minute=1, hour=13), # utc midnight, ~7pm et
+       'schedule': crontab(minute=1, hour=13), # shutdown 1 hr prior marketopen
        'options': {'queue': 'default'},
        'args': [],
    },
