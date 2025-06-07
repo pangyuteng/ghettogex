@@ -1,3 +1,51 @@
++ init project kubectl setup notes:
+
+
+
++ [x] create new machine for runner, setup access to kube cluster
+
+  + create new vm "runner" in "happyfeet"
+
+  + resize disk to 96GB https://pve.proxmox.com/wiki/Resize_disks
+
+  + install kubectl, add ~/.kube/config
+
++ [x] install self-hosted github runner
+
+    + install runner under aigonewrong@runner:~
+
+https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/adding-self-hosted-runners
+https://github.com/pangyuteng/fi.aigonewrong.com/settings/actions/runners
+https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/configuring-the-self-hosted-runner-application-as-a-service
+
+    
++ [x] setup bare miminal cicd to deploy to ghettogex.aigonewrong.com
+
+```
+
+kubectl create secret docker-registry ghcr-login-secret --docker-server=https://ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.GITHUB_TOKEN }}
+
+kubectl create secret docker-registry registry-credentials --docker-server=docker.io \
+--docker-username=<username> --docker-password=<token> --dry-run=client \
+-o yaml > registry-credentials.yml
+
+kubectl apply -f registry-credentials.yml
+
+kubectl get secrets registry-credentials -n default -o json |  jq 'del(.metadata["namespace","creationTimestamp","resourceVersion","selfLink","uid","annotations"])' | kubectl apply -n gg -f -
+
+IS_TEST=
+TASTYTRADE_USERNAME=
+TASTYTRADE_PASSWORD=
+
+kubectl create secret generic tasty-env --from-env-file=.tasty
+
+kubectl get secret tasty-env -o yaml
+
+kubectl get secrets tasty-env -n default -o json |  jq 'del(.metadata["namespace","creationTimestamp","resourceVersion","selfLink","uid","annotations"])' | kubectl apply -n gg -f -
+
+
+
+```
 
 
 + for now this is deployed manually (if postgres Dockerfile was updated, remember to run build_and_push.sh)

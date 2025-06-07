@@ -1,4 +1,28 @@
 
++ [x] main page to show SPX, VIX and SPX gex
+
++ [x] cleanup shit, moved scratch code to below
+
+```
+/mnt/hd1/code/public-misc/finance/options/iv-surface-plot
+https://github.com/pangyuteng/public-misc/tree/main/finance/options/iv-surface-plot
+/mnt/hd1/code/github/hello-cloud/kube-volume
+https://github.com/pangyuteng/hello-cloud/tree/main/kube-volume
+papaya-flask-celery/render-pdf-gradio
+https://github.com/pangyuteng/papaya-flask-celery/tree/master/render-pdf-gradio
+```
+
++ [x] show gex given ticker
+
++ [x] overallmarket gex??? (SPX+SPY+(weighted,but-how?)tickers-gex)
+
+https://polygon.io/options
+https://x.com/ag_trader
+i'll @ you if i make any (ugly) frontend/js progress.
+
+
+
+
 
 ```
 
@@ -17,6 +41,8 @@ docker run -it -u $(id -u):$(id -g) \
 
 
 ```
+
+
 
 
 
