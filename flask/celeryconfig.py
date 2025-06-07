@@ -53,7 +53,7 @@ beat_schedule = {
    },
    'trigger_cache_cboe': {
        'task': 'tasks.trigger_cache_cboe',
-       'schedule': crontab(minute=1, hour=0), # utc midnight, ~7pm et
+       'schedule': crontab(minute=30,hour=13,day_of_week='mon,tue,wed,thu,fri')), # utc 13:30, 8:30ET
        'options': {'queue': 'default'},
        'args': [],
    },
