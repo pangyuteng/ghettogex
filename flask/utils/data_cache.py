@@ -38,7 +38,7 @@ def cache_cboe():
     now_et = now_in_new_york()
     logger.info(str(now_et))
     year_stamp = datetime.datetime.strftime(now_et,'%Y')
-    date_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d')
+    date_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d') # THIS IS TRIGGRED UTC MIDNIGHT, 8PM ET
     time_stamp = datetime.datetime.strftime(now_et,'%Y-%m-%d-%H-%M-%Z') # '%Y-%m-%d-%H-%M-%S-%Z'
     ticker_list = [BTC_TICKER]
     ticker_list.extend(INDEX_TICKER_LIST)
@@ -125,6 +125,11 @@ def get_cache_latest(ticker,tstamp=None):
     if ticker != BTC_TICKER:
         options_df = pd.read_csv(last_csv_file)
         options_df.last_trade_time = options_df.last_trade_time.apply(lambda x: datetime.datetime.strptime(x,"%Y-%m-%dT%H:%M:%S") if isinstance(x,str) else np.nan)
+
+        # pop out expired expiration
+        # when csv is stored, we trigger at UTC midnight, CBOE will cached OI for that day, which is expired.
+        options_df = options_df[options_df.expiration.apply(lambda x: x != date_str)]
+
     else:
         options_df = None
 
