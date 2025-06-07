@@ -9,6 +9,7 @@ import pytz
 import datetime
 import pathlib
 import pandas as pd
+import numpy as np
 
 from .data_coin import scrape_btcusd
 from .data_cboe import scrape_options_data,scrape_underlying_data
@@ -123,6 +124,7 @@ def get_cache_latest(ticker,tstamp=None):
             last_csv_file = None
     if ticker != BTC_TICKER:
         options_df = pd.read_csv(last_csv_file)
+        options_df.last_trade_time = options_df.last_trade_time.apply(lambda x: datetime.datetime.strptime(x,"%Y-%m-%dT%H:%M:%S") if isinstance(x,str) else np.nan)
     else:
         options_df = None
 

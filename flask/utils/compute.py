@@ -144,7 +144,7 @@ def get_gex_df(ticker,tstamp=None,save_png=False):
     gex_by_expiration = compute_gex_by_expiration(df,ticker=ticker,save_png=save_png)
     gex_df = compute_gex_surface(spot_price,df,ticker=ticker,save_png=save_png)
 
-    data_tstamp = os.path.basename(os.path.dirname(last_csv_file))
+    data_tstamp = options_df.last_trade_time.max()
     return spot_price, gex_by_strike, gex_by_expiration, gex_df, data_tstamp
 
 def gex_test(ticker):
@@ -162,6 +162,7 @@ def round_nearest(x, a):
 ROUND_UP_UNIT = 1000
 def compute_btc_gex(tstamp=None,save_png=False,enable_live=False):
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER,tstamp=tstamp)
+    data_tstamp = os.path.basename(os.path.dirname(last_json_file))
     btc_spot_price = underlying_dict['last_price']
     if enable_live:
         btc_spot_price = scrape_btcusd()['last_price']
@@ -171,6 +172,8 @@ def compute_btc_gex(tstamp=None,save_png=False,enable_live=False):
     gex_surface_list = []
     for ticker in ticker_list:
         underlying_dict,options_df,_last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
+        # override data_tstamp with cboe tstamp 
+        data_tstamp = options_df.last_trade_time.max()
         row_df = options_df.copy(deep=True)
         row_df.expiration = row_df.expiration.apply(lambda x: datetime.datetime.strptime(x,'%Y-%m-%d'))
         row_df = row_df.reset_index()
@@ -226,7 +229,7 @@ def compute_btc_gex(tstamp=None,save_png=False,enable_live=False):
         strike_df = pd.DataFrame([],columns=['strike','gex'])
     strike_df = strike_df.groupby(['strike'],as_index=False).sum()
     total_gex = strike_df['gex'].sum()
-    data_tstamp = os.path.basename(os.path.dirname(last_json_file))
+    
     if save_png:
         surf_df.to_csv("tmp/strike-expiration.csv",index=False)
         expiration_df.to_csv("tmp/expiration.csv",index=False)
@@ -251,6 +254,7 @@ SPX_ROUND_UP_UNIT = 5
 def compute_us_market_gex(tstamp=None,save_png=False,enable_live=False):
 
     underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(SPX,tstamp=tstamp)
+    data_tstamp = options_df.last_trade_time.max()
     spx_spot_price = underlying_dict['last_price']
     if enable_live:
         pass
@@ -316,7 +320,7 @@ def compute_us_market_gex(tstamp=None,save_png=False,enable_live=False):
         strike_df = pd.DataFrame([],columns=['strike','gex'])
     strike_df = strike_df.groupby(['strike'],as_index=False).sum()
     total_gex = strike_df['gex'].sum()
-    data_tstamp = os.path.basename(os.path.dirname(last_json_file))
+
     if save_png:
         surf_df.to_csv(f"tmp/strike-expiration-{USMARKET_TICKER}-{data_tstamp}.csv",index=False)
         expiration_df.to_csv(f"tmp/expiration-{USMARKET_TICKER}-{data_tstamp}.csv",index=False)

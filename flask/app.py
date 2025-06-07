@@ -157,7 +157,10 @@ async def ws_eod_gex():
 
         now_et = now_in_new_york()
         year_stamp = datetime.datetime.strftime(now_et,'%Y')
-        cache_folder = os.path.join(CACHE_FOLDER,ticker_alt,year_stamp)
+        if ticker == USMARKET_TICKER:
+            cache_folder = os.path.join(CACHE_FOLDER,"^SPX",year_stamp)
+        else:
+            cache_folder = os.path.join(CACHE_FOLDER,ticker_alt,year_stamp)
         daystamp_list = sorted(os.listdir(cache_folder))
         daystamp_list = [daystamp_list[-1]]
         while True:
@@ -208,7 +211,7 @@ async def ws_prices():
             for ticker in CBOEX_TICKER_LIST:
                 underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker)
                 mydict[ticker.replace("^","")] = underlying_dict
-                data_tstamp = os.path.basename(os.path.dirname(last_csv_file))
+                data_tstamp = options_df.last_trade_time.max()
 
             underlying_dict,options_df,last_json_file,_ = get_cache_latest(BTC_TICKER)
             mydict[BTC_TICKER] = underlying_dict
@@ -249,7 +252,10 @@ async def daily_ws_gex_strike():
             else:
                 ticker_alt = ticker
 
-            cache_folder = os.path.join(CACHE_FOLDER,ticker_alt,year_stamp)
+            if ticker == USMARKET_TICKER:
+                cache_folder = os.path.join(CACHE_FOLDER,"^SPX",year_stamp)
+            else:
+                cache_folder = os.path.join(CACHE_FOLDER,ticker_alt,year_stamp)
             daystamp_list = sorted(os.listdir(cache_folder))
             daystamp_list = [daystamp_list[-1]]
 
