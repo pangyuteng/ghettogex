@@ -26,7 +26,7 @@ BTC_MSTR_TICKER_LIST.append("MSTR")
 USMARKET_TICKER = "USMARKET"
 USMARKET_TICKER_LIST = ['SPY','QQQ','^SPX','^NDX','TSLA','NVDA','AAPL','MSFT','AMZN','META','GOOGL','GOOG','AVGO','COST']
 HOME_TICKER_LIST_OF_LIST = [
-    ['^SPX','^NDX','^VIX'],
+    ['SPX','NDX','VIX'],
     ['SPY','QQQ',BTC_TICKER],
     ['MSFT','NVDA','AAPL'], # TODO: sort by marketcap
     ['AMZN','GOOGL','META'],
