@@ -154,6 +154,8 @@ docker run -it -u $(id -u):$(id -g) \
 + [ ] insert call_dex, put_dex, call_gex, put_gex
     + [ ] add gexbot order flow GEX,DEX visualization
 
++ [ ] health status (latest tstamps from all event tables)
+
 + [ ] play sound during events.
     + [ ] flash crash
     + [ ] ideal setup for long

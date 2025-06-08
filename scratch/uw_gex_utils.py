@@ -181,7 +181,12 @@ class GexService(object):
         # TODO: you'll get nan for expiry_mapper using below market_open
         self.true_market_open, self.true_market_close = get_market_open_close(self.day_stamp)
         self.time_sec_list = pd.date_range(start=self.true_market_open,end=self.true_market_close,freq='s')
-        
+
+        self.input_day_df = self.input_day_df[
+            (self.input_day_df.tstamp_sec>=self.true_market_open) &\
+            (self.input_day_df.tstamp_sec<=self.true_market_close)
+        ]
+
         logger.info(f'{self.time_sec_list[0]} {self.time_sec_list[-1]}')
 
         expiration_list = sorted(self.input_day_df.expiry.unique())
