@@ -557,10 +557,9 @@ async def ws_sec_heatmap():
                 ).reset_index()
 
                 plt.figure(1)
-                plt.plot(gex_net_df.tstamp_sec,gex_net_df.volume_gex,label='volume_gex')
                 plt.plot(gex_net_df.tstamp_sec,gex_net_df.state_gex,label='state_gex')
-                plt.plot(gex_net_df.tstamp_sec,gex_net_df.state_gex,label='dex')
-                plt.plot(gex_net_df.tstamp_sec,gex_net_df.state_gex,label='convexity')
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df.dex,label='dex')
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df.convexity,label='convexity')
                 plt.grid(True)
                 plt.legend()
                 plt.tight_layout()
