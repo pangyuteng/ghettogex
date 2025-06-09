@@ -654,6 +654,7 @@ if __name__ == '__main__':
 """
 
 kubectl port-forward --address 0.0.0.0 svc/postgres -n gg 5432:5432
+kubectl port-forward --address 0.0.0.0 svc/redis -n gg 6379:6379
 
 -u $(id -u):$(id -g)
 -v $PWD/tmp:/.local 
@@ -662,6 +663,7 @@ docker run -it \
     -e CACHE_FOLDER="/mnt/hd1/data/fi" \
     -e CACHE_TASTY_FOLDER="/mnt/hd1/data/tastyfi" \
     -e POSTGRES_URI="postgres://postgres:postgres@192.168.68.143:5432/postgres" \
+    -e REDIS_URI="redis://192.168.68.143:6379/1" \
     -w $PWD -v /mnt:/mnt \
     -p 80:80 -p 8888:8888 fi-notebook:latest bash
 

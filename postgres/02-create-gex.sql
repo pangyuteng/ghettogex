@@ -6,6 +6,19 @@ CREATE TABLE IF NOT EXISTS gex_strike (
     strike double precision,
     naive_gex double precision,
     true_gex double precision,
+    true_dex double precision,
+    true_charm double precision,
+    true_vanna double precision,
+    call_oi double precision,
+    call_dex double precision,
+    call_gex double precision,
+    call_vanna double precision,
+    call_charm double precision,
+    put_oi double precision,
+    put_dex double precision,
+    put_gex double precision,
+    put_vanna double precision,
+    put_charm double precision,
     UNIQUE (ticker, tstamp, strike)
 ) PARTITION BY RANGE (tstamp);
 
