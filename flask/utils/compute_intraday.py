@@ -297,6 +297,7 @@ def compute_gex_core(df,from_scratch):
     summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','true_oi']]
     summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
     
+    # TODO: compute vanna and charm
     greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega']]
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
 
@@ -344,7 +345,10 @@ def compute_gex_core(df,from_scratch):
 
     merged_df['true_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
     
-    #merged_df['convexity'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
+    #merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
+    #merged_df['dex'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
+    #merged_df['vanna'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
+    #merged_df['charm'] = merged_df.delta * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
 
     merged_df.naive_gex = merged_df.naive_gex.fillna(value=0)
     merged_df.true_gex = merged_df.true_gex.fillna(value=0)
