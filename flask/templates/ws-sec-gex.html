@@ -81,7 +81,7 @@
       }
   })
   updateData2.push({
-      x: [ {{ -1*xlimNaive }}, {{ xlimNaive }} ],
+      x: [ {{ -1*xlimConvexity }}, {{ xlimConvexity }} ],
       y: [ {{ spot_price }}, {{ spot_price }} ],
       mode: 'lines',
       line: {
@@ -181,7 +181,7 @@ var updateLayout2 = {
     },
     xaxis: {
         showgrid: true,
-        range: [ {{ -1*xlimNaive }},{{ xlimNaive }} ]
+        range: [ {{ -1*xlimConvexity }},{{ xlimConvexity }} ]
     },
     font: {
         family: 'Courier New, monospace',
