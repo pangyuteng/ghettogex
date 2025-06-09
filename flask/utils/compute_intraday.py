@@ -29,7 +29,7 @@ from .postgres_utils import (
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
 
-async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,min_utc_tstamp,lookback_utc_tstamp):
+async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,min_utc_tstamp):
     if ticker == 'SPX':
         ticker_alt = 'SPXW'
     elif ticker == 'NDX':
@@ -63,9 +63,10 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,futu
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
     oc = apostgres_execute(apool,query_str,query_args)
 
-    # NOTE: for now gather open_interest, but don't use it since there is no directionality.
+    # TODO: get prior day open_interest and true_oi by creating a new event_agg row.
     query_str = """
-    select 'summary' as event_type,event_symbol,open_interest,tstamp,ticker,expiration,contract_type,strike from summary
+    --select 'summary' as event_type,event_symbol,open_interest,tstamp,ticker,expiration,contract_type,strike from summary
+    select 'summary' as event_type,event_symbol,0 as open_interest, 0 as true_oi,tstamp,ticker,expiration,contract_type,strike from summary
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
@@ -82,7 +83,7 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,futu
     select 'timeandsale' as event_type,event_symbol,size,price,bid_price,ask_price,aggressor_side,time,tstamp,ticker,expiration,contract_type,strike from timeandsale
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (lookback_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
+    query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
     ot = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
@@ -97,7 +98,6 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,futu
         warnings.filterwarnings("ignore", category=FutureWarning)
         pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
         df = pd.concat(pd_list,ignore_index=True)
-        df['true_oi']=None
     return df
 
 async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,min_utc_tstamp):
@@ -326,23 +326,17 @@ def compute_gex_core(df,from_scratch):
     # NOTE: let `volume_gex` open_interest be updated using
     # ask means buy, dealer is short, bid means sell, dealer is long
     merged_df.open_interest = merged_df.open_interest-merged_df.ask_volume+merged_df.bid_volume
-    
     # NOTE: let `true_oi` be computed using theo_aggressor_side
-    # TODO: missing component: prior day true_oi
-    if from_scratch:
-        merged_df['true_oi'] = merged_df.size_signed
-    else:
-        # update oi
-        merged_df['true_oi'] += merged_df.size_signed
+    merged_df.true_oi = merged_df.true_oi + merged_df.size_signed
 
     # UNSURE HERE... stil at debug phase
     # KISS.
     # `volume_gex` update summary based on bid-ask volume using summary open_interest
     # `state_gex` uses timeandsale and true_oi (for now starts from 0 at start of day)
     
-    # volume_gex is wrong
+    # volume_gex is the vanilla flavor
     merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
-
+    # state gex is a WIP.
     merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
     
     #merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
@@ -412,7 +406,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     if len(fetched) == 0:
         if from_scratch:
             time_a = time.time()
-            event_df = await get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,market_open_tstamp_utc,lookback_tstamp_utc)
+            event_df = await get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,market_open_tstamp_utc)
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
