@@ -486,7 +486,7 @@ async def ws_sec_heatmap():
             strike_day_query_str = """
                 SELECT DISTINCT ON (ticker,date_trunc('minute', tstamp),strike) 
                 date_trunc('minute', tstamp) AS tstamp, ticker, strike,
-                AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex 
+                AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex,AVG(dex) as dex ,AVG(convexity) as convexity,
                 FROM gex_strike 
                 WHERE ticker = %s and tstamp::date = %s
                 GROUP BY ticker,tstamp,strike
@@ -509,7 +509,7 @@ async def ws_sec_heatmap():
             for query_idx,query_kind in enumerate(query_dict.keys()):
                 res = gathered_res[query_idx]
                 if query_kind == 'net-day':
-                    columns = ['ticker','tstamp','spot_price','volume_gex','state_gex']
+                    columns = ['ticker','tstamp','spot_price','volume_gex','state_gex','dex','convexity']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df.volume_gex = df.volume_gex/1e9
@@ -521,7 +521,7 @@ async def ws_sec_heatmap():
                         app.logger.error(traceback.format_exc())
 
                 elif query_kind == 'strike-day':
-                    columns = ['ticker','tstamp','strike','volume_gex','state_gex']
+                    columns = ['ticker','tstamp','strike','volume_gex','state_gex','dex','convexity']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df.volume_gex = df.volume_gex/1e9
@@ -537,8 +537,8 @@ async def ws_sec_heatmap():
             with tempfile.TemporaryDirectory() as tmpdir:
                 net_gex_png_file = os.path.join(tmpdir,'net-gex.png')
                 heatmap_gex_png_file = os.path.join(tmpdir,'heatmap-gex.png')
-                heatmap_state_gex_png_file = os.path.join(tmpdir,'heatmap-true-gex.png')
-                heatmap_volume_gex_png_file = os.path.join(tmpdir,'heatmap-naive-gex.png')
+                heatmap_state_gex_png_file = os.path.join(tmpdir,'heatmap-state-gex.png')
+                heatmap_convexity_png_file = os.path.join(tmpdir,'heatmap-convexity.png')
 
                 gex_net_df = query_dict["net-day"]["df"]
                 gex_strike_df = query_dict["strike-day"]["df"]
@@ -559,6 +559,8 @@ async def ws_sec_heatmap():
                 plt.figure(1)
                 plt.plot(gex_net_df.tstamp_sec,gex_net_df.volume_gex,label='volume_gex')
                 plt.plot(gex_net_df.tstamp_sec,gex_net_df.state_gex,label='state_gex')
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df.state_gex,label='dex')
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df.state_gex,label='convexity')
                 plt.grid(True)
                 plt.legend()
                 plt.tight_layout()
@@ -598,12 +600,12 @@ async def ws_sec_heatmap():
                 ####################
 
                 hue_norm = (-2,2)
-                myval = np.ceil(df.volume_gex.abs().max())
+                myval = np.ceil(df.convexity.abs().max())
                 hue_norm = (-myval,myval)
 
                 color_palette = "RdYlGn"
                 plt.figure(1)
-                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='volume_gex',
+                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='convexity',
                     hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
 
                 norm = plt.Normalize(*hue_norm)
@@ -616,14 +618,14 @@ async def ws_sec_heatmap():
                 plt.title(f"0DTE volume-gex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
                 ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
                 plt.tight_layout()
-                plt.savefig(heatmap_volume_gex_png_file)
+                plt.savefig(heatmap_convexity_png_file)
                 plt.close()
 
                 with open(net_gex_png_file,'rb') as f:
                     net_gex_binary = base64.b64encode(f.read()).decode("utf-8")
 
-                with open(heatmap_volume_gex_png_file,'rb') as f:
-                    heatmap_volume_gex_binary = base64.b64encode(f.read()).decode("utf-8")
+                with open(heatmap_convexity_png_file,'rb') as f:
+                    heatmap_convexity_binary = base64.b64encode(f.read()).decode("utf-8")
 
                 with open(heatmap_state_gex_png_file,'rb') as f:
                     heatmap_state_gex_binary = base64.b64encode(f.read()).decode("utf-8")
@@ -631,7 +633,7 @@ async def ws_sec_heatmap():
             data_str = render_html("ws-sec-heatmap.html",
                 ticker=ticker,
                 net_gex_binary=net_gex_binary,
-                heatmap_volume_gex_binary=heatmap_volume_gex_binary,
+                heatmap_convexity_binary=heatmap_convexity_binary,
                 heatmap_state_gex_binary=heatmap_state_gex_binary,
                 ws_tstamp=ws_tstamp_utc
             )
