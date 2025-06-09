@@ -486,7 +486,7 @@ async def ws_sec_heatmap():
             strike_day_query_str = """
                 SELECT DISTINCT ON (ticker,date_trunc('minute', tstamp),strike) 
                 date_trunc('minute', tstamp) AS tstamp, ticker, strike,
-                AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex,AVG(dex) as dex ,AVG(convexity) as convexity,
+                AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex,AVG(dex) as dex ,AVG(convexity) as convexity 
                 FROM gex_strike 
                 WHERE ticker = %s and tstamp::date = %s
                 GROUP BY ticker,tstamp,strike
