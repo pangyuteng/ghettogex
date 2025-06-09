@@ -338,11 +338,12 @@ def compute_gex_core(df,from_scratch):
     merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
     # state gex is a WIP.
     merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
+
+    merged_df['dex'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
     merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
 
-    #merged_df['dex'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
-    #merged_df['vanna'] = 
-    #merged_df['charm'] = 
+    merged_df['vanna'] = 0
+    merged_df['charm'] = 0
 
     merged_df.volume_gex = merged_df.volume_gex.fillna(value=0)
     merged_df.state_gex = merged_df.state_gex.fillna(value=0)
@@ -393,6 +394,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
         'ticker','expiration','contract_type','strike',
         'open_interest','true_oi',
         'volume_gex','state_gex',
+        'dex','convexity','vanna','charm'
     ]
     # 'open','high','low','close','volume','ask_volume','bid_volume',
     # 'price','volatility','delta','gamma','theta','rho','vega',
@@ -448,15 +450,26 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             
             # TODO: grab call_oi,put_oi,naive_dex,true_dex,
 
-            table_cols = ['ticker','strike','tstamp','volume_gex','state_gex']
+            table_cols = ['ticker','strike','tstamp','volume_gex','state_gex','dex','convexity','vanna','charm']
             agg_df['ticker'] = ticker
             strike_gex_df = agg_df[table_cols]
             strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).agg(
                 volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
                 state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
+                dex=pd.NamedAgg(column="dex", aggfunc="sum"),
+                convexity=pd.NamedAgg(column="convexity", aggfunc="sum"),
+                vanna=pd.NamedAgg(column="vanna", aggfunc="sum"),
+                charm=pd.NamedAgg(column="charm", aggfunc="sum"),
             ).reset_index()
             
             """
+            #call_oi=pd.NamedAgg(column="true_oi", aggfunc="sum"),
+            #call_gex=pd.NamedAgg(column="true_oi", aggfunc="sum"),
+            #call_dex=pd.NamedAgg(column="true_oi", aggfunc="sum"),
+            #put_oi=pd.NamedAgg(column="true_oi", aggfunc="sum"),
+            #put_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
+            #put_gex=pd.NamedAgg(column="true_oi", aggfunc="sum"),
+
             dex double precision,
             convexity double precision,
             charm double precision,
@@ -474,25 +487,29 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             """
 
             # 'call_oi', 'put_oi', 'call_gex','put_gex', 'dex', 'vanna'?
-            gex_strike_query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,volume_gex,state_gex) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set volume_gex = %s,state_gex = %s;"
+            gex_strike_query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vanna,charm) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set volume_gex = %s,state_gex = %s,dex = %s,convexity = %s,vanna = %s,charm = %s;"
             async def insert_gex_strike(row):
-                query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex,row.volume_gex,row.state_gex]
+                query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vanna,row.charm,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vanna,row.charm]
                 return query_args
             query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in strike_gex_df.iterrows()))
             
             # 'true_dex','call_gex','put_gex', major_call_gex_strike, major_put_gex_strike
-            table_cols = ['ticker','tstamp','spot_price','volume_gex','state_gex']
+            table_cols = ['ticker','tstamp','spot_price','volume_gex','state_gex','dex','convexity','vanna','charm']
             agg_df['ticker'] = ticker
             net_gex_df = agg_df[table_cols]
             net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
                 spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
                 volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
                 state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
+                dex=pd.NamedAgg(column="dex", aggfunc="sum"),
+                convexity=pd.NamedAgg(column="convexity", aggfunc="sum"),
+                vanna=pd.NamedAgg(column="vanna", aggfunc="sum"),
+                charm=pd.NamedAgg(column="charm", aggfunc="sum"),
             ).reset_index()
 
-            gex_net_query_str = "INSERT INTO gex_net (ticker,tstamp,volume_gex,state_gex,spot_price) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,tstamp) do update set volume_gex = %s,state_gex = %s, spot_price = %s;"
+            gex_net_query_str = "INSERT INTO gex_net (ticker,tstamp,volume_gex,state_gex,spot_price,dex,convexity,vanna,charm) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (ticker,tstamp) do update set volume_gex = %s,state_gex = %s, spot_price = %s,dex = %s,convexity = %s,vanna = %s,charm = %s;"
             async def insert_gex_net(row):
-                query_args = [row.ticker,row.tstamp,row.volume_gex,row.state_gex,row.spot_price,row.volume_gex,row.state_gex,row.spot_price]
+                query_args = [row.ticker,row.tstamp,row.volume_gex,row.state_gex,row.spot_price,row.dex,row.convexity,row.vanna,row.charm,row.volume_gex,row.state_gex,row.spot_price,row.dex,row.convexity,row.vanna,row.charm]
                 return query_args
             query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
 
