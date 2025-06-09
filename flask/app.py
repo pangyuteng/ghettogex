@@ -445,8 +445,8 @@ async def ws_sec_gex():
                 latest_df = pd.DataFrame([])
                 max_state_gex = 100
                 min_state_gex = -100
-                max_volume_gex = 100
-                min_volume_gex = -100
+                max_convexity = 100
+                min_convexity = -100
                 xlimState = 999
                 xlimConvexity = 999
 
