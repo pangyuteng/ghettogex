@@ -514,6 +514,8 @@ async def ws_sec_heatmap():
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df.volume_gex = df.volume_gex/1e9
                         df.state_gex = df.state_gex/1e9
+                        df.dex = df.dex/1e9
+                        df.convexity = df.convexity/1e9
                         spot_price = df.spot_price.to_list()[-1]
                     except:
                         df = pd.DataFrame([],columns=columns)
@@ -526,6 +528,8 @@ async def ws_sec_heatmap():
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df.volume_gex = df.volume_gex/1e9
                         df.state_gex = df.state_gex/1e9
+                        df.dex = df.dex/1e9
+                        df.convexity = df.convexity/1e9
                     except:
                         df = pd.DataFrame([],columns=columns)
                         app.logger.error(traceback.format_exc())
