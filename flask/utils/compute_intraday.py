@@ -456,12 +456,14 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 true_gex=pd.NamedAgg(column="true_gex", aggfunc="sum"),
             ).reset_index()
 
+            # 'call_oi', 'put_oi', 'call_gex','put_gex', 'dex', 'vanna'?
             gex_strike_query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,naive_gex,true_gex) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set naive_gex = %s,true_gex = %s;"
             async def insert_gex_strike(row):
                 query_args = [row.ticker,row.strike,row.tstamp,row.naive_gex,row.true_gex,row.naive_gex,row.true_gex]
                 return query_args
             query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in strike_gex_df.iterrows()))
-
+            
+            # 'true_dex','call_gex','put_gex', major_call_gex_strike, major_put_gex_strike
             table_cols = ['ticker','tstamp','spot_price','naive_gex','true_gex']
             agg_df['ticker'] = ticker
             net_gex_df = agg_df[table_cols]

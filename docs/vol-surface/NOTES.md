@@ -92,3 +92,6 @@ https://github.com/JunbeomL22/SurfaceFitting/tree/master
 https://github.com/search?q=SSVI+volatility&type=repositories
 
 https://github.com/domokane/FinancePy
+
+https://www.youtube.com/watch?v=o8C6DxZh8dw
+https://www.youtube.com/watch?v=Jy4_AVEyO0w&t=83s

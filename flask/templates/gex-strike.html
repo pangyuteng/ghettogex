@@ -16,6 +16,15 @@ data.push({
 {% endfor %}
 
 data.push({
+    x: {{ price_dict.tstamp_str }},
+    y: {{ price_dict.value_str }},
+    alpha: 1,
+    xaxis: 'x2',
+    mode: 'lines',
+    line: {color: 'rgb(200, 200, 200)'}
+})
+
+data.push({
     x: [ {{ df.gex.min() }}, {{ df.gex.max() }} ],
     y: [ {{ spot_price }}, {{ spot_price }} ],
     mode: 'lines',
@@ -34,7 +43,13 @@ var layout = {
     plot_bgcolor: 'rgba(0,0,0,0)',
     yaxis: {
         showgrid: true,
-        range: [ {{spot_price}}*0.90, {{spot_price*1.1}} ]
+        range: {% if ticker == 'VIX' %}[ {{spot_price}}*0.50, {{spot_price*2}} ]
+        {% else %}[ {{spot_price}}*0.80, {{spot_price*1.2}} ]{% endif %}
+    },
+    xaxis2: {
+        overlaying: 'x',
+        side: 'top',
+        tickformat: '%b' //'%d/%m'
     },
     showlegend: false,
     font: {

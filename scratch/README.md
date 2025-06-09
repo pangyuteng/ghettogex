@@ -126,6 +126,7 @@ docker run -it -u $(id -u):$(id -g) \
       ? why not juse use UnivariateSpline <-- tried no good!
       ? why do we HAVE to use modeles like SABR? docs/vol-surface/README.md
       A:   arb free and many firms use this for modeling price & vol!
+      
     + ? how do you do above in near real time? also do this with UW data?
       A: instead of using quote event
     
@@ -151,8 +152,13 @@ docker run -it -u $(id -u):$(id -g) \
     ALTER TABLE orders DETACH PARTITION orders_2020_06;
     """
 
++ [ ] how about insert to redis as well for each second per day? and purging per day?
+
 + [ ] insert call_dex, put_dex, call_gex, put_gex
     + [ ] add gexbot order flow GEX,DEX visualization
+
++ [ ] how to assess/confirm trend and resistance?
+      dex increase, gex increase.
 
 + [ ] health status (latest tstamps from all event tables)
 
@@ -162,9 +168,12 @@ docker run -it -u $(id -u):$(id -g) \
     + [ ] gex png and proposed direction, support/major levels.
 
 + [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
+
 + [ ] ideally you want to monitor OI (ask and bid seperately)
       each contract, if `summary OI` is 0, then start tracking candle bid ask volumes and/or timeandsale.
 
++ [ ] plot volatility, gex, surface as contour plot - optiondepth style
+https://quant.stackexchange.com/questions/68164/mixed-greeks-in-python-how-plot-the-following
 
 --
 + [ ] sideswap/aqua btc to L BTC and back to btc than coldstorage.

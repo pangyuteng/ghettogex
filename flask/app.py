@@ -169,11 +169,11 @@ async def ws_eod_gex():
                 server_tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S-%Z")
 
                 if ticker == BTC_TICKER:
-                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp,enable_live=livespotprice)
+                    spot_price, strike_df, expiration_df, surf_df, daily_price_df, data_tstamp = compute_btc_gex(tstamp=tstamp,enable_live=livespotprice)
                 elif ticker == USMARKET_TICKER:
-                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_us_market_gex(tstamp=tstamp)
+                    spot_price, strike_df, expiration_df, surf_df, daily_price_df, data_tstamp = compute_us_market_gex(tstamp=tstamp)
                 else:
-                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
+                    spot_price, strike_df, expiration_df, surf_df, daily_price_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
 
                 app.logger.info(f'spot_price {spot_price}')
                 surf_df = surf_df.pivot(index='expiration',columns='strike',values='GEX')
@@ -265,16 +265,27 @@ async def daily_ws_gex_strike():
             for daystamp in daystamp_list:
                 tstamp = datetime.datetime.strptime(daystamp,'%Y-%m-%d')
                 if ticker == BTC_TICKER:
-                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_btc_gex(tstamp=tstamp)
+                    spot_price, strike_df, expiration_df, surf_df, daily_price_df, data_tstamp = compute_btc_gex(tstamp=tstamp)
                 elif ticker == USMARKET_TICKER:
-                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = compute_us_market_gex(tstamp=tstamp)
+                    spot_price, strike_df, expiration_df, surf_df, daily_price_df, data_tstamp = compute_us_market_gex(tstamp=tstamp)
                 else:
-                    spot_price, strike_df, expiration_df, surf_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
+                    spot_price, strike_df, expiration_df, surf_df, daily_price_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
 
+                if len(daily_price_df) > 70:
+                    price_dict = {
+                        'tstamp_str': str(daily_price_df.timestamp.to_list()),
+                        'value_str': str(daily_price_df.last_price.to_list()),
+                    }
+                else:
+                    price_dict = {
+                        'tstamp_str': "[]",
+                        'value_str': "[]",
+                    }
                 data_str = render_html("gex-strike.html",
                     ticker=ticker,
                     df=strike_df,
                     spot_price=spot_price,
+                    price_dict=price_dict,
                     data_tstamp=data_tstamp,
                     server_tstamp=server_tstamp,
                     div_name=div_name)

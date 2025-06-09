@@ -97,7 +97,7 @@ def cache_cboe():
         else:
             logger.info('options found')
 
-def get_cache_latest(ticker,tstamp=None):
+def get_cache_latest(ticker,tstamp=None,return_daily_price_df=False):
 
     if tstamp is None:
         years_folder = os.path.join(CACHE_FOLDER,ticker)
@@ -148,7 +148,23 @@ def get_cache_latest(ticker,tstamp=None):
     with open(last_json_file,'r') as f:
         underlying_dict = json.loads(f.read())
 
-    return underlying_dict,options_df,last_json_file,last_csv_file
+    if return_daily_price_df is False:
+        return underlying_dict,options_df,last_json_file,last_csv_file
+    else:
+        cache_folder = os.path.join(CACHE_FOLDER,ticker,year_str)
+        json_file_list = sorted([os.path.abspath(str(x)) for x in pathlib.Path(cache_folder).rglob(f"underlying-{ticker}-*.json")])
+        if len(json_file_list) > 80:
+            json_file_list = json_file_list[-75:]
+        mylist = []
+        for x in json_file_list:
+            with open(x,'r') as f:
+                mydict = json.loads(f.read())
+                # BTC missing timestamp
+                # for equity, use just date
+                mydict['timestamp']=os.path.basename(os.path.dirname(x))
+            mylist.append(mydict)
+        return underlying_dict,options_df,last_json_file,last_csv_file, pd.DataFrame(mylist)
+        
 
 if __name__== "__main__":
     # os.getpid()

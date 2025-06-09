@@ -122,7 +122,7 @@ def iv_test(ticker,option_type):
 
 def get_gex_df(ticker,tstamp=None,save_png=False):
     
-    underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(ticker,tstamp=tstamp)
+    underlying_dict,options_df,last_json_file,last_csv_file,daily_price_df = get_cache_latest(ticker,tstamp=tstamp,return_daily_price_df=True)
     if "SPX" in ticker:
         df = options_df[options_df.option.apply(lambda x: "SPXW" in x)].copy(deep=True)
     elif "NDX" in ticker:
@@ -145,10 +145,10 @@ def get_gex_df(ticker,tstamp=None,save_png=False):
     gex_df = compute_gex_surface(spot_price,df,ticker=ticker,save_png=save_png)
 
     data_tstamp = options_df.last_trade_time.max()
-    return spot_price, gex_by_strike, gex_by_expiration, gex_df, data_tstamp
+    return spot_price, gex_by_strike, gex_by_expiration, gex_df, daily_price_df, data_tstamp
 
 def gex_test(ticker):
-    spot_price, gex_by_strike, gex_by_expiration, gex_df = get_gex_df(ticker,save_png=True)
+    spot_price, gex_by_strike, gex_by_expiration, gex_df, _ , _ = get_gex_df(ticker,save_png=True)
     logger.debug(gex_by_strike)
     logger.debug(gex_by_strike.shape)
     logger.debug(gex_by_expiration.shape)
@@ -161,7 +161,8 @@ def round_nearest(x, a):
 
 ROUND_UP_UNIT = 1000
 def compute_btc_gex(tstamp=None,save_png=False,enable_live=False):
-    underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(BTC_TICKER,tstamp=tstamp)
+    underlying_dict,options_df,last_json_file,last_csv_file,daily_price_df = get_cache_latest(BTC_TICKER,tstamp=tstamp,return_daily_price_df=True)
+
     data_tstamp = os.path.basename(os.path.dirname(last_json_file))
     btc_spot_price = underlying_dict['last_price']
     if enable_live:
@@ -248,12 +249,12 @@ def compute_btc_gex(tstamp=None,save_png=False,enable_live=False):
         plt.tight_layout()
         plt.savefig("tmp/strike.png")
     
-    return btc_spot_price, strike_df, expiration_df, surf_df, data_tstamp
+    return btc_spot_price, strike_df, expiration_df, surf_df, daily_price_df, data_tstamp
 
 SPX_ROUND_UP_UNIT = 5
 def compute_us_market_gex(tstamp=None,save_png=False,enable_live=False):
 
-    underlying_dict,options_df,last_json_file,last_csv_file = get_cache_latest(SPX,tstamp=tstamp)
+    underlying_dict,options_df,last_json_file,last_csv_file,daily_price_df = get_cache_latest(SPX,tstamp=tstamp,return_daily_price_df=True)
     data_tstamp = options_df.last_trade_time.max()
     spx_spot_price = underlying_dict['last_price']
     if enable_live:
@@ -346,7 +347,7 @@ def compute_us_market_gex(tstamp=None,save_png=False,enable_live=False):
         plt.tight_layout()
         plt.savefig(f"tmp/strike-{USMARKET_TICKER}-{data_tstamp}.png")
     
-    return spx_spot_price, strike_df, expiration_df, surf_df, data_tstamp
+    return spx_spot_price, strike_df, expiration_df, surf_df, daily_price_df, data_tstamp
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
