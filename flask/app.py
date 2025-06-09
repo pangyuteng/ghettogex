@@ -589,7 +589,7 @@ async def ws_sec_heatmap():
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
                 plt.xticks(rotation=30)
 
-                plt.title(f"0DTE truegex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
+                plt.title(f"0DTE stategex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
                 ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
                 plt.tight_layout()
                 plt.savefig(heatmap_state_gex_png_file)
@@ -613,7 +613,7 @@ async def ws_sec_heatmap():
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
                 plt.xticks(rotation=30)
 
-                plt.title(f"0DTE naivegex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
+                plt.title(f"0DTE volumegex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
                 ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
                 plt.tight_layout()
                 plt.savefig(heatmap_volume_gex_png_file)

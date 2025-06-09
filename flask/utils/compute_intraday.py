@@ -347,8 +347,8 @@ def compute_gex_core(df,from_scratch):
     
     #merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
     #merged_df['dex'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
-    #merged_df['vanna'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
-    #merged_df['charm'] = merged_df.delta * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
+    #merged_df['vanna'] = 
+    #merged_df['charm'] = 
 
     merged_df.volume_gex = merged_df.volume_gex.fillna(value=0)
     merged_df.state_gex = merged_df.state_gex.fillna(value=0)
