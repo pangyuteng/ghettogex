@@ -407,7 +407,7 @@ async def ws_sec_gex():
             for query_idx,query_kind in enumerate(query_dict.keys()):
                 res = gathered_res[query_idx]
                 if query_kind == 'net':
-                    columns = ['ticker','tstamp','spot_price','volume_gex','state_gex']
+                    columns = ['ticker','tstamp','spot_price','volume_gex','state_gex','dex','convexity']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df.volume_gex = df.volume_gex/1e9
@@ -419,7 +419,7 @@ async def ws_sec_gex():
                         app.logger.error(traceback.format_exc())
 
                 elif query_kind.startswith('strike'):
-                    columns = ['ticker','tstamp','strike','volume_gex','state_gex']
+                    columns = ['ticker','tstamp','strike','volume_gex','state_gex','dex','convexity']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df = df.replace({np.nan: None})
