@@ -407,11 +407,11 @@ async def ws_sec_gex():
             for query_idx,query_kind in enumerate(query_dict.keys()):
                 res = gathered_res[query_idx]
                 if query_kind == 'net':
-                    columns = ['ticker','tstamp','spot_price','naive_gex','true_gex']
+                    columns = ['ticker','tstamp','spot_price','volume_gex','state_gex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
-                        df.naive_gex = df.naive_gex/1e9
-                        df.true_gex = df.true_gex/1e9
+                        df.volume_gex = df.volume_gex/1e9
+                        df.state_gex = df.state_gex/1e9
                         spot_price = df.spot_price.to_list()[-1]
                     except:
                         df = pd.DataFrame([],columns=columns)
@@ -419,12 +419,12 @@ async def ws_sec_gex():
                         app.logger.error(traceback.format_exc())
 
                 elif query_kind.startswith('strike'):
-                    columns = ['ticker','tstamp','strike','naive_gex','true_gex']
+                    columns = ['ticker','tstamp','strike','volume_gex','state_gex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df = df.replace({np.nan: None})
-                        df.naive_gex = df.naive_gex/1e9
-                        df.true_gex = df.true_gex/1e9
+                        df.volume_gex = df.volume_gex/1e9
+                        df.state_gex = df.state_gex/1e9
                     except:
                         df = pd.DataFrame([],columns=columns)
                         app.logger.error(traceback.format_exc())
@@ -435,18 +435,18 @@ async def ws_sec_gex():
 
             try:
                 latest_df = query_dict["strike"]["df"]
-                max_true_gex = latest_df.at[latest_df.true_gex.argmax(),'strike']
-                min_true_gex = latest_df.at[latest_df.true_gex.argmin(),'strike']
-                max_naive_gex = latest_df.at[latest_df.naive_gex.argmax(),'strike']
-                min_naive_gex = latest_df.at[latest_df.naive_gex.argmin(),'strike']
-                xlimTrue = latest_df.true_gex.abs().max()*1.5
-                xlimNaive = latest_df.naive_gex.abs().max()*1.5
+                max_state_gex = latest_df.at[latest_df.state_gex.argmax(),'strike']
+                min_state_gex = latest_df.at[latest_df.state_gex.argmin(),'strike']
+                max_volume_gex = latest_df.at[latest_df.volume_gex.argmax(),'strike']
+                min_volume_gex = latest_df.at[latest_df.volume_gex.argmin(),'strike']
+                xlimTrue = latest_df.state_gex.abs().max()*1.5
+                xlimNaive = latest_df.volume_gex.abs().max()*1.5
             except:
                 latest_df = pd.DataFrame([])
-                max_true_gex = 100
-                min_true_gex = -100
-                max_naive_gex = 100
-                min_naive_gex = -100
+                max_state_gex = 100
+                min_state_gex = -100
+                max_volume_gex = 100
+                min_volume_gex = -100
                 xlimTrue = 999
                 xlimNaive = 999
 
@@ -458,8 +458,8 @@ async def ws_sec_gex():
                 lookback_keys=lookback_keys,
                 xlimTrue=xlimTrue,
                 xlimNaive=xlimNaive,
-                max_true_gex=max_true_gex,min_true_gex=min_true_gex,
-                max_naive_gex=max_naive_gex,min_naive_gex=min_naive_gex,
+                max_state_gex=max_state_gex,min_state_gex=min_state_gex,
+                max_volume_gex=max_volume_gex,min_volume_gex=min_volume_gex,
                 tstamp=tstamp_utc,ws_tstamp=ws_tstamp_utc)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
@@ -486,7 +486,7 @@ async def ws_sec_heatmap():
             strike_day_query_str = """
                 SELECT DISTINCT ON (ticker,date_trunc('minute', tstamp),strike) 
                 date_trunc('minute', tstamp) AS tstamp, ticker, strike,
-                AVG(naive_gex) as naive_gex, AVG(true_gex) as true_gex 
+                AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex 
                 FROM gex_strike 
                 WHERE ticker = %s and tstamp::date = %s
                 GROUP BY ticker,tstamp,strike
@@ -509,11 +509,11 @@ async def ws_sec_heatmap():
             for query_idx,query_kind in enumerate(query_dict.keys()):
                 res = gathered_res[query_idx]
                 if query_kind == 'net-day':
-                    columns = ['ticker','tstamp','spot_price','naive_gex','true_gex']
+                    columns = ['ticker','tstamp','spot_price','volume_gex','state_gex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
-                        df.naive_gex = df.naive_gex/1e9
-                        df.true_gex = df.true_gex/1e9
+                        df.volume_gex = df.volume_gex/1e9
+                        df.state_gex = df.state_gex/1e9
                         spot_price = df.spot_price.to_list()[-1]
                     except:
                         df = pd.DataFrame([],columns=columns)
@@ -521,11 +521,11 @@ async def ws_sec_heatmap():
                         app.logger.error(traceback.format_exc())
 
                 elif query_kind == 'strike-day':
-                    columns = ['ticker','tstamp','strike','naive_gex','true_gex']
+                    columns = ['ticker','tstamp','strike','volume_gex','state_gex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
-                        df.naive_gex = df.naive_gex/1e9
-                        df.true_gex = df.true_gex/1e9
+                        df.volume_gex = df.volume_gex/1e9
+                        df.state_gex = df.state_gex/1e9
                     except:
                         df = pd.DataFrame([],columns=columns)
                         app.logger.error(traceback.format_exc())
@@ -537,8 +537,8 @@ async def ws_sec_heatmap():
             with tempfile.TemporaryDirectory() as tmpdir:
                 net_gex_png_file = os.path.join(tmpdir,'net-gex.png')
                 heatmap_gex_png_file = os.path.join(tmpdir,'heatmap-gex.png')
-                heatmap_true_gex_png_file = os.path.join(tmpdir,'heatmap-true-gex.png')
-                heatmap_naive_gex_png_file = os.path.join(tmpdir,'heatmap-naive-gex.png')
+                heatmap_state_gex_png_file = os.path.join(tmpdir,'heatmap-true-gex.png')
+                heatmap_volume_gex_png_file = os.path.join(tmpdir,'heatmap-naive-gex.png')
 
                 gex_net_df = query_dict["net-day"]["df"]
                 gex_strike_df = query_dict["strike-day"]["df"]
@@ -552,13 +552,13 @@ async def ws_sec_heatmap():
                 
                 gex_net_df = gex_net_df.groupby(['tstamp_sec']).agg(
                     spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
-                    naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="median"),
-                    true_gex=pd.NamedAgg(column="true_gex", aggfunc="median"),
+                    volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="median"),
+                    state_gex=pd.NamedAgg(column="state_gex", aggfunc="median"),
                 ).reset_index()
 
                 plt.figure(1)
-                plt.plot(gex_net_df.tstamp_sec,gex_net_df.naive_gex,label='naive_gex')
-                plt.plot(gex_net_df.tstamp_sec,gex_net_df.true_gex,label='true_gex')
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df.volume_gex,label='volume_gex')
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df.state_gex,label='state_gex')
                 plt.grid(True)
                 plt.legend()
                 plt.tight_layout()
@@ -574,12 +574,12 @@ async def ws_sec_heatmap():
                 ####################
 
                 hue_norm = (-2,2)
-                myval = np.ceil(df.true_gex.abs().max())
+                myval = np.ceil(df.state_gex.abs().max())
                 hue_norm = (-myval,myval)
 
                 color_palette = "RdYlGn"
                 plt.figure(1)
-                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='true_gex',
+                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='state_gex',
                     hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
 
                 norm = plt.Normalize(*hue_norm)
@@ -592,18 +592,18 @@ async def ws_sec_heatmap():
                 plt.title(f"0DTE truegex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
                 ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
                 plt.tight_layout()
-                plt.savefig(heatmap_true_gex_png_file)
+                plt.savefig(heatmap_state_gex_png_file)
                 plt.close()
                 
                 ####################
 
                 hue_norm = (-2,2)
-                myval = np.ceil(df.naive_gex.abs().max())
+                myval = np.ceil(df.volume_gex.abs().max())
                 hue_norm = (-myval,myval)
 
                 color_palette = "RdYlGn"
                 plt.figure(1)
-                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='naive_gex',
+                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='volume_gex',
                     hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
 
                 norm = plt.Normalize(*hue_norm)
@@ -616,23 +616,23 @@ async def ws_sec_heatmap():
                 plt.title(f"0DTE naivegex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
                 ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
                 plt.tight_layout()
-                plt.savefig(heatmap_naive_gex_png_file)
+                plt.savefig(heatmap_volume_gex_png_file)
                 plt.close()
 
                 with open(net_gex_png_file,'rb') as f:
                     net_gex_binary = base64.b64encode(f.read()).decode("utf-8")
 
-                with open(heatmap_naive_gex_png_file,'rb') as f:
-                    heatmap_naive_gex_binary = base64.b64encode(f.read()).decode("utf-8")
+                with open(heatmap_volume_gex_png_file,'rb') as f:
+                    heatmap_volume_gex_binary = base64.b64encode(f.read()).decode("utf-8")
 
-                with open(heatmap_true_gex_png_file,'rb') as f:
-                    heatmap_true_gex_binary = base64.b64encode(f.read()).decode("utf-8")
+                with open(heatmap_state_gex_png_file,'rb') as f:
+                    heatmap_state_gex_binary = base64.b64encode(f.read()).decode("utf-8")
                 
             data_str = render_html("ws-sec-heatmap.html",
                 ticker=ticker,
                 net_gex_binary=net_gex_binary,
-                heatmap_naive_gex_binary=heatmap_naive_gex_binary,
-                heatmap_true_gex_binary=heatmap_true_gex_binary,
+                heatmap_volume_gex_binary=heatmap_volume_gex_binary,
+                heatmap_state_gex_binary=heatmap_state_gex_binary,
                 ws_tstamp=ws_tstamp_utc
             )
             await websocket.send(data_str)

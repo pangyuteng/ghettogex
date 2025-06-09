@@ -323,7 +323,7 @@ def compute_gex_core(df,from_scratch):
     merged_df.ask_volume = merged_df.ask_volume.fillna(value=0)
     merged_df.bid_volume = merged_df.bid_volume.fillna(value=0)
 
-    # NOTE: let `naive_gex` open_interest be updated using
+    # NOTE: let `volume_gex` open_interest be updated using
     # ask means buy, dealer is short, bid means sell, dealer is long
     merged_df.open_interest = merged_df.open_interest-merged_df.ask_volume+merged_df.bid_volume
     
@@ -337,21 +337,21 @@ def compute_gex_core(df,from_scratch):
 
     # UNSURE HERE... stil at debug phase
     # KISS.
-    # `naive_gex` update summary based on bid-ask volume using summary open_interest
-    # `true_gex` uses timeandsale and true_oi (for now starts from 0 at start of day)
+    # `volume_gex` update summary based on bid-ask volume using summary open_interest
+    # `state_gex` uses timeandsale and true_oi (for now starts from 0 at start of day)
     
-    # naive_gex is wrong
-    merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
+    # volume_gex is wrong
+    merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
 
-    merged_df['true_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
+    merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
     
     #merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
     #merged_df['dex'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
     #merged_df['vanna'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
     #merged_df['charm'] = merged_df.delta * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
 
-    merged_df.naive_gex = merged_df.naive_gex.fillna(value=0)
-    merged_df.true_gex = merged_df.true_gex.fillna(value=0)
+    merged_df.volume_gex = merged_df.volume_gex.fillna(value=0)
+    merged_df.state_gex = merged_df.state_gex.fillna(value=0)
     if from_scratch:
         # quality check
         reqd_event_list = ['summary','greeks','timeandsale','candle']
@@ -372,7 +372,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     time_a = time.time()
 
     gex_df = None
-    csv_file = f"tmp/naive_gex-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv"
+    csv_file = f"tmp/volume_gex-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv"
     csv_file = None # TOO SLOW! FOR DEBUG
     utc = pytz.timezone('UTC')
     utc_tstamp = et_tstamp.astimezone(tz=utc)
@@ -398,7 +398,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
         'spot_price','gamma',
         'ticker','expiration','contract_type','strike',
         'open_interest','true_oi',
-        'naive_gex','true_gex',
+        'volume_gex','state_gex',
     ]
     # 'open','high','low','close','volume','ask_volume','bid_volume',
     # 'price','volatility','delta','gamma','theta','rho','vega',
@@ -418,7 +418,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
-            logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.true_gex.sum()}')
+            logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.state_gex.sum()}')
 
             time_c = time.time()
             logger.info(f'compute_gex_core {time_c-time_b}')
@@ -432,7 +432,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
-            logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.true_gex.sum()}')
+            logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.state_gex.sum()}')
 
             time_c = time.time()
             logger.info(f'compute_gex_core {time_c-time_b}')
@@ -446,20 +446,20 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             query_dict = {}
 
-            event_agg_query_str = "INSERT INTO event_agg (event_symbol,dstamp,open_interest,naive_gex,true_oi,true_gex,tstamp,ticker,expiration,contract_type,strike) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (event_symbol,dstamp) do update set open_interest = %s, naive_gex = %s, true_oi = %s, true_gex = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s;"
+            event_agg_query_str = "INSERT INTO event_agg (event_symbol,dstamp,open_interest,volume_gex,true_oi,state_gex,tstamp,ticker,expiration,contract_type,strike) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (event_symbol,dstamp) do update set open_interest = %s, volume_gex = %s, true_oi = %s, state_gex = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s;"
             async def insert_event_agg(row):
-                query_args = [row.event_symbol,row.dstamp,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.naive_gex,row.true_oi,row.true_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
+                query_args = [row.event_symbol,row.dstamp,row.open_interest,row.volume_gex,row.true_oi,row.state_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.volume_gex,row.true_oi,row.state_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
                 return query_args
             query_dict[event_agg_query_str] = await asyncio.gather(*(insert_event_agg(row) for n,row in agg_df.iterrows()))
             
             # TODO: grab call_oi,put_oi,naive_dex,true_dex,
 
-            table_cols = ['ticker','strike','tstamp','naive_gex','true_gex']
+            table_cols = ['ticker','strike','tstamp','volume_gex','state_gex']
             agg_df['ticker'] = ticker
             strike_gex_df = agg_df[table_cols]
             strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).agg(
-                naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
-                true_gex=pd.NamedAgg(column="true_gex", aggfunc="sum"),
+                volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
+                state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
             ).reset_index()
             
             """
@@ -480,25 +480,25 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             """
 
             # 'call_oi', 'put_oi', 'call_gex','put_gex', 'dex', 'vanna'?
-            gex_strike_query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,naive_gex,true_gex) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set naive_gex = %s,true_gex = %s;"
+            gex_strike_query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,volume_gex,state_gex) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set volume_gex = %s,state_gex = %s;"
             async def insert_gex_strike(row):
-                query_args = [row.ticker,row.strike,row.tstamp,row.naive_gex,row.true_gex,row.naive_gex,row.true_gex]
+                query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex,row.volume_gex,row.state_gex]
                 return query_args
             query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in strike_gex_df.iterrows()))
             
             # 'true_dex','call_gex','put_gex', major_call_gex_strike, major_put_gex_strike
-            table_cols = ['ticker','tstamp','spot_price','naive_gex','true_gex']
+            table_cols = ['ticker','tstamp','spot_price','volume_gex','state_gex']
             agg_df['ticker'] = ticker
             net_gex_df = agg_df[table_cols]
             net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
                 spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
-                naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
-                true_gex=pd.NamedAgg(column="true_gex", aggfunc="sum"),
+                volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
+                state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
             ).reset_index()
 
-            gex_net_query_str = "INSERT INTO gex_net (ticker,tstamp,naive_gex,true_gex,spot_price) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,tstamp) do update set naive_gex = %s,true_gex = %s, spot_price = %s;"
+            gex_net_query_str = "INSERT INTO gex_net (ticker,tstamp,volume_gex,state_gex,spot_price) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,tstamp) do update set volume_gex = %s,state_gex = %s, spot_price = %s;"
             async def insert_gex_net(row):
-                query_args = [row.ticker,row.tstamp,row.naive_gex,row.true_gex,row.spot_price,row.naive_gex,row.true_gex,row.spot_price]
+                query_args = [row.ticker,row.tstamp,row.volume_gex,row.state_gex,row.spot_price,row.volume_gex,row.state_gex,row.spot_price]
                 return query_args
             query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
 

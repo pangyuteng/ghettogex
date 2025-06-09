@@ -5,20 +5,20 @@
 
   {% for n,row in df.iterrows() %}
   updateData.push({
-    x: [0, {{row.true_gex}}],
+    x: [0, {{row.state_gex}}],
     y: [{{row.strike}}, {{row.strike}}],
     mode: 'lines',
-    {% if row.true_gex > 0 %}
+    {% if row.state_gex > 0 %}
     line: {color: 'rgb(50, 255, 50)', width: 3}
     {% else %}
     line: {color: 'rgb(255, 50, 50)', width: 3}
     {% endif %}
   })
   updateData2.push({
-    x: [0, {{row.naive_gex}}],
+    x: [0, {{row.volume_gex}}],
     y: [{{row.strike}}, {{row.strike}}],
     mode: 'lines',
-    {% if row.naive_gex > 0 %}
+    {% if row.volume_gex > 0 %}
     line: {color: 'rgb(50, 255, 50)', width: 3}
     {% else %}
     line: {color: 'rgb(255, 50, 50)', width: 3}
@@ -30,7 +30,7 @@
   {% if query_dict %}
   {% for n,row in query_dict[lookback].df.iterrows() %}
   updateData.push({
-      x: [{{row.true_gex}}, {{row.true_gex}}],
+      x: [{{row.state_gex}}, {{row.state_gex}}],
       y: [{{row.strike}}, {{row.strike}}],
       mode: 'markers',
       {% if lookback == 'strike-1min' %}
@@ -48,7 +48,7 @@
       {% endif %}
   })
   updateData2.push({
-      x: [{{row.naive_gex}}, {{row.naive_gex}}],
+      x: [{{row.volume_gex}}, {{row.volume_gex}}],
       y: [{{row.strike}}, {{row.strike}}],
       mode: 'markers',
       {% if lookback == 'strike-1min' %}
@@ -92,10 +92,10 @@
   })
   {% endif %}
 
-  {% if max_true_gex %}
+  {% if max_state_gex %}
   updateData.push({
       x: [ {{ -1*xlimTrue }}, {{ xlimTrue }} ],
-      y: [ {{ max_true_gex }}, {{ max_true_gex }} ],
+      y: [ {{ max_state_gex }}, {{ max_state_gex }} ],
       mode: 'lines',
       line: {
           color: 'rgb(0,255,0)',
@@ -105,10 +105,10 @@
   })
   {% endif %}
 
-  {% if max_naive_gex %}
+  {% if max_volume_gex %}
   updateData2.push({
       x: [ {{ -1*xlimNaive }}, {{ xlimNaive }} ],
-      y: [ {{ max_naive_gex }}, {{ max_naive_gex }} ],
+      y: [ {{ max_volume_gex }}, {{ max_volume_gex }} ],
       mode: 'lines',
       line: {
           color: 'rgb(0,255,0)',
@@ -118,10 +118,10 @@
   })
   {% endif %}
 
-  {% if min_true_gex %}
+  {% if min_state_gex %}
   updateData.push({
       x: [ {{ -1*xlimTrue }}, {{ xlimTrue }} ],
-      y: [ {{ min_true_gex }}, {{ min_true_gex }} ],
+      y: [ {{ min_state_gex }}, {{ min_state_gex }} ],
       mode: 'lines',
       line: {
           color: 'rgb(255,0,0)',
@@ -131,10 +131,10 @@
   })
   {% endif %}
 
-  {% if min_naive_gex %}
+  {% if min_volume_gex %}
   updateData2.push({
       x: [ {{ -1*xlimNaive }}, {{ xlimNaive }} ],
-      y: [ {{ min_naive_gex }}, {{ min_naive_gex }} ],
+      y: [ {{ min_volume_gex }}, {{ min_volume_gex }} ],
       mode: 'lines',
       line: {
           color: 'rgb(255,0,0)',
