@@ -19,7 +19,7 @@
 </head>
 
 <body>
-
+<div hx-ext="ws" ws-connect="/ws-status"></div>
 <div hx-ext="ws" ws-connect="/ticker/ws-sec-gex?ticker={{ticker}}"></div>
 <div hx-ext="ws" ws-connect="/ticker/ws-sec-heatmap?ticker={{ticker}}"></div>
 
@@ -63,6 +63,9 @@ Plotly.newPlot(plotDiv, data, layout);
 </div>
 
 <div id="myHeatMapDiv">
+</div>
+
+<div id="myStatusDiv">
 </div>
 
 </body>

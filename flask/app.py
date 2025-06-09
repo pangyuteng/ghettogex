@@ -302,6 +302,49 @@ async def sec_gex():
     ticker = request.args.get("ticker")
     return await render_template("sec-gex.html",ticker=ticker)
 
+@app.websocket('/ws-status')
+@login_required
+async def ws_status():
+    try:
+        while True:
+
+            mysec = 1
+            eastern = pytz.timezone('US/Eastern')
+            utc = pytz.timezone('UTC')
+            tstamp_et = now_in_new_york()
+            ws_tstamp_utc = tstamp_et.astimezone(tz=utc)
+
+            query_str = """
+            (select 'timeandsale' as event_type, count(timeandsale_id) as id_count from timeandsale where tstamp > now() - interval '2 second')
+            union all (
+            select 'candle' as event_type, count(candle_id) as id_count from candle where tstamp > now() - interval '2 second'
+            ) union all (
+            select 'quote' as event_type, count(quote_id) as id_count from quote where tstamp > now() - interval '2 second'
+            ) union all (
+            select 'greeks' as event_type, count(greeks_id) as id_count from greeks where tstamp > now() - interval '60 second'
+            ) union all (
+            select 'gex_net' as event_type, count(gex_net_id) as id_count from gex_net where tstamp > now() - interval '1 second'
+            ) union all (
+            select 'gex_strike' as event_type, count(gex_strike_id) as id_count from gex_strike where tstamp > now() - interval '1 second'
+            )"""
+            query_args = ()
+            fetched = await apostgres_execute(None,query_str,query_args)
+            columns = ['event_type','id_count']
+            try:
+                df = pd.DataFrame([x for x in fetched])
+            except:
+                df = pd.DataFrame([],columns=columns)
+                app.logger.error(traceback.format_exc())
+
+            data_str = render_html("ws-status.html",df=df)
+            await websocket.send(data_str)
+            await asyncio.sleep(mysec)
+
+    except asyncio.CancelledError:
+        app.logger.error(traceback.format_exc())
+        app.logger.error('Client disconnected')
+        raise
+
 @app.websocket('/ticker/ws-sec-gex')
 @login_required
 async def ws_sec_gex():
@@ -314,7 +357,7 @@ async def ws_sec_gex():
             utc = pytz.timezone('UTC')
             tstamp_et = now_in_new_york()
             ws_tstamp_utc = tstamp_et.astimezone(tz=utc)
-            
+
             query_str = """
             select * from gex_net where ticker = %s
             order by tstamp desc limit 1
@@ -335,6 +378,7 @@ async def ws_sec_gex():
             strike_query_str = "select * from gex_strike where ticker = %s and tstamp = %s order by tstamp"
             net_day_query_str = "select * from gex_net where ticker = %s and tstamp >= %s order by tstamp"
             strike_day_query_str = "select * from gex_strike where ticker = %s and tstamp >= %s order by tstamp"
+
             if tstamp_utc:
                 # TODO: use 1 query per table if you want to do scatter plots.
                 #'net-day': {'query_str':net_day_query_str,'query_args':(ticker,day_stamp)},
@@ -374,7 +418,7 @@ async def ws_sec_gex():
                         spot_price = -1
                         app.logger.error(traceback.format_exc())
 
-                else:
+                elif query_kind.startswith('strike'):
                     columns = ['ticker','tstamp','strike','naive_gex','true_gex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
@@ -384,6 +428,8 @@ async def ws_sec_gex():
                     except:
                         df = pd.DataFrame([],columns=columns)
                         app.logger.error(traceback.format_exc())
+                else:
+                    raise NotImplementedError()
 
                 query_dict[query_kind]["df"]=df
 
@@ -408,7 +454,8 @@ async def ws_sec_gex():
                 ticker=ticker,
                 spot_price=spot_price,
                 df=latest_df,
-                query_dict=query_dict,lookback_keys=lookback_keys,
+                query_dict=query_dict,
+                lookback_keys=lookback_keys,
                 xlimTrue=xlimTrue,
                 xlimNaive=xlimNaive,
                 max_true_gex=max_true_gex,min_true_gex=min_true_gex,
@@ -473,7 +520,7 @@ async def ws_sec_heatmap():
                         spot_price = -1
                         app.logger.error(traceback.format_exc())
 
-                else:
+                elif query_kind == 'strike-day':
                     columns = ['ticker','tstamp','strike','naive_gex','true_gex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
@@ -482,6 +529,8 @@ async def ws_sec_heatmap():
                     except:
                         df = pd.DataFrame([],columns=columns)
                         app.logger.error(traceback.format_exc())
+                else:
+                    raise NotImplementedError()
 
                 query_dict[query_kind]["df"]=df
 

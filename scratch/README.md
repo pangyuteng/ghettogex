@@ -114,6 +114,7 @@ docker run -it -u $(id -u):$(id -g) \
 
 + [x] for naive-gex, added more tickers, and show on main page.
 + [x] added cron job to do vacuum
++ [x] health status (latest tstamps from all event tables)
 
 + [o] study hua volatility
     + when do you pick naive vs order-book vs iv-surface?
@@ -159,8 +160,6 @@ docker run -it -u $(id -u):$(id -g) \
 
 + [ ] how to assess/confirm trend and resistance?
       dex increase, gex increase.
-
-+ [ ] health status (latest tstamps from all event tables)
 
 + [ ] play sound during events.
     + [ ] flash crash
