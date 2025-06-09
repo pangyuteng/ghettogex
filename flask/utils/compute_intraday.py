@@ -44,7 +44,7 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,futu
     columns = [
         'event_type','event_symbol','time',
         'spot_price','open','high','low','close','volume','ask_volume','bid_volume',
-        'open_interest','price','bid_price','ask_price','volatility','delta','gamma','theta','rho','vega',
+        'open_interest','true_oi','price','bid_price','ask_price','volatility','delta','gamma','theta','rho','vega',
         'bid_time','ask_time','bid_size','ask_size',
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
@@ -338,8 +338,8 @@ def compute_gex_core(df,from_scratch):
     merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
     # state gex is a WIP.
     merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
-    
-    #merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
+    merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
+
     #merged_df['dex'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
     #merged_df['vanna'] = 
     #merged_df['charm'] = 
