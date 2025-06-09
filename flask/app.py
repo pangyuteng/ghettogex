@@ -554,6 +554,8 @@ async def ws_sec_heatmap():
                     spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
                     volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="median"),
                     state_gex=pd.NamedAgg(column="state_gex", aggfunc="median"),
+                    dex=pd.NamedAgg(column="dex", aggfunc="median"),
+                    convexity=pd.NamedAgg(column="convexity", aggfunc="median"),
                 ).reset_index()
 
                 plt.figure(1)
