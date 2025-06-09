@@ -612,7 +612,7 @@ async def ws_sec_heatmap():
                 myval = np.ceil(df.convexity.abs().max())
                 hue_norm = (-myval,myval)
 
-                color_palette = "RdYlGn"
+                color_palette = "cool_r"
                 plt.figure(1)
                 ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='convexity',
                     hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
