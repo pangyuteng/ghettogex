@@ -15,13 +15,13 @@
     {% endif %}
   })
   updateData2.push({
-    x: [0, {{row.volume_gex}}],
+    x: [0, {{row.convexity}}],
     y: [{{row.strike}}, {{row.strike}}],
     mode: 'lines',
-    {% if row.volume_gex > 0 %}
-    line: {color: 'rgb(50, 255, 50)', width: 3}
+    {% if row.convexity > 0 %}
+    line: {color: 'rgb(50, 255, 255)', width: 3}
     {% else %}
-    line: {color: 'rgb(255, 50, 50)', width: 3}
+    line: {color: 'rgb(128, 50, 128)', width: 3}
     {% endif %}
   })
   {% endfor %}
@@ -48,7 +48,7 @@
       {% endif %}
   })
   updateData2.push({
-      x: [{{row.volume_gex}}, {{row.volume_gex}}],
+      x: [{{row.convexity}}, {{row.convexity}}],
       y: [{{row.strike}}, {{row.strike}}],
       mode: 'markers',
       {% if lookback == 'strike-1min' %}
@@ -71,7 +71,7 @@
 
   {% if spot_price %}
   updateData.push({
-      x: [ {{ -1*xlimTrue }}, {{ xlimTrue }} ],
+      x: [ {{ -1*xlimState }}, {{ xlimState }} ],
       y: [ {{ spot_price }}, {{ spot_price }} ],
       mode: 'lines',
       line: {
@@ -94,7 +94,7 @@
 
   {% if max_state_gex %}
   updateData.push({
-      x: [ {{ -1*xlimTrue }}, {{ xlimTrue }} ],
+      x: [ {{ -1*xlimState }}, {{ xlimState }} ],
       y: [ {{ max_state_gex }}, {{ max_state_gex }} ],
       mode: 'lines',
       line: {
@@ -105,10 +105,10 @@
   })
   {% endif %}
 
-  {% if max_volume_gex %}
+  {% if max_convexity %}
   updateData2.push({
-      x: [ {{ -1*xlimNaive }}, {{ xlimNaive }} ],
-      y: [ {{ max_volume_gex }}, {{ max_volume_gex }} ],
+      x: [ {{ -1*xlimConvexity }}, {{ xlimConvexity }} ],
+      y: [ {{ max_convexity }}, {{ max_convexity }} ],
       mode: 'lines',
       line: {
           color: 'rgb(0,255,0)',
@@ -120,7 +120,7 @@
 
   {% if min_state_gex %}
   updateData.push({
-      x: [ {{ -1*xlimTrue }}, {{ xlimTrue }} ],
+      x: [ {{ -1*xlimState }}, {{ xlimState }} ],
       y: [ {{ min_state_gex }}, {{ min_state_gex }} ],
       mode: 'lines',
       line: {
@@ -131,10 +131,10 @@
   })
   {% endif %}
 
-  {% if min_volume_gex %}
+  {% if min_convexity %}
   updateData2.push({
-      x: [ {{ -1*xlimNaive }}, {{ xlimNaive }} ],
-      y: [ {{ min_volume_gex }}, {{ min_volume_gex }} ],
+      x: [ {{ -1*xlimConvexity }}, {{ xlimConvexity }} ],
+      y: [ {{ min_convexity }}, {{ min_convexity }} ],
       mode: 'lines',
       line: {
           color: 'rgb(255,0,0)',
@@ -158,7 +158,7 @@
     },
     xaxis: {
         showgrid: true,
-        range: [ {{ -1*xlimTrue }},{{ xlimTrue }} ]
+        range: [ {{ -1*xlimState }},{{ xlimState }} ]
     },
     font: {
         family: 'Courier New, monospace',

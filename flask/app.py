@@ -437,18 +437,18 @@ async def ws_sec_gex():
                 latest_df = query_dict["strike"]["df"]
                 max_state_gex = latest_df.at[latest_df.state_gex.argmax(),'strike']
                 min_state_gex = latest_df.at[latest_df.state_gex.argmin(),'strike']
-                max_volume_gex = latest_df.at[latest_df.volume_gex.argmax(),'strike']
-                min_volume_gex = latest_df.at[latest_df.volume_gex.argmin(),'strike']
-                xlimTrue = latest_df.state_gex.abs().max()*1.5
-                xlimNaive = latest_df.volume_gex.abs().max()*1.5
+                max_convexity = latest_df.at[latest_df.convexity.argmax(),'strike']
+                min_convexity = latest_df.at[latest_df.convexity.argmin(),'strike']
+                xlimState = latest_df.state_gex.abs().max()*1.5
+                xlimConvexity = latest_df.convexity.abs().max()*1.5
             except:
                 latest_df = pd.DataFrame([])
                 max_state_gex = 100
                 min_state_gex = -100
                 max_volume_gex = 100
                 min_volume_gex = -100
-                xlimTrue = 999
-                xlimNaive = 999
+                xlimState = 999
+                xlimConvexity = 999
 
             data_str = render_html("ws-sec-gex.html",
                 ticker=ticker,
@@ -456,10 +456,10 @@ async def ws_sec_gex():
                 df=latest_df,
                 query_dict=query_dict,
                 lookback_keys=lookback_keys,
-                xlimTrue=xlimTrue,
-                xlimNaive=xlimNaive,
+                xlimState=xlimState,
+                xlimConvexity=xlimConvexity,
                 max_state_gex=max_state_gex,min_state_gex=min_state_gex,
-                max_volume_gex=max_volume_gex,min_volume_gex=min_volume_gex,
+                max_convexity=max_convexity,min_convexity=min_convexity,
                 tstamp=tstamp_utc,ws_tstamp=ws_tstamp_utc)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
@@ -563,7 +563,11 @@ async def ws_sec_heatmap():
                 ).reset_index()
 
                 plt.figure(1)
+                plt.subplot(121)
                 plt.plot(gex_net_df.tstamp_sec,gex_net_df.state_gex,label='state_gex')
+                plt.grid(True)
+                plt.legend()
+                plt.subplot(122)
                 plt.plot(gex_net_df.tstamp_sec,gex_net_df.dex,label='dex')
                 plt.plot(gex_net_df.tstamp_sec,gex_net_df.convexity,label='convexity')
                 plt.grid(True)
