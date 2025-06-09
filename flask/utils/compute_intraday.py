@@ -343,6 +343,8 @@ def compute_gex_core(df,from_scratch):
     merged_df['naive_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
 
     merged_df['true_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
+    
+    #merged_df['convexity'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
 
     merged_df.naive_gex = merged_df.naive_gex.fillna(value=0)
     merged_df.true_gex = merged_df.true_gex.fillna(value=0)
@@ -455,6 +457,23 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 naive_gex=pd.NamedAgg(column="naive_gex", aggfunc="sum"),
                 true_gex=pd.NamedAgg(column="true_gex", aggfunc="sum"),
             ).reset_index()
+            
+            """
+            dex double precision,
+            convexity double precision,
+            charm double precision,
+            vanna double precision,
+            call_oi double precision,
+            call_dex double precision,
+            call_gex double precision,
+            call_vanna double precision,
+            call_charm double precision,
+            put_oi double precision,
+            put_dex double precision,
+            put_gex double precision,
+            put_vanna double precision,
+            put_charm double precision,
+            """
 
             # 'call_oi', 'put_oi', 'call_gex','put_gex', 'dex', 'vanna'?
             gex_strike_query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,naive_gex,true_gex) VALUES (%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set naive_gex = %s,true_gex = %s;"
