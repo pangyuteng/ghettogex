@@ -38,6 +38,7 @@ HOME_TICKER_LIST_OF_LIST = [
     ['MSFT','NVDA','AAPL'], # TODO: sort by marketcap
     ['AMZN','GOOGL','META'],
     ['TSLA','AVGO','COST'],
+    ['TSM','MSTR','COIN'],
     #['JPM','ORCL','NFLX'],
     #['WMT','PLTR','LLY'],
 ]
