@@ -13,7 +13,11 @@
     <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js'></script>
 
     <style>
-
+    #foobar
+    {
+    width: 100%; //fallback
+    width: 100vw;
+    }
 
     </style>
 </head>
@@ -24,26 +28,29 @@
 <div hx-ext="ws" ws-connect="/ticker/ws-sec-heatmap?ticker={{ticker}}"></div>
 
 
-<div class="container">
+<div class="container" id="foobar">
     <div class="row">
 
-      <div class="col-sm">
-      <div id="plotDivDex"></div>
-      </div>
-
-      <div class="col-sm">
+      <div class="col">
       <div id="plotDivStateGex"></div>
       </div>
 
-      <div class="col-sm">
+      <div class="col">
       <div id="plotDivConv"></div>
       </div>
 
-      <div class="col-sm">
+    </div>
+    <div class="row">
+
+      <div class="col">
+      <div id="plotDivDex"></div>
+      </div>
+
+      <div class="col">
       <div id="plotDivVex"></div>
       </div>
 
-      <div class="col-sm">
+      <div class="col">
       <div id="plotDivCex"></div>
       </div>
 
@@ -53,7 +60,7 @@
 
 <script>
 var data = []
-var layout = { 
+var layoutLG = { 
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
     width: 512,
@@ -66,12 +73,25 @@ var layout = {
         color: 'rgba(200,200,200,1)'
     }
 };
+var layoutSM = { 
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    width: 320,
+    height: 320,
+    autosize: false,
+    showlegend: false,
+    font: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: 'rgba(200,200,200,1)'
+    }
+};
 
-Plotly.newPlot(plotDivDex, data, layout);
-Plotly.newPlot(plotDivStateGex, data, layout);
-Plotly.newPlot(plotDivConv, data, layout);
-Plotly.newPlot(plotDivVex, data, layout);
-Plotly.newPlot(plotDivCex, data, layout);
+Plotly.newPlot(plotDivStateGex, data, layoutLG);
+Plotly.newPlot(plotDivConv, data, layoutLG);
+Plotly.newPlot(plotDivDex, data, layoutSM);
+Plotly.newPlot(plotDivVex, data, layoutSM);
+Plotly.newPlot(plotDivCex, data, layoutSM);
 
 </script>
 

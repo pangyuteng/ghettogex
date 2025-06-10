@@ -412,6 +412,10 @@ async def ws_sec_gex():
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df.volume_gex = df.volume_gex/1e9
                         df.state_gex = df.state_gex/1e9
+                        df.convexity = df.convexity/1e9
+                        df.dex = df.dex/1e9
+                        df.vex = df.vex/1e9
+                        df.cex = df.cex/1e9
                         spot_price = df.spot_price.to_list()[-1]
                     except:
                         df = pd.DataFrame([],columns=columns)
@@ -425,6 +429,10 @@ async def ws_sec_gex():
                         df = df.replace({np.nan: None})
                         df.volume_gex = df.volume_gex/1e9
                         df.state_gex = df.state_gex/1e9
+                        df.convexity = df.convexity/1e9
+                        df.dex = df.dex/1e9
+                        df.vex = df.vex/1e9
+                        df.cex = df.cex/1e9
                     except:
                         df = pd.DataFrame([],columns=columns)
                         app.logger.error(traceback.format_exc())
@@ -489,11 +497,13 @@ async def ws_sec_heatmap():
             tstamp_et = now_in_new_york()
             ws_tstamp_utc = tstamp_et.astimezone(tz=utc)
             day_stamp = tstamp_et.strftime("%Y-%m-%d")
+            day_stamp = "2025-06-09"
             net_day_query_str = "select * from gex_net where ticker = %s and tstamp::date = %s order by tstamp"
             strike_day_query_str = """
                 SELECT DISTINCT ON (ticker,date_trunc('minute', tstamp),strike) 
                 date_trunc('minute', tstamp) AS tstamp, ticker, strike,
-                AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex,AVG(dex) as dex ,AVG(convexity) as convexity 
+                AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex,AVG(dex) as dex,
+                AVG(convexity) as convexity, AVG(vex) as vex,AVG(cex) as cex
                 FROM gex_strike 
                 WHERE ticker = %s and tstamp::date = %s
                 GROUP BY ticker,tstamp,strike
@@ -516,13 +526,15 @@ async def ws_sec_heatmap():
             for query_idx,query_kind in enumerate(query_dict.keys()):
                 res = gathered_res[query_idx]
                 if query_kind == 'net-day':
-                    columns = ['ticker','tstamp','spot_price','volume_gex','state_gex','dex','convexity']
+                    columns = ['ticker','tstamp','spot_price','volume_gex','state_gex','dex','convexity','vex','cex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df.volume_gex = df.volume_gex/1e9
                         df.state_gex = df.state_gex/1e9
-                        df.dex = df.dex/1e9
                         df.convexity = df.convexity/1e9
+                        df.dex = df.dex/1e9
+                        df.vex = df.vex/1e9
+                        df.cex = df.cex/1e9
                         spot_price = df.spot_price.to_list()[-1]
                     except:
                         df = pd.DataFrame([],columns=columns)
@@ -530,13 +542,15 @@ async def ws_sec_heatmap():
                         app.logger.error(traceback.format_exc())
 
                 elif query_kind == 'strike-day':
-                    columns = ['ticker','tstamp','strike','volume_gex','state_gex','dex','convexity']
+                    columns = ['ticker','tstamp','strike','volume_gex','state_gex','dex','convexity','vex','cex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df.volume_gex = df.volume_gex/1e9
                         df.state_gex = df.state_gex/1e9
-                        df.dex = df.dex/1e9
                         df.convexity = df.convexity/1e9
+                        df.dex = df.dex/1e9
+                        df.vex = df.vex/1e9
+                        df.cex = df.cex/1e9
                     except:
                         df = pd.DataFrame([],columns=columns)
                         app.logger.error(traceback.format_exc())
@@ -547,6 +561,7 @@ async def ws_sec_heatmap():
 
             with tempfile.TemporaryDirectory() as tmpdir:
                 net_gex_png_file = os.path.join(tmpdir,'net-gex.png')
+                net_gex2_png_file = os.path.join(tmpdir,'net-gex2.png')
                 heatmap_gex_png_file = os.path.join(tmpdir,'heatmap-gex.png')
                 heatmap_state_gex_png_file = os.path.join(tmpdir,'heatmap-state-gex.png')
                 heatmap_convexity_png_file = os.path.join(tmpdir,'heatmap-convexity.png')
@@ -565,22 +580,30 @@ async def ws_sec_heatmap():
                     spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
                     volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="median"),
                     state_gex=pd.NamedAgg(column="state_gex", aggfunc="median"),
-                    dex=pd.NamedAgg(column="dex", aggfunc="median"),
                     convexity=pd.NamedAgg(column="convexity", aggfunc="median"),
+                    dex=pd.NamedAgg(column="dex", aggfunc="median"),
+                    vex=pd.NamedAgg(column="vex", aggfunc="median"),
+                    cex=pd.NamedAgg(column="cex", aggfunc="median"),
                 ).reset_index()
 
                 plt.figure(1)
-                plt.subplot(211)
-                plt.plot(gex_net_df.tstamp_sec,gex_net_df.state_gex,label='state_gex')
-                plt.plot(gex_net_df.tstamp_sec,gex_net_df.convexity,label='convexity')
-                plt.legend()
-                plt.grid(True)
-                plt.subplot(212)
-                plt.plot(gex_net_df.tstamp_sec,gex_net_df.dex,label='dex')
-                plt.grid(True)
-                plt.legend()
+                for n,x in enumerate(['state_gex','volume_gex','convexity']):
+                    plt.subplot(311+n)
+                    plt.plot(gex_net_df.tstamp_sec,gex_net_df[x],label=x)
+                    plt.legend()
+                    plt.grid(True)
                 plt.tight_layout()
                 plt.savefig(net_gex_png_file)
+                plt.close()
+
+                plt.figure(1)
+                for n,x in enumerate(['dex','vex','cex']):
+                    plt.subplot(311+n)
+                    plt.plot(gex_net_df.tstamp_sec,gex_net_df[x],label=x)
+                    plt.legend()
+                    plt.grid(True)
+                plt.tight_layout()
+                plt.savefig(net_gex2_png_file)
                 plt.close()
 
                 ####################
@@ -640,6 +663,9 @@ async def ws_sec_heatmap():
                 with open(net_gex_png_file,'rb') as f:
                     net_gex_binary = base64.b64encode(f.read()).decode("utf-8")
 
+                with open(net_gex2_png_file,'rb') as f:
+                    net_gex2_binary = base64.b64encode(f.read()).decode("utf-8")
+
                 with open(heatmap_convexity_png_file,'rb') as f:
                     heatmap_convexity_binary = base64.b64encode(f.read()).decode("utf-8")
 
@@ -649,6 +675,7 @@ async def ws_sec_heatmap():
             data_str = render_html("ws-sec-heatmap.html",
                 ticker=ticker,
                 net_gex_binary=net_gex_binary,
+                net_gex2_binary=net_gex2_binary,
                 heatmap_convexity_binary=heatmap_convexity_binary,
                 heatmap_state_gex_binary=heatmap_state_gex_binary,
                 ws_tstamp=ws_tstamp_utc
