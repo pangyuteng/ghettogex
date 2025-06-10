@@ -276,7 +276,7 @@ def compute_exposure(tstamp,spot_price,spot_volatility,df):
 
         df.loc[put_idx,'dex'] = put_delta*put_oi*spot_price
         df.loc[put_idx,'gex'] = put_gamma*put_oi*spot_price*spot_price*-1
-        df.loc[put_idx,'vex'] = calc_vanna_ex(np_spot_price, put_v, put_t, dividend_yield, put_oi, put_dp, call_pdf_dp).squeeze().astype(np.float32)
+        df.loc[put_idx,'vex'] = calc_vanna_ex(np_spot_price, put_v, put_t, dividend_yield, put_oi, put_dp, put_pdf_dp).squeeze().astype(np.float32)
         df.loc[put_idx,'cex'] = calc_charm_ex(np_spot_price, put_v, put_t, yield_10yr, dividend_yield, put_opt_type, put_oi, put_dp, put_cdf_dp, put_pdf_dp).squeeze().astype(np.float32)
         
     return df

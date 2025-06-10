@@ -275,7 +275,7 @@ def get_size_signed(row):
     else:
         return 0 # assume mid is matched
     
-def compute_gex_core(df,from_scratch):
+def compute_gex_core(df,from_scratch,first_minute=False):
     # NOTE: we sort by time first, since tstamp is postgres insert time.
     df = df.sort_values(by=['event_type','time','tstamp'])
 
@@ -383,8 +383,11 @@ def compute_gex_core(df,from_scratch):
     merged_df['vex'] = 0.0
     merged_df['cex'] = 0.0
     try:
-        merged_df = compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
-        merged_df = merged_df.rename(columns={"gex":"state_gex"})
+        if first_minute is False:
+            merged_df = compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
+            merged_df = merged_df.rename(columns={"gex":"state_gex"})
+        else:
+            merged_df['state_gex'] = 0.0
     except:
         traceback.print_exc()
 
@@ -458,7 +461,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             event_df = await get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,market_open_tstamp_utc)
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
-            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
+            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch,first_minute=first_minute)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
             logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.state_gex.sum()}')
@@ -472,7 +475,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
-            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch)
+            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch,first_minute=first_minute)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
             logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.state_gex.sum()}')
