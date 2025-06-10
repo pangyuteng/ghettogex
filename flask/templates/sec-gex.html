@@ -13,12 +13,6 @@
     <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js'></script>
 
     <style>
-    #foobar
-    {
-    width: 100%; //fallback
-    width: 100vw;
-    }
-
     </style>
 </head>
 
@@ -27,10 +21,8 @@
 <div hx-ext="ws" ws-connect="/ticker/ws-sec-gex?ticker={{ticker}}"></div>
 <div hx-ext="ws" ws-connect="/ticker/ws-sec-heatmap?ticker={{ticker}}"></div>
 
-
-<div class="container" id="foobar">
+<div class="container-fluid">
     <div class="row">
-
       <div class="col">
       <div id="plotDivStateGex"></div>
       </div>
@@ -38,9 +30,6 @@
       <div class="col">
       <div id="plotDivConv"></div>
       </div>
-
-    </div>
-    <div class="row">
 
       <div class="col">
       <div id="plotDivDex"></div>
@@ -76,8 +65,8 @@ var layoutLG = {
 var layoutSM = { 
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    width: 320,
-    height: 320,
+    width: 510,
+    height: 510,
     autosize: false,
     showlegend: false,
     font: {
