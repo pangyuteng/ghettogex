@@ -1,4 +1,7 @@
 
+https://en.wikipedia.org/wiki/Greeks_(finance)
+see section Formulae for European option Greeks for formulas
+
 ## first derivative greeks
 
 
