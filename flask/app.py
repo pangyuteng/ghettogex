@@ -563,11 +563,13 @@ async def ws_sec_heatmap():
                 query_dict[query_kind]["df"]=df
 
             with tempfile.TemporaryDirectory() as tmpdir:
-                net_gex_png_file = os.path.join(tmpdir,'net-gex.png')
-                net_gex2_png_file = os.path.join(tmpdir,'net-gex2.png')
-                heatmap_gex_png_file = os.path.join(tmpdir,'heatmap-gex.png')
+                net_ex_png_file = os.path.join(tmpdir,'net-ex.png')
+                net_ex2_png_file = os.path.join(tmpdir,'net-ex2.png')
                 heatmap_state_gex_png_file = os.path.join(tmpdir,'heatmap-state-gex.png')
                 heatmap_convexity_png_file = os.path.join(tmpdir,'heatmap-convexity.png')
+                heatmap_dex_png_file = os.path.join(tmpdir,'heatmap-dex.png')
+                heatmap_vex_png_file = os.path.join(tmpdir,'heatmap-vex.png')
+                heatmap_cex_png_file = os.path.join(tmpdir,'heatmap-cex.png')
 
                 gex_net_df = query_dict["net-day"]["df"]
                 gex_strike_df = query_dict["strike-day"]["df"]
@@ -596,7 +598,7 @@ async def ws_sec_heatmap():
                     plt.legend()
                     plt.grid(True)
                 plt.tight_layout()
-                plt.savefig(net_gex_png_file)
+                plt.savefig(net_ex_png_file)
                 plt.close()
 
                 plt.figure(1)
@@ -606,7 +608,7 @@ async def ws_sec_heatmap():
                     plt.legend()
                     plt.grid(True)
                 plt.tight_layout()
-                plt.savefig(net_gex2_png_file)
+                plt.savefig(net_ex2_png_file)
                 plt.close()
 
                 ####################
@@ -663,24 +665,108 @@ async def ws_sec_heatmap():
                 plt.savefig(heatmap_convexity_png_file)
                 plt.close()
 
-                with open(net_gex_png_file,'rb') as f:
-                    net_gex_binary = base64.b64encode(f.read()).decode("utf-8")
+                ####################
 
-                with open(net_gex2_png_file,'rb') as f:
-                    net_gex2_binary = base64.b64encode(f.read()).decode("utf-8")
+                myval = np.ceil(df.dex.abs().max())
+                hue_norm = (-myval,myval)
+
+                color_palette = "cool_r"
+                plt.figure(1)
+                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='dex',
+                    hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
+
+                norm = plt.Normalize(*hue_norm)
+                sm = plt.cm.ScalarMappable(cmap=color_palette, norm=norm)
+                ax.figure.colorbar(sm, ax=ax)
+
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
+                plt.xticks(rotation=30)
+
+                plt.title(f"0DTE dex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
+                ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
+                plt.tight_layout()
+                plt.savefig(heatmap_dex_png_file)
+                plt.close()
+
+                ####################
+
+                hue_norm = (-2,2)
+                myval = np.ceil(df.vex.abs().max())
+                hue_norm = (-myval,myval)
+
+                color_palette = "cool_r"
+                plt.figure(1)
+                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='vex',
+                    hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
+
+                norm = plt.Normalize(*hue_norm)
+                sm = plt.cm.ScalarMappable(cmap=color_palette, norm=norm)
+                ax.figure.colorbar(sm, ax=ax)
+
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
+                plt.xticks(rotation=30)
+
+                plt.title(f"0DTE vex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
+                ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
+                plt.tight_layout()
+                plt.savefig(heatmap_vex_png_file)
+                plt.close()
+
+                ####################
+
+                hue_norm = (-2,2)
+                myval = np.ceil(df.cex.abs().max())
+                hue_norm = (-myval,myval)
+
+                color_palette = "cool_r"
+                plt.figure(1)
+                ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='cex',
+                    hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
+
+                norm = plt.Normalize(*hue_norm)
+                sm = plt.cm.ScalarMappable(cmap=color_palette, norm=norm)
+                ax.figure.colorbar(sm, ax=ax)
+
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
+                plt.xticks(rotation=30)
+
+                plt.title(f"0DTE cex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
+                ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
+                plt.tight_layout()
+                plt.savefig(heatmap_cex_png_file)
+                plt.close()
+
+                with open(net_ex_png_file,'rb') as f:
+                    net_ex_binary = base64.b64encode(f.read()).decode("utf-8")
+
+                with open(net_ex2_png_file,'rb') as f:
+                    net_ex2_binary = base64.b64encode(f.read()).decode("utf-8")
 
                 with open(heatmap_convexity_png_file,'rb') as f:
                     heatmap_convexity_binary = base64.b64encode(f.read()).decode("utf-8")
 
                 with open(heatmap_state_gex_png_file,'rb') as f:
                     heatmap_state_gex_binary = base64.b64encode(f.read()).decode("utf-8")
-                
+
+                with open(heatmap_dex_png_file,'rb') as f:
+                    dex_binary = base64.b64encode(f.read()).decode("utf-8")
+
+                with open(heatmap_vex_png_file,'rb') as f:
+                    vex_binary = base64.b64encode(f.read()).decode("utf-8")
+
+                with open(heatmap_cex_png_file,'rb') as f:
+                    cex_binary = base64.b64encode(f.read()).decode("utf-8")
+
+
             data_str = render_html("ws-sec-heatmap.html",
                 ticker=ticker,
-                net_gex_binary=net_gex_binary,
-                net_gex2_binary=net_gex2_binary,
+                net_ex_binary=net_ex_binary,
+                net_ex2_binary=net_ex2_binary,
                 heatmap_convexity_binary=heatmap_convexity_binary,
                 heatmap_state_gex_binary=heatmap_state_gex_binary,
+                dex_binary=dex_binary,
+                vex_binary=vex_binary,
+                cex_binary=cex_binary,
                 ws_tstamp=ws_tstamp_utc
             )
             await websocket.send(data_str)

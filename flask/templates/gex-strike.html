@@ -48,7 +48,7 @@ var layout = {
     yaxis: {
         showgrid: true,
         range: {% if ticker == 'VIX' %}[ {{spot_price}}*0.50, {{spot_price*2}} ]
-        {% else %}[ {{spot_price}}*0.80, {{spot_price*1.2}} ]{% endif %}
+        {% else %}[ {{spot_price}}*0.90, {{spot_price*1.10}} ]{% endif %}
     },
     xaxis2: {
         overlaying: 'x',
