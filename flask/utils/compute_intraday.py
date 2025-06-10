@@ -343,7 +343,6 @@ def compute_gex_core(df,from_scratch):
     merged_df['underlying_volatility'] = underlying_volatility
     merged_df['spot_price'] = spot_price
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
-    merged_df['delta_sign'] = merged_df.gamma_sign
     merged_df['vanna_sign'] = merged_df.gamma_sign
     merged_df['charm_sign'] = merged_df.apply(lambda x: get_charm_sign(x,spot_price),axis=1)
 
@@ -355,7 +354,7 @@ def compute_gex_core(df,from_scratch):
         'underlying_volatility','delta','gamma','vanna','charm',
         'open_interest','true_oi','spot_price',
         'size_signed','price','volume','ask_volume','bid_volume',
-        'delta_sign','gamma_sign','vanna_sign','charm_sign']:
+        'gamma_sign','vanna_sign','charm_sign']:
 
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
 
@@ -384,7 +383,7 @@ def compute_gex_core(df,from_scratch):
     merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
     merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
 
-    merged_df['dex'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.delta_sign
+    merged_df['dex'] = merged_df.delta * merged_df.true_oi * merged_df.spot_price
     merged_df['vex'] = merged_df.vanna * merged_df.true_oi * merged_df.spot_price * merged_df.underlying_volatility * merged_df.vanna_sign
     merged_df['cex'] = merged_df.charm * merged_df.true_oi * merged_df.spot_price * (1/365) * merged_df.charm_sign
 
