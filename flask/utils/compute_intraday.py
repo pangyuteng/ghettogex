@@ -274,6 +274,18 @@ def get_size_signed(row):
     else:
         return 0 # assume mid is matched
 
+def get_charm_sign(row,underlying_price):
+    # Positive for in-the-money calls and out-of-the-money put
+    # Negative for in-the-money puts and out-of-the-money calls
+    charm_sign = 0
+    if row.contract_type == 'C' and row.strike < underlying_price:
+        charm_sign = 1
+    elif row.contract_type == 'P' and row.strike > underlying_price:
+        charm_sign = 1
+    else:
+        charm_sign = -1
+    return charm_sign
+    
 def compute_gex_core(df,from_scratch):
     # NOTE: we sort by time first, since tstamp is postgres insert time.
     df = df.sort_values(by=['event_type','time','tstamp'])
@@ -333,19 +345,6 @@ def compute_gex_core(df,from_scratch):
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['delta_sign'] = merged_df.gamma_sign
     merged_df['vanna_sign'] = merged_df.gamma_sign
-    
-    def get_charm_sign(row,underlying_price):
-        # Positive for in-the-money calls and out-of-the-money put
-        # Negative for in-the-money puts and out-of-the-money calls
-        charm_sign = 0
-        if row.contract_type == 'C' and row.strike < underlying_price:
-            charm_sign = 1
-        elif row.contract_type == 'P' and row.strike > underlying_price:
-            charm_sign = 1
-        else:
-            charm_sign = -1
-        return charm_sign
-
     merged_df['charm_sign'] = merged_df.apply(lambda x: get_charm_sign(x,spot_price),axis=1)
 
     # TODO
