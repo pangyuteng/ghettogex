@@ -71,7 +71,7 @@ def cache_cboe():
 
                 with open(json_file,'w') as f:
                     f.write(json.dumps(info_dict))
-                time.sleep(np.random.rand())
+                time.sleep(np.random.rand()*5)
             except:
                 traceback.print_exc()
 
@@ -93,7 +93,7 @@ def cache_cboe():
         if not os.path.exists(csv_file):
             spot_price, df = scrape_options_data(ticker)
             df.to_csv(csv_file,index=False)
-            time.sleep(np.random.rand())
+            time.sleep(np.random.rand()*5)
         else:
             logger.info('options found')
 
@@ -136,6 +136,7 @@ def get_cache_latest(ticker,tstamp=None,return_daily_price_df=False):
             last_csv_file = None
     if ticker != BTC_TICKER:
         options_df = pd.read_csv(last_csv_file)
+
         options_df.last_trade_time = options_df.last_trade_time.apply(lambda x: datetime.datetime.strptime(x,"%Y-%m-%dT%H:%M:%S") if isinstance(x,str) else np.nan)
 
         # pop out expired expiration
