@@ -1,10 +1,24 @@
 <div id="myDiv" hx-swap-oob="true">
   <script>
-  var updateData = [];
-  var updateData2 = [];
+  var updateDataDex = [];
+  var updateDataStateGex = [];
+  var updateDataConv = [];
+  var updateDataVex = [];
+  var updateDataCex = [];
+
 
   {% for n,row in df.iterrows() %}
-  updateData.push({
+  updateDataDex.push({
+    x: [0, {{row.dex}}],
+    y: [{{row.strike}}, {{row.strike}}],
+    mode: 'lines',
+    {% if row.dex > 0 %}
+    line: {color: 'rgb(50, 255, 50)', width: 3}
+    {% else %}
+    line: {color: 'rgb(255, 50, 50)', width: 3}
+    {% endif %}
+  })
+  updateDataStateGex.push({
     x: [0, {{row.state_gex}}],
     y: [{{row.strike}}, {{row.strike}}],
     mode: 'lines',
@@ -14,11 +28,31 @@
     line: {color: 'rgb(255, 50, 50)', width: 3}
     {% endif %}
   })
-  updateData2.push({
+  updateDataConv.push({
     x: [0, {{row.convexity}}],
     y: [{{row.strike}}, {{row.strike}}],
     mode: 'lines',
     {% if row.convexity > 0 %}
+    line: {color: 'rgb(50, 255, 255)', width: 3}
+    {% else %}
+    line: {color: 'rgb(128, 50, 128)', width: 3}
+    {% endif %}
+  })
+  updateDataVex.push({
+    x: [0, {{row.vex}}],
+    y: [{{row.strike}}, {{row.strike}}],
+    mode: 'lines',
+    {% if row.vex > 0 %}
+    line: {color: 'rgb(50, 255, 255)', width: 3}
+    {% else %}
+    line: {color: 'rgb(128, 50, 128)', width: 3}
+    {% endif %}
+  })
+  updateDataCex.push({
+    x: [0, {{row.cex}}],
+    y: [{{row.strike}}, {{row.strike}}],
+    mode: 'lines',
+    {% if row.cex > 0 %}
     line: {color: 'rgb(50, 255, 255)', width: 3}
     {% else %}
     line: {color: 'rgb(128, 50, 128)', width: 3}
@@ -29,7 +63,7 @@
   {% for lookback in lookback_keys %}
   {% if query_dict %}
   {% for n,row in query_dict[lookback].df.iterrows() %}
-  updateData.push({
+  updateDataStateGex.push({
       x: [{{row.state_gex}}, {{row.state_gex}}],
       y: [{{row.strike}}, {{row.strike}}],
       mode: 'markers',
@@ -47,7 +81,7 @@
       marker: {color: 'rgb(100, 100, 50)', size: 3}
       {% endif %}
   })
-  updateData2.push({
+  updateDataConv.push({
       x: [{{row.convexity}}, {{row.convexity}}],
       y: [{{row.strike}}, {{row.strike}}],
       mode: 'markers',
@@ -69,8 +103,19 @@
   {% endif %}
   {% endfor %}
 
+
   {% if spot_price %}
-  updateData.push({
+  updateDataDex.push({
+      x: [ {{ -1*xlimDex }}, {{ xlimDex }} ],
+      y: [ {{ spot_price }}, {{ spot_price }} ],
+      mode: 'lines',
+      line: {
+          color: 'rgb(255,255,255)',
+          dash: 'dot',
+          width: 2,
+      }
+  })
+  updateDataStateGex.push({
       x: [ {{ -1*xlimState }}, {{ xlimState }} ],
       y: [ {{ spot_price }}, {{ spot_price }} ],
       mode: 'lines',
@@ -80,8 +125,28 @@
           width: 2,
       }
   })
-  updateData2.push({
+  updateDataConv.push({
       x: [ {{ -1*xlimConvexity }}, {{ xlimConvexity }} ],
+      y: [ {{ spot_price }}, {{ spot_price }} ],
+      mode: 'lines',
+      line: {
+          color: 'rgb(255,255,255)',
+          dash: 'dot',
+          width: 2,
+      }
+  })
+  updateDataVex.push({
+      x: [ {{ -1*xlimVex }}, {{ xlimVex }} ],
+      y: [ {{ spot_price }}, {{ spot_price }} ],
+      mode: 'lines',
+      line: {
+          color: 'rgb(255,255,255)',
+          dash: 'dot',
+          width: 2,
+      }
+  })  
+  updateDataCex.push({
+      x: [ {{ -1*xlimCex }}, {{ xlimCex }} ],
       y: [ {{ spot_price }}, {{ spot_price }} ],
       mode: 'lines',
       line: {
@@ -93,7 +158,7 @@
   {% endif %}
 
   {% if max_state_gex %}
-  updateData.push({
+  updateDataStateGex.push({
       x: [ {{ -1*xlimState }}, {{ xlimState }} ],
       y: [ {{ max_state_gex }}, {{ max_state_gex }} ],
       mode: 'lines',
@@ -106,7 +171,7 @@
   {% endif %}
 
   {% if max_convexity %}
-  updateData2.push({
+  updateDataConv.push({
       x: [ {{ -1*xlimConvexity }}, {{ xlimConvexity }} ],
       y: [ {{ max_convexity }}, {{ max_convexity }} ],
       mode: 'lines',
@@ -119,7 +184,7 @@
   {% endif %}
 
   {% if min_state_gex %}
-  updateData.push({
+  updateDataStateGex.push({
       x: [ {{ -1*xlimState }}, {{ xlimState }} ],
       y: [ {{ min_state_gex }}, {{ min_state_gex }} ],
       mode: 'lines',
@@ -132,7 +197,7 @@
   {% endif %}
 
   {% if min_convexity %}
-  updateData2.push({
+  updateDataConv.push({
       x: [ {{ -1*xlimConvexity }}, {{ xlimConvexity }} ],
       y: [ {{ min_convexity }}, {{ min_convexity }} ],
       mode: 'lines',
@@ -144,7 +209,7 @@
   })
   {% endif %}
 
-  var updateLayout = {
+  var updateLayoutStateGex = {
     title: {text: 'state-gex {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
@@ -167,7 +232,7 @@
     }
   };
 
-var updateLayout2 = {
+var updateLayoutConv = {
     title: {text: 'convexity {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
@@ -190,24 +255,81 @@ var updateLayout2 = {
     }
   };
 
-  Plotly.react(plotDiv, updateData, updateLayout);
-  Plotly.react(plotDiv2, updateData2, updateLayout2);
-
-  /*
-  // cannot set title to plotDiv.layout
-  plotDiv.layout.title = {text: '{{ticker}} {{ "%0.2f" | format(spot_price|float) }}'};
-  plotDiv.layout.yaxis = {
+var updateLayoutDex = {
+    title: {text: 'dex {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    width: 512,
+    height: 512,
+    autosize: false,
+    showlegend: false,
+    yaxis: {
         showgrid: true,
-        range: [ {{spot_price}}*0.95, {{spot_price*1.05}} ]
-      };
-  plotDiv.layout.xaxis = {
-    showgrid: true,
-    range: [ {{spot_price}}*0.95, {{spot_price*1.05}} ]
+        range: [ {{spot_price*0.98}}, {{spot_price*1.02}} ]
+    },
+    xaxis: {
+        showgrid: true,
+        range: [ {{ -1*xlimDex }},{{ xlimDex }} ]
+    },
+    font: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: 'rgba(200,200,200,1)'
+    }
   };
-  
-  Plotly.react(plotDiv, updateData, plotDiv.layout);
-  */
-  
+
+var updateLayoutVex = {
+    title: {text: 'vex {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    width: 512,
+    height: 512,
+    autosize: false,
+    showlegend: false,
+    yaxis: {
+        showgrid: true,
+        range: [ {{spot_price*0.98}}, {{spot_price*1.02}} ]
+    },
+    xaxis: {
+        showgrid: true,
+        range: [ {{ -1*xlimVex }},{{ xlimVex }} ]
+    },
+    font: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: 'rgba(200,200,200,1)'
+    }
+  };
+
+var updateLayoutCex = {
+    title: {text: 'cex {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    width: 512,
+    height: 512,
+    autosize: false,
+    showlegend: false,
+    yaxis: {
+        showgrid: true,
+        range: [ {{spot_price*0.98}}, {{spot_price*1.02}} ]
+    },
+    xaxis: {
+        showgrid: true,
+        range: [ {{ -1*xlimCex }},{{ xlimCex }} ]
+    },
+    font: {
+        family: 'Courier New, monospace',
+        size: 18,
+        color: 'rgba(200,200,200,1)'
+    }
+  };
+
+  Plotly.react(plotDivDex, updateDataDex, updateLayoutDex);
+  Plotly.react(plotDivStateGex, updateDataStateGex, updateLayoutStateGex);
+  Plotly.react(plotDivConv, updateDataConv, updateLayoutConv);
+  Plotly.react(plotDivVex, updateDataVex, updateLayoutVex);
+  Plotly.react(plotDivCex, updateDataCex, updateLayoutCex);
+
   </script>
   <div class="container">
   <span class="badge rounded-pill text-bg-dark">

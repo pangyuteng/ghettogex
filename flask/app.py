@@ -407,7 +407,7 @@ async def ws_sec_gex():
             for query_idx,query_kind in enumerate(query_dict.keys()):
                 res = gathered_res[query_idx]
                 if query_kind == 'net':
-                    columns = ['ticker','tstamp','spot_price','volume_gex','state_gex','dex','convexity']
+                    columns = ['ticker','tstamp','spot_price','volume_gex','state_gex','dex','convexity','vex','cex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df.volume_gex = df.volume_gex/1e9
@@ -419,7 +419,7 @@ async def ws_sec_gex():
                         app.logger.error(traceback.format_exc())
 
                 elif query_kind.startswith('strike'):
-                    columns = ['ticker','tstamp','strike','volume_gex','state_gex','dex','convexity']
+                    columns = ['ticker','tstamp','strike','volume_gex','state_gex','dex','convexity','vex','cex']
                     try:
                         df = pd.DataFrame([x for x in res],columns=columns)
                         df = df.replace({np.nan: None})
@@ -441,6 +441,9 @@ async def ws_sec_gex():
                 min_convexity = latest_df.at[latest_df.convexity.argmin(),'strike']
                 xlimState = latest_df.state_gex.abs().max()*1.5
                 xlimConvexity = latest_df.convexity.abs().max()*1.5
+                xlimDex = latest_df.convexity.abs().max()*1.5
+                xlimCex = latest_df.convexity.abs().max()*1.5
+                xlimVex = latest_df.convexity.abs().max()*1.5
             except:
                 latest_df = pd.DataFrame([])
                 max_state_gex = 100
@@ -449,6 +452,9 @@ async def ws_sec_gex():
                 min_convexity = -100
                 xlimState = 999
                 xlimConvexity = 999
+                xlimDex = 999
+                xlimCex = 999
+                xlimVex = 999
 
             data_str = render_html("ws-sec-gex.html",
                 ticker=ticker,
@@ -458,6 +464,7 @@ async def ws_sec_gex():
                 lookback_keys=lookback_keys,
                 xlimState=xlimState,
                 xlimConvexity=xlimConvexity,
+                xlimDex=xlimDex,xlimCex=xlimCex,xlimVex=xlimVex,
                 max_state_gex=max_state_gex,min_state_gex=min_state_gex,
                 max_convexity=max_convexity,min_convexity=min_convexity,
                 tstamp=tstamp_utc,ws_tstamp=ws_tstamp_utc)

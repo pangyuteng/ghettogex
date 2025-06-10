@@ -28,11 +28,23 @@
     <div class="row">
 
       <div class="col-sm">
-      <div id="plotDiv"></div>
+      <div id="plotDivDex"></div>
       </div>
 
       <div class="col-sm">
-      <div id="plotDiv2"></div>
+      <div id="plotDivStateGex"></div>
+      </div>
+
+      <div class="col-sm">
+      <div id="plotDivConv"></div>
+      </div>
+
+      <div class="col-sm">
+      <div id="plotDivVex"></div>
+      </div>
+
+      <div class="col-sm">
+      <div id="plotDivCex"></div>
       </div>
 
     </div>
@@ -55,8 +67,12 @@ var layout = {
     }
 };
 
-Plotly.newPlot(plotDiv2, data, layout);
-Plotly.newPlot(plotDiv, data, layout);
+Plotly.newPlot(plotDivDex, data, layout);
+Plotly.newPlot(plotDivStateGex, data, layout);
+Plotly.newPlot(plotDivConv, data, layout);
+Plotly.newPlot(plotDivVex, data, layout);
+Plotly.newPlot(plotDivCex, data, layout);
+
 </script>
 
 <div id="myDiv">
