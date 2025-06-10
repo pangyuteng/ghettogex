@@ -50,6 +50,13 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,futu
     ]
 
     query_str = """
+    select 'vix_candle' as event_type,event_symbol,close as spot_price,time,tstamp from candle
+    where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+    """
+    query_args = (min_utc_tstamp,max_utc_tstamp,'VIX') # use vix as 
+    uv = apostgres_execute(apool,query_str,query_args)
+
+    query_str = """
     select 'underlying_candle' as event_type,event_symbol,close as spot_price,time,tstamp from candle
     where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
     """
@@ -93,7 +100,7 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,futu
     query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
     oq = apostgres_execute(apool,query_str,query_args)
 
-    all_groups = await asyncio.gather(uc,oc,os,og,ot,oq)
+    all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oq)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
@@ -118,6 +125,13 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
         'bid_time','ask_time','bid_size','ask_size',
         'size','aggressor_side','ticker','expiration','contract_type','strike','tstamp',
     ]
+
+    query_str = """
+    select 'vix_candle' as event_type,event_symbol,close as spot_price,time,tstamp from candle
+    where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+    """
+    query_args = (min_utc_tstamp,max_utc_tstamp,'VIX') # use vix as 
+    uv = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
     select 'underlying_candle' as event_type,event_symbol,close as spot_price,time,tstamp from candle
@@ -161,7 +175,7 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
     oq = apostgres_execute(apool,query_str,query_args)
 
-    all_groups = await asyncio.gather(uc,oc,os,og,ot,oq)
+    all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oq)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
@@ -270,6 +284,12 @@ def compute_gex_core(df,from_scratch):
     else:
         spot_price = np.nan
 
+    vix_candle_df = df[df.event_type=='vix_candle']
+    if len(vix_candle_df)>0:
+        underlying_volatility = vix_candle_df.spot_price.to_list()[-1]
+    else:
+        underlying_volatility = np.nan
+
     candle_df = df[df.event_type=='candle']
     summary_df = df[df.event_type=='summary']
     greeks_df = df[df.event_type=='greeks']
@@ -297,8 +317,8 @@ def compute_gex_core(df,from_scratch):
     summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','true_oi']]
     summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
     
-    # TODO: compute vanna and charm
-    greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega']]
+    # TODO: compute vanna,charm
+    greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega',]]#'vanna','charm']]
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
 
     timeandsale_df = ts_df[['event_symbol','size_signed']]
@@ -308,11 +328,36 @@ def compute_gex_core(df,from_scratch):
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
 
-    # contract_type_int is the naive gex assumption. dealer is long call, short put
-    merged_df['contract_type_int'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
-    merged_df['spot_price']=spot_price
+    merged_df['underlying_volatility'] = underlying_volatility
+    merged_df['spot_price'] = spot_price
+    merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
+    merged_df['delta_sign'] = merged_df.gamma_sign
+    merged_df['vanna_sign'] = merged_df.gamma_sign
+    
+    def get_charm_sign(row,underlying_price):
+        # Positive for in-the-money calls and out-of-the-money put
+        # Negative for in-the-money puts and out-of-the-money calls
+        charm_sign = 0
+        if row.contract_type == 'C' and row.strike < underlying_price:
+            charm_sign = 1
+        elif row.contract_type == 'P' and row.strike > underlying_price:
+            charm_sign = 1
+        else:
+            charm_sign = -1
+        return charm_sign
 
-    for col_name in ['gamma','open_interest','true_oi','spot_price','contract_type_int','size_signed','price','volume','ask_volume','bid_volume']:
+    merged_df['charm_sign'] = merged_df.apply(lambda x: get_charm_sign(x,spot_price),axis=1)
+
+    # TODO
+    merged_df['vanna'] = 1
+    merged_df['charm'] = 1
+
+    for col_name in [
+        'underlying_volatility','delta','gamma','vanna','charm',
+        'open_interest','true_oi','spot_price',
+        'size_signed','price','volume','ask_volume','bid_volume',
+        'delta_sign','gamma_sign','vanna_sign','charm_sign']:
+
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
 
     merged_df.true_oi = merged_df.true_oi.fillna(value=0)
@@ -323,10 +368,10 @@ def compute_gex_core(df,from_scratch):
     merged_df.ask_volume = merged_df.ask_volume.fillna(value=0)
     merged_df.bid_volume = merged_df.bid_volume.fillna(value=0)
 
-    # NOTE: let `volume_gex` open_interest be updated using
-    # ask means buy, dealer is short, bid means sell, dealer is long
+    # NOTE: ask means buy, dealer is short, bid means sell, dealer is long
+    # open_interest aggregated from bid/ask volume from candle events
     merged_df.open_interest = merged_df.open_interest-merged_df.ask_volume+merged_df.bid_volume
-    # NOTE: let `true_oi` be computed using theo_aggressor_side
+    # true_oi aggregated from size in timeandsale events, and tweaked in get_side_mod (work-in-progress)
     merged_df.true_oi = merged_df.true_oi + merged_df.size_signed
 
     # UNSURE HERE... stil at debug phase
@@ -334,19 +379,22 @@ def compute_gex_core(df,from_scratch):
     # `volume_gex` update summary based on bid-ask volume using summary open_interest
     # `state_gex` uses timeandsale and true_oi (for now starts from 0 at start of day)
     
-    # volume_gex is the vanilla flavor
-    merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
+    # volume_gex is the vanilla flavor using bid/ask volume from candle event
+    merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
     # state gex is a WIP.
-    merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
-
-    merged_df['dex'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.contract_type_int
+    merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
     merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
 
-    merged_df['vanna'] = 0
-    merged_df['charm'] = 0
+    merged_df['dex'] = merged_df.delta * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.delta_sign
+    merged_df['vex'] = merged_df.vanna * merged_df.true_oi * merged_df.spot_price * merged_df.underlying_volatility * merged_df.vanna_sign
+    merged_df['cex'] = merged_df.charm * merged_df.true_oi * merged_df.spot_price * (1/365) * merged_df.charm_sign
 
     merged_df.volume_gex = merged_df.volume_gex.fillna(value=0)
     merged_df.state_gex = merged_df.state_gex.fillna(value=0)
+    merged_df.convexity = merged_df.convexity.fillna(value=0)
+    merged_df.dex = merged_df.dex.fillna(value=0)
+    merged_df.vex = merged_df.vex.fillna(value=0)
+    merged_df.cex = merged_df.cex.fillna(value=0)
     if from_scratch:
         # quality check
         reqd_event_list = ['summary','greeks','timeandsale','candle']
@@ -394,7 +442,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
         'ticker','expiration','contract_type','strike',
         'open_interest','true_oi',
         'volume_gex','state_gex',
-        'dex','convexity','vanna','charm'
+        'dex','convexity','vex','cex'
     ]
     # 'open','high','low','close','volume','ask_volume','bid_volume',
     # 'price','volatility','delta','gamma','theta','rho','vega',
@@ -450,7 +498,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             
             # TODO: grab call_oi,put_oi,naive_dex,true_dex,
 
-            table_cols = ['ticker','strike','tstamp','volume_gex','state_gex','dex','convexity','vanna','charm']
+            table_cols = ['ticker','strike','tstamp','volume_gex','state_gex','dex','convexity','vex','cex']
             agg_df['ticker'] = ticker
             strike_gex_df = agg_df[table_cols]
             strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).agg(
@@ -458,43 +506,32 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
                 dex=pd.NamedAgg(column="dex", aggfunc="sum"),
                 convexity=pd.NamedAgg(column="convexity", aggfunc="sum"),
-                vanna=pd.NamedAgg(column="vanna", aggfunc="sum"),
-                charm=pd.NamedAgg(column="charm", aggfunc="sum"),
+                vex=pd.NamedAgg(column="vex", aggfunc="sum"),
+                cex=pd.NamedAgg(column="cex", aggfunc="sum"),
             ).reset_index()
             
             """
-            #call_oi=pd.NamedAgg(column="true_oi", aggfunc="sum"),
-            #call_gex=pd.NamedAgg(column="true_oi", aggfunc="sum"),
-            #call_dex=pd.NamedAgg(column="true_oi", aggfunc="sum"),
-            #put_oi=pd.NamedAgg(column="true_oi", aggfunc="sum"),
-            #put_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
-            #put_gex=pd.NamedAgg(column="true_oi", aggfunc="sum"),
-
-            dex double precision,
-            convexity double precision,
-            charm double precision,
-            vanna double precision,
             call_oi double precision,
             call_dex double precision,
             call_gex double precision,
-            call_vanna double precision,
-            call_charm double precision,
+            call_vex double precision,
+            call_cex double precision,
             put_oi double precision,
             put_dex double precision,
             put_gex double precision,
-            put_vanna double precision,
-            put_charm double precision,
+            put_vex double precision,
+            put_cex double precision,
             """
 
-            # 'call_oi', 'put_oi', 'call_gex','put_gex', 'dex', 'vanna'?
-            gex_strike_query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vanna,charm) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set volume_gex = %s,state_gex = %s,dex = %s,convexity = %s,vanna = %s,charm = %s;"
+            # 'call_oi', 'put_oi', 'call_gex','put_gex', 'dex', 'vex'?
+            gex_strike_query_str = "INSERT INTO gex_strike (ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vex,cex) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (ticker,strike,tstamp) do update set volume_gex = %s,state_gex = %s,dex = %s,convexity = %s,vex = %s,cex = %s;"
             async def insert_gex_strike(row):
-                query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vanna,row.charm,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vanna,row.charm]
+                query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vex,row.cex,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vex,row.cex]
                 return query_args
             query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in strike_gex_df.iterrows()))
             
             # 'true_dex','call_gex','put_gex', major_call_gex_strike, major_put_gex_strike
-            table_cols = ['ticker','tstamp','spot_price','volume_gex','state_gex','dex','convexity','vanna','charm']
+            table_cols = ['ticker','tstamp','spot_price','volume_gex','state_gex','dex','convexity','vex','cex']
             agg_df['ticker'] = ticker
             net_gex_df = agg_df[table_cols]
             net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
@@ -503,13 +540,13 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
                 dex=pd.NamedAgg(column="dex", aggfunc="sum"),
                 convexity=pd.NamedAgg(column="convexity", aggfunc="sum"),
-                vanna=pd.NamedAgg(column="vanna", aggfunc="sum"),
-                charm=pd.NamedAgg(column="charm", aggfunc="sum"),
+                vex=pd.NamedAgg(column="vex", aggfunc="sum"),
+                cex=pd.NamedAgg(column="cex", aggfunc="sum"),
             ).reset_index()
 
-            gex_net_query_str = "INSERT INTO gex_net (ticker,tstamp,volume_gex,state_gex,spot_price,dex,convexity,vanna,charm) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (ticker,tstamp) do update set volume_gex = %s,state_gex = %s, spot_price = %s,dex = %s,convexity = %s,vanna = %s,charm = %s;"
+            gex_net_query_str = "INSERT INTO gex_net (ticker,tstamp,volume_gex,state_gex,spot_price,dex,convexity,vex,cex) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (ticker,tstamp) do update set volume_gex = %s,state_gex = %s, spot_price = %s,dex = %s,convexity = %s,vex = %s,cex = %s;"
             async def insert_gex_net(row):
-                query_args = [row.ticker,row.tstamp,row.volume_gex,row.state_gex,row.spot_price,row.dex,row.convexity,row.vanna,row.charm,row.volume_gex,row.state_gex,row.spot_price,row.dex,row.convexity,row.vanna,row.charm]
+                query_args = [row.ticker,row.tstamp,row.volume_gex,row.state_gex,row.spot_price,row.dex,row.convexity,row.vex,row.cex,row.volume_gex,row.state_gex,row.spot_price,row.dex,row.convexity,row.vex,row.cex]
                 return query_args
             query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
 
