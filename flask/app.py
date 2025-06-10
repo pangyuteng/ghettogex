@@ -441,9 +441,9 @@ async def ws_sec_gex():
                 min_convexity = latest_df.at[latest_df.convexity.argmin(),'strike']
                 xlimState = latest_df.state_gex.abs().max()*1.5
                 xlimConvexity = latest_df.convexity.abs().max()*1.5
-                xlimDex = latest_df.convexity.abs().max()*1.5
-                xlimCex = latest_df.convexity.abs().max()*1.5
-                xlimVex = latest_df.convexity.abs().max()*1.5
+                xlimDex = latest_df.dex.abs().max()*1.5
+                xlimCex = latest_df.cex.abs().max()*1.5
+                xlimVex = latest_df.vex.abs().max()*1.5
             except:
                 latest_df = pd.DataFrame([])
                 max_state_gex = 100
