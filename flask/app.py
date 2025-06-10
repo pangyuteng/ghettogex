@@ -271,6 +271,8 @@ async def daily_ws_gex_strike():
                 else:
                     spot_price, strike_df, expiration_df, surf_df, daily_price_df, data_tstamp = get_gex_df(ticker_alt,tstamp=tstamp)
 
+                xlim = strike_df.gex.abs().max()*1.5
+
                 if len(daily_price_df) > 70:
                     price_dict = {
                         'tstamp_str': str(daily_price_df.timestamp.to_list()),
@@ -286,6 +288,7 @@ async def daily_ws_gex_strike():
                     df=strike_df,
                     spot_price=spot_price,
                     price_dict=price_dict,
+                    xlim=xlim,
                     data_tstamp=data_tstamp,
                     server_tstamp=server_tstamp,
                     div_name=div_name)

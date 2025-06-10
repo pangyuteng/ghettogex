@@ -28,7 +28,7 @@ from .postgres_utils import (
 
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
-from .iv_utils import get_expiry_tstamp,TOTAL_SECONDS_ONE_YEAR,compute_vanna_charm
+from .iv_utils import get_expiry_tstamp,TOTAL_SECONDS_ONE_YEAR,compute_exposure
 
 async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,min_utc_tstamp):
     if ticker == 'SPX':
@@ -289,9 +289,9 @@ def compute_gex_core(df,from_scratch):
 
     vix_candle_df = df[df.event_type=='vix_candle']
     if len(vix_candle_df)>0:
-        underlying_volatility = vix_candle_df.spot_price.to_list()[-1]
+        spot_volatility = vix_candle_df.spot_price.to_list()[-1]
     else:
-        underlying_volatility = np.nan
+        spot_volatility = np.nan
 
     candle_df = df[df.event_type=='candle']
     summary_df = df[df.event_type=='summary']
@@ -331,7 +331,7 @@ def compute_gex_core(df,from_scratch):
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
 
-    merged_df['underlying_volatility'] = underlying_volatility
+    merged_df['spot_volatility'] = spot_volatility
     merged_df['spot_price'] = spot_price
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['vanna_sign'] = merged_df.gamma_sign
@@ -342,30 +342,9 @@ def compute_gex_core(df,from_scratch):
 
     merged_df['vanna'] = 0.0
     merged_df['charm'] = 0.0
-    # TODO get yield?
-    yield_10yr = 0.01
-    dividend_yield = 0.0
-
-    expiration_list = list(merged_df.expiration.unique())
-    if len(expiration_list) == 1:
-    
-        # time_till_exp
-        expiry = get_expiry_tstamp(expiration_list[0].strftime("%Y-%m-%d"))
-        time_till_exp = (expiry-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR
-        merged_df['time_till_exp'] = time_till_exp
-        call_df = merged_df[merged_df.contract_type=='C']
-        put_df = merged_df[merged_df.contract_type=='P']
-        call_vanna,call_charm = compute_vanna_charm(spot_price,call_df.strike,call_df.volatility,call_df.time_till_exp,yield_10yr,dividend_yield,'call')
-        put_vanna,put_charm = compute_vanna_charm(spot_price,put_df.strike,put_df.volatility,put_df.time_till_exp,yield_10yr,dividend_yield,'put')
-        call_idx = merged_df.index[merged_df.contract_type=='C'].tolist()
-        put_idx = merged_df.index[merged_df.contract_type=='P'].tolist()
-        merged_df.loc[call_idx,'vanna'] = call_vanna.squeeze().astype(np.float32)
-        merged_df.loc[call_idx,'charm'] = call_charm.squeeze().astype(np.float32)
-        merged_df.loc[put_idx,'vanna'] = put_vanna.squeeze().astype(np.float32)
-        merged_df.loc[put_idx,'charm'] = put_charm.squeeze().astype(np.float32)
 
     for col_name in [
-        'underlying_volatility','delta','gamma','vanna','charm',
+        'spot_volatility','delta','gamma','vanna','charm',
         'open_interest','true_oi','spot_price',
         'size_signed','price','volume','ask_volume','bid_volume',
         'gamma_sign','vanna_sign','charm_sign']:
@@ -387,19 +366,32 @@ def compute_gex_core(df,from_scratch):
     merged_df.true_oi = merged_df.true_oi + merged_df.size_signed
 
     # UNSURE HERE... stil at debug phase
-    # KISS.
+
     # `volume_gex` update summary based on bid-ask volume using summary open_interest
-    # `state_gex` uses timeandsale and true_oi (for now starts from 0 at start of day)
-    
     # volume_gex is the vanilla flavor using bid/ask volume from candle event
     merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
+    # `state_gex` uses timeandsale and true_oi (for now starts from 0 at start of day)
     # state gex is a WIP. removed `*100*0.01`` since ``== 1``
     merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
     merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price
 
-    merged_df['dex'] = merged_df.delta * merged_df.true_oi * merged_df.spot_price
-    merged_df['vex'] = merged_df.vanna * merged_df.true_oi * merged_df.spot_price * merged_df.underlying_volatility * merged_df.vanna_sign
-    merged_df['cex'] = merged_df.charm * merged_df.true_oi * merged_df.spot_price * (1/365) * merged_df.charm_sign
+    # merged_df['dex'] = merged_df.delta * merged_df.true_oi * merged_df.spot_price
+    # merged_df['vex'] = merged_df.vanna * merged_df.true_oi * merged_df.spot_price * merged_df.spot_volatility * merged_df.vanna_sign
+    # merged_df['cex'] = merged_df.charm * merged_df.true_oi * merged_df.spot_price * (1/365) * merged_df.charm_sign
+    merged_df['dex'] = 0.0
+    merged_df['vex'] = 0.0
+    merged_df['cex'] = 0.0
+    
+    try:
+        call_idx = df.index[df.contract_type=='C'].tolist()
+        put_idx = df.index[df.contract_type=='P'].tolist()
+        if len(call_idx) == 0 or len(put_idx)==0:
+            pass
+        else:
+            merged_df = compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
+            merged_df = merged_df.rename(columns={"gex":"state_gex"})
+    except:
+        traceback.print_exc()
 
     merged_df.volume_gex = merged_df.volume_gex.fillna(value=0)
     merged_df.state_gex = merged_df.state_gex.fillna(value=0)
@@ -601,7 +593,7 @@ def tryone(ticker):
     for x in range(1):
         tstamp = now_in_new_york()
         try:
-            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=True,persist_to_postgres=True))
+            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=True,persist_to_postgres=False))
         except KeyboardInterrupt:
             sys.exit(1)
         except:
