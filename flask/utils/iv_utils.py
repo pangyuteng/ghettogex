@@ -233,7 +233,7 @@ def compute_exposure(tstamp,spot_price,spot_volatility,df):
     call_idx = df.index[df.contract_type=='C'].tolist()
     call_df = df[df.contract_type=='C']
     call_delta = call_df.delta.to_numpy().astype(np.float64)
-    call_gamma = call_df.delta.to_numpy().astype(np.float64)
+    call_gamma = call_df.gamma.to_numpy().astype(np.float64)
     call_k = call_df.strike.to_numpy().astype(np.float64)
     call_v = call_df.volatility.to_numpy().astype(np.float64)
     call_t = call_df.time_till_exp.to_numpy().astype(np.float64)
@@ -257,7 +257,7 @@ def compute_exposure(tstamp,spot_price,spot_volatility,df):
     put_idx = df.index[df.contract_type=='P'].tolist()
     put_df = df[df.contract_type=='P']
     put_delta = put_df.delta.to_numpy().astype(np.float64)
-    put_gamma = put_df.delta.to_numpy().astype(np.float64)
+    put_gamma = put_df.gamma.to_numpy().astype(np.float64)
     put_k = put_df.strike.to_numpy().astype(np.float64)
     put_v = put_df.volatility.to_numpy().astype(np.float64)
     put_t = put_df.time_till_exp.to_numpy().astype(np.float64)
