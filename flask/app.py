@@ -619,7 +619,6 @@ async def ws_sec_heatmap():
 
                 ####################
 
-                hue_norm = (-2,2)
                 myval = np.ceil(df.state_gex.abs().max())
                 hue_norm = (-myval,myval)
 
@@ -667,7 +666,7 @@ async def ws_sec_heatmap():
 
                 ####################
 
-                myval = np.ceil(df.dex.abs().max())
+                myval = df.dex.abs().max()
                 hue_norm = (-myval,myval)
 
                 color_palette = "cool_r"
@@ -690,8 +689,7 @@ async def ws_sec_heatmap():
 
                 ####################
 
-                hue_norm = (-2,2)
-                myval = np.ceil(df.vex.abs().max())
+                myval = df.vex.abs().max()
                 hue_norm = (-myval,myval)
 
                 color_palette = "cool_r"
@@ -714,8 +712,7 @@ async def ws_sec_heatmap():
 
                 ####################
 
-                hue_norm = (-2,2)
-                myval = np.ceil(df.cex.abs().max())
+                myval = df.cex.abs().max()
                 hue_norm = (-myval,myval)
 
                 color_palette = "cool_r"
