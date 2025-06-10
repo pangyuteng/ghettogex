@@ -379,9 +379,9 @@ def compute_gex_core(df,from_scratch):
     
     # volume_gex is the vanilla flavor using bid/ask volume from candle event
     merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
-    # state gex is a WIP.
-    merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
-    merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * 100 * merged_df.spot_price * merged_df.spot_price * 0.01
+    # state gex is a WIP. removed `*100*0.01`` since ``== 1``
+    merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
+    merged_df['convexity'] = merged_df.gamma * merged_df.true_oi merged_df.spot_price * merged_df.spot_price
 
     merged_df['dex'] = merged_df.delta * merged_df.true_oi * merged_df.spot_price
     merged_df['vex'] = merged_df.vanna * merged_df.true_oi * merged_df.spot_price * merged_df.underlying_volatility * merged_df.vanna_sign
