@@ -669,7 +669,7 @@ async def ws_sec_heatmap():
                 myval = df.dex.abs().max()
                 hue_norm = (-myval,myval)
 
-                color_palette = "cool_r"
+                color_palette = "RdYlGn"
                 plt.figure(1)
                 ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='dex',
                     hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
@@ -692,7 +692,7 @@ async def ws_sec_heatmap():
                 myval = df.vex.abs().max()
                 hue_norm = (-myval,myval)
 
-                color_palette = "cool_r"
+                color_palette = "RdYlGn"
                 plt.figure(1)
                 ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='vex',
                     hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)
@@ -715,7 +715,7 @@ async def ws_sec_heatmap():
                 myval = df.cex.abs().max()
                 hue_norm = (-myval,myval)
 
-                color_palette = "cool_r"
+                color_palette = "RdYlGn"
                 plt.figure(1)
                 ax=sns.scatterplot(data=df,x='tstamp',y='strike',hue='cex',
                     hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),legend=False)

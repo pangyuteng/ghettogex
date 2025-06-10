@@ -43,9 +43,9 @@
     y: [{{row.strike}}, {{row.strike}}],
     mode: 'lines',
     {% if row.vex > 0 %}
-    line: {color: 'rgb(50, 255, 255)', width: 3}
+    line: {color: 'rgb(50, 255, 50)', width: 3}
     {% else %}
-    line: {color: 'rgb(128, 50, 128)', width: 3}
+    line: {color: 'rgb(255, 50, 50)', width: 3}
     {% endif %}
   })
   updateDataCex.push({
@@ -53,9 +53,9 @@
     y: [{{row.strike}}, {{row.strike}}],
     mode: 'lines',
     {% if row.cex > 0 %}
-    line: {color: 'rgb(50, 255, 255)', width: 3}
+    line: {color: 'rgb(50, 255, 50)', width: 3}
     {% else %}
-    line: {color: 'rgb(128, 50, 128)', width: 3}
+    line: {color: 'rgb(255, 50, 50)', width: 3}
     {% endif %}
   })
   {% endfor %}
