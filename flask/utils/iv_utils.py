@@ -13,6 +13,106 @@ import scipy.interpolate as interpolate
 
 from .misc import get_market_open_close
 
+from .gflow_stats import calc_dp_cdf_pdf
+
+import ctypes
+from numba import vectorize, njit
+from numba.types import float64, string
+
+@njit(
+    float64[:, :](
+        float64[:, :],
+        float64[:],
+        float64[:],
+        float64[:],
+        float64[:, :],
+        float64[:, :],
+    )
+)
+def calc_vanna(S, vol, T, q, dp, pdf_dp):
+    dm = dp - vol * np.sqrt(T)
+    vanna = -np.exp(-q * T) * pdf_dp * (dm / vol)
+    # change in delta per one percent move in IV
+    # or change in vega per one percent move in underlying
+    return vanna
+
+@njit(
+    float64[:, :](
+        float64[:, :],
+        float64[:],
+        float64[:],
+        float64,
+        float64,
+        string,
+        float64[:, :],
+        float64[:, :],
+        float64[:, :],
+    )
+)
+def calc_charm(S, vol, T, r, q, opt_type, dp, cdf_dp, pdf_dp):
+    dm = dp - vol * np.sqrt(T)
+    if opt_type == "call":
+        charm = (q * np.exp(-q * T) * cdf_dp) - np.exp(-q * T) * pdf_dp * (
+            2 * (r - q) * T - dm * vol * np.sqrt(T)
+        ) / (2 * T * vol * np.sqrt(T))
+    else:
+        charm = (-q * np.exp(-q * T) * (1 - cdf_dp)) - np.exp(-q * T) * pdf_dp * (
+            2 * (r - q) * T - dm * vol * np.sqrt(T)
+        ) / (2 * T * vol * np.sqrt(T))
+    # change in delta per day until expiration
+    return charm
+    
+
+def compute_vanna_charm(
+    spot_price,
+    strike_prices,
+    opt_ivs,
+    time_till_exp,
+    yield_10yr,
+    dividend_yield,
+    contract_type): # contract_type = 'call' or 'put'
+
+    if not contract_type in ['call','put']:
+        raise ValueError()
+
+    np_spot_price = np.array([[spot_price]]).astype(np.float64)
+    strike_prices = strike_prices.to_numpy().astype(np.float64)
+    opt_ivs = opt_ivs.to_numpy().astype(np.float64)
+    time_till_exp = time_till_exp.to_numpy().astype(np.float64)
+    yield_10yr = np.float64(yield_10yr)
+    dividend_yield = np.float64(dividend_yield)
+    np_dividend_yield = np.array([dividend_yield])
+    
+    dp, cdf_dp, pdf_dp = calc_dp_cdf_pdf(
+        np_spot_price,
+        strike_prices,
+        opt_ivs,
+        time_till_exp,
+        yield_10yr,
+        dividend_yield,
+    )
+
+    vanna = calc_vanna(
+        np_spot_price,
+        opt_ivs,
+        time_till_exp,
+        np_dividend_yield,
+        dp,
+        pdf_dp,
+    )
+
+    charm = calc_charm(
+        np_spot_price,
+        opt_ivs,
+        time_till_exp,
+        yield_10yr,
+        dividend_yield,
+        contract_type,
+        dp,
+        cdf_dp,
+        pdf_dp
+    )
+    return vanna,charm
 
 TOTAL_SECONDS_ONE_YEAR = 365*24*60*60 # total seconds
 
