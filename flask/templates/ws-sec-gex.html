@@ -99,6 +99,60 @@
       marker: {color: 'rgb(100, 100, 50)', size: 3}
       {% endif %}
   })
+  updateDataDex.push({
+      x: [{{row.dex}}, {{row.dex}}],
+      y: [{{row.strike}}, {{row.strike}}],
+      mode: 'markers',
+      {% if lookback == 'strike-1min' %}
+      marker: {color: 'rgb(200, 200, 255)', size: 5}
+      {% elif lookback == 'strike-5min' %}
+      marker: {color: 'rgb(200, 200, 250)', size: 5}
+      {% elif lookback == 'strike-10min' %}
+      marker: {color: 'rgb(150, 150, 200)', size: 3}
+      {% elif lookback == 'strike-15min' %}
+      marker: {color: 'rgb(100, 100, 150)', size: 3}
+      {% elif lookback == 'strike-30min' %}
+      marker: {color: 'rgb(100, 100, 100)', size: 3}
+      {% else %}
+      marker: {color: 'rgb(100, 100, 50)', size: 3}
+      {% endif %}
+  })
+  updateDataVex.push({
+      x: [{{row.vex}}, {{row.vex}}],
+      y: [{{row.strike}}, {{row.strike}}],
+      mode: 'markers',
+      {% if lookback == 'strike-1min' %}
+      marker: {color: 'rgb(200, 200, 255)', size: 5}
+      {% elif lookback == 'strike-5min' %}
+      marker: {color: 'rgb(200, 200, 250)', size: 5}
+      {% elif lookback == 'strike-10min' %}
+      marker: {color: 'rgb(150, 150, 200)', size: 3}
+      {% elif lookback == 'strike-15min' %}
+      marker: {color: 'rgb(100, 100, 150)', size: 3}
+      {% elif lookback == 'strike-30min' %}
+      marker: {color: 'rgb(100, 100, 100)', size: 3}
+      {% else %}
+      marker: {color: 'rgb(100, 100, 50)', size: 3}
+      {% endif %}
+  })
+  updateDataCex.push({
+      x: [{{row.cex}}, {{row.cex}}],
+      y: [{{row.strike}}, {{row.strike}}],
+      mode: 'markers',
+      {% if lookback == 'strike-1min' %}
+      marker: {color: 'rgb(200, 200, 255)', size: 5}
+      {% elif lookback == 'strike-5min' %}
+      marker: {color: 'rgb(200, 200, 250)', size: 5}
+      {% elif lookback == 'strike-10min' %}
+      marker: {color: 'rgb(150, 150, 200)', size: 3}
+      {% elif lookback == 'strike-15min' %}
+      marker: {color: 'rgb(100, 100, 150)', size: 3}
+      {% elif lookback == 'strike-30min' %}
+      marker: {color: 'rgb(100, 100, 100)', size: 3}
+      {% else %}
+      marker: {color: 'rgb(100, 100, 50)', size: 3}
+      {% endif %}
+  })
   {% endfor %}
   {% endif %}
   {% endfor %}
