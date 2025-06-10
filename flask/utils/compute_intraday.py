@@ -442,9 +442,9 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             query_dict = {}
 
-            event_agg_query_str = "INSERT INTO event_agg (event_symbol,dstamp,open_interest,volume_gex,true_oi,state_gex,tstamp,ticker,expiration,contract_type,strike) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (event_symbol,dstamp) do update set open_interest = %s, volume_gex = %s, true_oi = %s, state_gex = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s;"
+            event_agg_query_str = "INSERT INTO event_agg (event_symbol,dstamp,open_interest,true_oi,tstamp,ticker,expiration,contract_type,strike) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) on conflict (event_symbol,dstamp) do update set open_interest = %s, true_oi = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s;"
             async def insert_event_agg(row):
-                query_args = [row.event_symbol,row.dstamp,row.open_interest,row.volume_gex,row.true_oi,row.state_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.volume_gex,row.true_oi,row.state_gex,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
+                query_args = [row.event_symbol,row.dstamp,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
                 return query_args
             query_dict[event_agg_query_str] = await asyncio.gather(*(insert_event_agg(row) for n,row in agg_df.iterrows()))
             
