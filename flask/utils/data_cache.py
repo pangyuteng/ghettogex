@@ -24,10 +24,9 @@ BTC_TICKER_LIST = ['IBIT','GBTC','FBTC','ARKB','BTC','BITO','BITX','BITU','^CBTX
 OTHER_TICKER_LIST = [
     'MSTR','COIN','TSLA','NVDA','AAPL','MSFT',
     'AMZN','META','GOOGL','GOOG','AVGO','COST','TSM',
-    'NFLX','ORCL','JPM','V','LLY','WMT',
-    'MA','PG','JNJ','HD','BAC','ABBV','NVO',
-    'PLTR','KO','ASML','UNH'
-
+    # 'NFLX','ORCL','JPM','V','LLY','WMT',
+    # 'MA','PG','JNJ','HD','BAC','ABBV','NVO',
+    # 'PLTR','KO','ASML','UNH'
 ]
 BTC_MSTR_TICKER_LIST = list(BTC_TICKER_LIST)
 BTC_MSTR_TICKER_LIST.append("MSTR")
@@ -39,8 +38,8 @@ HOME_TICKER_LIST_OF_LIST = [
     ['MSFT','NVDA','AAPL'], # TODO: sort by marketcap
     ['AMZN','GOOGL','META'],
     ['TSLA','AVGO','COST'],
-    ['JPM','ORCL','NFLX'],
-    ['WMT','PLTR','LLY'],
+    #['JPM','ORCL','NFLX'],
+    #['WMT','PLTR','LLY'],
 ]
 
 def cache_cboe():
@@ -71,7 +70,7 @@ def cache_cboe():
 
                 with open(json_file,'w') as f:
                     f.write(json.dumps(info_dict))
-                time.sleep(np.random.rand()*5)
+                time.sleep(np.random.rand())
             except:
                 traceback.print_exc()
 
@@ -93,7 +92,7 @@ def cache_cboe():
         if not os.path.exists(csv_file):
             spot_price, df = scrape_options_data(ticker)
             df.to_csv(csv_file,index=False)
-            time.sleep(np.random.rand()*5)
+            time.sleep(np.random.rand())
         else:
             logger.info('options found')
 
