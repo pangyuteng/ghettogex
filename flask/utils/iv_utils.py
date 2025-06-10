@@ -229,52 +229,54 @@ def compute_exposure(tstamp,spot_price,spot_volatility,df):
 
     # S is spot price, K is strike price, vol is implied volatility
     # T is time to expiration, r is risk-free rate, q is dividend yield
-    call_opt_type = 'call'
     call_idx = df.index[df.contract_type=='C'].tolist()
-    call_df = df[df.contract_type=='C']
-    call_delta = call_df.delta.to_numpy().astype(np.float64)
-    call_gamma = call_df.gamma.to_numpy().astype(np.float64)
-    call_k = call_df.strike.to_numpy().astype(np.float64)
-    call_v = call_df.volatility.to_numpy().astype(np.float64)
-    call_t = call_df.time_till_exp.to_numpy().astype(np.float64)
-    call_oi = call_df.true_oi.to_numpy().astype(np.float64)
+    if len(call_idx) > 0:
+        call_opt_type = 'call'
+        call_df = df[df.contract_type=='C']
+        call_delta = call_df.delta.to_numpy().astype(np.float64)
+        call_gamma = call_df.gamma.to_numpy().astype(np.float64)
+        call_k = call_df.strike.to_numpy().astype(np.float64)
+        call_v = call_df.volatility.to_numpy().astype(np.float64)
+        call_t = call_df.time_till_exp.to_numpy().astype(np.float64)
+        call_oi = call_df.true_oi.to_numpy().astype(np.float64)
 
-    call_dp, call_cdf_dp, call_pdf_dp = calc_dp_cdf_pdf(
-        np_spot_price,
-        call_k,
-        call_v,
-        call_t,
-        yield_10yr,
-        dividend_yield,
-    )
+        call_dp, call_cdf_dp, call_pdf_dp = calc_dp_cdf_pdf(
+            np_spot_price,
+            call_k,
+            call_v,
+            call_t,
+            yield_10yr,
+            dividend_yield,
+        )
 
-    df.loc[call_idx,'dex'] = call_delta*call_oi*spot_price
-    df.loc[call_idx,'gex'] = call_gamma*call_oi*spot_price*spot_price
-    df.loc[call_idx,'vex'] = calc_vanna_ex(np_spot_price, call_v, call_t, dividend_yield, call_oi, call_dp, call_pdf_dp).squeeze().astype(np.float32)
-    df.loc[call_idx,'cex'] = calc_charm_ex(np_spot_price, call_v, call_t, yield_10yr, dividend_yield, call_opt_type, call_oi, call_dp, call_cdf_dp, call_pdf_dp).squeeze().astype(np.float32)
-
-    put_opt_type = 'put'
-    put_idx = df.index[df.contract_type=='P'].tolist()
-    put_df = df[df.contract_type=='P']
-    put_delta = put_df.delta.to_numpy().astype(np.float64)
-    put_gamma = put_df.gamma.to_numpy().astype(np.float64)
-    put_k = put_df.strike.to_numpy().astype(np.float64)
-    put_v = put_df.volatility.to_numpy().astype(np.float64)
-    put_t = put_df.time_till_exp.to_numpy().astype(np.float64)
-    put_oi = put_df.true_oi.to_numpy().astype(np.float64)
-
-    put_dp, put_cdf_dp, put_pdf_dp = calc_dp_cdf_pdf(
-        np_spot_price,
-        put_k,
-        put_v,
-        put_t,
-        yield_10yr,
-        dividend_yield,
-    )
-
-    df.loc[put_idx,'dex'] = put_delta*put_oi*spot_price
-    df.loc[put_idx,'gex'] = put_gamma*put_oi*spot_price*spot_price*-1
-    df.loc[put_idx,'vex'] = calc_vanna_ex(np_spot_price, put_v, put_t, dividend_yield, put_oi, put_dp, call_pdf_dp).squeeze().astype(np.float32)
-    df.loc[put_idx,'cex'] = calc_charm_ex(np_spot_price, put_v, put_t, yield_10yr, dividend_yield, put_opt_type, put_oi, put_dp, put_cdf_dp, put_pdf_dp).squeeze().astype(np.float32)
+        df.loc[call_idx,'dex'] = call_delta*call_oi*spot_price
+        df.loc[call_idx,'gex'] = call_gamma*call_oi*spot_price*spot_price
+        df.loc[call_idx,'vex'] = calc_vanna_ex(np_spot_price, call_v, call_t, dividend_yield, call_oi, call_dp, call_pdf_dp).squeeze().astype(np.float32)
+        df.loc[call_idx,'cex'] = calc_charm_ex(np_spot_price, call_v, call_t, yield_10yr, dividend_yield, call_opt_type, call_oi, call_dp, call_cdf_dp, call_pdf_dp).squeeze().astype(np.float32)
     
+    put_idx = df.index[df.contract_type=='P'].tolist()
+    if len(put_idx) > 0:
+        put_opt_type = 'put'
+        put_df = df[df.contract_type=='P']
+        put_delta = put_df.delta.to_numpy().astype(np.float64)
+        put_gamma = put_df.gamma.to_numpy().astype(np.float64)
+        put_k = put_df.strike.to_numpy().astype(np.float64)
+        put_v = put_df.volatility.to_numpy().astype(np.float64)
+        put_t = put_df.time_till_exp.to_numpy().astype(np.float64)
+        put_oi = put_df.true_oi.to_numpy().astype(np.float64)
+
+        put_dp, put_cdf_dp, put_pdf_dp = calc_dp_cdf_pdf(
+            np_spot_price,
+            put_k,
+            put_v,
+            put_t,
+            yield_10yr,
+            dividend_yield,
+        )
+
+        df.loc[put_idx,'dex'] = put_delta*put_oi*spot_price
+        df.loc[put_idx,'gex'] = put_gamma*put_oi*spot_price*spot_price*-1
+        df.loc[put_idx,'vex'] = calc_vanna_ex(np_spot_price, put_v, put_t, dividend_yield, put_oi, put_dp, call_pdf_dp).squeeze().astype(np.float32)
+        df.loc[put_idx,'cex'] = calc_charm_ex(np_spot_price, put_v, put_t, yield_10yr, dividend_yield, put_opt_type, put_oi, put_dp, put_cdf_dp, put_pdf_dp).squeeze().astype(np.float32)
+        
     return df

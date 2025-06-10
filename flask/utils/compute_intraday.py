@@ -319,9 +319,8 @@ def compute_gex_core(df,from_scratch):
 
     summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','true_oi']]
     summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
-    
-    # TODO: compute vanna,charm
-    greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega',]]#'vanna','charm']]
+
+    greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega']]
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
 
     timeandsale_df = ts_df[['event_symbol','size_signed']]
@@ -374,22 +373,18 @@ def compute_gex_core(df,from_scratch):
     # state gex is a WIP. removed `*100*0.01`` since ``== 1``
     merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
     merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price
+    merged_df = merged_df.rename(columns={"state_gex":"BAK_state_gex"})
 
     # merged_df['dex'] = merged_df.delta * merged_df.true_oi * merged_df.spot_price
     # merged_df['vex'] = merged_df.vanna * merged_df.true_oi * merged_df.spot_price * merged_df.spot_volatility * merged_df.vanna_sign
     # merged_df['cex'] = merged_df.charm * merged_df.true_oi * merged_df.spot_price * (1/365) * merged_df.charm_sign
+    merged_df['gex'] = 0.0
     merged_df['dex'] = 0.0
     merged_df['vex'] = 0.0
     merged_df['cex'] = 0.0
-    
     try:
-        call_idx = df.index[df.contract_type=='C'].tolist()
-        put_idx = df.index[df.contract_type=='P'].tolist()
-        if len(call_idx) == 0 or len(put_idx)==0:
-            pass
-        else:
-            merged_df = compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
-            merged_df = merged_df.rename(columns={"gex":"state_gex"})
+        merged_df = compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
+        merged_df = merged_df.rename(columns={"gex":"state_gex"})
     except:
         traceback.print_exc()
 
@@ -504,7 +499,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             table_cols = ['ticker','strike','tstamp','volume_gex','state_gex','dex','convexity','vex','cex']
             agg_df['ticker'] = ticker
-            strike_gex_df = agg_df[table_cols]
+            strike_gex_df = agg_df[table_cols].copy()
             strike_gex_df = strike_gex_df.groupby(['ticker','strike','tstamp']).agg(
                 volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
                 state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
@@ -537,7 +532,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             # 'true_dex','call_gex','put_gex', major_call_gex_strike, major_put_gex_strike
             table_cols = ['ticker','tstamp','spot_price','volume_gex','state_gex','dex','convexity','vex','cex']
             agg_df['ticker'] = ticker
-            net_gex_df = agg_df[table_cols]
+            net_gex_df = agg_df[table_cols].copy()
             net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
                 spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
                 volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
