@@ -47,7 +47,7 @@ beat_schedule = {
    },
    'trigger_vaccum_full': {
        'task': 'tasks.trigger_vaccum_full',
-       'schedule': crontab(minute=0, hour=1, day_of_week='sat'), # once on saturday midnight
+       'schedule': crontab(minute=0, hour=2,day_of_week='tue,wed,thu,fri,sat'), # daily
        'options': {'queue': 'default'},
        'args': [],
    },
