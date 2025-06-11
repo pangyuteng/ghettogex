@@ -499,8 +499,8 @@ async def ws_sec_heatmap():
             utc = pytz.timezone('UTC')
             tstamp_et = now_in_new_york()
             ws_tstamp_utc = tstamp_et.astimezone(tz=utc)
-            market_open,market_close = get_market_open_close(ws_tstamp_utc)
-            if ws_tstamp_utc > market_open and ws_tstamp_utc < market_close:
+            market_open,market_close = get_market_open_close(ws_tstamp_utc,no_tzinfo=False)
+            if tstamp_et > market_open and tstamp_et < market_close:
                 min_tstamp = ws_tstamp_utc-datetime.timedelta(hours=2)
             else:
                 min_tstamp = ws_tstamp_utc-datetime.timedelta(hours=2)
