@@ -508,21 +508,21 @@ async def ws_sec_heatmap():
                 min_tstamp = market_open
             day_stamp = tstamp_et.strftime("%Y-%m-%d")
 
-            net_day_query_str = "select * from gex_net where ticker = %s and tstamp::date = %s order by tstamp"
+            net_day_query_str = "select * from gex_net where ticker = %s and tstamp::date = %s and tstamp > %s order by tstamp"
             strike_day_query_str = """
                 SELECT DISTINCT ON (ticker,date_trunc('minute', tstamp),strike) 
                 date_trunc('minute', tstamp) AS tstamp, ticker, strike,
                 AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex,AVG(dex) as dex,
                 AVG(convexity) as convexity, AVG(vex) as vex,AVG(cex) as cex
                 FROM gex_strike 
-                WHERE ticker = %s and tstamp::date = %s 
+                WHERE ticker = %s and tstamp::date = %s and tstamp > %s
                 GROUP BY ticker,tstamp,strike
                 ORDER BY tstamp, strike DESC
-            """ # and tstamp > %s # min_tstamp
+            """
 
             query_dict = {
-                'net-day': {'query_str':net_day_query_str,'query_args':(ticker,day_stamp)},
-                'strike-day': {'query_str':strike_day_query_str,'query_args':(ticker,day_stamp)},
+                'net-day': {'query_str':net_day_query_str,'query_args':(ticker,day_stamp,min_tstamp)},
+                'strike-day': {'query_str':strike_day_query_str,'query_args':(ticker,day_stamp,min_tstamp)},
             }
             
             query_list = []
