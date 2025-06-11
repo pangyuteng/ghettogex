@@ -600,6 +600,8 @@ async def ws_sec_heatmap():
                 plt.subplot(211)
                 plt.plot(gex_net_df.tstamp_sec,gex_net_df["volume_gex"],label="volume_gex")
                 plt.plot(gex_net_df.tstamp_sec,gex_net_df["state_gex"],label="state_gex")
+                plt.legend()
+                plt.grid(True)
                 plt.subplot(212)
                 plt.plot(gex_net_df.tstamp_sec,gex_net_df["convexity"],label="convexity")
                 plt.legend()
