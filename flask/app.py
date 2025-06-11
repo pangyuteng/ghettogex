@@ -34,7 +34,7 @@ from quart_auth import (
     Unauthorized,
 )
 
-from utils.misc import check_password, CACHE_FOLDER
+from utils.misc import check_password, CACHE_FOLDER, get_market_open_close
 from utils.data_cache import (
     BTC_TICKER,
     CBOEX_TICKER_LIST,
@@ -499,6 +499,11 @@ async def ws_sec_heatmap():
             utc = pytz.timezone('UTC')
             tstamp_et = now_in_new_york()
             ws_tstamp_utc = tstamp_et.astimezone(tz=utc)
+            market_open,market_close = get_market_open_close(ws_tstamp_utc)
+            if ws_tstamp_utc > market_open and ws_tstamp_utc < market_close:
+                min_tstamp = ws_tstamp_utc-datetime.timedelta(hours=2)
+            else:
+                min_tstamp = ws_tstamp_utc-datetime.timedelta(hours=2)
             day_stamp = tstamp_et.strftime("%Y-%m-%d")
 
             net_day_query_str = "select * from gex_net where ticker = %s and tstamp::date = %s order by tstamp"
@@ -508,14 +513,14 @@ async def ws_sec_heatmap():
                 AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex,AVG(dex) as dex,
                 AVG(convexity) as convexity, AVG(vex) as vex,AVG(cex) as cex
                 FROM gex_strike 
-                WHERE ticker = %s and tstamp::date = %s
+                WHERE ticker = %s and tstamp::date = %s and tstamp::date > %s
                 GROUP BY ticker,tstamp,strike
                 ORDER BY tstamp, strike DESC
             """
 
             query_dict = {
                 'net-day': {'query_str':net_day_query_str,'query_args':(ticker,day_stamp)},
-                'strike-day': {'query_str':strike_day_query_str,'query_args':(ticker,day_stamp)},
+                'strike-day': {'query_str':strike_day_query_str,'query_args':(ticker,day_stamp,min_tstamp)},
             }
             
             query_list = []
@@ -592,11 +597,13 @@ async def ws_sec_heatmap():
                 ).reset_index()
 
                 plt.figure(1)
-                for n,x in enumerate(['state_gex','volume_gex','convexity']):
-                    plt.subplot(311+n)
-                    plt.plot(gex_net_df.tstamp_sec,gex_net_df[x],label=x)
-                    plt.legend()
-                    plt.grid(True)
+                plt.subplot(211)
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df["volume_gex"],label="volume_gex")
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df["state_gex"],label="state_gex")
+                plt.subplot(212)
+                plt.plot(gex_net_df.tstamp_sec,gex_net_df["convexity"],label="convexity")
+                plt.legend()
+                plt.grid(True)
                 plt.tight_layout()
                 plt.savefig(net_ex_png_file)
                 plt.close()
