@@ -501,7 +501,7 @@ async def ws_sec_heatmap():
             ws_tstamp_utc = tstamp_et.astimezone(tz=utc)
             market_open,market_close = get_market_open_close(ws_tstamp_utc,no_tzinfo=False)
             if tstamp_et > market_open and tstamp_et < market_close:
-                min_tstamp = ws_tstamp_utc-datetime.timedelta(hours=2)
+                min_tstamp = market_open
             else:
                 min_tstamp = ws_tstamp_utc-datetime.timedelta(hours=2)
             day_stamp = tstamp_et.strftime("%Y-%m-%d")
