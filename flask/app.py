@@ -513,7 +513,7 @@ async def ws_sec_heatmap():
                 AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex,AVG(dex) as dex,
                 AVG(convexity) as convexity, AVG(vex) as vex,AVG(cex) as cex
                 FROM gex_strike 
-                WHERE ticker = %s and tstamp::date = %s and tstamp::date > %s
+                WHERE ticker = %s and tstamp::date = %s and tstamp > %s
                 GROUP BY ticker,tstamp,strike
                 ORDER BY tstamp, strike DESC
             """
