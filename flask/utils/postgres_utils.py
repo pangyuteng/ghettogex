@@ -34,7 +34,6 @@ async def apostgres_execute(apool,query_str,query_args,is_commit=False):
 async def apostgres_execute_many(apool,query_dict):
     response = None
     try:
-        #async with await psycopg.AsyncConnection.connect(postgres_uri,row_factory=dict_row) as aconn:
         async with apool.connection() as aconn:
             async with aconn.cursor(row_factory=dict_row) as curs:
                 for query_str,query_list in query_dict.items():
