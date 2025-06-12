@@ -572,7 +572,7 @@ async def ws_sec_heatmap():
             with tempfile.TemporaryDirectory() as tmpdir:
                 net_ex_png_file = os.path.join(tmpdir,'net-ex.png')
                 net_ex2_png_file = os.path.join(tmpdir,'net-ex2.png')
-                heatmap_state_gex_png_file = os.path.join(tmpdir,'heatmap-state-gex.png')
+                heatmap_state_gex_png_file = os.path.join(tmpdir,'heatmap-ghetto-gex.png')
                 heatmap_convexity_png_file = os.path.join(tmpdir,'heatmap-convexity.png')
                 heatmap_dex_png_file = os.path.join(tmpdir,'heatmap-dex.png')
                 heatmap_vex_png_file = os.path.join(tmpdir,'heatmap-vex.png')
@@ -645,7 +645,7 @@ async def ws_sec_heatmap():
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
                 plt.xticks(rotation=30)
 
-                plt.title(f"0DTE state-gex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
+                plt.title(f"0DTE ghetto-gex ($bn/1%move)*\n{ticker} {tstamp_et}\n")
                 ax = sns.lineplot(data=price_df,x='tstamp_sec',y='spot_price',color='green')
                 plt.tight_layout()
                 plt.savefig(heatmap_state_gex_png_file)
