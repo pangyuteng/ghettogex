@@ -1,4 +1,4 @@
-<div id="myDiv" hx-swap-oob="true">
+<div id="myDivLevels" hx-swap-oob="true">
   <script>
   var updateDataDex = [];
   var updateDataStateGex = [];
@@ -267,10 +267,13 @@
     title: {text: 'state-gex {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    width: 512,
-    height: 512,
+    width: 420,
+    height: 420,
     autosize: false,
     showlegend: false,
+    margin: {
+      r: 80,l: 0
+    },
     yaxis: {
         showgrid: true,
         range: [ {{spot_price*0.98}}, {{spot_price*1.02}} ]
@@ -290,10 +293,13 @@ var updateLayoutConv = {
     title: {text: 'convexity {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    width: 512,
-    height: 512,
+    width: 420,
+    height: 420,
     autosize: false,
     showlegend: false,
+    margin: {
+      r: 80,l: 0
+    },
     yaxis: {
         showgrid: true,
         range: [ {{spot_price*0.98}}, {{spot_price*1.02}} ]
@@ -313,10 +319,13 @@ var updateLayoutDex = {
     title: {text: 'dex {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    width: 510,
-    height: 510,
+    width: 420,
+    height: 420,
     autosize: false,
     showlegend: false,
+    margin: {
+      r: 80,l: 0
+    },
     yaxis: {
         showgrid: true,
         range: [ {{spot_price*0.98}}, {{spot_price*1.02}} ]
@@ -336,10 +345,13 @@ var updateLayoutVex = {
     title: {text: 'vex {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    width: 510,
-    height: 510,
+    width: 420,
+    height: 420,
     autosize: false,
     showlegend: false,
+    margin: {
+      r: 80,l: 0
+    },
     yaxis: {
         showgrid: true,
         range: [ {{spot_price*0.98}}, {{spot_price*1.02}} ]
@@ -359,10 +371,13 @@ var updateLayoutCex = {
     title: {text: 'cex {{ticker}} {{ "%0.2f" | format(spot_price|float) }}'},
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    width: 510,
-    height: 510,
+    width: 420,
+    height: 420,
     autosize: false,
     showlegend: false,
+    margin: {
+      r: 80,l: 0
+    },
     yaxis: {
         showgrid: true,
         range: [ {{spot_price*0.98}}, {{spot_price*1.02}} ]

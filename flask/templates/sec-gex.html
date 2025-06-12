@@ -22,25 +22,25 @@
 <div hx-ext="ws" ws-connect="/ticker/ws-sec-heatmap?ticker={{ticker}}"></div>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row p-0 m-0">
 
-      <div class="col">
+      <div class="col p-0 m-0">
       <div id="plotDivDex"></div>
       </div>
 
-      <div class="col">
+      <div class="col p-0 m-0">
       <div id="plotDivConv"></div>
       </div>
 
-      <div class="col">
+      <div class="col p-0 m-0">
       <div id="plotDivStateGex"></div>
       </div>
 
-      <div class="col">
+      <div class="col p-0 m-0">
       <div id="plotDivVex"></div>
       </div>
 
-      <div class="col">
+      <div class="col p-0 m-0">
       <div id="plotDivCex"></div>
       </div>
 
@@ -50,26 +50,16 @@
 
 <script>
 var data = []
-var layoutLG = { 
+var layout = { 
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    width: 512,
-    height: 512,
+    width: 420,
+    height: 420,
     autosize: false,
     showlegend: false,
-    font: {
-        family: 'Courier New, monospace',
-        size: 18,
-        color: 'rgba(200,200,200,1)'
-    }
-};
-var layoutSM = { 
-    paper_bgcolor: 'rgba(0,0,0,0)',
-    plot_bgcolor: 'rgba(0,0,0,0)',
-    width: 510,
-    height: 510,
-    autosize: false,
-    showlegend: false,
+    margin: {
+      r: 80,l: 0
+    },
     font: {
         family: 'Courier New, monospace',
         size: 18,
@@ -77,15 +67,15 @@ var layoutSM = {
     }
 };
 
-Plotly.newPlot(plotDivStateGex, data, layoutLG);
-Plotly.newPlot(plotDivConv, data, layoutLG);
-Plotly.newPlot(plotDivDex, data, layoutSM);
-Plotly.newPlot(plotDivVex, data, layoutSM);
-Plotly.newPlot(plotDivCex, data, layoutSM);
+Plotly.newPlot(plotDivDex, data, layout);
+Plotly.newPlot(plotDivConv, data, layout);
+Plotly.newPlot(plotDivStateGex, data, layout);
+Plotly.newPlot(plotDivVex, data, layout);
+Plotly.newPlot(plotDivCex, data, layout);
 
 </script>
 
-<div id="myDiv">
+<div id="myDivLevels">
 </div>
 
 <div id="myStatusDiv">
