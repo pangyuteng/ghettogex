@@ -320,26 +320,27 @@ async def ws_status():
             query_str = """
             (select 'timeandsale' as event_type, count(timeandsale_id) as id_count from timeandsale where tstamp > now() - interval '2 second')
             union all (
-            select 'candle' as event_type, count(candle_id) as id_count from candle where tstamp > now() - interval '2 second'
+            select 'candle' as event_type, count(candle_id) as id_count from candle where tstamp > now() - interval '3 second'
             ) union all (
-            select 'quote' as event_type, count(quote_id) as id_count from quote where tstamp > now() - interval '2 second'
+            select 'quote' as event_type, count(quote_id) as id_count from quote where tstamp > now() - interval '3 second'
             ) union all (
             select 'greeks' as event_type, count(greeks_id) as id_count from greeks where tstamp > now() - interval '60 second'
             ) union all (
-            select 'gex_net' as event_type, count(gex_net_id) as id_count from gex_net where tstamp > now() - interval '1 second'
+            select 'gex_net' as event_type, count(gex_net_id) as id_count from gex_net where tstamp > now() - interval '3 second'
             ) union all (
-            select 'gex_strike' as event_type, count(gex_strike_id) as id_count from gex_strike where tstamp > now() - interval '1 second'
+            select 'gex_strike' as event_type, count(gex_strike_id) as id_count from gex_strike where tstamp > now() - interval '3 second'
             )"""
             query_args = ()
             fetched = await apostgres_execute(None,query_str,query_args)
             columns = ['event_type','id_count']
             try:
                 df = pd.DataFrame([x for x in fetched])
+                event_status_dict = {row.event_type:row.id_count for n,row in df.iterrows()}
             except:
-                df = pd.DataFrame([],columns=columns)
+                event_status_dict = {}
                 app.logger.error(traceback.format_exc())
 
-            data_str = render_html("ws-status.html",df=df)
+            data_str = render_html("ws-status.html",event_status_dict=event_status_dict)
             await websocket.send(data_str)
             await asyncio.sleep(mysec)
 
