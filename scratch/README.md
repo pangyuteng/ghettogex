@@ -116,6 +116,17 @@ docker run -it -u $(id -u):$(id -g) \
 + [x] added cron job to do vacuum
 + [x] health status (latest tstamps from all event tables)
 
++ [x] postgres insert and query got slow...
+    https://chriserwin.com/table-partitioning
+    + [x] look into how to do table partition
+    """
+    https://stackoverflow.com/questions/78373494/large-number-of-partitions
+    https://chriserwin.com/table-partitioning/
+    CREATE TABLE orders_2020_07 PARTITION OF orders
+        FOR VALUES FROM ('2020-07-01') TO ('2020-08-01');
+    ALTER TABLE orders DETACH PARTITION orders_2020_06;
+    """
+
 + [o] study hua volatility
     + when do you pick naive vs order-book vs iv-surface?
     + [x] naive method - price near bid/ask price.
@@ -145,16 +156,8 @@ docker run -it -u $(id -u):$(id -g) \
 + [ ] investigate GEX Regime classification and future 1min,5min,10min,30min probability.
       use SqueezeMetrics paper
 
-+ [x] postgres insert and query got slow...
-    https://chriserwin.com/table-partitioning
-    + [ ] look into how to do table partition
-    """
-    https://stackoverflow.com/questions/78373494/large-number-of-partitions
-    https://chriserwin.com/table-partitioning/
-    CREATE TABLE orders_2020_07 PARTITION OF orders
-        FOR VALUES FROM ('2020-07-01') TO ('2020-08-01');
-    ALTER TABLE orders DETACH PARTITION orders_2020_06;
-    """
++ [ ] compute next expiration gex_net,gex_strike seperatly.
+      or add cron task to get true_oi and open_interest
 
 + [ ] how about insert to redis as well for each second per day? and purging per day?
 
@@ -162,7 +165,7 @@ docker run -it -u $(id -u):$(id -g) \
 
 + [ ] add gexbot order flow GEX,DEX visualization
 
-+ [ ] compute next expiration gex_net,gex_strike seperatly.
+
 
 + [ ] how to assess/confirm trend and resistance?
       dex increase, gex increase.
