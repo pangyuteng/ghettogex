@@ -139,6 +139,8 @@ docker run -it -u $(id -u):$(id -g) \
     
     + [ ] verify beween DXLINK, UW, and GEXBOT
 
++ [ ] what the heck is gexbot convexity?
+
 + [ ] investigate GEX Regime classification and future 1min,5min,10min,30min probability.
       use SqueezeMetrics paper
 
@@ -156,7 +158,10 @@ docker run -it -u $(id -u):$(id -g) \
 + [ ] how about insert to redis as well for each second per day? and purging per day?
 
 + [ ] insert call_dex, put_dex, call_gex, put_gex
-    + [ ] add gexbot order flow GEX,DEX visualization
+
++ [ ] add gexbot order flow GEX,DEX visualization
+
++ [ ] compute next expiration gex_net,gex_strike seperatly.
 
 + [ ] how to assess/confirm trend and resistance?
       dex increase, gex increase.
