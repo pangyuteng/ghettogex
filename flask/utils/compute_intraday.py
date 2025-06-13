@@ -333,6 +333,7 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df['spot_volatility'] = spot_volatility
     merged_df['spot_price'] = spot_price
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
+    merged_df['customer_sign'] = -1
     merged_df['vanna_sign'] = merged_df.gamma_sign
     # charm_sign:
     # Positive for in-the-money calls and out-of-the-money put
@@ -372,7 +373,7 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     # `state_gex` uses timeandsale and true_oi (for now starts from 0 at start of day)
     # state gex is a WIP. removed `*100*0.01`` since ``== 1``
     merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
-    merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price
+    merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.customer_sign
     merged_df = merged_df.rename(columns={"state_gex":"BAK_state_gex"})
 
     # merged_df['dex'] = merged_df.delta * merged_df.true_oi * merged_df.spot_price

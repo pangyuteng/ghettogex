@@ -139,7 +139,8 @@ docker run -it -u $(id -u):$(id -g) \
     
     + [ ] verify beween DXLINK, UW, and GEXBOT
 
-+ [ ] what the heck is gexbot convexity?
++ [x] what the heck is gexbot convexity? https://www.youtube.com/watch?v=p8aafkGbXNk
+      + [x] updated convexity definition
 
 + [ ] investigate GEX Regime classification and future 1min,5min,10min,30min probability.
       use SqueezeMetrics paper
