@@ -39,15 +39,9 @@ beat_schedule = {
        'options': {'queue': 'default'},
        'args': [],
    },
-   'trigger_table_partition': {
-       'task': 'tasks.trigger_table_partition',
-       'schedule': crontab(0, 0, day_of_month='1'), # once per month
-       'options': {'queue': 'default'},
-       'args': [],
-   },
    'trigger_vaccum_full': {
        'task': 'tasks.trigger_vaccum_full',
-       'schedule': crontab(minute=0, hour=2,day_of_week='tue,wed,thu,fri,sat'), # daily
+       'schedule': crontab(minute=0, hour=2,day_of_week='sat'),
        'options': {'queue': 'default'},
        'args': [],
    },
