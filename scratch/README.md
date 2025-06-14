@@ -163,6 +163,11 @@ docker run -it -u $(id -u):$(id -g) \
         https://www.wrighters.io/options-to-run-pandas-dataframe-apply-in-parallel/
         
         `scratch/gex-classify-dev.ipynb`
+        
+        awesome https://github.com/nalepae/pandarallel
+        https://stackoverflow.com/questions/26784164/pandas-multiprocessing-apply
+        https://stackoverflow.com/questions/45545110/make-pandas-dataframe-apply-use-all-cores
+        https://stackoverflow.com/search?q=pandas+apply+parallel
 
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
