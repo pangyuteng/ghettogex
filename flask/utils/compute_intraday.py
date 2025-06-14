@@ -475,6 +475,11 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             time_d = time.time()
             
             agg_df = agg_df[event_agg_columns]
+
+            if len(agg_df) == 0:
+                logger.warning(("len(agg_df) is 0!!!"))
+                return
+
             if csv_file:
                 agg_df.to_csv(csv_file,index=False)
 
