@@ -334,20 +334,12 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df['spot_price'] = spot_price
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['customer_sign'] = -1
-    merged_df['vanna_sign'] = merged_df.gamma_sign
-    # charm_sign:
-    # Positive for in-the-money calls and out-of-the-money put
-    # Negative for in-the-money puts and out-of-the-money calls
-    merged_df['charm_sign'] = merged_df.strike.apply(lambda x: 1 if x < spot_price else -1)
-
-    merged_df['vanna'] = 0.0
-    merged_df['charm'] = 0.0
 
     for col_name in [
-        'spot_volatility','delta','gamma','vanna','charm',
+        'spot_volatility','delta','gamma',
         'open_interest','true_oi','spot_price',
         'size_signed','price','volume','ask_volume','bid_volume',
-        'gamma_sign','vanna_sign','charm_sign']:
+        'gamma_sign']:
 
         merged_df[col_name] = pd.to_numeric(merged_df[col_name], errors='coerce')
 
@@ -372,23 +364,18 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
     # `state_gex` uses timeandsale and true_oi (for now starts from 0 at start of day)
     # state gex is a WIP. removed `*100*0.01`` since ``== 1``
-    merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
+    merged_df['BAK_state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
     merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.customer_sign
-    merged_df = merged_df.rename(columns={"state_gex":"BAK_state_gex"})
 
-    # merged_df['dex'] = merged_df.delta * merged_df.true_oi * merged_df.spot_price
-    # merged_df['vex'] = merged_df.vanna * merged_df.true_oi * merged_df.spot_price * merged_df.spot_volatility * merged_df.vanna_sign
-    # merged_df['cex'] = merged_df.charm * merged_df.true_oi * merged_df.spot_price * (1/365) * merged_df.charm_sign
-    merged_df['gex'] = 0.0
+    merged_df['state_gex'] = 0.0
     merged_df['dex'] = 0.0
     merged_df['vex'] = 0.0
     merged_df['cex'] = 0.0
     try:
         if first_minute is False:
+            expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(merged_df.expiration.unique())}
+            merged_df['time_till_exp'] = merged_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
             merged_df = compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
-            merged_df = merged_df.rename(columns={"gex":"state_gex"})
-        else:
-            merged_df['state_gex'] = 0.0
     except:
         traceback.print_exc()
 

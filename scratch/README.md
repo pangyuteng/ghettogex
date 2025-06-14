@@ -153,6 +153,8 @@ docker run -it -u $(id -u):$(id -g) \
 + [x] what the heck is gexbot convexity? https://www.youtube.com/watch?v=p8aafkGbXNk
       + [x] updated convexity definition
 
++ [x] insert call_dex, put_dex, call_gex, put_gex
+
 + [ ] investigate GEX Regime classification and future 1min,5min,10min,30min probability.
       use SqueezeMetrics paper
 
@@ -161,7 +163,6 @@ docker run -it -u $(id -u):$(id -g) \
 
 + [ ] how about insert to redis as well for each second per day? and purging per day?
 
-+ [ ] insert call_dex, put_dex, call_gex, put_gex
 
 + [ ] add gexbot order flow GEX,DEX visualization
 
