@@ -39,10 +39,11 @@ spec:
           protocol: TCP
         volumeMounts:
         - name: nfs-volume
-          mountPath: /home/postgres/pgdata/data
+          mountPath: /var/lib/postgresql/data/pgdata
           subPath: pgdata
       volumes:
       - name: nfs-volume
         nfs:
           server: 192.168.68.141
-          path: /mnt/hd1/data
+          path: /mnt/hd1/data/pgmount
+          readOnly: false

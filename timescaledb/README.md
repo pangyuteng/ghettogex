@@ -13,6 +13,21 @@ https://docs.timescale.com/api/latest/hypertable/create_table
 https://docs.timescale.com/api/latest/hypertable/create_index
 
 
+root@nfswavestorm:/mnt/hd1/data
+mkdir pgmount
+chown -R 1000:1000 pgmount
+
+
+kubectl apply -f .manifest-back/deployment-postgres.yaml
+kubectl apply -f .manifest-back/service-postgres.yaml
+
+
+http://192.168.68.80:8080/?pgsql=postgres&username=postgres&db=postgres&ns=public
+
+
+TODO:
+use longhorn & pvc ... then HA
+https://docs.timescale.com/self-hosted/latest/install/installation-kubernetes/
 
 ```
 
