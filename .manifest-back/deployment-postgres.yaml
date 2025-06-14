@@ -33,13 +33,15 @@ spec:
           value: postgres
         - name: POSTGRES_DB
           value: postgres
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
         ports:
         - containerPort: 5432
           name: web
           protocol: TCP
         volumeMounts:
         - name: nfs-volume
-          mountPath: /var/lib/postgresql/data/pgdata
+          mountPath: /var/lib/postgresql/data
           subPath: pgdata
       volumes:
       - name: nfs-volume

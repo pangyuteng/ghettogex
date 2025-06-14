@@ -13,7 +13,11 @@ https://docs.timescale.com/api/latest/hypertable/create_table
 https://docs.timescale.com/api/latest/hypertable/create_index
 
 
-root@nfswavestorm:/mnt/hd1/data
+kubectl delete -f .manifest-back/deployment-postgres.yaml
+kubectl delete -f .manifest-back/service-postgres.yaml
+
+nfswavestorm:/mnt/hd1/data
+sudo su
 mkdir pgmount
 chown -R 1000:1000 pgmount
 
@@ -21,6 +25,9 @@ chown -R 1000:1000 pgmount
 kubectl apply -f .manifest-back/deployment-postgres.yaml
 kubectl apply -f .manifest-back/service-postgres.yaml
 
+kubectl describe pod postgres -n gg
+
+kubectl logs -l app=postgres -n gg -f --max-log-requests 12 --tail=200
 
 http://192.168.68.80:8080/?pgsql=postgres&username=postgres&db=postgres&ns=public
 
