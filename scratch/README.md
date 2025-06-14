@@ -159,6 +159,10 @@ docker run -it -u $(id -u):$(id -g) \
 
 + [ ] investigate GEX Regime classification and future 1min,5min,10min,30min probability.
       use SqueezeMetrics paper
+        
+        https://www.wrighters.io/options-to-run-pandas-dataframe-apply-in-parallel/
+        
+        `scratch/gex-classify-dev.ipynb`
 
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
@@ -167,7 +171,6 @@ docker run -it -u $(id -u):$(id -g) \
 
 
 + [ ] add gexbot order flow GEX,DEX visualization
-
 
 
 + [ ] how to assess/confirm trend and resistance?
