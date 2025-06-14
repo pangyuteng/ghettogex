@@ -127,6 +127,8 @@ docker run -it -u $(id -u):$(id -g) \
     ALTER TABLE orders DETACH PARTITION orders_2020_06;
     """
 
++ [ ] switch from postgres to timescaledb
+
 + [o] study hua volatility
     + when do you pick naive vs order-book vs iv-surface?
     + [x] naive method - price near bid/ask price.

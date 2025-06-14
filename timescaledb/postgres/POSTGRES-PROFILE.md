@@ -69,6 +69,14 @@ Postgres + Timescale. The compression ratio is phenomenal with TimeScaleDB.
 
 https://github.com/timescale/timescaledb
 
+https://docs.timescale.com/self-hosted/latest/install/installation-docker
+
+timescale/timescaledb:latest-pg17
+
+timescale/timescaledb-ha:pg17
+
+https://hub.docker.com/r/timescale/timescaledb-ha/tags
+
 ```
 
 ```
