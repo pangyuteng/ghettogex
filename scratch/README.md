@@ -127,7 +127,7 @@ docker run -it -u $(id -u):$(id -g) \
     ALTER TABLE orders DETACH PARTITION orders_2020_06;
     """
 
-+ [ ] switch from postgres to timescaledb
++ [x] switch from postgres to timescaledb
 
 + [o] study hua volatility
     + when do you pick naive vs order-book vs iv-surface?
@@ -175,6 +175,11 @@ docker run -it -u $(id -u):$(id -g) \
 
 + [ ] play sound during events.
     + [ ] flash crash
+    
+    echo $'\a'
+    https://askubuntu.com/a/673759/231735
+    https://stackoverflow.com/questions/9419263/how-to-play-audio
+
     + [ ] ideal setup for long
     + [ ] gex png and proposed direction, support/major levels.
 
