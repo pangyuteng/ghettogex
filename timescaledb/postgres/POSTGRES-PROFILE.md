@@ -77,6 +77,14 @@ timescale/timescaledb-ha:pg17
 
 https://hub.docker.com/r/timescale/timescaledb-ha/tags
 
+
++ [ ] edit sql, add hypertable and index 
+
++ [ ] archive partition py logic
+
+https://docs.timescale.com/api/latest/hypertable/create_index/
+
+
 ```
 
 ```

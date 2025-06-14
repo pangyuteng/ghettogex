@@ -23,7 +23,14 @@ CREATE TABLE IF NOT EXISTS gex_strike (
     put_vex double precision,
     put_cex double precision,
     UNIQUE (ticker, tstamp, strike)
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
+
+CALL add_columnstore_policy('gex_strike', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS gex_net (
     gex_net_id SERIAL,
@@ -49,7 +56,14 @@ CREATE TABLE IF NOT EXISTS gex_net (
     put_vex double precision,
     put_cex double precision,
     UNIQUE (ticker, tstamp)
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
+
+CALL add_columnstore_policy('gex_net', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS event_agg (
     event_agg_id SERIAL,
@@ -78,7 +92,14 @@ CREATE TABLE IF NOT EXISTS event_agg (
     strike double precision,
     tstamp TIMESTAMP,
     UNIQUE (event_symbol, dstamp)
-) PARTITION BY RANGE (dstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='dstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='dstamp DESC'
+);
+
+CALL add_columnstore_policy('event_agg', after => INTERVAL '3 months');
 
 CREATE TABLE IF NOT EXISTS settings (
     settings_id bool PRIMARY KEY DEFAULT true

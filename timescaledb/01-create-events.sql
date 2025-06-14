@@ -26,8 +26,14 @@ CREATE TABLE IF NOT EXISTS candle (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP default (now() at time zone 'utc')
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
 
+CALL add_columnstore_policy('candle', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS event (
     
@@ -39,7 +45,14 @@ CREATE TABLE IF NOT EXISTS event (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP default (now() at time zone 'utc')
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
+
+CALL add_columnstore_policy('event', after => INTERVAL '1d');
 
 
 CREATE TABLE IF NOT EXISTS greeks (
@@ -63,7 +76,14 @@ CREATE TABLE IF NOT EXISTS greeks (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP default (now() at time zone 'utc')
-)  PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
+
+CALL add_columnstore_policy('greeks', after => INTERVAL '1d');
 
 
 CREATE TABLE IF NOT EXISTS profile (
@@ -93,8 +113,14 @@ CREATE TABLE IF NOT EXISTS profile (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP default (now() at time zone 'utc')
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
 
+CALL add_columnstore_policy('profile', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS quote (
     
@@ -116,8 +142,14 @@ CREATE TABLE IF NOT EXISTS quote (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP default (now() at time zone 'utc')
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
 
+CALL add_columnstore_policy('quote', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS summary (
     
@@ -140,8 +172,14 @@ CREATE TABLE IF NOT EXISTS summary (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP default (now() at time zone 'utc')
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
 
+CALL add_columnstore_policy('summary', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS theoprice (
     
@@ -163,7 +201,14 @@ CREATE TABLE IF NOT EXISTS theoprice (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP default (now() at time zone 'utc')
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
+
+CALL add_columnstore_policy('theoprice', after => INTERVAL '1d');
 
 
 CREATE TABLE IF NOT EXISTS timeandsale (
@@ -195,7 +240,14 @@ CREATE TABLE IF NOT EXISTS timeandsale (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP default (now() at time zone 'utc')
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
+
+CALL add_columnstore_policy('timeandsale', after => INTERVAL '1d');
 
 
 CREATE TABLE IF NOT EXISTS trade (
@@ -220,8 +272,14 @@ CREATE TABLE IF NOT EXISTS trade (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP default (now() at time zone 'utc')
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
 
+CALL add_columnstore_policy('trade', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS underlying (
     
@@ -244,6 +302,13 @@ CREATE TABLE IF NOT EXISTS underlying (
     contract_type text,
     strike double precision,
     tstamp TIMESTAMP default (now() at time zone 'utc')
-) PARTITION BY RANGE (tstamp);
+) WITH (
+  tsdb.hypertable=true,
+  tsdb.partition_column='tstamp',
+  tsdb.segmentby='ticker',
+  tsdb.orderby='tstamp DESC'
+);
+
+CALL add_columnstore_policy('underlying', after => INTERVAL '1d');
 
 
