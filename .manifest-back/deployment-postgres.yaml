@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: gg
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      imagePullSecrets:
+      - name: registry-credentials
+      containers:
+      - name: postgres
+        image: docker.io/pangyuteng/private:fi-postgres-edge
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: "6"
+            memory: "20Gi"
+          requests:
+            cpu: "4.2"
+            memory: "20Gi"
+        env:
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          value: postgres
+        - name: POSTGRES_DB
+          value: postgres
+        ports:
+        - containerPort: 5432
+          name: web
+          protocol: TCP
+        volumeMounts:
+        - name: nfs-volume
+          mountPath: /home/postgres/pgdata/data
+          subPath: pgdata
+      volumes:
+      - name: nfs-volume
+        nfs:
+          server: 192.168.68.141
+          path: /mnt/hd1/data
