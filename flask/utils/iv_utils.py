@@ -15,104 +15,6 @@ from .misc import get_market_open_close
 
 from .gflow_stats import calc_dp_cdf_pdf,calc_delta_ex,calc_gamma_ex,calc_vanna_ex,calc_charm_ex
 
-import ctypes
-from numba import vectorize, njit
-from numba.types import float64, string
-
-@njit(
-    float64[:, :](
-        float64[:, :],
-        float64[:],
-        float64[:],
-        float64[:],
-        float64[:, :],
-        float64[:, :],
-    )
-)
-def calc_vanna(S, vol, T, q, dp, pdf_dp):
-    dm = dp - vol * np.sqrt(T)
-    vanna = -np.exp(-q * T) * pdf_dp * (dm / vol)
-    # change in delta per one percent move in IV
-    # or change in vega per one percent move in underlying
-    return vanna
-
-@njit(
-    float64[:, :](
-        float64[:, :],
-        float64[:],
-        float64[:],
-        float64,
-        float64,
-        string,
-        float64[:, :],
-        float64[:, :],
-        float64[:, :],
-    )
-)
-def calc_charm(S, vol, T, r, q, opt_type, dp, cdf_dp, pdf_dp):
-    dm = dp - vol * np.sqrt(T)
-    if opt_type == "call":
-        charm = (q * np.exp(-q * T) * cdf_dp) - np.exp(-q * T) * pdf_dp * (
-            2 * (r - q) * T - dm * vol * np.sqrt(T)
-        ) / (2 * T * vol * np.sqrt(T))
-    else:
-        charm = (-q * np.exp(-q * T) * (1 - cdf_dp)) - np.exp(-q * T) * pdf_dp * (
-            2 * (r - q) * T - dm * vol * np.sqrt(T)
-        ) / (2 * T * vol * np.sqrt(T))
-    # change in delta per day until expiration
-    return charm
-    
-
-def compute_vanna_charm(
-    spot_price,
-    strike_prices,
-    opt_ivs,
-    time_till_exp,
-    yield_10yr,
-    dividend_yield,
-    contract_type): # contract_type = 'call' or 'put'
-
-    if not contract_type in ['call','put']:
-        raise ValueError()
-
-    np_spot_price = np.array([[spot_price]]).astype(np.float64)
-    strike_prices = strike_prices.to_numpy().astype(np.float64)
-    opt_ivs = opt_ivs.to_numpy().astype(np.float64)
-    time_till_exp = time_till_exp.to_numpy().astype(np.float64)
-    yield_10yr = np.float64(yield_10yr)
-    dividend_yield = np.float64(dividend_yield)
-    np_dividend_yield = np.array([dividend_yield])
-    
-    dp, cdf_dp, pdf_dp = calc_dp_cdf_pdf(
-        np_spot_price,
-        strike_prices,
-        opt_ivs,
-        time_till_exp,
-        yield_10yr,
-        dividend_yield,
-    )
-
-    vanna = calc_vanna(
-        np_spot_price,
-        opt_ivs,
-        time_till_exp,
-        np_dividend_yield,
-        dp,
-        pdf_dp,
-    )
-
-    charm = calc_charm(
-        np_spot_price,
-        opt_ivs,
-        time_till_exp,
-        yield_10yr,
-        dividend_yield,
-        contract_type,
-        dp,
-        cdf_dp,
-        pdf_dp
-    )
-    return vanna,charm
 
 TOTAL_SECONDS_ONE_YEAR = 365*24*60*60 # total seconds
 
@@ -140,7 +42,6 @@ def get_annualized_time_to_expiration(row,expiry_mapper):
 # 
 # see doc/hau.0fcbcd78dd6272834a38.pdf
 # see doc/vol-surface 
-
 
 def interp_implied_volatility(df,s=None,return_fine=False):
     # TODO: replace with domokane/FinancePy, support multi expiry
@@ -177,6 +78,7 @@ def compute_theo_price(df,df_call_symbol='C'):
     sigma = df.iv
     q = 0 # annualized continuous dividend yield.
     theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, sigma, q, return_as='numpy')
+    # gamma = py_vollib.black_scholes.greeks.numerical.gamma(flag, S, K, t, r, sigma, return_as='numpy')
     df['theo_price'] = theo_price
     return df
 
