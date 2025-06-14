@@ -344,6 +344,7 @@ class GexService(object):
         logger.info(oi_df.shape)
 
         # NOTE: greeks and gex should be recomputed here.
+        # `merge_asof` should get us data per sdf row (option_chain_id, tstamp_sec)
         warnings.warn("TODO: greeks and gex should be recomputed here")
         gdf = pd.merge_asof(sdf,oi_df,on='tstamp_sec',direction='backward',by='option_chain_id')
         logger.info(gdf.shape)
@@ -352,57 +353,28 @@ class GexService(object):
             gdf.gamma * gdf.oi * 100 \
             * gdf.underlying_price * gdf.underlying_price * 0.01 * gdf.contract_type_int
 
-        # 
-        # TODO: get implied_volatility and underlying and recompute gamma and gex
-        #
+        gdf['convexity'] = gdf.gamma * gdf.oi * -1 # flip to show gexbot convexity, show where customer are long gamma irrespective of contract_type
 
-        if False: # self.ticker == "SPX":
-            #disable for now, below is flawed as 
-            # IV is surface, you can't just 
-            # so ideally you want, at each timepoint
-            # you need bid/ask prices for option chain
-            # to get IV curve, then you derive gamma.
-            logger.info(gdf.expiry.unique())
-            expiry_mapper = {x:get_expiry_tstamp(x) for x in list(gdf.expiry.unique())}
-
-            gdf['annualized_time_to_expiration'] = mdf.apply(
-                lambda x: get_annualized_time_to_expiration(x,expiry_mapper),axis=1)
-
-            interest_rate = 0.0
-            flag = gdf.option_type.apply(lambda x: 'c' if x == 'call' else 'p')
-            S = gdf.underlying_price
-            K = gdf.strike
-            t = gdf.annualized_time_to_expiration
-            r = interest_rate
-            #sigma = gdf.vix*0.01
-            # TODO: 
-            # every 15 or x sec, get price of available contracts.
-            # use above to compute IV and estimate IV surface
-            # then get volatility at each strike at time x.
-            sigma = 0.2 
-            gamma = py_vollib.black_scholes.greeks.numerical.gamma(flag, S, K, t, r, sigma, return_as='series')
-            gdf['updated_gamma'] = gamma
-
-            gdf['updated_gex'] = \
-                oi_df.updated_gamma * oi_df.oi * 100 \
-                * oi_df.underlying_price * oi_df.underlying_price * 0.01 * oi_df.contract_type_int
-
-        sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','option_type','gamma','implied_volatility','oi']].copy()
+        sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','option_type','gamma','implied_volatility','oi','convexity']].copy()
         main_df = sg_df.groupby(['tstamp_sec','strike']).agg(
-            gex=pd.NamedAgg(column="gex", aggfunc="sum"),
             underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
             gamma=pd.NamedAgg(column="gamma", aggfunc="last"),
+            gex=pd.NamedAgg(column="gex", aggfunc="sum"), # sum between put and call
+            convexity=pd.NamedAgg(column="convexity", aggfunc="sum"), # sum between put and call
         ).reset_index()
         put_df = sg_df[sg_df.option_type=='put'].groupby(['tstamp_sec','strike']).agg(
             put_iv=pd.NamedAgg(column="implied_volatility", aggfunc="last"),
-            put_gex=pd.NamedAgg(column="gex", aggfunc="last"),
             put_oi=pd.NamedAgg(column="oi", aggfunc="last"),
+            put_gex=pd.NamedAgg(column="gex", aggfunc="last"),
+            put_convexity=pd.NamedAgg(column="convexity", aggfunc="last"),
         ).reset_index()
         call_df = sg_df[sg_df.option_type=='call'].groupby(['tstamp_sec','strike']).agg(
             call_iv=pd.NamedAgg(column="implied_volatility", aggfunc="last"),
-            call_gex=pd.NamedAgg(column="gex", aggfunc="last"),
             call_oi=pd.NamedAgg(column="oi", aggfunc="last"),
+            call_gex=pd.NamedAgg(column="gex", aggfunc="last"),
+            call_convexity=pd.NamedAgg(column="convexity", aggfunc="last"),
         ).reset_index()
+
         sg_df = main_df.merge(put_df,how='left',on=['tstamp_sec','strike'])
         sg_df = sg_df.merge(call_df,how='left',on=['tstamp_sec','strike'])
         sg_df['gex'] = sg_df['gex']/ 10**9
