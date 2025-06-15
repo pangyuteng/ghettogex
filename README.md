@@ -1,11 +1,15 @@
 
 # hola ghettogex
 
-+ initial setup see `cloudflared/*`, `.manifest-back/README.md`, `.manifest-and/README.md`
++ dns notes see `cloudflared`
 
-+ todos/r&d see `scratch/README.md`
++ database notes see `timescaledb/**/*.md`
 
-+ postgres notes see `postgres/*.md`
++ initial setup see `.manifest-back/README.md`, `.manifest-front/README.md`
 
 + papers stashed in `docs`
+
++ todos see `scratch/README.md`
+
++ r&d/scratch `scratch/*`
 
