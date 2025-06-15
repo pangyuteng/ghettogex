@@ -231,3 +231,16 @@ order by tstamp
 
 select * from quote where event_symbol = '.SPXW250602C7000'
 order by tstamp
+
+
+```
+
+
+docker run -it  \
+-e CACHE_FOLDER="/mnt/hd1/data/fi" -e CACHE_TASTY_FOLDER="/mnt/hd1/data/tastyfi"  \
+-e POSTGRES_URI="postgres://postgres:postgres@192.168.68.143:5432/postgres" \
+-e REDIS_URI="redis://192.168.68.143:6379/1" \
+-w $PWD -v /mnt:/mnt \
+-p 80:80 -p 8888:8888 fi-notebook:latest bash
+
+```

@@ -26,3 +26,6 @@ diy intraday directionalized GEX of SPX on 2025-05-08 (bart head pattern due to 
 Need to replot with major pos/neg gex levels and total gex by time
 
 https://x.com/aigonewrong/status/1920572344256565633
+
+
+
