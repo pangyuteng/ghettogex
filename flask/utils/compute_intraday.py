@@ -240,25 +240,6 @@ def get_side_mod(row,quote_df=None,datasource='tasty'):
                     side_mod = 'bid' # SELL or near bid
                 elif row.aggressor_side == 'UNDEFINED':
                     pass # assume mid is matched.
-        elif datasource == 'uw':
-            # uw data have no quote event, instead, we use the nbbo_ask,nbbo_bid from flow data.
-            idx = row['index']
-            cond_met = row.strike == quote_df.at[idx+1,"strike"]
-            if row.large_order and cond_met:
-                if quote_df.at[idx+1,"nbbo_ask"] > quote_df.at[idx,"nbbo_ask"]:
-                    side_mod = 'likely_ask'
-                elif arg_df.at[idx+1,"nbbo_bid"] > arg_df.at[idx,"nbbo_bid"]:
-                    side_mod = 'likely_ask'
-                else:
-                    side_mod = 'likely_bid' #???
-            else:
-                if row.side == 'ask': # near ask, client bought, dealer short
-                    side_mod = 'ask'
-                elif row.side == 'bid': # near bid, client sold, dealer long
-                    side_mod = 'bid'
-                else:
-                    pass # assume mid is matched.
-                    # TODO: volatility surface fitting
         else:
             raise NotImplementedError()
 
