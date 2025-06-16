@@ -35,6 +35,8 @@ spec:
           value: postgres
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
+        - name: TS_TUNE_MAX_CONNS
+          value: "3000"
         ports:
         - containerPort: 5432
           name: web
