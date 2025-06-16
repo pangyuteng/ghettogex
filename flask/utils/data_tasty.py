@@ -161,10 +161,10 @@ class LivePrices:
         ):
         if "/" in ticker:
             # TODO: futures not tested
-            equity = Future.get_future(session, ticker)
+            equity = await Future.a_get(session, ticker)
             chain = get_future_option_chain(session, ticker)
         else:
-            equity = Equity.get_equity(session, ticker)
+            equity = await Equity.a_get(session, ticker)
             chain = get_option_chain(session, ticker)
 
         if expiration is not None:
