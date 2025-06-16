@@ -95,7 +95,7 @@ async def login():
             password = form["password"]
             if check_password(password, EXPECTED_HASH):
                 login_user(AuthUser(username))
-                return redirect(url_for("index"))
+                return redirect(url_for("home"))
             else:
                 return jsonify("failed"), 400
             #token = auth_manager.dump_token(username)
@@ -121,12 +121,9 @@ async def logout():
 async def redirect_to_login(*_):
     return redirect(url_for("login"))
 
-@app.route("/eod-gex")
-async def eod_gex():
-    ticker = request.args.get("ticker")
-    return await render_template("eod-gex.html",
-        ticker=ticker,
-        ticker_list=','.join(BTC_MSTR_TICKER_LIST))
+@app.route("/about")
+async def about():
+    return await render_template("about.html")
 
 @app.route("/")
 @login_required
@@ -135,11 +132,16 @@ async def home():
         return redirect(url_for("login"))
     return await render_template("index.html",listoflist=HOME_TICKER_LIST_OF_LIST)
 
-@app.route("/about")
-async def about():
-    return await render_template("about.html")
+@app.route("/eod-gex")
+@login_required
+async def eod_gex():
+    ticker = request.args.get("ticker")
+    return await render_template("eod-gex.html",
+        ticker=ticker,
+        ticker_list=','.join(BTC_MSTR_TICKER_LIST))
 
 @app.websocket('/ws-eod-gex')
+@login_required
 async def ws_eod_gex():
     try:
 
