@@ -115,8 +115,7 @@ ts_df['theo_aggressor_side'] = np.where(ts_df['price']>=ts_df['theo_price'], 'BU
 
 def compute_exposure(tstamp,spot_price,spot_volatility,df):
 
-    # TODO get yield?
-    yield_10yr = 0.01
+    yield_10yr = 1e-5
     dividend_yield = 0.0
 
     np_spot_price = np.array([[spot_price]]).astype(np.float64)
