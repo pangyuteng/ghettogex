@@ -377,7 +377,7 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     return merged_df, qc_pass
 
 async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=30,open=False) as apool:
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         await _compute_gex(apool,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgres)
 
 async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
