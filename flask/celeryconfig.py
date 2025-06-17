@@ -27,7 +27,7 @@ task_queues = (
 beat_schedule = {
     'manage_subscriptions': {
         'task': 'tasks.manage_subscriptions',
-        'schedule': crontab(minute='*'),
+        'schedule': 5,
         'relative': True,
         'options': {'queue': 'stream'},
         'args': [],
