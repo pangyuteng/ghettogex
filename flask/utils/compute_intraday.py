@@ -336,22 +336,23 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     # true_oi aggregated from size in timeandsale events, and tweaked in get_side_mod (work-in-progress)
     merged_df.true_oi = merged_df.true_oi + merged_df.size_signed
 
-    # UNSURE HERE... stil at debug phase
 
-    # `volume_gex` update summary based on bid-ask volume using summary open_interest
-    # volume_gex is the vanilla flavor using bid/ask volume from candle event
-    merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
-    # `state_gex` uses timeandsale and true_oi (for now starts from 0 at start of day)
-    # state gex is a WIP. removed `*100*0.01`` since ``== 1``
-    merged_df['BAK_state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
-    merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.customer_sign
-
+    merged_df['convexity'] = 0.0
+    merged_df['volume_gex'] = 0.0
     merged_df['state_gex'] = 0.0
     merged_df['dex'] = 0.0
     merged_df['vex'] = 0.0
     merged_df['cex'] = 0.0
     try:
-        if first_minute is False:
+        # see gexbot convexity for definition.
+        merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.customer_sign
+        # volume_gex is the vanilla flavor using bid/ask volume from candle event
+        merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
+        if first_minute:
+            # state_gex uses timeandsale and true_oi (for now starts from 0 at start of day)
+            merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
+        else:
+            # you get oddball missing expiration during first minute... TODO: this if-else is fugly.
             expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(merged_df.expiration.unique())}
             merged_df['time_till_exp'] = merged_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
             merged_df = compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
