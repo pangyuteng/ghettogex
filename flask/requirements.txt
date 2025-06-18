@@ -19,7 +19,7 @@ bcrypt==4.2.1
 tastytrade==10.2.3
 pyarrow==18.1.0
 fastparquet==2024.11.0
-psycopg[binary,pool]==3.2.9
+psycopg[binary,pool]==3.2.3
 luigi>=3.5.2
 celery==5.4.0
 gevent==24.2.1

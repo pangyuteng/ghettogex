@@ -172,11 +172,22 @@ docker run -it -u $(id -u):$(id -g) \
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
 
-+ [ ] how about insert to redis as well for each second per day? and purging per day?
++ [scratch] how about insert to redis as well for each second per day? and purging per day?
 
++ [ ] use-timescaledb-materialized-view for aggregated view
+https://www.tigerdata.com/blog/materialized-views-the-timescale-way
 
 + [ ] add gexbot order flow GEX,DEX visualization
 
+https://www.cboe.com/insights/posts/volatility-insights-evaluating-the-market-impact-of-spx-0-dte-options/
+
+https://github.com/leeoniya/uPlot
+
++ [??? ] DL for IV computation
+https://developer.nvidia.com/blog/accelerating-python-for-exotic-option-pricing/
+0 DTE Pricing
+https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4503344
+https://quant.stackexchange.com/questions/77299/0dte-volatility-and-greeks
 
 + [ ] how to assess/confirm trend and resistance?
       dex increase, gex increase.
