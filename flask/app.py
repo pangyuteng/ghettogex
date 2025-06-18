@@ -130,6 +130,11 @@ async def about():
 async def links():
     return await render_template("links.html")
 
+@app.route("/gexbots")
+@login_required
+async def gexbots():
+    return await render_template("gexbots.html")
+
 @app.route("/")
 @login_required
 async def home():
