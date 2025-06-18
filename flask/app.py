@@ -126,6 +126,7 @@ async def about():
     return await render_template("about.html")
 
 @app.route("/links")
+@login_required
 async def links():
     return await render_template("links.html")
 
