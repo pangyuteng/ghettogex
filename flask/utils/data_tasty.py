@@ -298,7 +298,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
 
         while True:
             if not is_market_open():
-                logger.info("market is closed!")
+                logger.info(f"market is closed! {ticker}")
                 await asyncio.sleep(1)
             else:
                 break
@@ -330,10 +330,9 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                     await asyncio.sleep(10)
                     for lp in live_prices_list:
                         await lp.shutdown()
-                    await apool.close()
-                    logger.info(f"canceling!")
                     logger.info("market is closed, exiting...")
-                    sys.exit(0)
+                    #await apool.close() #??? why bother close if you already use `with`
+                    #sys.exit(0)
                 else:
                     logger.info("market open -------------------------------")
 
