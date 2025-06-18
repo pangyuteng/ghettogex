@@ -125,6 +125,10 @@ async def redirect_to_login(*_):
 async def about():
     return await render_template("about.html")
 
+@app.route("/links")
+async def links():
+    return await render_template("links.html")
+
 @app.route("/")
 @login_required
 async def home():
