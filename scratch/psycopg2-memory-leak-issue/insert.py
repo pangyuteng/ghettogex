@@ -67,3 +67,18 @@ async def background_subscribe():
 
 if __name__ == "__main__":
     asyncio.run(background_subscribe())
+
+
+"""
+
+psycopg[binary,pool]==3.2.9 have memory leak
+
+
+testing 
+psycopg[binary,pool]==3.2.3
+
+2.67G/61.3G
+2025-06-18 21:04:45
+
+
+"""
