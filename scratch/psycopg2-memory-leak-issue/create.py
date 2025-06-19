@@ -25,7 +25,7 @@ def postgres_execute(query_str,query_args,is_commit=False):
     return response
 
 
-insert_query =  """
+create_query =  """
 
 CREATE TABLE IF NOT EXISTS gex_strike (
     gex_strike_id SERIAL,
@@ -60,17 +60,22 @@ CREATE TABLE IF NOT EXISTS gex_strike (
 
 CALL add_columnstore_policy('gex_strike', after => INTERVAL '1d');
 
+"""
+
+index_query = """
 create index gex_strike_tstamp_ticker_index on gex_strike using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 
 """
 
 if __name__ == "__main__":
     print("ok")
-    postgres_execute(insert_query,(),True)
+    postgres_execute(create_query,(),True)
+    postgres_execute(index_query,(),True)
     print("done")
 
 """
 
+docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=password timescale/timescaledb:latest-pg17
 export POSTGRES_URI=postgres://postgres:password@192.168.68.143:5432/postgres
 
 """
