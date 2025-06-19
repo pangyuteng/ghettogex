@@ -42,13 +42,14 @@ async def background_subscribe():
             
             cols = 'ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vex,cex,call_convexity,call_oi,call_dex,call_gex,call_vex,call_cex,put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex'.split(",")
             df = pd.DataFrame([],columns=cols)
-            df['ticker']=np.array(['SPX']*1000)
-            df['strike']=np.arange(0,1000)
+            row_count = 100000
+            df['ticker']=np.array(['SPX']*row_count)
+            df['strike']=np.arange(0,row_count)
             df['tstamp']=tstamp
             for field_name in cols:
                 if field_name in ['ticker','strike','tstamp']:
                     continue
-                df[field_name]=np.random.rand(1000)
+                df[field_name]=np.random.rand(row_count)
 
             async def insert_gex_strike(row):
                 query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vex,row.cex,
@@ -60,10 +61,10 @@ async def background_subscribe():
                 return query_args
 
             query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in df.iterrows()))
-            print(len(query_dict[gex_strike_query_str]))
+            #print(len(query_dict[gex_strike_query_str]))
             await apostgres_execute_many(apool,query_dict)
-            print(df.head())
-            print(tstamp)
+            #print(df.head())
+            #print(tstamp)
 
 if __name__ == "__main__":
     asyncio.run(background_subscribe())
