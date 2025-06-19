@@ -72,14 +72,12 @@ if __name__ == "__main__":
 
 """
 
-psycopg[binary,pool]==3.2.9 have memory leak
+psycopg[binary,pool]==3.2.9 have memory leak ???
 
+[  ]
+3.18G/61.3G
+2025-06-18 21:11:53
 
-testing 
-psycopg[binary,pool]==3.2.3
-
-2.67G/61.3G
-2025-06-18 21:04:45
 
 
 """
