@@ -810,7 +810,7 @@ async def ws_ex_query():
                 tstamp_et = now_in_new_york()
                 tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
                 market_open,market_close = get_market_open_close(tstamp_utc,no_tzinfo=False)
-                fetched = await apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,())
+                fetched = await apostgres_execute(apool,EVENT_STATUS_QUERY,())
                 columns = ['event_type','id_count','tstamp']
                 try:
                     df = pd.DataFrame([x for x in fetched])
