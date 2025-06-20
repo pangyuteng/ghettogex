@@ -59,7 +59,10 @@ from utils.postgres_utils import (
     apostgres_execute,
     psycopg_pool,postgres_uri,
 )
-
+from utils.postgres_utils import (
+    EVENT_STATUS_QUERY,
+    LATEST_GEX_STRIKE_QUERY,
+)
 et_tz = "America/New_york"
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -797,6 +800,38 @@ async def ws_sec_heatmap():
         app.logger.error(traceback.format_exc())
         app.logger.error('Client disconnected')
         raise
+
+@app.websocket('/ws-ex')
+@login_required
+async def ws_ex_query():
+    try:
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+            while True:
+                tstamp_et = now_in_new_york()
+                tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
+                market_open,market_close = get_market_open_close(tstamp_utc,no_tzinfo=False)
+                fetched = await apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,())
+                columns = ['event_type','id_count','tstamp']
+                try:
+                    df = pd.DataFrame([x for x in fetched])
+                    event_status_dict = {row.event_type:f'{row.id_count} {row.tstamp}' for n,row in df.iterrows()}
+                except:
+                    event_status_dict = {}
+                    app.logger.error(traceback.format_exc())
+
+                await websocket.send_json(event_status_dict)
+                await asyncio.sleep(0.1)
+
+    except asyncio.CancelledError:
+        app.logger.error(traceback.format_exc())
+        app.logger.error('Client disconnected')
+        raise
+
+@app.route("/uplot")
+@login_required
+async def uplot_proto():
+    ticker = request.args.get("ticker")
+    return await render_template("uplot-proto.html",ticker=ticker)
 
 
 if __name__ == '__main__':
