@@ -160,11 +160,13 @@ class LivePrices:
         save_to_postres: bool = False,
         ):
         if "/" in ticker:
-            # TODO: futures not tested
-            equity = await Future.a_get(session, ticker)
+            # NOTE: futures not tested
+            # equity = await Future.a_get(session, ticker)
+            equity = Future.get_future(session, ticker)
             chain = get_future_option_chain(session, ticker)
         else:
-            equity = await Equity.a_get(session, ticker)
+            # equity = await Equity.a_get(session, ticker) tastytrade==10.2.3
+            equity = Equity.get_equity(session, ticker) # tastytrade==9.9
             chain = get_option_chain(session, ticker)
 
         if expiration is not None:
