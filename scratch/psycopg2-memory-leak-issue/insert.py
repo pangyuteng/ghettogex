@@ -36,8 +36,15 @@ async def apostgres_execute_many(apool,query_dict):
         traceback.print_exc()
     return response
 
+import gc
+import os, psutil
+
 postgres_uri = os.environ.get("POSTGRES_URI")
 async def background_subscribe():
+    
+    process = psutil.Process(os.getpid())
+    print('Before any work: ', process.memory_info().rss / 1024 ** 2, 'MB')
+    count = 0
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         while True:
             query_dict = {}
@@ -57,7 +64,7 @@ async def background_subscribe():
             
             cols = 'ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vex,cex,call_convexity,call_oi,call_dex,call_gex,call_vex,call_cex,put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex'.split(",")
             df = pd.DataFrame([],columns=cols)
-            row_count = 1000
+            row_count = 100
             df['ticker']=np.array(['SPX']*row_count)
             df['strike']=np.arange(0,row_count)
             df['tstamp']=tstamp
@@ -78,15 +85,23 @@ async def background_subscribe():
             query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in df.iterrows()))
             if False:
                 await apostgres_execute_many(apool,query_dict)
-                print("apostgres_execute_many done",datetime.datetime.now())
             if True:
                 mylist = []
                 for v in query_dict.values():
                     for query_args in v:
                         f = apostgres_execute(apool,gex_strike_query_str,query_args,is_commit=True)
                         mylist.append(f)
+
                 await asyncio.gather(*mylist)
-                print("apostgres_execute done",datetime.datetime.now())
+        
+            if count % 100 == 0:
+                print(count,"done",datetime.datetime.now())
+                print('After work: ', psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2, 'MB')
+            count+=1
+            if count > 100000:
+                break
+        gc.collect()
+        print('After work: ', psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2, 'MB')
 
 if __name__ == "__main__":
     asyncio.run(background_subscribe())
