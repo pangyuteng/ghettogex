@@ -31,3 +31,6 @@ e38f28896013c9f1b68f03f36e23fa6e7ce4fd3e
 in `insert.py` now using 
 both apostgres_execute_many and apostgres_execute
 seems to be observing leaks during `insert.py`...
+
+nevermind...
+fluctuatin around 2.82G and 3.1G, 2.89G
