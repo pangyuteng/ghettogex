@@ -131,4 +131,6 @@ moved timescaldb to seperate machine 'runner'
 kept running overnight
 memory still at 1.7GB at 2025-06-19 07:30:00
 
+https://stackoverflow.com/questions/70214871/is-there-a-memory-leak-or-do-i-not-understand-garbage-collection-and-memory-mana
+
 """
