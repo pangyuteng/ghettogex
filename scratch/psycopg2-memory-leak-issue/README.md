@@ -24,3 +24,10 @@ ee291bcd17fa836f65781bfff246ae5d74c26f3c
 so now we are left with tastytrade version update.
 downgrade from tastytrade==10.2.3
 to tastytrade==9.9
+e38f28896013c9f1b68f03f36e23fa6e7ce4fd3e
+
+--
+
+in `insert.py` now using 
+both apostgres_execute_many and apostgres_execute
+seems to be observing leaks during `insert.py`...
