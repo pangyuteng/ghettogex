@@ -59,7 +59,7 @@ from utils.postgres_utils import (
     apostgres_execute,
     psycopg_pool,postgres_uri,
 )
-from utils.postgres_utils import (
+from utils.pg_queries import (
     EVENT_STATUS_QUERY,
     LATEST_GEX_STRIKE_QUERY,
 )
