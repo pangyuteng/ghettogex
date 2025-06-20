@@ -57,7 +57,15 @@ https://www.psycopg.org/psycopg3/docs/advanced/pool.html
 in 3.2.3 NO GOD DAMN LEAKS!!!
 
 --
+now we try it with celery
 
-maybe try upgrading??
-psycopg[binary,pool]==3.2.6
+kubectl port-forward --address 0.0.0.0 svc/redis -n gg 6379:6379
+kubectl port-forward --address 0.0.0.0 svc/rabbitmq -n gg 5672:5672
 
+docker run -it \
+-e CACHE_FOLDER="/mnt/hd1/data/fi" -e CACHE_TASTY_FOLDER="/mnt/hd1/data/tastyfi" \
+-e POSTGRES_URI="postgres://postgres:password@192.168.68.151:5432/postgres" \
+-e AMQP_URI="amqp://192.168.68.143:5672" \
+-e REDIS_URI="redis://192.168.68.143:6379/1" \
+-e C_FORCE_ROOT=true \
+-w $PWD -v /mnt:/mnt  fi-notebook:latest bash

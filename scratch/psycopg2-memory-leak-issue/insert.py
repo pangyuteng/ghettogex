@@ -81,7 +81,7 @@ async def background_subscribe():
                 print(count,"done",datetime.datetime.now())
                 print('After work: ', psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2, 'MB')
             count+=1
-            if count > 100000:
+            if count > 1000:
                 break
 
 if __name__ == "__main__":
