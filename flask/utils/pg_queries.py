@@ -1,11 +1,19 @@
 
 
 LATEST_GEX_STRIKE_QUERY = """
-WITH last_tstamp AS (select tstamp from gex_net where tstamp >= now()::date order by tstamp desc limit 1),
+WITH last_tstamp AS (select tstamp from gex_net where tstamp >= now() - interval '1 minute' order by tstamp desc limit 1),
 last_gex_strike AS (select * from gex_strike where tstamp >= now() - interval '1 minute' order by tstamp)
 SELECT * FROM last_tstamp
 LEFT JOIN last_gex_strike using (tstamp)
 WHERE ticker = %s
+"""
+
+LATEST_ONE_MIN_GEX_STRIKE_QUERY = """
+select * from gex_strike where tstamp >= now() - interval '1 minute'  and ticker = %s order by tstamp,strike
+"""
+
+LATEST_DAY_GEX_NET_QUERY = """
+select * from gex_net where tstamp >= now()::date and ticker = %s order by tstamp
 """
 
 EVENT_STATUS_QUERY = """
@@ -22,9 +30,9 @@ select 'greeks' as event_type, count(greeks_id) as id_count, max(tstamp) as tsta
 from greeks where tstamp > now() - interval '60 second' and expiration = now()::date
 ) union all (
 select 'gex_net' as event_type, count(gex_net_id) as id_count, max(tstamp) as tstamp
-from gex_net where tstamp > now() - interval '3 second'
+from gex_net where tstamp > now() - interval '4 second'
 ) union all (
 select 'gex_strike' as event_type, count(gex_strike_id) as id_count, max(tstamp) as tstamp
-from gex_strike where tstamp > now() - interval '3 second'
+from gex_strike where tstamp > now() - interval '4 second'
 )
 """

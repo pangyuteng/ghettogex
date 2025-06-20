@@ -62,6 +62,8 @@ from utils.postgres_utils import (
 from utils.pg_queries import (
     EVENT_STATUS_QUERY,
     LATEST_GEX_STRIKE_QUERY,
+    LATEST_DAY_GEX_NET_QUERY,
+    LATEST_ONE_MIN_GEX_STRIKE_QUERY,
 )
 et_tz = "America/New_york"
 
@@ -805,16 +807,36 @@ async def ws_sec_heatmap():
 @login_required
 async def ws_ex_query():
     try:
+        ticker = websocket.args.get("ticker")
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
             while True:
+
                 tstamp_et = now_in_new_york()
                 tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
                 market_open,market_close = get_market_open_close(tstamp_utc,no_tzinfo=False)
-                fetched = await apostgres_execute(apool,EVENT_STATUS_QUERY,())
-                columns = ['event_type','id_count','tstamp']
+  
+                query_list = [
+                    apostgres_execute(apool,EVENT_STATUS_QUERY,()),
+                    apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(ticker,)),
+                    apostgres_execute(apool,LATEST_ONE_MIN_GEX_STRIKE_QUERY,(ticker,)),
+                    apostgres_execute(apool,LATEST_DAY_GEX_NET_QUERY,(ticker,))
+                ]
+
+                gathered_res = await asyncio.gather(*query_list)
+                
                 try:
-                    df = pd.DataFrame([x for x in fetched])
+
+                    df = pd.DataFrame([x for x in gathered_res[0]])
                     event_status_dict = {row.event_type:f'{row.id_count} {row.tstamp}' for n,row in df.iterrows()}
+                    if gathered_res[1] is not None:
+                        lgs_pd = pd.DataFrame([dict(x) for x in gathered_res[1]])
+                        event_status_dict['lgs_pd']=len(lgs_pd)
+                    if gathered_res[2] is not None:
+                        hgs_pd = pd.DataFrame([dict(x) for x in gathered_res[2]])
+                        event_status_dict['hgs_pd']=len(hgs_pd)
+                    if gathered_res[3] is not None:
+                        hgn_pd = pd.DataFrame([dict(x) for x in gathered_res[3]])
+                        event_status_dict['hgn_pd']=len(hgn_pd)
                 except:
                     event_status_dict = {}
                     app.logger.error(traceback.format_exc())

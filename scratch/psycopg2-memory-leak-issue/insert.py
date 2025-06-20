@@ -63,8 +63,9 @@ async def background_subscribe():
             query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in df.iterrows()))
             #print(len(query_dict[gex_strike_query_str]))
             await apostgres_execute_many(apool,query_dict)
-            #print(df.head())
-            #print(tstamp)
+            for query_args in query_dict.values():
+                await apostgres_execute(apool,gex_strike_query_str,query_args,is_commit=True)
+
 
 if __name__ == "__main__":
     asyncio.run(background_subscribe())
