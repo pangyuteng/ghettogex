@@ -37,9 +37,27 @@ remember to change to 10.2.3 behavior `equity = await Equity.a_get(session, tick
 
 --
 
-in `insert.py` now using 
-both apostgres_execute_many and apostgres_execute
-seems to be observing leaks during `insert.py`...
+maybe related??
+https://github.com/sqlalchemy/sqlalchemy/discussions/10270
 
-nevermind...
-fluctuatin around 2.82G and 3.1G, 2.89G
+nice gc memory print example 
+https://stackoverflow.com/questions/70214871/is-there-a-memory-leak-or-do-i-not-understand-garbage-collection-and-memory-mana
+
+--
+
+in `insert.py` now disabled apostgres_execute_many 
+using only apostgres_execute
+seems to be observing leaks during `insert.py`???
+
+psycopg[binary,pool]==3.2.3
+
+https://www.psycopg.org/psycopg3/docs/news_pool.html
+https://www.psycopg.org/psycopg3/docs/advanced/pool.html
+
+in 3.2.3 NO GOD DAMN LEAKS!!!
+
+--
+
+maybe try upgrading??
+psycopg[binary,pool]==3.2.6
+
