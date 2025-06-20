@@ -91,6 +91,9 @@ def trigger_gex_cache(*args,**kwargs):
         for row in fetched:
             ticker = row['ticker']
             from_scratch = row['from_scratch']
+            compute_gex = row['compute_gex']
+            if not compute_gex:
+                continue
             logger.info(f"trigger_gex_cache {ticker}")
             output = asyncio.run(compute_gex(ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=True))
 

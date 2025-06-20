@@ -83,6 +83,8 @@ async def background_subscribe():
                 for query_args in v:
                     f = apostgres_execute(apool,gex_strike_query_str,query_args,is_commit=True)
                     mylist.append(f)
+                    if len(mylist) > 10:
+                        break
             await asyncio.gather(*mylist)
             print("apostgres_execute done")
 
