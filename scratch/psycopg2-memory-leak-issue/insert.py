@@ -9,6 +9,21 @@ import psycopg
 import psycopg_pool
 from psycopg.rows import dict_row
 
+
+async def apostgres_execute(apool,query_str,query_args,is_commit=False):
+    response = None
+    try:
+        await apool.check()
+        async with apool.connection() as aconn:
+            async with aconn.cursor(row_factory=dict_row) as curs:
+                await curs.execute(query_str,query_args)
+                if is_commit is False:
+                    response = await curs.fetchall()
+    except:
+        traceback.print_exc()
+
+    return response
+
 async def apostgres_execute_many(apool,query_dict):
     response = None
     try:
@@ -61,11 +76,12 @@ async def background_subscribe():
                 return query_args
 
             query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in df.iterrows()))
-            #print(len(query_dict[gex_strike_query_str]))
             await apostgres_execute_many(apool,query_dict)
-            for query_args in query_dict.values():
-                await apostgres_execute(apool,gex_strike_query_str,query_args,is_commit=True)
-
+            print("apostgres_execute_many done")
+            for v in query_dict.values():
+                for query_args in v:
+                    await apostgres_execute(apool,gex_strike_query_str,query_args,is_commit=True)
+            print("apostgres_execute done")
 
 if __name__ == "__main__":
     asyncio.run(background_subscribe())
