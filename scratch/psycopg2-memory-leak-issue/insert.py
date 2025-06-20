@@ -41,9 +41,7 @@ import os, psutil
 
 postgres_uri = os.environ.get("POSTGRES_URI")
 async def background_subscribe():
-    
-    process = psutil.Process(os.getpid())
-    print('Before any work: ', process.memory_info().rss / 1024 ** 2, 'MB')
+
     count = 0
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         while True:
@@ -64,7 +62,7 @@ async def background_subscribe():
             
             cols = 'ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vex,cex,call_convexity,call_oi,call_dex,call_gex,call_vex,call_cex,put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex'.split(",")
             df = pd.DataFrame([],columns=cols)
-            row_count = 100
+            row_count = 1000
             df['ticker']=np.array(['SPX']*row_count)
             df['strike']=np.arange(0,row_count)
             df['tstamp']=tstamp
@@ -100,11 +98,13 @@ async def background_subscribe():
             count+=1
             if count > 100000:
                 break
-        gc.collect()
-        print('After work: ', psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2, 'MB')
 
 if __name__ == "__main__":
+    process = psutil.Process(os.getpid())
+    print('Before any work: ', process.memory_info().rss / 1024 ** 2, 'MB')
     asyncio.run(background_subscribe())
+    gc.collect()
+    print('After work: ', psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2, 'MB')
 
 
 """
