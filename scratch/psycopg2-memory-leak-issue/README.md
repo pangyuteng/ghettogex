@@ -26,6 +26,10 @@ downgrade from tastytrade==10.2.3
 to tastytrade==9.9
 e38f28896013c9f1b68f03f36e23fa6e7ce4fd3e
 
+*** but... we need 9.11 for refresh_interval of 0.5 !!! ***
+https://github.com/tastyware/tastytrade/releases/tag/v9.11
+maybe we always had a memory leak it just never ate up 20GB of ram....
+
 --
 
 in `insert.py` now using 
