@@ -57,7 +57,7 @@ async def background_subscribe():
             df['foofoo']=np.array(['baz']*row_count)
             df['tstamp']=tstamp
             for field_name in cols:
-                if field_name in ['ticker','strike','tstamp']:
+                if field_name in ['foofoo','tstamp']:
                     continue
                 df[field_name]=np.random.rand(row_count)
 
