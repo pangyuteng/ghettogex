@@ -47,47 +47,32 @@ async def background_subscribe():
         while True:
             query_dict = {}
             tstamp = datetime.datetime.now()
-            gex_strike_query_str = """
-                INSERT INTO gex_strike (ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vex,cex,
-                call_convexity,call_oi,call_dex,call_gex,call_vex,call_cex,
-                put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex
-                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,
-                    %s,%s,%s,%s,%s,%s,
-                    %s,%s,%s,%s,%s,%s)
-                on conflict (ticker,strike,tstamp) do update set 
-                volume_gex = %s,state_gex = %s,dex = %s,convexity = %s,vex = %s,cex = %s,
-                call_convexity = %s,call_oi = %s,call_dex = %s,call_gex = %s,call_vex = %s,call_cex = %s,
-                put_convexity = %s,put_oi = %s,put_dex = %s,put_gex = %s,put_vex = %s,put_cex = %s
-            """
-            
-            cols = 'ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vex,cex,call_convexity,call_oi,call_dex,call_gex,call_vex,call_cex,put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex'.split(",")
+
+            cols = 'foofoo,tstamp,'+','.join([f'value{x}' for x in range(100)])
+            slist = ','.join(['%s']*102)
+            query_str = """INSERT INTO foobar ("""+cols+""") VALUES("""+slist+""")"""
+            cols = cols.split(",")
             df = pd.DataFrame([],columns=cols)
             row_count = 1000
-            df['ticker']=np.array(['SPX']*row_count)
-            df['strike']=np.arange(0,row_count)
+            df['foofoo']=np.array(['baz']*row_count)
             df['tstamp']=tstamp
             for field_name in cols:
                 if field_name in ['ticker','strike','tstamp']:
                     continue
                 df[field_name]=np.random.rand(row_count)
 
-            async def insert_gex_strike(row):
-                query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vex,row.cex,
-                row.call_convexity,row.call_oi,row.call_dex,row.call_gex,row.call_vex,row.call_cex,
-                row.put_convexity,row.put_oi,row.put_dex,row.put_gex,row.put_vex,row.put_cex,
-                row.volume_gex,row.state_gex,row.dex,row.convexity,row.vex,row.cex,
-                row.call_convexity,row.call_oi,row.call_dex,row.call_gex,row.call_vex,row.call_cex,
-                row.put_convexity,row.put_oi,row.put_dex,row.put_gex,row.put_vex,row.put_cex]
+            async def get_args(row):
+                query_args = [row[x] for x in cols]
                 return query_args
 
-            query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in df.iterrows()))
+            query_dict[query_str] = await asyncio.gather(*(get_args(row) for n,row in df.iterrows()))
             if False:
                 await apostgres_execute_many(apool,query_dict)
             if True:
                 mylist = []
                 for v in query_dict.values():
                     for query_args in v:
-                        f = apostgres_execute(apool,gex_strike_query_str,query_args,is_commit=True)
+                        f = apostgres_execute(apool,query_str,query_args,is_commit=True)
                         mylist.append(f)
 
                 await asyncio.gather(*mylist)
