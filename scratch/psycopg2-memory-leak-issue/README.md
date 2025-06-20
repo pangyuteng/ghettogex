@@ -30,6 +30,11 @@ e38f28896013c9f1b68f03f36e23fa6e7ce4fd3e
 https://github.com/tastyware/tastytrade/releases/tag/v9.11
 maybe we always had a memory leak it just never ate up 20GB of ram....
 
+another reason to get tastytrade>=10.2.2
+https://github.com/tastyware/tastytrade/issues/253
+
+remember to change to 10.2.3 behavior `equity = await Equity.a_get(session, ticker)`
+
 --
 
 in `insert.py` now using 
