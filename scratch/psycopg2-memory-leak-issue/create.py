@@ -153,9 +153,3 @@ if __name__ == "__main__":
     postgres_execute(index_query,(),True)
     print("done")
 
-"""
-
-docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=password timescale/timescaledb:latest-pg17
-export POSTGRES_URI=postgres://postgres:password@192.168.68.143:5432/postgres
-
-"""
