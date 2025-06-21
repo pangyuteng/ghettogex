@@ -4,21 +4,15 @@
 
 + [x] create new machine for runner, setup access to kube cluster
 
-  + create new vm "runner" in "happyfeet"
+  + create new vm "runner" in "happyfeet" see `queensburymanning/runner/README.md`
 
-  + resize disk to 96GB https://pve.proxmox.com/wiki/Resize_disks
-
-  + install kubectl, add ~/.kube/config
-
-+ [x] install self-hosted github runner
-
-    + install runner under aigonewrong@runner:~
+  + [x] install self-hosted github runner
 
 https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/adding-self-hosted-runners
 https://github.com/pangyuteng/fi.aigonewrong.com/settings/actions/runners
 https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/configuring-the-self-hosted-runner-application-as-a-service
 
-    
+
 + [x] setup bare miminal cicd to deploy to ghettogex.aigonewrong.com
 
 ```
