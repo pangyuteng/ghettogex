@@ -53,7 +53,7 @@ async def insert_job():
             query_str = """INSERT INTO foobar ("""+cols+""") VALUES("""+slist+""")"""
             cols = cols.split(",")
             df = pd.DataFrame([],columns=cols)
-            row_count = 10000
+            row_count = 1000
             df['foofoo']=np.array(['baz']*row_count)
             df['tstamp']=tstamp
             for field_name in cols:
