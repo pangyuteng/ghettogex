@@ -157,6 +157,34 @@ docker run -it -u $(id -u):$(id -g) \
 
 + [x] insert call_dex, put_dex, call_gex, put_gex
 
++ [x] how about insert to redis as well for each second per day? and purging per day?
+    solution: see timescaledb-materialized-view
+
++ [x] continue to monitor memory usage for workers
+    `scratch/psycopg2-memory-leak-issue`
+
++ [x] investigate uplot, to enable sub-second plot update
+     
+    https://github.com/pangyuteng/hello-htmx-quart/tree/main/uplot
+
+    https://github.com/leeoniya/uPlot
+
++ [x] investigate faster query (with timescale), to enable sub-second plot update
+
+    https://github.com/pangyuteng/ghettogex.aigonewrong.com/blob/main/flask/utils/pg_queries.py
+
+    + [ ] use-timescaledb-materialized-view for aggregated view
+
+    https://www.tigerdata.com/blog/materialized-views-the-timescale-way
+
++ [ ] add gexbot order flow GEX,DEX visualization
+
+    https://www.cboe.com/insights/posts/volatility-insights-evaluating-the-market-impact-of-spx-0-dte-options
+
+
++ [ ] compute next expiration gex_net,gex_strike seperatly.
+      or add cron task to get true_oi and open_interest
+
 + [ ] investigate GEX Regime classification and future 1min,5min,10min,30min probability.
       use SqueezeMetrics paper
         
@@ -169,28 +197,15 @@ docker run -it -u $(id -u):$(id -g) \
         https://stackoverflow.com/questions/45545110/make-pandas-dataframe-apply-use-all-cores
         https://stackoverflow.com/search?q=pandas+apply+parallel
 
-+ [ ] compute next expiration gex_net,gex_strike seperatly.
-      or add cron task to get true_oi and open_interest
++ [ ] how to assess/confirm trend and resistance?
+      dex increase, gex increase.
 
-+ [scratch] how about insert to redis as well for each second per day? and purging per day?
-
-+ [ ] use-timescaledb-materialized-view for aggregated view
-https://www.tigerdata.com/blog/materialized-views-the-timescale-way
-
-+ [ ] add gexbot order flow GEX,DEX visualization
-
-https://www.cboe.com/insights/posts/volatility-insights-evaluating-the-market-impact-of-spx-0-dte-options/
-
-https://github.com/leeoniya/uPlot
-
-+ [??? ] DL for IV computation
++ [ ] DL for IV computation... and then... DL for trend and resistance...???
 https://developer.nvidia.com/blog/accelerating-python-for-exotic-option-pricing/
 0 DTE Pricing
 https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4503344
 https://quant.stackexchange.com/questions/77299/0dte-volatility-and-greeks
 
-+ [ ] how to assess/confirm trend and resistance?
-      dex increase, gex increase.
 
 + [ ] play sound during events.
     + [ ] flash crash
