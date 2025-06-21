@@ -20,16 +20,11 @@ celery_app = Celery('tasks')
 import celeryconfig
 celery_app.config_from_object(celeryconfig)
 
-from insert import background_subscribe
+from insert import insert_job
+
 @celery_app.task
 def trigger_testing(*args,**kwargs):
-    asyncio.run(background_subscribe())
+    asyncio.run(insert_job())
 
 if __name__ == "__main__":
     trigger_testing.apply_async()
-
-"""
-
-
-
-"""

@@ -40,7 +40,7 @@ import gc
 import os, psutil
 
 postgres_uri = os.environ.get("POSTGRES_URI")
-async def background_subscribe():
+async def insert_job():
 
     count = 0
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
@@ -53,7 +53,7 @@ async def background_subscribe():
             query_str = """INSERT INTO foobar ("""+cols+""") VALUES("""+slist+""")"""
             cols = cols.split(",")
             df = pd.DataFrame([],columns=cols)
-            row_count = 1000
+            row_count = 10000
             df['foofoo']=np.array(['baz']*row_count)
             df['tstamp']=tstamp
             for field_name in cols:
@@ -77,17 +77,17 @@ async def background_subscribe():
 
                 await asyncio.gather(*mylist)
         
-            if count % 100 == 0:
+            if count % 500 == 0:
                 print(count,"done",datetime.datetime.now())
                 print('After work: ', psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2, 'MB')
             count+=1
-            if count > 1000:
+            if count > 100000:
                 break
 
 if __name__ == "__main__":
     process = psutil.Process(os.getpid())
     print('Before any work: ', process.memory_info().rss / 1024 ** 2, 'MB')
-    asyncio.run(background_subscribe())
+    asyncio.run(insert_job())
     gc.collect()
     print('After work: ', psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2, 'MB')
 
