@@ -899,7 +899,7 @@ async def ws_ex_query():
                     app.logger.error(traceback.format_exc())
 
                 await websocket.send_json(ret_dict)
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(10)
 
     except asyncio.CancelledError:
         app.logger.warning(traceback.format_exc())
