@@ -48,6 +48,13 @@ LEFT JOIN vix_price using (tstamp)
 ORDER BY tstamp
 """
 
+GEX_NET_1MIN_QUERY = """
+SELECT * FROM get_net_1min
+where tstamp::date = %s and ticker = %s
+ORDER BY tstamp
+"""
+
+
 """
 WITH last_tstamp AS (select tstamp from gex_net where tstamp <= timestamp '2025-06-20 19:59:58' and tstamp >=  timestamp '2025-06-20 19:59:58' - interval '1 minute' and ticker = 'SPX' order by tstamp desc limit 1),
 last_gex_strike AS (select * from gex_strike where tstamp <= timestamp '2025-06-20 19:59:58' and tstamp >=  timestamp '2025-06-20 19:59:58' - interval '1 minute' and ticker = 'SPX' order by tstamp),

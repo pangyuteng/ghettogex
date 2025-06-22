@@ -2,8 +2,8 @@
 
 
 CREATE MATERIALIZED VIEW get_net_1min WITH (timescaledb.continuous) AS
-SELECT time_bucket('1m', tstamp) as time, ticker, 
-    last(volume_gex,tstamp) as volume_ges, last(state_gex,tstamp) as state_gex, last(spot_price,tstamp) as spot_price
+SELECT time_bucket('1m', tstamp) as tstamp, ticker, 
+    last(volume_gex,tstamp) as volume_gex, last(state_gex,tstamp) as state_gex, last(spot_price,tstamp) as spot_price
 FROM gex_net 
 GROUP BY time_bucket('1m', tstamp), ticker;
 
