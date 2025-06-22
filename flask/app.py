@@ -35,7 +35,7 @@ from quart_auth import (
     Unauthorized,
 )
 
-from utils.misc import check_password, CACHE_FOLDER, get_market_open_close
+from utils.misc import check_password, CACHE_FOLDER, get_market_open_close, nyse
 from utils.data_cache import (
     BTC_TICKER,
     CBOEX_TICKER_LIST,
@@ -809,106 +809,116 @@ async def ws_sec_heatmap():
 async def ws_ex_query():
     try:
         ticker = websocket.args.get("ticker")
+        arg_tstamp = websocket.args.get("tstamp")
         if ticker == "None":
             raise ValueError("Invalid ticker None!")
+        if arg_tstamp == "None":
+            arg_tstamp = None
 
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
             while True:
-                ret_dict = {}
-
-                tstamp_et = now_in_new_york()
-                tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
-                dstamp_utc = tstamp_utc.strftime("%Y-%m-%d")
-                ret_dict['tstamp']=datetime.datetime.utcnow()
-
-                tstamp_utc = datetime.datetime(2025,6,20,19,59,57)#'2025-06-20 19:59:58'
-                dstamp_utc = tstamp_utc.strftime("%Y-%m-%d")
-
-                timea = time.time()
-                market_open,market_close = get_market_open_close(tstamp_utc,no_tzinfo=False)
-                query_list = [
-                    apostgres_execute(apool,EVENT_STATUS_QUERY,()),
-                    apostgres_execute(apool,LATEST_DAY_GEX_NET_QUERY,(dstamp_utc,ticker,dstamp_utc)),
-                    apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
-                    apostgres_execute(apool,LATEST_ONE_MIN_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
-                ]
-                
-                gathered_res = await asyncio.gather(*query_list)
-                timeb = time.time()
-                duration = timeb-timea
                 try:
+
                     ret_dict = {}
-                    if gathered_res[0] is not None:
-                        df = pd.DataFrame([x for x in gathered_res[0]])
-                        ret_dict['status']={row.event_type:f'{row.id_count} {row.tstamp}' for n,row in df.iterrows()}
+                    if arg_tstamp is None:
+                        tstamp_et = now_in_new_york()
+                        tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
+                    else:
+                        tstamp_utc = datetime.datetime.strptime(arg_tstamp,'%Y-%m-%d-%H-%M-%S')
 
-                    if gathered_res[1] is not None:
-                        #    'volume_gex','state_gex', 'dex', 'convexity', 'vex', 'cex', 'call_convexity',
-                        #    'call_oi', 'call_dex', 'call_gex', 'call_vex', 'call_cex',
-                        #    'put_convexity', 'put_oi', 'put_dex', 'put_gex', 'put_vex', 'put_cex', 
-                        #    'vix_price'
-                        df = pd.DataFrame([dict(x) for x in gathered_res[1]])
-                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                    dstamp_utc = tstamp_utc.strftime("%Y-%m-%d")
 
-                        df.dex = df.dex.ffill()
-                        df.volume_gex = df.volume_gex.ffill()
-                        df.state_gex = df.state_gex.ffill()
+                    # /uplot?ticker=SPX&tstamp=2025-06-20-19-59-58
+
+                    early = nyse.schedule(start_date=dstamp_utc, end_date=dstamp_utc)
+                    if len(early) == 0:
+                        ret_dict['status']="market closed"
+                    else:
+                        timea = time.time()
+                        market_open,market_close = get_market_open_close(tstamp_utc,no_tzinfo=False)
+                        query_list = [
+                            apostgres_execute(apool,EVENT_STATUS_QUERY,()),
+                            apostgres_execute(apool,LATEST_DAY_GEX_NET_QUERY,(dstamp_utc,ticker,dstamp_utc)),
+                            apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
+                            apostgres_execute(apool,LATEST_ONE_MIN_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
+                        ]
                         
-                        df.dex = df.dex/1e9
-                        df.volume_gex = df.volume_gex/1e9
-                        df.state_gex = df.state_gex/1e9
+                        gathered_res = await asyncio.gather(*query_list)
+                        timeb = time.time()
+                        duration = timeb-timea
 
-                        df['dex_diff'] = df.dex.diff()
-                        df['volume_gex_diff'] = df.volume_gex.diff()
-                        df['state_gex_diff'] = df.state_gex.diff()
-                        df = df.replace({np.nan: None})
-                        spot_price = df["spot_price"].iloc[-1]
-                        lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
-                        ret_dict['hgn'] = lst
-                        lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
-                        ret_dict['hgn2'] = lst
-                        ret_dict['spot_price'] = spot_price
+                        ret_dict = {}
+                        if gathered_res[0] is not None:
+                            df = pd.DataFrame([x for x in gathered_res[0]])
+                            ret_dict['status']=json.dumps({row.event_type:f'{row.id_count} {row.tstamp}' for n,row in df.iterrows()})
 
-                        app.logger.info(f'historical gex_net hgn {len(lst)}')
+                        if gathered_res[1] is not None:
+                            #    'volume_gex','state_gex', 'dex', 'convexity', 'vex', 'cex', 'call_convexity',
+                            #    'call_oi', 'call_dex', 'call_gex', 'call_vex', 'call_cex',
+                            #    'put_convexity', 'put_oi', 'put_dex', 'put_gex', 'put_vex', 'put_cex', 
+                            #    'vix_price'
+                            df = pd.DataFrame([dict(x) for x in gathered_res[1]])
+                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
 
-                    # gex_strike_id	ticker	tstamp	strike	volume_gex	state_gex	dex	convexity	
-                    # vex	cex	call_convexity	call_oi	call_dex	call_gex	call_vex	call_cex	
-                    # put_convexity	put_oi	put_dex	put_gex	put_vex	put_cex 
-                    if gathered_res[2] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[2]])
-                        df.state_gex = df.state_gex/1e9
-                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df['pos_gex'] = df.state_gex.where(df.state_gex>0)
-                        df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
-                        df = df.replace({np.nan: None})
-                        lst = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
-                        major_call_strike = df["strike"].iloc[df.call_gex.argmax()]
-                        major_put_strike = df["strike"].iloc[df.put_gex.argmin()]
+                            df.dex = df.dex.ffill()
+                            df.volume_gex = df.volume_gex.ffill()
+                            df.state_gex = df.state_gex.ffill()
+                            
+                            df.dex = df.dex/1e9
+                            df.volume_gex = df.volume_gex/1e9
+                            df.state_gex = df.state_gex/1e9
 
-                        ret_dict['lgs'] = lst
-                        ret_dict['major_call'] = major_call_strike
-                        ret_dict['major_put'] = major_put_strike
+                            df['dex_diff'] = df.dex.diff()
+                            df['volume_gex_diff'] = df.volume_gex.diff()
+                            df['state_gex_diff'] = df.state_gex.diff()
+                            df = df.replace({np.nan: None})
+                            spot_price = df["spot_price"].iloc[-1]
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
+                            ret_dict['hgn'] = lst
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
+                            ret_dict['hgn2'] = lst
+                            ret_dict['spot_price'] = spot_price
 
-                        app.logger.info(f'latest gex_strike lgs {len(lst)}')
+                            app.logger.info(f'historical gex_net hgn {len(lst)}')
 
-                    if gathered_res[3] is not None: 
-                        df = pd.DataFrame([dict(x) for x in gathered_res[3]])
-                        df.state_gex = df.state_gex/1e9
-                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df = df.replace({np.nan: None})
-                        lst = [df[i].tolist() for i in ['tstamp','strike','state_gex']]
-                        ret_dict['hgs'] = lst
-                        app.logger.info(f'historical gex strike hgs {len(lst)}')
+                        # gex_strike_id	ticker	tstamp	strike	volume_gex	state_gex	dex	convexity	
+                        # vex	cex	call_convexity	call_oi	call_dex	call_gex	call_vex	call_cex	
+                        # put_convexity	put_oi	put_dex	put_gex	put_vex	put_cex 
+                        if gathered_res[2] is not None:
+                            df = pd.DataFrame([dict(x) for x in gathered_res[2]])
+                            df.state_gex = df.state_gex/1e9
+                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                            df['pos_gex'] = df.state_gex.where(df.state_gex>0)
+                            df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
+                            df = df.replace({np.nan: None})
+                            lst = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
+                            major_call_strike = df["strike"].iloc[df.call_gex.argmax()]
+                            major_put_strike = df["strike"].iloc[df.put_gex.argmin()]
 
-                    ret_dict['tstamp']=datetime.datetime.utcnow()
-                    ret_dict['duration_sec']=duration
+                            ret_dict['lgs'] = lst
+                            ret_dict['major_call'] = major_call_strike
+                            ret_dict['major_put'] = major_put_strike
 
+                            app.logger.info(f'latest gex_strike lgs {len(lst)}')
+
+                        if gathered_res[3] is not None: 
+                            df = pd.DataFrame([dict(x) for x in gathered_res[3]])
+                            df.state_gex = df.state_gex/1e9
+                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                            df = df.replace({np.nan: None})
+                            lst = [df[i].tolist() for i in ['tstamp','strike','state_gex']]
+                            ret_dict['hgs'] = lst
+                            app.logger.info(f'historical gex strike hgs {len(lst)}')
+
+                        ret_dict['duration_sec']=duration
+                        ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                 except:
-                    ret_dict['tstamp']=datetime.datetime.utcnow()
+                    ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                    ret_dict['status'] = 'traceback:'+traceback.format_exc()
                     app.logger.error(traceback.format_exc())
 
                 await websocket.send_json(ret_dict)
-                await asyncio.sleep(60)
+                await asyncio.sleep(1)
 
     except asyncio.CancelledError:
         app.logger.warning(traceback.format_exc())
@@ -919,8 +929,8 @@ async def ws_ex_query():
 @login_required
 async def uplot_proto():
     ticker = request.args.get("ticker")
-    return await render_template("uplot-proto.html",ticker=ticker)
-
+    tstamp = request.args.get("tstamp")
+    return await render_template("uplot-proto.html",ticker=ticker,tstamp=tstamp)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
