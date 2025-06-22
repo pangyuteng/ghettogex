@@ -13,13 +13,18 @@
 </head>
 
 <body>
+
     <div id="status">....</div>
-    <div id="myHorizontal"></div>
-    <div id="myVertical"></div>
-    <div id="myVertical2"></div>
+    <div class="box">
+        <div class="one" id="myHorizontal"></div>
+        <div class="two" id="myVertical"></div>
+        <div class="three" id="myVertical2"></div>
+    </div>
+
     {% include 'uplot-horizontalbars.html' %}
     {% include 'uplot-verticalbars.html' %}
     {% include 'uplot-verticalbars2.html' %}
     {% include 'uplot-ws.html' %}
+
 </body>
 </html>
