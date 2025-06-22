@@ -2,6 +2,7 @@ import os
 import json
 import argparse
 import traceback
+import time
 import asyncio
 import pytz
 import datetime
@@ -808,44 +809,83 @@ async def ws_sec_heatmap():
 async def ws_ex_query():
     try:
         ticker = websocket.args.get("ticker")
+        if ticker == "None":
+            raise ValueError("Invalid ticker None!")
+
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
             while True:
+                ret_dict = {}
+                timea = time.time()
 
                 tstamp_et = now_in_new_york()
                 tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
+                dstamp_utc = tstamp_utc.strftime("%Y-%m-%d")
+                ret_dict['tstamp']=datetime.datetime.utcnow()
+
+                tstamp_utc = datetime.datetime(2025,6,20,19,59,57)#'2025-06-20 19:59:58'
+                dstamp_utc = tstamp_utc.strftime("%Y-%m-%d")
+
                 market_open,market_close = get_market_open_close(tstamp_utc,no_tzinfo=False)
-  
                 query_list = [
                     apostgres_execute(apool,EVENT_STATUS_QUERY,()),
-                    apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(ticker,)),
-                    apostgres_execute(apool,LATEST_ONE_MIN_GEX_STRIKE_QUERY,(ticker,)),
-                    apostgres_execute(apool,LATEST_DAY_GEX_NET_QUERY,(ticker,))
+                    apostgres_execute(apool,LATEST_DAY_GEX_NET_QUERY,(dstamp_utc,ticker)),
+                    apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
+                    apostgres_execute(apool,LATEST_ONE_MIN_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker)),
                 ]
 
                 gathered_res = await asyncio.gather(*query_list)
                 
                 try:
+                    spot_price = None
+                    ret_dict = {}
+                    if gathered_res[0] is not None:
+                        df = pd.DataFrame([x for x in gathered_res[0]])
+                        ret_dict['status']={row.event_type:f'{row.id_count} {row.tstamp}' for n,row in df.iterrows()}
 
-                    df = pd.DataFrame([x for x in gathered_res[0]])
-                    event_status_dict = {row.event_type:f'{row.id_count} {row.tstamp}' for n,row in df.iterrows()}
                     if gathered_res[1] is not None:
-                        lgs_pd = pd.DataFrame([dict(x) for x in gathered_res[1]])
-                        event_status_dict['lgs_pd']=len(lgs_pd)
+                        df = pd.DataFrame([dict(x) for x in gathered_res[1]])
+                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df = df.replace({np.nan: None})
+                        lst = [df[i].tolist() for i in ['tstamp','spot_price','state_gex']]
+                        ret_dict['hgn'] = lst
+                        app.logger.error(f'historical gex_net hgn {len(lst)}')
                     if gathered_res[2] is not None:
-                        hgs_pd = pd.DataFrame([dict(x) for x in gathered_res[2]])
-                        event_status_dict['hgs_pd']=len(hgs_pd)
-                    if gathered_res[3] is not None:
-                        hgn_pd = pd.DataFrame([dict(x) for x in gathered_res[3]])
-                        event_status_dict['hgn_pd']=len(hgn_pd)
+                        df = pd.DataFrame([dict(x) for x in gathered_res[2]])
+                        """
+                        gex_strike_id	ticker	tstamp	strike	volume_gex	state_gex	dex	convexity	
+                        vex	cex	call_convexity	call_oi	call_dex	call_gex	call_vex	call_cex	
+                        put_convexity	put_oi	put_dex	put_gex	put_vex	put_cex 
+                        """
+                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df = df.replace({np.nan: None})
+                        lst = [df[i].tolist() for i in ['strike','state_gex']]
+                        ret_dict['lgs'] = lst
+                        app.logger.error(f'latest gex_strike lgs {len(lst)}')
+
+                    if gathered_res[3] is not None: 
+                        df = pd.DataFrame([dict(x) for x in gathered_res[3]])
+                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df = df.replace({np.nan: None})
+                        lst = [df[i].tolist() for i in ['tstamp','strike','state_gex']]
+                        ret_dict['hgs'] = lst
+                        app.logger.error(f'historical gex strike hgs {len(lst)}')
+
+                    ret_dict['tstamp']=datetime.datetime.utcnow()
+                    timeb = time.time()
+                    duration = timeb-timea
+                    ret_dict['duration_sec']=duration
                 except:
-                    event_status_dict = {}
+                    ret_dict['tstamp']=datetime.datetime.utcnow()
                     app.logger.error(traceback.format_exc())
 
-                await websocket.send_json(event_status_dict)
-                await asyncio.sleep(0.1)
+                # with open('ok.json','w') as f:
+                #     f.write(json.dumps(ret_dict,default=str))
+
+                await websocket.send_json(ret_dict)
+                await asyncio.sleep(0.5)
 
     except asyncio.CancelledError:
-        app.logger.error(traceback.format_exc())
+        app.logger.warning(traceback.format_exc())
         app.logger.error('Client disconnected')
         raise
 
@@ -880,5 +920,7 @@ docker run -it \
     -p 80:80 -p 8888:8888 fi-notebook:latest bash
 
 python app.py 80
+
+http://192.168.68.143/uplot?ticker=SPX
 
 """
