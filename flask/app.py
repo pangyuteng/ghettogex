@@ -815,7 +815,6 @@ async def ws_ex_query():
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
             while True:
                 ret_dict = {}
-                timea = time.time()
 
                 tstamp_et = now_in_new_york()
                 tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
@@ -825,18 +824,19 @@ async def ws_ex_query():
                 tstamp_utc = datetime.datetime(2025,6,20,19,59,57)#'2025-06-20 19:59:58'
                 dstamp_utc = tstamp_utc.strftime("%Y-%m-%d")
 
+                timea = time.time()
                 market_open,market_close = get_market_open_close(tstamp_utc,no_tzinfo=False)
                 query_list = [
                     apostgres_execute(apool,EVENT_STATUS_QUERY,()),
-                    apostgres_execute(apool,LATEST_DAY_GEX_NET_QUERY,(dstamp_utc,ticker)),
-                    apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
-                    apostgres_execute(apool,LATEST_ONE_MIN_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker)),
+                    apostgres_execute(apool,LATEST_DAY_GEX_NET_QUERY,(dstamp_utc,ticker,dstamp_utc)),
+                    apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
+                    apostgres_execute(apool,LATEST_ONE_MIN_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                 ]
-
-                gathered_res = await asyncio.gather(*query_list)
                 
+                gathered_res = await asyncio.gather(*query_list)
+                timeb = time.time()
+                duration = timeb-timea
                 try:
-                    spot_price = None
                     ret_dict = {}
                     if gathered_res[0] is not None:
                         df = pd.DataFrame([x for x in gathered_res[0]])
@@ -846,21 +846,24 @@ async def ws_ex_query():
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df = df.replace({np.nan: None})
+                        spot_price = df["spot_price"].iloc[-1]
                         lst = [df[i].tolist() for i in ['tstamp','spot_price','state_gex']]
                         ret_dict['hgn'] = lst
-                        app.logger.error(f'historical gex_net hgn {len(lst)}')
+                        ret_dict['spot_price'] = spot_price
+                        app.logger.info(f'historical gex_net hgn {len(lst)}')
+
+                    # gex_strike_id	ticker	tstamp	strike	volume_gex	state_gex	dex	convexity	
+                    # vex	cex	call_convexity	call_oi	call_dex	call_gex	call_vex	call_cex	
+                    # put_convexity	put_oi	put_dex	put_gex	put_vex	put_cex 
                     if gathered_res[2] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[2]])
-                        """
-                        gex_strike_id	ticker	tstamp	strike	volume_gex	state_gex	dex	convexity	
-                        vex	cex	call_convexity	call_oi	call_dex	call_gex	call_vex	call_cex	
-                        put_convexity	put_oi	put_dex	put_gex	put_vex	put_cex 
-                        """
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df['dex_diff'] = df.dex.diff()
+                        df['gex_diff'] = df.volume_gex.diff()
                         df = df.replace({np.nan: None})
-                        lst = [df[i].tolist() for i in ['strike','state_gex']]
+                        lst = [df[i].tolist() for i in ['strike','dex','state_gex','convexity']]
                         ret_dict['lgs'] = lst
-                        app.logger.error(f'latest gex_strike lgs {len(lst)}')
+                        app.logger.info(f'latest gex_strike lgs {len(lst)}')
 
                     if gathered_res[3] is not None: 
                         df = pd.DataFrame([dict(x) for x in gathered_res[3]])
@@ -868,18 +871,13 @@ async def ws_ex_query():
                         df = df.replace({np.nan: None})
                         lst = [df[i].tolist() for i in ['tstamp','strike','state_gex']]
                         ret_dict['hgs'] = lst
-                        app.logger.error(f'historical gex strike hgs {len(lst)}')
+                        app.logger.info(f'historical gex strike hgs {len(lst)}')
 
                     ret_dict['tstamp']=datetime.datetime.utcnow()
-                    timeb = time.time()
-                    duration = timeb-timea
                     ret_dict['duration_sec']=duration
                 except:
                     ret_dict['tstamp']=datetime.datetime.utcnow()
                     app.logger.error(traceback.format_exc())
-
-                # with open('ok.json','w') as f:
-                #     f.write(json.dumps(ret_dict,default=str))
 
                 await websocket.send_json(ret_dict)
                 await asyncio.sleep(0.5)
