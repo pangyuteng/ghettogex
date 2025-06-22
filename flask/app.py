@@ -865,6 +865,8 @@ async def ws_ex_query():
                         spot_price = df["spot_price"].iloc[-1]
                         lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
                         ret_dict['hgn'] = lst
+                        lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
+                        ret_dict['hgn2'] = lst
                         ret_dict['spot_price'] = spot_price
 
                         app.logger.info(f'historical gex_net hgn {len(lst)}')

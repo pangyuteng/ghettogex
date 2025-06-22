@@ -1,7 +1,6 @@
 <script>
 
-function makeChartV() {
-
+function makeChartV2() {
 	
 	let bars = uPlot.paths.bars({align: 0, size: [1, 1], gap: 0});
 	let bars1 = uPlot.paths.bars({align: 0, size: [1, 1], gap: 0});
@@ -68,26 +67,15 @@ function makeChartV() {
 		// }
 	};
 	
-	return new uPlot(opts, [], document.getElementById("myVertical"));
+	return new uPlot(opts, [], document.getElementById("myVertical2"));
 }
 
-let mychartV = makeChartV();
+let mychartV2 = makeChartV2();
 
-function prepData(packed) {
-	console.time("prep");
-	let data = packed;
-	console.timeEnd("prep");
-	return data
+
+function updateChartV2(data){
+	mychartV2.setData(data.hgn2);
 }
 
-function updateChartV(data){
-	mychartV.setData(data.hgn);
-}
-
-// fetch("/myjsonPriceEx").then(r => r.json()).then(packed => {
-// 	wait.textContent = "rendering...";
-// 	let data = prepData(packed);
-// 	setTimeout(() => updateChartV(data), 0);
-// });
 
 </script>

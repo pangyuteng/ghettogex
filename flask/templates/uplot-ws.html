@@ -1,12 +1,12 @@
 
-
 <script>
     const ws = new WebSocket("/ws-ex?ticker={{ticker}}");
     let status = document.getElementById("status");
     ws.onmessage = function(event) {
         let newdata = JSON.parse(event.data);
         status.textContent = newdata.tstamp
-        updateChartV(newdata);
         updateChartH(newdata);
+        updateChartV(newdata);
+        updateChartV2(newdata);
     }
 </script>
