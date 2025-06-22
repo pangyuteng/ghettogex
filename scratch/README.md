@@ -173,8 +173,9 @@ docker run -it -u $(id -u):$(id -g) \
     https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout/Relationship_of_flexbox_to_other_layout_methods
 
 + [x] after viewing gex_net for whole day you have artifact where data lumps at appx 1-minute aggregate.
-    maybe dxfeed or could be compute_intraday.py event agg join issue
-    patched 
+
+    + [x] maybe dxfeed or could be compute_intraday.py event agg join issue
+        commit 539b471 "updated event_agg join order"
 
 + [x] investigate faster query (with timescale), to enable sub-second plot update
 
@@ -188,6 +189,8 @@ docker run -it -u $(id -u):$(id -g) \
 
     https://www.cboe.com/insights/posts/volatility-insights-evaluating-the-market-impact-of-spx-0-dte-options
 
++ [ ] volatility and greeks compute and caching service
+      gex needs a realtime, or else we are viewing 1min-lagged greeks.
 
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
