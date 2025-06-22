@@ -1,54 +1,23 @@
 <!doctype html>
 <html lang="en" data-bs-theme="dark">
 <head>
+
     <meta charset="utf-8">
     <title>sec-gex</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" href="/static/uPlot.min.css">
     <script src="/static/uPlot.iife.min.js"></script>
-
-    <style>
-
-        body {
-            background: #000000;
-            color: #6b6b6b;
-            margin: 0px;
-        }
-        
-        .uplot {
-            display: inline-block;
-            vertical-align: top;
-            color: white;
-        }
-        .u-indic-x,.u-indic-y {
-            color: white;
-        }
-        .u-title {
-            font-size: 14px;
-        }
-
-    </style>
+    {% include 'uplot-style.html' %}
 
 </head>
 
 <body>
-
-    <h2 id="wait">Loading lib....</h2>
-
-    <script>
-    
-
-    const ws = new WebSocket("/ws-ex?ticker={{ticker}}");
-
-    let start1 = 0;
-    let len1 = 10;
-    ws.onmessage = function(event) {
-        let newdata = JSON.parse(event.data);
-        wait.textContent = JSON.stringify(newdata);
-    }
-    </script>
-
-
+    <div id="status">....</div>
+    <div id="myHorizontal"></div>
+    <div id="myVertical"></div>
+    {% include 'uplot-verticalbars.html' %}
+    {% include 'uplot-horizontalbars.html' %}
+    {% include 'uplot-ws.html' %}
 </body>
 </html>

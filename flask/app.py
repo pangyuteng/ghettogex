@@ -843,13 +843,23 @@ async def ws_ex_query():
                         ret_dict['status']={row.event_type:f'{row.id_count} {row.tstamp}' for n,row in df.iterrows()}
 
                     if gathered_res[1] is not None:
+                        #    'volume_gex','state_gex', 'dex', 'convexity', 'vex', 'cex', 'call_convexity',
+                        #    'call_oi', 'call_dex', 'call_gex', 'call_vex', 'call_cex',
+                        #    'put_convexity', 'put_oi', 'put_dex', 'put_gex', 'put_vex', 'put_cex', 
+                        #    'vix_price'
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df.dex = df.dex.ffill()
+                        df.state_gex = df.state_gex.ffill()
+                        df.state_gex = df.state_gex/1e9
+                        df['vgex_diff'] = df.volume_gex.diff()
+                        df['sgex_diff'] = df.state_gex.diff()
                         df = df.replace({np.nan: None})
                         spot_price = df["spot_price"].iloc[-1]
-                        lst = [df[i].tolist() for i in ['tstamp','spot_price','state_gex']]
+                        lst = [df[i].tolist() for i in ['tstamp','spot_price','vgex_diff','sgex_diff']]
                         ret_dict['hgn'] = lst
                         ret_dict['spot_price'] = spot_price
+
                         app.logger.info(f'historical gex_net hgn {len(lst)}')
 
                     # gex_strike_id	ticker	tstamp	strike	volume_gex	state_gex	dex	convexity	
@@ -857,16 +867,24 @@ async def ws_ex_query():
                     # put_convexity	put_oi	put_dex	put_gex	put_vex	put_cex 
                     if gathered_res[2] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[2]])
+                        df.state_gex = df.state_gex/1e9
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df['dex_diff'] = df.dex.diff()
-                        df['gex_diff'] = df.volume_gex.diff()
+                        df['pos_gex'] = df.state_gex.where(df.state_gex>0)
+                        df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
                         df = df.replace({np.nan: None})
-                        lst = [df[i].tolist() for i in ['strike','dex','state_gex','convexity']]
+                        lst = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
+                        major_call_strike = df["strike"].iloc[df.call_gex.argmax()]
+                        major_put_strike = df["strike"].iloc[df.put_gex.argmin()]
+
                         ret_dict['lgs'] = lst
+                        ret_dict['major_call'] = major_call_strike
+                        ret_dict['major_put'] = major_put_strike
+
                         app.logger.info(f'latest gex_strike lgs {len(lst)}')
 
                     if gathered_res[3] is not None: 
                         df = pd.DataFrame([dict(x) for x in gathered_res[3]])
+                        df.state_gex = df.state_gex/1e9
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df = df.replace({np.nan: None})
                         lst = [df[i].tolist() for i in ['tstamp','strike','state_gex']]
@@ -875,6 +893,7 @@ async def ws_ex_query():
 
                     ret_dict['tstamp']=datetime.datetime.utcnow()
                     ret_dict['duration_sec']=duration
+
                 except:
                     ret_dict['tstamp']=datetime.datetime.utcnow()
                     app.logger.error(traceback.format_exc())

@@ -27,8 +27,8 @@ last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s
 last_price AS (select close from candle where tstamp <= %s and tstamp >= %s - interval '1 minute' and event_symbol = %s order by tstamp desc limit 1)
 SELECT * FROM last_tstamp
 LEFT JOIN last_gex_strike using (tstamp)
-WHERE strike > (select close*1.05 from last_price)
-AND strike > (select close*0.95 from last_price)
+WHERE strike < (select close*1.02 from last_price)
+AND strike > (select close*0.98 from last_price)
 """
 
 LATEST_ONE_MIN_GEX_STRIKE_QUERY = """
@@ -36,8 +36,8 @@ LATEST_ONE_MIN_GEX_STRIKE_QUERY = """
 WITH last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s - interval '1 minute'  and ticker = %s order by tstamp,strike),
 last_price AS (select close from candle where tstamp <= %s and tstamp >= %s - interval '1 minute' and event_symbol = %s order by tstamp desc limit 1)
 select * from last_gex_strike
-WHERE strike > (select close*1.05 from last_price)
-AND strike > (select close*0.95 from last_price)
+WHERE strike < (select close*1.02 from last_price)
+AND strike > (select close*0.98 from last_price)
 """
 
 LATEST_DAY_GEX_NET_QUERY = """
@@ -54,8 +54,8 @@ last_gex_strike AS (select * from gex_strike where tstamp <= timestamp '2025-06-
 last_price AS (select close from candle where tstamp <= timestamp '2025-06-20 19:59:58' and tstamp >= timestamp '2025-06-20 19:59:58' - interval '1 minute' and event_symbol = 'SPX' order by tstamp desc limit 1)
 SELECT * FROM last_tstamp
 LEFT JOIN last_gex_strike using (tstamp)
-WHERE strike > (select close*1.05 from last_price)
-AND strike > (select close*0.95 from last_price)
+WHERE strike < (select close*1.02 from last_price)
+AND strike > (select close*0.98 from last_price)
 
 
 WITH gex_net AS (select * from gex_net where tstamp::date = '2025-06-20' and ticker = 'SPX'),

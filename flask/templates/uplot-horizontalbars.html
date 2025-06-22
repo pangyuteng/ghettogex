@@ -1,0 +1,131 @@
+
+<script>
+
+function makeChartH(opts) {
+	let bars = uPlot.paths.bars({align: 0, size: [1, 2.5], gap: 0});
+	opts = uPlot.assign({
+		scales: {
+			x: {
+				time: false,
+			},
+		},
+		focus: {
+			alpha: 0.3,
+		},
+		cursor: {
+			lock: true,
+			drag: {
+				x: true,
+				y: true,
+			},
+			sync: {
+				key: 1,
+				scales: ["x", "y"],
+			},
+			focus: {
+				prox: 30,
+			}
+		},
+		series: [
+			{},
+			{
+				stroke: "green",
+				fill: "rgba(0,255,0,0.9)",
+				paths: bars,
+			},
+			{
+				stroke: "red",
+				fill: "rgba(255,0,0,0.9)",
+				paths: bars,
+			},
+		],
+	}, opts);
+
+	return new uPlot(opts, [], document.getElementById("myHorizontal"));
+}
+
+function linesPlugin({lines}) {
+	function drawLines(u) {
+  		const { ctx, bbox } = u;
+		lines.forEach( item => {
+			xVal = item[0];
+			color = item[1];
+			let x4 = u.valToPos(xVal, 'x', true);
+			let ylft = u.valToPos(u.scales.y.min, 'y', true);
+			let yrgt = u.valToPos(u.scales.y.max, 'y', true);
+			u.ctx.save();
+			u.ctx.beginPath();
+			u.ctx.moveTo(ylft, x4);
+			u.ctx.lineTo(yrgt, x4);
+			u.ctx.setLineDash([5,5]);
+			u.ctx.lineWidth = 2;
+			u.ctx.strokeStyle = color;
+			u.ctx.stroke();
+			u.ctx.restore();
+		});
+	}
+
+  return {
+    hooks: {
+      draw: drawLines,
+    }
+  };
+}
+
+const lines = [];
+
+let mychartH = makeChartH({
+	width: 600,
+	height: 600,
+	title: "ghettogex",
+	scales: {
+		x: {
+			dir: 1,
+			ori: 1,
+		},
+		y: {
+			dir: 1,
+			ori: 0,
+		}
+	},
+	plugins: [
+		linesPlugin({lines})
+	],
+	axes: [
+		{
+			side: 3,
+			stroke: "#666666",
+			tick: {stroke: "#666666",width:1},
+			grid: {stroke: "#666666",width:1},
+		},
+		{
+			side: 0,
+			stroke: "#666666",
+			grid: {stroke: "#666666",width:1},
+			tick: {stroke: "#666666",width:1},
+		}
+	],
+});
+
+function prepData(packed) {
+	console.time("prep");
+	let data = packed;
+	console.timeEnd("prep");
+	return data
+}
+
+function updateChartH(data){
+	lines[0] = [data.major_call,'green'];
+	lines[1] = [data.major_put,'red'];
+	lines[2] = [data.spot_price,'white'];
+	mychartH.setData(data.lgs);
+}
+
+
+// fetch("/myjsonHorizontals").then(r => r.json()).then(packed => {
+// 	let data = prepData(packed);
+// 	setTimeout(() => updateChartH(data), 0);
+// });
+
+
+</script>

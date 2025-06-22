@@ -1,0 +1,93 @@
+<script>
+
+function makeChartV() {
+	console.time("chart");
+	
+	let bars = uPlot.paths.bars({align: 0, size: [1, 1], gap: 0});
+	let bars1 = uPlot.paths.bars({align: 0, size: [1, 1], gap: 0});
+
+	const opts = {
+		title: "foobar",
+		width: 1000,
+		height: 600,
+		series: [
+			{},
+			{
+				label: "value0",
+				scale: "scale0",
+				value: (u, v) => v == null ? null : v.toFixed(2)+"unit0",
+				stroke: "rgba(200,200,200,1)",
+				width: 1/devicePixelRatio,
+			},
+			{
+				label: "value1",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "unt1",
+				width: 1/devicePixelRatio,
+				fill: "rgba(255,0,0,0.6)",
+				paths: bars,
+			},
+			{
+				label: "value2",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "unit1",
+				width: 1/devicePixelRatio,
+				fill: "rgba(0,255,0,0.6)",
+				paths: bars1,
+			}
+		],
+		axes: [
+			{
+				side: 0,
+				stroke: "#666666",
+				tick: {stroke: "#666666",width:1},
+				grid: {stroke: "#666666",width:1},
+			},
+			{
+				side: 3,
+				scale: "scale0",
+				values: (u, vals, space) => vals.map(v => v.toFixed(1) +"p"),
+				stroke: "#666666",
+				grid: {stroke: "#666666",width:1},
+				tick: {stroke: "#666666",width:1},
+			},
+			{
+				side: 1,
+				scale: "scale1",
+				values: (u, vals, space) => vals.map(v => v.toFixed(2) + "unit1"),
+				stroke: "#666666",
+				grid: {show: false},
+				tick: {stroke: "#666666",width:1},
+			},
+		],
+		scales: {
+			"scale1": {
+				auto: false,
+				range: [0, 1E10],
+			}
+		}
+	};
+	
+	return new uPlot(opts, [], document.getElementById("myVertical"));
+}
+
+let mychartV = makeChartV();
+
+function prepData(packed) {
+	console.time("prep");
+	let data = packed;
+	console.timeEnd("prep");
+	return data
+}
+
+function updateChartV(data){
+	mychartV.setData(data.hgn);
+}
+
+// fetch("/myjsonPriceEx").then(r => r.json()).then(packed => {
+// 	wait.textContent = "rendering...";
+// 	let data = prepData(packed);
+// 	setTimeout(() => updateChartV(data), 0);
+// });
+
+</script>
