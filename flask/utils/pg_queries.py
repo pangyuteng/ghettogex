@@ -64,3 +64,14 @@ SELECT * FROM gex_net
 LEFT JOIN vix_price using (tstamp)
 ORDER BY tstamp
 """
+
+"""
+                SELECT DISTINCT ON (ticker,date_trunc('minute', tstamp),strike) 
+                date_trunc('minute', tstamp) AS tstamp, ticker, strike,
+                AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex,AVG(dex) as dex,
+                AVG(convexity) as convexity, AVG(vex) as vex,AVG(cex) as cex
+                FROM gex_strike 
+                WHERE ticker = %s and tstamp::date = %s and tstamp > %s
+                GROUP BY ticker,tstamp,strike
+                ORDER BY tstamp, strike DESC
+"""
