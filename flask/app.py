@@ -850,13 +850,15 @@ async def ws_ex_query():
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df.dex = df.dex.ffill()
+                        df.volume_gex = df.volume_gex.ffill()
+                        df.state_gex = df.state_gex/1e9
                         df.state_gex = df.state_gex.ffill()
                         df.state_gex = df.state_gex/1e9
                         df['vgex_diff'] = df.volume_gex.diff()
                         df['sgex_diff'] = df.state_gex.diff()
                         df = df.replace({np.nan: None})
                         spot_price = df["spot_price"].iloc[-1]
-                        lst = [df[i].tolist() for i in ['tstamp','spot_price','vgex_diff','sgex_diff']]
+                        lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
                         ret_dict['hgn'] = lst
                         ret_dict['spot_price'] = spot_price
 
