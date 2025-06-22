@@ -160,9 +160,6 @@ docker run -it -u $(id -u):$(id -g) \
 + [x] how about insert to redis as well for each second per day? and purging per day?
     solution: see timescaledb-materialized-view
 
-+ [x] continue to monitor memory usage for workers
-    `scratch/psycopg2-memory-leak-issue`
-
 + [x] investigate uplot, to enable sub-second plot update
      
     https://github.com/pangyuteng/hello-htmx-quart/tree/main/uplot
@@ -184,6 +181,11 @@ docker run -it -u $(id -u):$(id -g) \
     + [ ] use-timescaledb-materialized-view for aggregated view
 
     https://www.tigerdata.com/blog/materialized-views-the-timescale-way
+
++ [o] continue to monitor memory usage for workers
+    for detail see see `scratch/psycopg2-memory-leak-issue`
+
+    *** MEMORY iSSUE CRITICAL  ***
 
 + [ ] add gexbot order flow GEX,DEX visualization
 
