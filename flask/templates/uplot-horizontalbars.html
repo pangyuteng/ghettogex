@@ -2,7 +2,7 @@
 <script>
 
 function makeChartH(opts) {
-	let bars = uPlot.paths.bars({align: 0, size: [1, 2.5], gap: 0});
+	let bars = uPlot.paths.bars({align: 0, size: [1, 4], gap: 0});
 	opts = uPlot.assign({
 		scales: {
 			x: {
@@ -58,7 +58,7 @@ function linesPlugin({lines}) {
 			u.ctx.moveTo(ylft, x4);
 			u.ctx.lineTo(yrgt, x4);
 			u.ctx.setLineDash([5,5]);
-			u.ctx.lineWidth = 2;
+			u.ctx.lineWidth = 1.5;
 			u.ctx.strokeStyle = color;
 			u.ctx.stroke();
 			u.ctx.restore();
