@@ -305,7 +305,8 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     timeandsale_df = ts_df[['event_symbol','size_signed']]
     timeandsale_df = timeandsale_df.groupby(['event_symbol']).sum().reset_index()
 
-    merged_df = greeks_df.merge(summary_df,how='left',on=['event_symbol'])
+    # NOTE: start with summary since you always have summary
+    merged_df = summary_df.merge(greeks_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
 

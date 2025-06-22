@@ -172,6 +172,10 @@ docker run -it -u $(id -u):$(id -g) \
 + [x] css flexbox for layout!
     https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout/Relationship_of_flexbox_to_other_layout_methods
 
++ [x] after viewing gex_net for whole day you have artifact where data lumps at appx 1-minute aggregate.
+    maybe dxfeed or could be compute_intraday.py event agg join issue
+    patched 
+
 + [x] investigate faster query (with timescale), to enable sub-second plot update
 
     https://github.com/pangyuteng/ghettogex.aigonewrong.com/blob/main/flask/utils/pg_queries.py
