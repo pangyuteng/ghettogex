@@ -169,6 +169,9 @@ docker run -it -u $(id -u):$(id -g) \
 
     https://github.com/leeoniya/uPlot
 
++ [x] css flexbox for layout!
+    https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout/Relationship_of_flexbox_to_other_layout_methods
+
 + [x] investigate faster query (with timescale), to enable sub-second plot update
 
     https://github.com/pangyuteng/ghettogex.aigonewrong.com/blob/main/flask/utils/pg_queries.py
