@@ -182,17 +182,21 @@ docker run -it -u $(id -u):$(id -g) \
 
     https://www.tigerdata.com/blog/materialized-views-the-timescale-way
 
+    https://docs.tigerdata.com/use-timescale/latest/continuous-aggregates/create-a-continuous-aggregate/
+
 + [o] continue to monitor memory usage for workers
     for detail see see `scratch/psycopg2-memory-leak-issue`
 
-    *** MEMORY iSSUE CRITICAL  ***
+    *** MEMORY LEAK CRITICAL ISSUE ***
 
 + [ ] add gexbot order flow GEX,DEX visualization
 
     https://www.cboe.com/insights/posts/volatility-insights-evaluating-the-market-impact-of-spx-0-dte-options
 
 + [ ] volatility and greeks compute and caching service
-      gex needs a realtime, or else we are viewing 1min-lagged greeks.
+      gex needs a realtime, or else we are viewing 1min-lagged greeks (`compute_intraday.py`)
+
+    *** volatility is outdated CRITICAL ISSUE ***
 
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
