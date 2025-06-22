@@ -1,4 +1,8 @@
 
+lib version history
+
+https://github.com/pangyuteng/ghettogex.aigonewrong.com/commits/main/flask/requirements.txt
+
 ### recollection of what triggered memory leak
 
 memory leak observed after postgres switched to timescaledb
