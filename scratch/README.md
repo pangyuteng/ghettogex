@@ -178,7 +178,7 @@ docker run -it -u $(id -u):$(id -g) \
 
     https://github.com/pangyuteng/ghettogex.aigonewrong.com/blob/main/flask/utils/pg_queries.py
 
-    + [ ] use-timescaledb-materialized-view for aggregated view
+    + [o] use-timescaledb-materialized-view for aggregated view
 
     https://www.tigerdata.com/blog/materialized-views-the-timescale-way
 
