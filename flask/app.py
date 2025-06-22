@@ -851,7 +851,7 @@ async def ws_ex_query():
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df.dex = df.dex.ffill()
                         df.volume_gex = df.volume_gex.ffill()
-                        df.state_gex = df.state_gex/1e9
+                        df.volume_gex = df.volume_gex/1e9
                         df.state_gex = df.state_gex.ffill()
                         df.state_gex = df.state_gex/1e9
                         df['vgex_diff'] = df.volume_gex.diff()
