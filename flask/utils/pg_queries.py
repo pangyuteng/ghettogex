@@ -49,8 +49,10 @@ ORDER BY tstamp
 """
 
 GEX_NET_1MIN_QUERY = """
+WITH get_net_1min AS (select * from gex_net where tstamp::date = %s and ticker = %s),
+candle_1min AS (select tstamp, close as vix_price from candle_1min where tstamp::date = %s and event_symbol = 'VIX')
 SELECT * FROM get_net_1min
-where tstamp::date = %s and ticker = %s
+LEFT JOIN candle_1min using (tstamp)
 ORDER BY tstamp
 """
 
@@ -65,20 +67,12 @@ WHERE strike < (select close*1.02 from last_price)
 AND strike > (select close*0.98 from last_price)
 
 
-WITH gex_net AS (select * from gex_net where tstamp::date = '2025-06-20' and ticker = 'SPX'),
-vix_price AS (select tstamp::timestamp(0),close as vix_price from candle where tstamp::date = '2025-06-20' and event_symbol = 'VIX')
+explain analyze
+WITH get_net_1min AS (select * from gex_net where tstamp::date = '2025-06-20' and ticker = 'SPX'),
+candle_1min AS (select tstamp, close as vix_price from candle_1min where tstamp::date = '2025-06-20' and event_symbol = 'VIX')
 SELECT * FROM gex_net
-LEFT JOIN vix_price using (tstamp)
+LEFT JOIN candle_1min using (tstamp)
 ORDER BY tstamp
-"""
 
 """
-                SELECT DISTINCT ON (ticker,date_trunc('minute', tstamp),strike) 
-                date_trunc('minute', tstamp) AS tstamp, ticker, strike,
-                AVG(volume_gex) as volume_gex, AVG(state_gex) as state_gex,AVG(dex) as dex,
-                AVG(convexity) as convexity, AVG(vex) as vex,AVG(cex) as cex
-                FROM gex_strike 
-                WHERE ticker = %s and tstamp::date = %s and tstamp > %s
-                GROUP BY ticker,tstamp,strike
-                ORDER BY tstamp, strike DESC
-"""
+

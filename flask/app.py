@@ -846,7 +846,7 @@ async def ws_ex_query():
                             apostgres_execute(apool,EVENT_STATUS_QUERY,()),
                             apostgres_execute(apool,LATEST_DAY_GEX_NET_QUERY,(dstamp_utc,tstamp_utc,ticker,dstamp_utc,tstamp_utc)),
                             apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
-                            apostgres_execute(apool,GEX_NET_1MIN_QUERY,(dstamp_utc,ticker)),
+                            apostgres_execute(apool,GEX_NET_1MIN_QUERY,(dstamp_utc,ticker,dstamp_utc)),
                         ]
 
                         gathered_res = await asyncio.gather(*query_list)
@@ -910,21 +910,37 @@ async def ws_ex_query():
 
                         if gathered_res[3] is not None: 
                             df = pd.DataFrame([dict(x) for x in gathered_res[3]])
+                            df.convexity = df.convexity.ffill()
+                            df.dex = df.dex.ffill()
                             df.volume_gex = df.volume_gex.ffill()
                             df.state_gex = df.state_gex.ffill()
-                            #df.convexity = df.convexity.ffill()
+                            df.dex = df.dex/1e9
                             df.state_gex = df.state_gex/1e9
                             df.volume_gex = df.volume_gex/1e9
+                            
+                            df['dex_diff'] = df.dex.diff()
+                            df['convexity_diff'] = df.convexity.diff()
                             df['volume_gex_diff'] = df.volume_gex.diff()
                             df['state_gex_diff'] = df.state_gex.diff()
+
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                             df = df.replace({np.nan: None})
-                            #lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
-                            #ret_dict['hgn'] = lst
-                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']] # 'convexity'
-                            ret_dict['hgn2'] = lst
-                            app.logger.info(f'historical gex strike hgs {len(lst)}')
 
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
+                            ret_dict['netgex'] = lst
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity']]
+                            ret_dict['netconvexity'] = lst
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','dex']]
+                            ret_dict['netdex'] = lst
+
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
+                            ret_dict['diffgex'] = lst
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity_diff']]
+                            ret_dict['diffconvexity'] = lst
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','dex_diff']]
+                            ret_dict['diffdex'] = lst
+
+                            app.logger.info(f'historical gex strike hgs {len(lst)}')
 
                         ret_dict['duration_sec']=duration
                         ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")

@@ -1,12 +1,13 @@
 <script>
 
-function makeChartV2() {
+function makeChartBarV2() {
+
 	
 	let bars = uPlot.paths.bars({align: 0, size: [1, 1], gap: 0});
 	let bars1 = uPlot.paths.bars({align: 0, size: [1, 1], gap: 0});
 
 	const opts = {
-		title: "net-gamma",
+		title: "convexity-diff",
 		width: 512,
 		height: 512,
 		series: [
@@ -21,16 +22,10 @@ function makeChartV2() {
 			{
 				label: "value1",
 				scale: "scale1",
-				value: (u, v) => v == null ? null : v.toFixed(2) + "Bn/1prct",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "na",
 				width: 1/devicePixelRatio,
-				stroke: "rgba(200,0,200,0.6)",
-			},
-			{
-				label: "value2",
-				scale: "scale1",
-				value: (u, v) => v == null ? null : v.toFixed(2) + "Bn/1prct",
-				width: 1/devicePixelRatio,
-				stroke: "rgba(255,0,255,0.6)",
+				fill: "rgba(200,0,200,0.6)",
+				paths: bars,
 			}
 		],
 		axes: [
@@ -51,7 +46,7 @@ function makeChartV2() {
 			{
 				side: 1,
 				scale: "scale1",
-				values: (u, vals, space) => vals.map(v => v.toFixed(2) + "Bn/1prct"),
+				values: (u, vals, space) => vals.map(v => v.toFixed(2) + "na"),
 				stroke: "#666666",
 				grid: {show: false},
 				tick: {stroke: "#666666",width:1},
@@ -65,14 +60,14 @@ function makeChartV2() {
 		// }
 	};
 	
-	return new uPlot(opts, [], document.getElementById("myVertical2"));
+	return new uPlot(opts, [], document.getElementById("ChartBarV2"));
 }
 
-let mychartV2 = makeChartV2();
+let mychartBarV2 = makeChartBarV2();
 
 
-function updateChartV2(data){
-	mychartV2.setData(data.hgn2);
+function updateChartBarV2(data){
+	mychartBarV2.setData(data);
 }
 
 

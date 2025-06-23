@@ -1,13 +1,13 @@
 <script>
 
-function makeChartV() {
+function makeChartBarV1() {
 
 	
 	let bars = uPlot.paths.bars({align: 0, size: [1, 1], gap: 0});
 	let bars1 = uPlot.paths.bars({align: 0, size: [1, 1], gap: 0});
 
 	const opts = {
-		title: "min-gamma",
+		title: "gamma-diff",
 		width: 512,
 		height: 512,
 		series: [
@@ -68,26 +68,15 @@ function makeChartV() {
 		// }
 	};
 	
-	return new uPlot(opts, [], document.getElementById("myVertical"));
+	return new uPlot(opts, [], document.getElementById("ChartBarV1"));
 }
 
-let mychartV = makeChartV();
+let mychartBarV1 = makeChartBarV1();
 
-function prepData(packed) {
-	console.time("prep");
-	let data = packed;
-	console.timeEnd("prep");
-	return data
+
+function updateChartBarV1(data){
+	mychartBarV1.setData(data);
 }
 
-function updateChartV(data){
-	mychartV.setData(data.hgn);
-}
-
-// fetch("/myjsonPriceEx").then(r => r.json()).then(packed => {
-// 	wait.textContent = "rendering...";
-// 	let data = prepData(packed);
-// 	setTimeout(() => updateChartV(data), 0);
-// });
 
 </script>
