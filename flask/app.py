@@ -833,10 +833,12 @@ async def ws_ex_query():
 
                     early = nyse.schedule(start_date=dstamp_utc, end_date=dstamp_utc)
                     if len(early) == 0:
+                        arg_tstamp = "break-while-loop"
                         raise ValueError("market closed!")
                     else:
                         market_open,market_close = get_market_open_close(tstamp_utc,no_tzinfo=False)
                         if tstamp_utc < market_open:
+                            arg_tstamp = "break-while-loop
                             raise ValueError("market closed!")
 
                         timea = time.time()
