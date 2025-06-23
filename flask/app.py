@@ -877,6 +877,8 @@ async def ws_ex_query():
                             df.volume_gex = df.volume_gex/1e9
                             df.state_gex = df.state_gex/1e9
 
+                            # smooth if out man ??
+                            # or use gex_strike???
                             df['dex_diff'] = df.dex.diff()
                             df['convexity_diff'] = df.convexity.diff()
                             df['volume_gex_diff'] = df.volume_gex.diff()
@@ -885,13 +887,20 @@ async def ws_ex_query():
                             df = df.replace({np.nan: None})
                             spot_price = df["spot_price"].iloc[-1]
                             ret_dict['spot_price'] = spot_price
-
-                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
-                            ret_dict['diffgex'] = lst
-                            lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity_diff']]
-                            ret_dict['diffconvexity'] = lst
-                            lst = [df[i].tolist() for i in ['tstamp','spot_price','dex_diff']]
-                            ret_dict['diffdex'] = lst
+                            if False:
+                                lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
+                                ret_dict['diffgex'] = lst
+                                lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity_diff']]
+                                ret_dict['diffconvexity'] = lst
+                                lst = [df[i].tolist() for i in ['tstamp','spot_price','dex_diff']]
+                                ret_dict['diffdex'] = lst
+                            else:
+                                lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
+                                ret_dict['diffgex'] = lst
+                                lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity']]
+                                ret_dict['diffconvexity'] = lst
+                                lst = [df[i].tolist() for i in ['tstamp','spot_price','dex']]
+                                ret_dict['diffdex'] = lst
 
                             app.logger.info(f'historical gex_net hgn {len(lst)}')
 

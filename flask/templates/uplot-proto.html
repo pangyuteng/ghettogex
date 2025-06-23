@@ -13,20 +13,20 @@
 </head>
 
 <body>
-    <div id="spotpriceDiv" style="font-size: 20px !important; color: #ffffff;"></div>
+    {{ticker}} <span id="spotpriceSpan" style="font-size: 20px !important; color: #ffffff;"></span>
+    tstamp: <span id="tstampSpan" style="font-size: 20px !important; color: #ffffff;"></span>
     <div class="box">
         <div class="one" id="myGexStrike"></div>
-        <div class="one" id="ChartBarV1"></div>
-        <div class="two" id="ChartBarV2"></div>
-        <div class="three" id="ChartBarV3"></div>
-    </div>
-    <div class="box">
         <div class="one" id="ChartLineV1"></div>
         <div class="two" id="ChartLineV2"></div>
         <div class="three" id="ChartLineV3"></div>
     </div>
     <div class="box">
-        <div id="tstampDiv">...</div>
+        <div class="one" id="ChartBarV1"></div>
+        <div class="two" id="ChartBarV2"></div>
+        <div class="three" id="ChartBarV3"></div>
+    </div>
+    <div class="box">
         <div id="statusDiv">...</div>
         <div>ticker:{{ticker}} tstamp:{{tstamp}}</div>
     </div>
