@@ -825,7 +825,7 @@ async def ws_ex_query():
                         tstamp_et = now_in_new_york()
                         tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
                     else:
-                        tstamp_utc = datetime.datetime.strptime(arg_tstamp,'%Y-%m-%d-%H-%M-%S')
+                        tstamp_utc = datetime.datetime.strptime(arg_tstamp,'%Y-%m-%d-%H-%M-%S').replace(tzinfo=pytz.timezone('UTC'))
 
                     dstamp_utc = tstamp_utc.strftime("%Y-%m-%d")
 
@@ -868,12 +868,11 @@ async def ws_ex_query():
                             #    'vix_price'
                             df = pd.DataFrame([dict(x) for x in gathered_res[1]])
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-
                             df.dex = df.dex.ffill()
                             df.volume_gex = df.volume_gex.ffill()
                             df.state_gex = df.state_gex.ffill()
                             df.convexity = df.convexity.ffill()
-                            
+
                             df.dex = df.dex/1e9
                             df.volume_gex = df.volume_gex/1e9
                             df.state_gex = df.state_gex/1e9
@@ -882,6 +881,7 @@ async def ws_ex_query():
                             df['convexity_diff'] = df.convexity.diff()
                             df['volume_gex_diff'] = df.volume_gex.diff()
                             df['state_gex_diff'] = df.state_gex.diff()
+
                             df = df.replace({np.nan: None})
                             spot_price = df["spot_price"].iloc[-1]
                             ret_dict['spot_price'] = spot_price
