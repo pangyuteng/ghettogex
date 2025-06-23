@@ -19,6 +19,10 @@ spec:
       - name: worker-default
         image: docker.io/pangyuteng/private:fi-flask-edge
         imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: "2"
+            memory: "10Gi"
         command: ["bash"]
         args: ["worker.sh","default"]
         env:
