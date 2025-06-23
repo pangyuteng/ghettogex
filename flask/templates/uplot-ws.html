@@ -3,10 +3,12 @@
     const ws = new WebSocket("/ws-ex?ticker={{ticker}}&tstamp={{tstamp}}");
     let statusDiv = document.getElementById("statusDiv");
     let tstampDiv = document.getElementById("tstampDiv");
+    let spotpriceDiv = document.getElementById("spotpriceDiv");
     ws.onmessage = function(event) {
         let newdata = JSON.parse(event.data);
         statusDiv.textContent = newdata.status;
         tstampDiv.textContent = newdata.server_tstamp;
+        spotpriceDiv.textContent = newdata.spot_price;
         updateChartH(newdata);
         updateChartV(newdata);
         updateChartV2(newdata);
