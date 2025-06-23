@@ -17,14 +17,14 @@ function makeChartBarV1() {
 				scale: "scale0",
 				value: (u, v) => v == null ? null : v.toFixed(2)+"",
 				stroke: "rgba(200,200,200,1)",
-				width: 1/devicePixelRatio,
+				width: 2/devicePixelRatio,
 			},
 			{
 				label: "value1",
 				scale: "scale1",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "Bn/1prct",
 				width: 1/devicePixelRatio,
-				fill: "rgba(200,0,200,0.6)",
+				fill: "rgba(0,200,0,0.6)",
 				paths: bars,
 			},
 			{
@@ -32,7 +32,7 @@ function makeChartBarV1() {
 				scale: "scale1",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "Bn/1prct",
 				width: 1/devicePixelRatio,
-				fill: "rgba(255,0,255,0.6)",
+				fill: "rgba(0,255,0,0.6)",
 				paths: bars1,
 			}
 		],
