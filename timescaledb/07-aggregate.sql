@@ -1,6 +1,6 @@
 
 
-
+/*
 CREATE MATERIALIZED VIEW get_net_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, ticker, 
   last(spot_price,tstamp) as spot_price,
@@ -24,7 +24,31 @@ SELECT time_bucket('1m', tstamp) as tstamp, ticker,
   last(put_cex,tstamp) as put_cex
 FROM gex_net 
 GROUP BY time_bucket('1m', tstamp), ticker;
+*/
 
+CREATE MATERIALIZED VIEW get_net_1min WITH (timescaledb.continuous) AS
+SELECT time_bucket('1m', tstamp) as tstamp, ticker, 
+  last(spot_price,tstamp) as spot_price,
+  avg(volume_gex) as volume_gex,
+  avg(state_gex) as state_gex,
+  avg(convexity) as convexity,
+  avg(dex) as dex,
+  avg(vex) as vex,
+  avg(cex) as cex,
+  avg(call_convexity) as call_convexity,
+  avg(call_oi) as call_oi,
+  avg(call_dex) as call_dex,
+  avg(call_gex) as call_gex,
+  avg(call_vex) as call_vex,
+  avg(call_cex) as call_cex,
+  avg(put_convexity) as put_convexity,
+  avg(put_oi) as put_oi,
+  avg(put_dex) as put_dex,
+  avg(put_gex) as put_gex,
+  avg(put_vex) as put_vex,
+  avg(put_cex) as put_cex
+FROM gex_net 
+GROUP BY time_bucket('1m', tstamp), ticker;
 SELECT add_continuous_aggregate_policy('get_net_1min',
   start_offset => NULL,
   end_offset => INTERVAL '1 min',
