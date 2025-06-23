@@ -33,7 +33,7 @@ AND strike > (select close*0.98 from last_price)
 
 LATEST_ONE_MIN_GEX_STRIKE_QUERY = """
 
-WITH last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s - interval '1 minute'  and ticker = %s order by tstamp,strike),
+WITH last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike),
 last_price AS (select close from candle where tstamp <= %s and tstamp >= %s - interval '1 minute' and event_symbol = %s order by tstamp desc limit 1)
 select * from last_gex_strike
 WHERE strike < (select close*1.02 from last_price)
@@ -41,8 +41,8 @@ AND strike > (select close*0.98 from last_price)
 """
 
 LATEST_DAY_GEX_NET_QUERY = """
-WITH gex_net AS (select * from gex_net where tstamp::date = %s and ticker = %s order by tstamp),
-vix_price AS (select tstamp::timestamp(0),close as vix_price from candle where tstamp::date = %s and event_symbol = 'VIX')
+WITH gex_net AS (select * from gex_net where tstamp::date = %s and tstamp >= %s - interval '15 minute' and ticker = %s order by tstamp),
+vix_price AS (select tstamp::timestamp(0),close as vix_price from candle where tstamp::date = %s and tstamp >= %s - interval '15 minute' and event_symbol = 'VIX')
 SELECT * FROM gex_net
 LEFT JOIN vix_price using (tstamp)
 ORDER BY tstamp
