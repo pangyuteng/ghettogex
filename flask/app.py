@@ -838,7 +838,7 @@ async def ws_ex_query():
                     else:
                         market_open,market_close = get_market_open_close(tstamp_utc,no_tzinfo=False)
                         if tstamp_utc < market_open:
-                            arg_tstamp = "break-while-loop
+                            arg_tstamp = "break-while-loop"
                             raise ValueError("market closed!")
 
                         timea = time.time()
@@ -870,6 +870,7 @@ async def ws_ex_query():
                             df.dex = df.dex.ffill()
                             df.volume_gex = df.volume_gex.ffill()
                             df.state_gex = df.state_gex.ffill()
+                            df.convexity = df.convexity.ffill()
                             
                             df.dex = df.dex/1e9
                             df.volume_gex = df.volume_gex/1e9
@@ -882,7 +883,7 @@ async def ws_ex_query():
                             spot_price = df["spot_price"].iloc[-1]
                             lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
                             ret_dict['hgn'] = lst
-                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex','convexity']]
                             ret_dict['hgn2'] = lst
                             ret_dict['spot_price'] = spot_price
 
@@ -919,12 +920,19 @@ async def ws_ex_query():
 
                         if gathered_res[4] is not None: 
                             df = pd.DataFrame([dict(x) for x in gathered_res[4]])
+                            df.volume_gex = df.volume_gex.ffill()
+                            df.state_gex = df.state_gex.ffill()
+                            #df.convexity = df.convexity.ffill()
                             df.state_gex = df.state_gex/1e9
                             df.volume_gex = df.volume_gex/1e9
+                            df['volume_gex_diff'] = df.volume_gex.diff()
+                            df['state_gex_diff'] = df.state_gex.diff()
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                             df = df.replace({np.nan: None})
-                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
-                            ret_dict['hgn1min'] = lst
+                            #lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
+                            #ret_dict['hgn'] = lst
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']] # 'convexity'
+                            ret_dict['hgn2'] = lst
                             app.logger.info(f'historical gex strike hgs {len(lst)}')
 
                         ret_dict['duration_sec']=duration
