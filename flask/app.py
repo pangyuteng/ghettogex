@@ -833,10 +833,13 @@ async def ws_ex_query():
 
                     early = nyse.schedule(start_date=dstamp_utc, end_date=dstamp_utc)
                     if len(early) == 0:
-                        ret_dict['status']="market closed"
+                        raise ValueError("market closed!")
                     else:
-                        timea = time.time()
                         market_open,market_close = get_market_open_close(tstamp_utc,no_tzinfo=False)
+                        if tstamp_utc < market_open:
+                            raise ValueError("market closed!")
+
+                        timea = time.time()
                         query_list = [
                             apostgres_execute(apool,EVENT_STATUS_QUERY,()),
                             apostgres_execute(apool,LATEST_DAY_GEX_NET_QUERY,(dstamp_utc,ticker,dstamp_utc)),
