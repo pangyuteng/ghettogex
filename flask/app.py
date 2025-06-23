@@ -919,8 +919,8 @@ async def ws_ex_query():
                             df['state_gex_diff'] = df.state_gex.diff()
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                             df = df.replace({np.nan: None})
-                            #lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
-                            #ret_dict['hgn'] = lst
+                            lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
+                            ret_dict['hgn'] = lst
                             lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']] # 'convexity'
                             ret_dict['hgn2'] = lst
                             app.logger.info(f'historical gex strike hgs {len(lst)}')

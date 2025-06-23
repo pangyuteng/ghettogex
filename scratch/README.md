@@ -189,6 +189,11 @@ docker run -it -u $(id -u):$(id -g) \
 
     *** MEMORY LEAK CRITICAL ISSUE ***
 
++ [x] tastytrade version updated to tastytrade==10.2.3
+    observations:
+    VIX candle still around 4 bars per minute, but SPX is about 1 bar per second
+    timeandsale and candle are still coming in at 1 min bolus
+
 + [ ] add gexbot order flow GEX,DEX visualization
 
     https://www.cboe.com/insights/posts/volatility-insights-evaluating-the-market-impact-of-spx-0-dte-options
