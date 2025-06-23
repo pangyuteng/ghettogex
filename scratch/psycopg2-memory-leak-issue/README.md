@@ -86,10 +86,13 @@ celery==5.5.3
 --
 TODO:
 
-[o] bump up tastytrade version 
-    run on monday 2025-06-21 with below in during trading hour
-    above is not systematic, you should make alterations one at a time...
-    
-    if above setup still have memory leak, downgrade tastytrtade to confirm 
+[x]  old NOTE if above setup still have memory leak, downgrade tastytrtade to confirm 
     increased event was caused the trigger for memory leak
     but likley not the root cause.
+
+    tastytrade==9.9 have memory leak in prod
+    
+    2hr about 5GB RAM increase.
+
+[ ] bump up tastytrade==10.2.3, just want to observe order flow.
+
