@@ -42,8 +42,8 @@ from .postgres_utils import (
     psycopg_pool,postgres_uri,
 )
 
-def time_to_datetime(tstamp):
-    return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
+def time_to_datetime(epoch_time):
+    return datetime.datetime.fromtimestamp(epoch_time//1e3)
 
 def is_test_func():
     return False if os.environ.get('IS_TEST') == 'FALSE' else True
