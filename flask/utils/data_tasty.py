@@ -332,8 +332,8 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                     for lp in live_prices_list:
                         await lp.shutdown()
                     logger.info("market is closed, exiting...")
-                    #await apool.close() #??? why bother close if you already use `with`
-                    #sys.exit(0)
+                    await apool.close() # ?why bother close if pool is used via "with"..
+                    sys.exit(0)
                 else:
                     logger.info("market open -------------------------------")
 
