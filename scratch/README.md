@@ -207,14 +207,16 @@ docker run -it -u $(id -u):$(id -g) \
     VIX candle still around 4 bars per minute, but SPX is about 1 bar per second
     timeandsale and candle are still coming in at 1 min bolus
 
-+ [ ] add gexbot order flow GEX,DEX visualization
++ [x] add gexbot order flow GEX,DEX visualization
 
     https://www.cboe.com/insights/posts/volatility-insights-evaluating-the-market-impact-of-spx-0-dte-options
 
-+ [ ] volatility and greeks compute and caching service
++ [ ] (for speed) volatility and greeks compute and caching service
       gex needs a realtime, or else we are viewing 1min-lagged greeks (`compute_intraday.py`)
 
-    *** volatility is outdated CRITICAL ISSUE ***
+    *** volatility is outdated CRITICAL ISSUE? ***
+
++ [ ] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
 
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
