@@ -239,11 +239,6 @@ class LivePrices:
         return self
 
     async def shutdown(self):
-        logger.info(f"cancel tasks...{self.ticker}")
-        for task in self.task_list:
-            logger.info(f"cancel tasks...{task}")
-            task.cancel()
-
         logger.info(f"sreamer.unsubscribe...{self.ticker}")
 
         await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
@@ -259,6 +254,12 @@ class LivePrices:
             await self.streamer.unsubscribe(Profile, self.streamer_symbols)
             await self.streamer.unsubscribe(TheoPrice, self.streamer_symbols)
             await self.streamer.unsubscribe(Underlying, self.streamer_symbols)
+
+        logger.info(f"cancel tasks...{self.ticker}")
+        for task in self.task_list:
+            logger.info(f"cancel tasks...{task}")
+            task.cancel()
+
         await self.streamer.close()
         logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
