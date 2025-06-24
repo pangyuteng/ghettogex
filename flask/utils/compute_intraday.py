@@ -285,6 +285,12 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quote_df=quote_df),axis=1)
     ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
 
+    quote_df = quote_df[['event_symbol','ask_price','bid_price']]
+    quote_df = quote_df.groupby(['event_symbol']).agg(
+        ask_price=pd.NamedAgg(column="ask_price", aggfunc="last"),
+        bid_price=pd.NamedAgg(column="bid_price", aggfunc="last"),
+    ).reset_index()
+
     candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
     candle_df = candle_df.groupby(['event_symbol']).agg(
         open=pd.NamedAgg(column="open", aggfunc="last"),
