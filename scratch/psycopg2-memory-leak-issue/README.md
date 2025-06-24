@@ -94,5 +94,5 @@ TODO:
     
     2hr about 5GB RAM increase.
 
-[ ] bump up tastytrade==10.2.3, just want to observe order flow.
-
++ tasty 9.9 have oom
++ tasty 10.2.3 also have oom 

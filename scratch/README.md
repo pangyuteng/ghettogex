@@ -174,6 +174,19 @@ docker run -it -u $(id -u):$(id -g) \
     + [x] maybe dxfeed or could be compute_intraday.py event agg join issue
         commit 539b471 "updated event_agg join order"
 
+    + [x] likely unrelated to oom item. bump up tastytrade==10.2.3, just want to observe order flow.
+        refresh_interval now using default
+        timeandsale event comes in near real time.
+
+    you get a drop in gex every minute.
+    but when you visualize true_oi, oi doesn't drop
+    seems like it is due to querying of (missing volatility) greeks event.
+
+    + [x] compute_intraday patched to get get greeks using past 2 min as oppose to 1min.
+      seems to resolve the 1-min spike
+      commit 651268f
+
+
 + [x] investigate faster query (with timescale), to enable sub-second plot update
 
     https://github.com/pangyuteng/ghettogex.aigonewrong.com/blob/main/flask/utils/pg_queries.py
