@@ -96,6 +96,15 @@ TODO:
 + tasty 9.9 have oom
 + tasty 10.2.3 also have oom 
 
-+ [ ] locating memory leak with tracemalloc
++ [x] locating memory leak with tracemalloc
 
-https://docs.python.org/3/library/tracemalloc.html
+    https://docs.python.org/3/library/tracemalloc.html
+
+    added above to `data_tasty.py` likely due to pydantic model_validate
+    https://github.com/pydantic/pydantic/issues/9429
+
+    https://github.com/tastyware/tastytrade/blob/2bc0b7b291856816ec8b3efcb035bfecce44b217/tastytrade/dxfeed/event.py#L60
+    
+    = stashed tracemalloc to `malloc-stash.py`
+
+    today SPX stream worker is at 9.11/22.9 GB at 12:35pm!
