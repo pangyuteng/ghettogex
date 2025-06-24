@@ -330,9 +330,11 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                     logger.info("market closing -------------------------------")
                     await asyncio.sleep(10)
                     for lp in live_prices_list:
+                        logger.info("shutdown...")
                         await lp.shutdown()
-                    logger.info("market is closed, exiting...")
+                    logger.info("pool close...")
                     await apool.close() # ?why bother close if pool is used via "with"..
+                    logger.info("sys.exit")
                     sys.exit(0)
                 else:
                     logger.info("market open -------------------------------")
