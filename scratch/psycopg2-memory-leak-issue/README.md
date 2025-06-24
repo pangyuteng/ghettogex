@@ -82,7 +82,6 @@ psycopg[binary,pool]==3.2.3
 celery==5.5.3
 
 
-
 --
 TODO:
 
@@ -96,3 +95,7 @@ TODO:
 
 + tasty 9.9 have oom
 + tasty 10.2.3 also have oom 
+
++ [ ] locating memory leak with tracemalloc
+
+https://docs.python.org/3/library/tracemalloc.html

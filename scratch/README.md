@@ -211,8 +211,10 @@ docker run -it -u $(id -u):$(id -g) \
 
     https://www.cboe.com/insights/posts/volatility-insights-evaluating-the-market-impact-of-spx-0-dte-options
 
-+ [ ] (for speed) volatility and greeks compute and caching service
-      gex needs a realtime, or else we are viewing 1min-lagged greeks (`compute_intraday.py`)
++ [ ] (for speed) cache and compute volatility and greeks
+      gex needs to be a realtime, or else we are viewing 1min-lagged greeks (`compute_intraday.py`)
+
+    https://quant.stackexchange.com/questions/1489/how-should-i-calculate-the-implied-volatility-of-an-american-option-in-a-real-ti/1923#1923
 
     *** volatility is outdated CRITICAL ISSUE? ***
 
