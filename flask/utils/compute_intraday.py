@@ -315,8 +315,9 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['customer_sign'] = -1
 
+    # TODO: consider computeing volatility from greeks table is provided once every ~1min
     for col_name in [
-        'spot_volatility','delta','gamma',
+        'spot_volatility','delta','gamma','volatility',
         'open_interest','true_oi','spot_price',
         'size_signed','price','volume','ask_volume','bid_volume',
         'gamma_sign']:
@@ -330,13 +331,13 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df.volume = merged_df.volume.fillna(value=0)
     merged_df.ask_volume = merged_df.ask_volume.fillna(value=0)
     merged_df.bid_volume = merged_df.bid_volume.fillna(value=0)
+    merged_df.volatility = merged_df.volatility.fillna(value=0)
 
     # NOTE: ask means buy, dealer is short, bid means sell, dealer is long
     # open_interest aggregated from bid/ask volume from candle events
     merged_df.open_interest = merged_df.open_interest-merged_df.ask_volume+merged_df.bid_volume
     # true_oi aggregated from size in timeandsale events, and tweaked in get_side_mod (work-in-progress)
     merged_df.true_oi = merged_df.true_oi + merged_df.size_signed
-
 
     merged_df['convexity'] = 0.0
     merged_df['volume_gex'] = 0.0
@@ -392,7 +393,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     utc_tstamp = et_tstamp.astimezone(tz=utc)
     max_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=1)
     future_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=2) # grab quotes
-    prior_minute_utc_tstamp = utc_tstamp-datetime.timedelta(seconds=60)
+    prior_minute_utc_tstamp = utc_tstamp-datetime.timedelta(seconds=120)
     
     delta, market_open_tstamp_et = timedelta_from_market_open(et_tstamp)
     market_open_tstamp_utc = market_open_tstamp_et.astimezone(tz=utc)
