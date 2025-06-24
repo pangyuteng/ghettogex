@@ -355,7 +355,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                 # DEBUG MEMORY LEAK
                 snapshot2 = tracemalloc.take_snapshot()
                 top_stats = snapshot2.compare_to(snapshot1, 'lineno')
-                memory_file = os.path.join(os.path.dirname(cancel_file),f'debug-00m-{ticker}'.txt)
+                memory_file = os.path.join(os.path.dirname(cancel_file),f'debug-00m-{ticker}.txt')
                 with open(memory_file,'w') as f:
                     f.write("[ Top 10 differences ]\n")
                     for stat in top_stats[:10]:
