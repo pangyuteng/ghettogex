@@ -82,16 +82,18 @@ def compute_theo_price(df,df_call_symbol='C'):
     df['theo_price'] = theo_price
     return df
 
-def compute_iv(df):
-    price = df.price.astype(np.float16)
+def compute_implied_volatility(df):
+
+    yield_10yr = 1e-5
+    dividend_yield = 0.0
+    price = ((df.bid_price+df.ask_price)/2).astype(np.float16)
     flag = df.contract_type.apply(lambda x: 'c' if x == 'C' else 'p')
     S = df.spot_price.astype(np.float16)
     K = df.strike.astype(np.float16)
-    t = df.tte.astype(np.float16)
-    r = 0.0 # interest rate
-    bsm_iv = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q=0, return_as='numpy')
-    df['iv'] = bsm_iv
-    return df
+    t = df.time_till_exp.astype(np.float16)
+    r = np.float64(yield_10yr)
+    bsm_iv = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q=dividend_yield, return_as='numpy')
+    return bsm_iv
     
 """
 

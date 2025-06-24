@@ -4,13 +4,6 @@ import warnings
 import logging
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
-#logger.setLevel(logging.DEBUG)
-
-handler = logging.StreamHandler(sys.stdout)
-#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 import traceback
 import time
@@ -28,7 +21,7 @@ from .postgres_utils import (
 
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
-from .iv_utils import get_expiry_tstamp,TOTAL_SECONDS_ONE_YEAR,compute_exposure
+from .iv_utils import get_expiry_tstamp,TOTAL_SECONDS_ONE_YEAR,compute_exposure,compute_implied_volatility
 
 async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,min_utc_tstamp):
     if ticker == 'SPX':
@@ -285,12 +278,6 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quote_df=quote_df),axis=1)
     ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
 
-    quote_df = quote_df[['event_symbol','ask_price','bid_price']]
-    quote_df = quote_df.groupby(['event_symbol']).agg(
-        ask_price=pd.NamedAgg(column="ask_price", aggfunc="last"),
-        bid_price=pd.NamedAgg(column="bid_price", aggfunc="last"),
-    ).reset_index()
-
     candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
     candle_df = candle_df.groupby(['event_symbol']).agg(
         open=pd.NamedAgg(column="open", aggfunc="last"),
@@ -321,7 +308,28 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['customer_sign'] = -1
 
-    # TODO: consider computeing volatility from greeks table is provided once every ~1min
+    if False:
+        #
+        # NOTE on IV compute:
+        # + iv compute too slow
+        # + iv different those from dxfeed
+        # + need to deal with missing values.
+        # + likely neeed a precompute caching service
+        quote_df = quote_df[['event_symbol','ask_price','bid_price']]
+        quote_df = quote_df.groupby(['event_symbol']).agg(
+            ask_price=pd.NamedAgg(column="ask_price", aggfunc="last"),
+            bid_price=pd.NamedAgg(column="bid_price", aggfunc="last"),
+        ).reset_index()
+        merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
+
+        try:
+            expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(merged_df.expiration.unique())}
+            merged_df['time_till_exp'] = merged_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
+            iv = compute_implied_volatility(merged_df)
+            merged_df['bsm_iv'] = iv
+        except:
+            traceback.print_exc()
+
     for col_name in [
         'spot_volatility','delta','gamma','volatility',
         'open_interest','true_oi','spot_price',
@@ -385,14 +393,14 @@ def compute_gex_core(df,from_scratch,first_minute=False):
 
     return merged_df, qc_pass
 
-async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
+async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False):
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
-        await _compute_gex(apool,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgres)
+        return await _compute_gex(apool,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgres,overwrite=overwrite)
 
-async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
+async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False):
     time_a = time.time()
 
-    gex_df = None
+    agg_df = None
     csv_file = f"tmp/volume_gex-{et_tstamp.strftime('%Y-%m-%d-%H-%M-%S')}.csv"
     csv_file = None # TOO SLOW! FOR DEBUG
     utc = pytz.timezone('UTC')
@@ -431,7 +439,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     time_b = time.time()
     logger.debug(f'pg select {time_b-time_a} {len(fetched)}')
 
-    if len(fetched) == 0:
+    if len(fetched) == 0 or overwrite is True:
         if from_scratch:
             time_a = time.time()
             event_df = await get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,market_open_tstamp_utc)
@@ -612,7 +620,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 logger.info(f'postgres_execute {time_c-time_b}')
     else:
         logger.debug(f'{utc_tstamp} {len(fetched)} found!')
-    return gex_df
+    return agg_df
 
 def main(ticker,my_date):
     tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
@@ -629,28 +637,42 @@ def main(ticker,my_date):
             traceback.print_exc()
             sys.exit(1)
 
-def tryone(ticker):
-    for x in range(1):
-        tstamp = now_in_new_york()
-        try:
-            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=True,persist_to_postgres=False))
-        except KeyboardInterrupt:
-            sys.exit(1)
-        except:
-            traceback.print_exc()
-            sys.exit(1)
+def tryone(ticker,tstampstr):
+    tstamp = datetime.datetime.strptime(tstampstr,'%Y-%m-%d-%H-%M-%S').replace(tzinfo=pytz.timezone('America/New_York'))
+    print(ticker,tstamp)
+    try:
+        agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=False,overwrite=True))
+        logger.debug(agg_df.head())
+        logger.debug(f'volume_gex {agg_df.volume_gex.sum()}')
+        logger.debug(f'state_gex {agg_df.state_gex.sum()}')
+
+    except KeyboardInterrupt:
+        sys.exit(1)
+    except:
+        traceback.print_exc()
+        sys.exit(1)
 
 if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
     ticker = sys.argv[1]
-    my_date = sys.argv[2]
-    main(ticker,my_date)
-    #tryone(ticker)
+    et_tstamp_str = sys.argv[2]
+    if len(et_tstamp_str) == 10:
+        main(ticker,et_tstamp_str)
+    else:
+        tryone(ticker,et_tstamp_str)
 
 """
 
 kubectl port-forward --address 0.0.0.0 fi-postgres-deployment-554bc784bf-xrgkg 5432:5432
 
 export POSTGRES_URI=postgres://postgres:postgres@192.168.68.143:5432/postgres
+
+python -m utils.compute_intraday SPX 2025-06-23-09-00-01
 
 python -m utils.compute_intraday SPX 2025-06-05
 
