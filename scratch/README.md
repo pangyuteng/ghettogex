@@ -232,7 +232,35 @@ docker run -it -u $(id -u):$(id -g) \
         https://github.com/timescale/timescaledb/issues/2936
         https://docs.tigerdata.com/api/latest/hyperfunctions/last/
 
+        seems like quote frequency is 1min to 1second
         ```
+        explain analyze
+        SELECT
+        distinct event_symbol,
+        count(quote_id)
+        FROM quote
+        WHERE tstamp::date = '2025-06-24' AND expiration = '2025-06-24' AND ticker ='SPXW'
+        GROUP BY event_symbol
+        ```
+
+
+        ```
+        all slow queries...
+        -- 
+        explain analyze
+        SELECT
+        event_symbol,
+        last(ask_price, tstamp) as ask_price,
+        last(bid_price, tstamp) as bid_price,
+        last(tstamp, tstamp) as tstamp
+        FROM quote
+        WHERE tstamp::date <= timestamp '2025-06-24 20:00:00'
+        AND tstamp::date > timestamp '2025-06-24 20:00:00' - interval '2 minute' 
+        AND expiration = '2025-06-24' AND ticker ='SPXW'
+        GROUP BY event_symbol
+        
+        why above not working ...
+        
         explain analyze
         SELECT
         event_symbol,
