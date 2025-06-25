@@ -4,9 +4,10 @@ import datetime
 import time
 import numpy as np
 import json
+import pandas as pd
+
 import asyncio
 import redis.asyncio as redis
-
 from redis.commands.json.path import Path
 
 uri = os.environ.get("REDIS_URI")
@@ -25,7 +26,7 @@ async def main():
                 key = f'quote:{ticker}:{contract_type}:{strike}'
                 key_list.append(key)
         for x in key_list:
-            await client.delete(x)
+            await client.json().delete(x)
 
     if False:
         timea = time.time()
@@ -39,15 +40,14 @@ async def main():
                     'event_symbol': f'{ticker}:{contract_type}:{strike}',
                     'tstamp': tstamp
                 }
-                #res = client.hset(key, mapping=value)
                 await client.json().set(key, Path.root_path(), value, decode_keys=True)
         timeb = time.time()
         print(timeb-timea)
-
+    
     key_list = []
     for contract_type in ['call','put']:
         for strike in np.arange(1000,5000,5): # expiration
-            key = f'quote:{ticker}::{contract_type}:{strike}'
+            key = f'quote:{ticker}:{contract_type}:{strike}'
             key_list.append(key)
 
     if True:
@@ -55,16 +55,31 @@ async def main():
         contract_type = 'call'
         strike = 1000
         firstkey = f'quote:{ticker}:{contract_type}:{strike}'
-        res = await client.json().get(firstkey)
+        
+        print(firstkey)
+        res = await client.json().get(firstkey,Path.root_path())
         print(res)
         timeb = time.time()
         print(timeb-timea)
 
     if True:
         timea = time.time()
-        res = await  client.json().mget(key_list,Path.root_path())
-        #print(res)
+        print("--")
+        print(key_list[0])
+        res = await client.json().get(key_list[0],Path.root_path())
+        print(res,'@@')
+        res = await client.json().get(key_list[0],"$.bid_price")
+        print(res,'@@')
+        res = await client.json().get(key_list[0],"$..bid_price")
+        print(res,'@@')
+        res = await client.json().mget(key_list,"$.bid_price")
+        print(res[0],'!!!!')
+        res = await client.json().mget(key_list,"$..bid_price")
+        print(res[0],'!!!!')
+        res = await client.json().mget(key_list,Path.root_path())
+        print(res[0],'!!!!')
         print(len(res))
+
         timeb = time.time()
         print(timeb-timea)
 
