@@ -63,7 +63,7 @@ async def main():
         print(timeb-timea)
 
     if True:
-        timea = time.time()
+        
         print("--")
         print(key_list[0])
         res = await client.json().get(key_list[0],Path.root_path())
@@ -76,10 +76,10 @@ async def main():
         print(res[0],'!!!!')
         res = await client.json().mget(key_list,"$..bid_price")
         print(res[0],'!!!!')
+        timea = time.time()
         res = await client.json().mget(key_list,Path.root_path())
         print(res[0],'!!!!')
         print(len(res))
-
         timeb = time.time()
         print(timeb-timea)
 
