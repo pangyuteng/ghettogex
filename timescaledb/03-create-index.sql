@@ -1,5 +1,7 @@
 
 create index candle_tstamp_event_symbol_index on candle using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+create index quote_tstamp_event_symbol_index on quote using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+
 create index candle_tstamp_ticker_index on candle using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 create index event_tstamp_ticker_index on event using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 create index greeks_tstamp_ticker_index on greeks using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);

@@ -211,6 +211,16 @@ docker run -it -u $(id -u):$(id -g) \
 
     https://www.cboe.com/insights/posts/volatility-insights-evaluating-the-market-impact-of-spx-0-dte-options
 
++ delete bad data
+    
+    https://docs.tigerdata.com/api/latest/hypertable/drop_chunks
+
+    SELECT drop_chunks('conditions', '2017-01-01'::date);
+
++ auto drop
+
+    SELECT add_retention_policy('conditions', drop_after => INTERVAL '6 months');
+
 + [ ] (for speed) cache and compute volatility and greeks
       gex needs to be a realtime, or else we are viewing 1min-lagged greeks (`compute_intraday.py`)
 
