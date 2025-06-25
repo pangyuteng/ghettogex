@@ -228,6 +228,30 @@ docker run -it -u $(id -u):$(id -g) \
 
     *** volatility is outdated CRITICAL ISSUE? ***
 
+    + maybe use quote to estimate market maker vol surface, very slow queries.
+        ```
+        explain analyze
+        SELECT
+        event_symbol,
+        last(ask_price, tstamp) as ask_price,
+        last(bid_price, tstamp) as bid_price,
+        last(tstamp, tstamp) as tstamp
+        FROM quote
+        WHERE tstamp::date = '2025-06-24' AND expiration = '2025-06-24' AND ticker ='SPXW'
+        GROUP BY event_symbol
+
+        explain analyze
+        SELECT
+        event_symbol,
+        last(ask_price, tstamp) as ask_price,
+        last(bid_price, tstamp) as bid_price,
+        time_bucket('1 day', tstamp) AS bucket
+        FROM quote
+        WHERE tstamp::date = '2025-06-24' AND expiration = '2025-06-24' AND ticker ='SPXW'
+        GROUP BY event_symbol,bucket
+        ORDER BY bucket 
+        ```
+
 + [ ] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
 
 + [ ] compute next expiration gex_net,gex_strike seperatly.
