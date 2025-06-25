@@ -356,7 +356,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                         logger.info("shutdown...")
                         await lp.shutdown()
                     logger.info("pool close...")
-                    await apool.close() # ?why bother close if pool is used via "with"..
+                    # await apool.close() # ?why bother close if pool is used via "with"..
                     await redisclient.aclose()
                     await redispool.aclose()
                     logger.info("sys.exit")
