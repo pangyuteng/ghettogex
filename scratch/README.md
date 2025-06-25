@@ -229,6 +229,9 @@ docker run -it -u $(id -u):$(id -g) \
     *** volatility is outdated CRITICAL ISSUE? ***
 
     + maybe use quote to estimate market maker vol surface, very slow queries.
+        https://github.com/timescale/timescaledb/issues/2936
+        https://docs.tigerdata.com/api/latest/hyperfunctions/last/
+
         ```
         explain analyze
         SELECT
