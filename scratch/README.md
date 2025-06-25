@@ -221,14 +221,11 @@ docker run -it -u $(id -u):$(id -g) \
 
     SELECT add_retention_policy('conditions', drop_after => INTERVAL '6 months');
 
-+ [ ] (for speed) cache and compute volatility and greeks
-      gex needs to be a realtime, or else we are viewing 1min-lagged greeks (`compute_intraday.py`)
 
-    https://quant.stackexchange.com/questions/1489/how-should-i-calculate-the-implied-volatility-of-an-american-option-in-a-real-ti/1923#1923
++ [ ] get live IV from quotes.
 
-    *** volatility is outdated CRITICAL ISSUE? ***
+   + [x] postgres quote query too slow
 
-    + maybe use quote to estimate market maker vol surface, very slow queries.
         https://github.com/timescale/timescaledb/issues/2936
         https://docs.tigerdata.com/api/latest/hyperfunctions/last/
 
@@ -282,6 +279,25 @@ docker run -it -u $(id -u):$(id -g) \
         GROUP BY event_symbol,bucket
         ORDER BY bucket 
         ```
+
+    + [x] implement quote event caching with redis
+
+    "added redisclient to utils.data_tasty.LivePrices"
+    commit 146cbbd366b6186630c843007479291d23fa324c
+
+    + [ ] use JUPYTER NOTEBOOK FIRST.
+
+       derive IV from quote and interpolation IV.
+       then derive IV from actual price,
+       compute IV to determine side.
+
+    + [ ] (for speed) compute volatility from quote event
+
+        gex needs to be a realtime, or else we are viewing 1min-lagged greeks (`compute_intraday.py`)
+
+        https://quant.stackexchange.com/questions/1489/how-should-i-calculate-the-implied-volatility-of-an-american-option-in-a-real-ti/1923#1923
+
+    *** volatility is outdated CRITICAL ISSUE? ***
 
 + [ ] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
 
