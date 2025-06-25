@@ -42,6 +42,12 @@ from .postgres_utils import (
     psycopg_pool,postgres_uri,
 )
 
+import redis.asyncio as redis
+from redis.client import Redis
+from redis.commands.json.path import Path as redisPath
+
+redis2_uri = os.environ.get("REDIS2_URI")
+
 def time_to_datetime(epoch_time):
     return datetime.datetime.fromtimestamp(epoch_time//1e3)
 
@@ -91,8 +97,10 @@ def postgres_friendly(value):
     else:
         return value
 
-async def persist_to_postgres(apool,ticker,streamer_symbol,event_type,event):
+async def persist_to_postgres(apool,ticker,streamer_symbol,event_type,event,redisclient=None):
     event_dict = dict(event)
+    
+    expiration = None # error prevention for redisclient
     if streamer_symbol.startswith("."):
         ticker,expiration,contract_type,strike = parse_symbol(streamer_symbol)
         event_dict['ticker']=ticker
@@ -110,6 +118,16 @@ async def persist_to_postgres(apool,ticker,streamer_symbol,event_type,event):
     query_str = "INSERT INTO {event_type} ({cols}) VALUES ({vals_str})".format(event_type=event_type,cols = ','.join(cols), vals_str = vals_str)
     query_args = vals
     await apostgres_execute(apool,query_str,query_args,is_commit=True)
+
+    try:
+        if redisclient is not None:
+            if event_type == 'quote' and expiration is not None:
+                rediskey = f'quote:{ticker}:{expiration}:{contract_type}:{strike}'
+                redisvalue = {k:postgres_friendly(v) for k,v in event_dict.items()}
+                redisvalue = json.loads(json.dumps(redisvalue,default=str))
+                await redisclient.json().set(rediskey, redisPath.root_path(), redisvalue, decode_keys=True)
+    except:
+        logger.error(traceback.format_exc())
 
 # sample event_symbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
@@ -153,6 +171,7 @@ class LivePrices:
     async def create(
         cls,
         apool: psycopg_pool.AsyncConnectionPool,
+        redisclient: Redis,
         session: Session,
         ticker: str = 'SPY',
         expiration: datetime.date = today_in_new_york(),
@@ -196,7 +215,7 @@ class LivePrices:
                    save_to_json=save_to_json,save_to_postres=save_to_postres)
 
         t_listen_candles = asyncio.create_task(self._update_candle(apool))
-        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",apool))
+        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",apool,redisclient=redisclient))
 
         if expiration is not None:
             t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",apool))
@@ -272,14 +291,14 @@ class LivePrices:
             if self.save_to_postres:
                 await persist_to_postgres(apool,self.ticker,streamer_symbol,'candle',e)
 
-    async def _update_event(self,event_type,attribue_name,apool):
+    async def _update_event(self,event_type,attribue_name,apool,redisclient=None):
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
             myparam[e.event_symbol] = e
             if self.save_to_json:
                 await save_data_to_json(self.ticker,e.event_symbol,attribue_name,e)
             if self.save_to_postres:
-                await persist_to_postgres(apool,self.ticker,e.event_symbol,attribue_name,e)
+                await persist_to_postgres(apool,self.ticker,e.event_symbol,attribue_name,e,redisclient=redisclient)
 
 def get_cancel_file(ticker):
     ticker = ticker.replace("/","^")
@@ -311,16 +330,20 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         live_prices_list = []
         EXPIRATION_LIM = 10
 
+        redispool = redis.ConnectionPool.from_url(redis2_uri,decode_responses=True)
+        redisclient = redis.Redis.from_pool(redispool)
+        await redisclient.ping()
+
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
 
             # underlying
-            live_prices = await LivePrices.create(apool,session,ticker,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
+            live_prices = await LivePrices.create(apool,redisclient,session,ticker,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
             live_prices_list.append(live_prices)
 
             for expiration in expirations:
                 if ticker == 'VIX': # ignore options for VIX
                     continue
-                live_prices = await LivePrices.create(apool,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
+                live_prices = await LivePrices.create(apool,redisclient,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
                 live_prices_list.append(live_prices)
                 if len(live_prices_list)>=EXPIRATION_LIM:
                     break
@@ -334,6 +357,8 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                         await lp.shutdown()
                     logger.info("pool close...")
                     await apool.close() # ?why bother close if pool is used via "with"..
+                    await redisclient.aclose()
+                    await redispool.aclose()
                     logger.info("sys.exit")
                     sys.exit(0)
                 else:
@@ -359,6 +384,8 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
     finally:
+        await redisclient.aclose()
+        await redispool.aclose()
         if os.path.exists(running_file):
             os.remove(running_file)
 
@@ -374,16 +401,14 @@ if __name__ == "__main__":
     action = sys.argv[2]
     
     if action == "background_subscribe":
-        output = asyncio.run(background_subscribe(ticker))
+        output = asyncio.run(background_subscribe(ticker,save_to_postres=True))
 
 """
 
-docker run -it --env-file=.env \
-    -w $PWD -v /mnt:/mnt \
-    fi-flask:latest bash
-
 
 python -m utils.data_tasty "/ES" background_subscribe
+
 python -m utils.data_tasty SPX background_subscribe
+python -m utils.data_tasty NDX background_subscribe
 
 """

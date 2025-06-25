@@ -998,11 +998,16 @@ kubectl port-forward --address 0.0.0.0 svc/redis -n gg 6379:6379
 -u $(id -u):$(id -g)
 -v $PWD/tmp:/.local 
 
+export IS_TEST=FALSE
+export TASTYTRADE_USERNAME=
+export TASTYTRADE_PASSWORD=''
+
 docker run -it \
     -e CACHE_FOLDER="/mnt/hd1/data/fi" \
     -e CACHE_TASTY_FOLDER="/mnt/hd1/data/tastyfi" \
     -e POSTGRES_URI="postgres://postgres:postgres@192.168.68.143:5432/postgres" \
     -e REDIS_URI="redis://192.168.68.143:6379/1" \
+    -e REDIS2_URI="redis://192.168.68.143:6379/2" \
     -w $PWD -v /mnt:/mnt \
     -p 80:80 -p 8888:8888 fi-notebook:latest bash
 
