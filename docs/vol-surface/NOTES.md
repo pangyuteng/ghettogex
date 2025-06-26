@@ -1,6 +1,19 @@
 
 
 
+
+
+
+
+
+https://www.stephendiehl.com/posts/volatility_surface
+NOTE: ABOVE METHOD interp_implied_volatility IS CRUDE AND VERY WRONG 
+
+see doc/hau.0fcbcd78dd6272834a38.pdf
+see doc/vol-surface 
+
+
+
 # maybe start looking into proper but fast methods:
 # easy to read good intro from non-finance author https://www2.math.ethz.ch/EMIS/journals/DRNA/pdf/05_cuomo.pdf
 # https://quant.stackexchange.com/questions/77141/what-is-the-point-of-sabr-model-as-an-interpolation-tool-if-we-can-already-obser

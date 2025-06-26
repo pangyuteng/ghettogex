@@ -35,39 +35,26 @@ def get_annualized_time_to_expiration(row,expiry_mapper):
     atte = sec_to_expiration/TOTAL_SECONDS_ONE_YEAR
     return atte
 
-#
-# https://www.stephendiehl.com/posts/volatility_surface
-# 
-# NOTE: THIS METHOD interp_implied_volatility IS CRUDE AND VERY WRONG
-# 
-# see doc/hau.0fcbcd78dd6272834a38.pdf
-# see doc/vol-surface 
+def interpolate_quote_price(df,s=0.1):
+    # quote_df is presorted sorted by strike
 
-def interp_implied_volatility(df,s=None,return_fine=False):
-    # TODO: replace with domokane/FinancePy, support multi expiry
-    raise ValueError("replace with domokane/FinancePy")
-    assert(len(df.contract_type.unique())==1)
-    assert(len(df.expiration.unique())==1)
+    df['mid_price'] = (df.ask_price + df.bid_price)/2
+    df['interp_price'] = None
+    call_idx = df.index[df.contract_type=='C'].tolist()
+    if len(call_idx) > 0:
+        strike = df.loc[call_idx,'strike']
+        mid_price = df.loc[call_idx,'mid_price']
+        spline = interpolate.UnivariateSpline(strike,mid_price,s=s)
+        interp_price = spline(strike)
+        df.loc[call_idx,'interp_price'] = interp_price
 
-    df = df.sort_values(["strike"])
-    # Prepare interpolation data
-    y = df.tte
-    x = df.strike
-    z = df.iv
-    # Perform interpolation
-    spline = interpolate.UnivariateSpline(
-        x, z, s=s
-    )
-    if return_fine:
-        x = df.strike
-        x_new = np.linspace(x.min(), x.max(), 100)
-        z_smooth = spline(x_new)
-        iv_df = pd.DataFrame({'iv':z_smooth,'strike':x_new})
-        iv_df['contract_type']=contract_type
-        return iv_df
-    else:
-        df['iv']=spline(df.strike)
-        return df
+    put_idx = df.index[df.contract_type=='P'].tolist()
+    if len(put_idx) > 0:
+        strike = df.loc[put_idx,'strike']
+        mid_price = df.loc[put_idx,'mid_price']
+        spline = interpolate.UnivariateSpline(strike,mid_price,s=s)
+        interp_price = spline(strike)
+        df.loc[put_idx,'interp_price'] = interp_price
 
 def compute_theo_price(df,df_call_symbol='C'):
     flag = df.contract_type.apply(lambda x: 'c' if x == df_call_symbol else 'p')

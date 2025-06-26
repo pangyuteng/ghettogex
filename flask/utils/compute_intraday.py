@@ -21,7 +21,13 @@ from .postgres_utils import (
 
 from .data_tasty import background_subscribe, is_market_open, now_in_new_york
 from .misc import timedelta_from_market_open
-from .iv_utils import get_expiry_tstamp,TOTAL_SECONDS_ONE_YEAR,compute_exposure,compute_implied_volatility
+from .iv_utils import (
+    get_expiry_tstamp,
+    TOTAL_SECONDS_ONE_YEAR,
+    compute_exposure,
+    compute_implied_volatility,
+    interpolate_quote_price,
+)
 
 async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,min_utc_tstamp):
     if ticker == 'SPX':
@@ -88,13 +94,25 @@ async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,futu
     ot = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
-    select 'quote' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
+    select 'quotehist' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
+    oqh = apostgres_execute(apool,query_str,query_args)
+
+    query_str = """
+    select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
+        last(ask_price,tstamp) as ask_price,last(bid_price,tstamp) as bid_price,last(tstamp,tstamp) as tstamp
+    FROM quote WHERE
+    tstamp <= %s
+    AND tstamp > %s - interval '180 second'
+    AND ticker = %s AND expiration = %s 
+    GROUP BY event_symbol,contract_type,ticker,strike,expiration
+    """
+    query_args = (utc_tstamp,utc_tstamp,ticker_alt,expiration) # quote
     oq = apostgres_execute(apool,query_str,query_args)
 
-    all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oq)
+    all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oqh,oq)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
@@ -163,13 +181,25 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     ot = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
-    select 'quote' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
+    select 'quotehist' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
-    query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
+    query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote history
+    oqh = apostgres_execute(apool,query_str,query_args)
+
+    query_str = """
+    select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
+        last(ask_price,tstamp) as ask_price,last(bid_price,tstamp) as bid_price,last(tstamp,tstamp) as tstamp
+    FROM quote WHERE
+    tstamp <= %s
+    AND tstamp > %s - interval '180 second'
+    AND ticker = %s AND expiration = %s 
+    GROUP BY event_symbol,contract_type,ticker,strike,expiration
+    """
+    query_args = (utc_tstamp,utc_tstamp,ticker_alt,expiration) # quote
     oq = apostgres_execute(apool,query_str,query_args)
 
-    all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oq)
+    all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oqh,oq)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
@@ -200,15 +230,13 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
 # use quote or timeandsale to bid/ask trend to determine side
 # if mid, assume buy/sell is matched, return 0
 
-def get_side_mod(row,quote_df=None):
+def get_side_mod(row,quotehist_df=None):
     try:
         side_mod = None
         if row.large_order:
-            tmp_df = quote_df[quote_df.event_symbol==row.event_symbol]
+            tmp_df = quotehist_df[quotehist_df.event_symbol==row.event_symbol]
             cond_met = True if len(tmp_df) > 2 else False
             if cond_met:
-                #cols = ['bid_size','bid_price','ask_price','ask_size','ask_time','bid_time','tstamp']
-                #print(tmp_df[cols],'!!!!!!!!!!!!!!!!!!!1')
                 ask_price_list = tmp_df.ask_price.to_list()
                 bid_price_list = tmp_df.bid_price.to_list()
                 # TODO: hau volatility also uses ask_size and bid_size
@@ -219,14 +247,24 @@ def get_side_mod(row,quote_df=None):
                 else:
                     side_mod = 'likely_bid' #???
             else:
-                if row.aggressor_side == 'BUY':
+                if not np.isnan(row.interp_price):
+                    if row.price > row.interp_price:
+                        side_mod = 'ask'
+                    else:
+                        side_mod = 'bid'
+                elif row.aggressor_side == 'BUY':
                     side_mod = 'ask' # BUY or near ask
                 elif row.aggressor_side == 'SELL':
                     side_mod = 'bid' # SELL or near bid
                 elif row.aggressor_side == 'UNDEFINED':
                     pass # assume mid is matched.
         else:
-            if row.aggressor_side == 'BUY':
+            if not np.isnan(row.interp_price):
+                if row.price > row.interp_price:
+                    side_mod = 'ask'
+                else:
+                    side_mod = 'bid'
+            elif row.aggressor_side == 'BUY':
                 side_mod = 'ask' # BUY or near ask
             elif row.aggressor_side == 'SELL':
                 side_mod = 'bid' # SELL or near bid
@@ -268,14 +306,23 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     candle_df = df[df.event_type=='candle']
     summary_df = df[df.event_type=='summary']
     greeks_df = df[df.event_type=='greeks']
-    quote_df = df[df.event_type=='quote']
+    quotehist_df = df[df.event_type=='quotehist']
     ts_df = df[df.event_type=='timeandsale'].copy()
 
+    quote_df = df[df.event_type=='quote'].copy()
+    quote_df = quote_df.sort_values(by=['contract_type','strike'])
+    interpolate_quote_price(quote_df)
     # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
+    ts_df = ts_df.drop(['bid_price', 'ask_price'], axis=1)
+    ts_df = ts_df.merge(quote_df[['event_symbol','interp_price']],how='left',on=['event_symbol'])
+
     large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
-    ts_df['large_order'] = ts_df['size'].apply(lambda x:x > large_order_th)
-    ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quote_df=quote_df),axis=1)
+    if not np.isnan(large_order_th):
+        ts_df['large_order'] = ts_df['size'].apply(lambda x: x > large_order_th)
+    else:
+        ts_df['large_order'] = False
+    ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotehist_df=quotehist_df),axis=1)
     ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
 
     candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
