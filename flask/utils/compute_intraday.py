@@ -290,8 +290,8 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     interpolate_quote_price(quote_df)
     # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
-    ts_df = ts_df.drop(['bid_price', 'ask_price'], axis=1)
     ts_df = ts_df.merge(quote_df[['event_symbol','interp_price']],how='left',on=['event_symbol'])
+    ts_df['interp_price'] = np.nan
 
     large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
     if not np.isnan(large_order_th):
