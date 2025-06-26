@@ -285,19 +285,24 @@ docker run -it -u $(id -u):$(id -g) \
     "added redisclient to utils.data_tasty.LivePrices"
     commit 146cbbd366b6186630c843007479291d23fa324c
 
-    + [ ] use JUPYTER NOTEBOOK FIRST.
+    + [x] use JUPYTER NOTEBOOK FIRST.
 
        derive IV from quote and interpolation IV.
        then derive IV from actual price,
        compute IV to determine side.
 
-    + [ ] (for speed) compute volatility from quote event
+    + [abandon] (for speed) compute volatility from quote event
 
         gex needs to be a realtime, or else we are viewing 1min-lagged greeks (`compute_intraday.py`)
 
         https://quant.stackexchange.com/questions/1489/how-should-i-calculate-the-implied-volatility-of-an-american-option-in-a-real-ti/1923#1923
 
     *** volatility is outdated CRITICAL ISSUE? ***
+
+    + LIKELY quote event does not match up with timesandscale      
+      when determining aggressor_side with mid-price from quote, 
+      we are not getting the right looking gex profile.
+
 
 + [ ] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
 
