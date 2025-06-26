@@ -5,4 +5,5 @@
     );
     INSERT INTO watchlist(ticker) VALUES('SPX');
     INSERT INTO watchlist(ticker) VALUES('VIX');
+
     

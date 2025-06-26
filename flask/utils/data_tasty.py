@@ -384,8 +384,8 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
     finally:
-        await redisclient.aclose()
-        await redispool.aclose()
+        #await redisclient.aclose()
+        #await redispool.aclose()
         if os.path.exists(running_file):
             os.remove(running_file)
 
