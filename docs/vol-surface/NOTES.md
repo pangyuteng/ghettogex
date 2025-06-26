@@ -2,6 +2,25 @@
 
 
 
+```
+old notes
+
+observations
+
++ greeks needs to be updated if no greeks and options candle exists
++ spot needs to be updated if candle, and you got underlying quotes.
++ summary event seems to be only once a day
+NOTE:
+kinda want to go with below
+and then you can confirm with prior day summary.
++ for relatively normal sizsed orders, use price vs bid/ask
++ for relatively large order, go with orderbook liquidity (quote history, change in bid/ask size and price? so with 3 sec lag?)
++ unsure about volatility surface... dont have a method for now.
+use quote or timeandsale to bid/ask trend to determine side
+if mid, assume buy/sell is matched, return 0
+
+
+```
 
 
 
@@ -11,7 +30,6 @@ NOTE: ABOVE METHOD interp_implied_volatility IS CRUDE AND VERY WRONG
 
 see doc/hau.0fcbcd78dd6272834a38.pdf
 see doc/vol-surface 
-
 
 
 # maybe start looking into proper but fast methods:

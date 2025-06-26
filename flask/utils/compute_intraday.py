@@ -206,30 +206,6 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
         df = pd.concat(pd_list,ignore_index=True)
     return df
 
-# event: candle
-# volume, bid_volume,ask_volume, --> sum, open,high,low,close
-# event: summary
-# open_interest
-# event: greeks
-# price	volatility	delta	gamma	theta	rho	vega
-# event: timeandsale
-# size, aggressor_side
-
-# observations
-# + greeks needs to be updated if no greeks and options candle exists
-# + spot needs to be updated if candle, and you got underlying quotes.
-# + summary event seems to be only once a day?
-
-# NOTE:
-# kinda want to go with below
-# and then you can confirm with prior day summary.
-# + for relatively normal sizsed orders, use price vs bid/ask
-# + for relatively large order, go with orderbook liquidity (quote history, change in bid/ask size and price? so with 3 sec lag?)
-# + unsure about volatility surface... dont have a method for now.
-#
-# use quote or timeandsale to bid/ask trend to determine side
-# if mid, assume buy/sell is matched, return 0
-
 def get_side_mod(row,quotehist_df=None):
     try:
         side_mod = None
@@ -249,9 +225,9 @@ def get_side_mod(row,quotehist_df=None):
             else:
                 if not np.isnan(row.interp_price):
                     if row.price > row.interp_price:
-                        side_mod = 'ask'
-                    else:
-                        side_mod = 'bid'
+                        side_mod = 'likely_ask'
+                    elif row.price < row.interp_price:
+                        side_mod = 'likely_bid'
                 elif row.aggressor_side == 'BUY':
                     side_mod = 'ask' # BUY or near ask
                 elif row.aggressor_side == 'SELL':
@@ -261,9 +237,9 @@ def get_side_mod(row,quotehist_df=None):
         else:
             if not np.isnan(row.interp_price):
                 if row.price > row.interp_price:
-                    side_mod = 'ask'
-                else:
-                    side_mod = 'bid'
+                    side_mod = 'likely_ask'
+                elif row.price < row.interp_price:
+                    side_mod = 'likely_bid'
             elif row.aggressor_side == 'BUY':
                 side_mod = 'ask' # BUY or near ask
             elif row.aggressor_side == 'SELL':
