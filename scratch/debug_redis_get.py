@@ -23,3 +23,12 @@ for x in res:
 print(len(res))
 timeb = time.time()
 print(timeb-timea)
+
+
+"""
+
+keys quote:NDXP:*
+
+json.get quote:NDXP:2025-06-25:C:21180.0
+
+"""

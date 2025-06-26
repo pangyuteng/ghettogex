@@ -10,7 +10,7 @@ import asyncio
 import redis.asyncio as redis
 from redis.commands.json.path import Path
 
-uri = os.environ.get("REDIS_URI")
+uri = os.environ.get("REDIS2_URI")
 print(uri)
 
 async def main():
@@ -98,6 +98,7 @@ docker run -it \
 -e CACHE_TASTY_FOLDER="/mnt/hd1/data/tastyfi" \
 -e POSTGRES_URI="postgres://postgres:postgres@192.168.68.143:5432/postgres" \
 -e REDIS_URI="redis://192.168.68.143:6379/1" \
+-e REDIS2_URI="redis://192.168.68.143:6379/2" \
 -w $PWD -v /mnt:/mnt \
 -p 80:80 -p 8888:8888 \
 fi-notebook:latest bash
