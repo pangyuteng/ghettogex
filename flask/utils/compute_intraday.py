@@ -430,7 +430,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     utc_tstamp = et_tstamp.astimezone(tz=utc)
     max_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=1)
     future_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=2) # grab quotes
-    prior_minute_utc_tstamp = utc_tstamp-datetime.timedelta(seconds=120)
+    prior_minute_utc_tstamp = utc_tstamp-datetime.timedelta(seconds=300)
     
     delta, market_open_tstamp_et = timedelta_from_market_open(et_tstamp)
     market_open_tstamp_utc = market_open_tstamp_et.astimezone(tz=utc)
