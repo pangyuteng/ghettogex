@@ -298,7 +298,7 @@ class LivePrices:
             if self.save_to_json:
                 await save_data_to_json(self.ticker,e.event_symbol,attribue_name,e)
             if self.save_to_postres:
-                await persist_to_postgres(apool,self.ticker,e.event_symbol,attribue_name,e,redisclient=redisclient)
+                await persist_to_postgres(apool,self.ticker,e.event_symbol,attribue_name,e,redisclient=None)
 
 def get_cancel_file(ticker):
     ticker = ticker.replace("/","^")
@@ -401,7 +401,7 @@ if __name__ == "__main__":
     action = sys.argv[2]
     
     if action == "background_subscribe":
-        output = asyncio.run(background_subscribe(ticker,save_to_postres=True))
+        output = asyncio.run(background_subscribe(ticker))
 
 """
 
