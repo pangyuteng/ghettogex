@@ -215,7 +215,7 @@ class LivePrices:
                    save_to_json=save_to_json,save_to_postres=save_to_postres)
 
         t_listen_candles = asyncio.create_task(self._update_candle(apool))
-        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",apool,redisclient=redisclient))
+        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",apool,redisclient=None))
 
         if expiration is not None:
             t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",apool))
@@ -384,8 +384,8 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
     finally:
-        #await redisclient.aclose()
-        #await redispool.aclose()
+        await redisclient.aclose()
+        await redispool.aclose()
         if os.path.exists(running_file):
             os.remove(running_file)
 
