@@ -240,6 +240,17 @@ docker run -it -u $(id -u):$(id -g) \
         GROUP BY event_symbol
         ```
 
+        quote is updated every 1 min
+        ```
+        explain analyze
+        SELECT
+        distinct event_symbol,
+        count(greeks_id)
+        FROM greeks
+        WHERE tstamp::date = '2025-06-24' AND expiration = '2025-06-24' AND ticker ='SPXW'
+        GROUP BY event_symbol
+        ```
+
 
         ```
         all slow queries...
@@ -303,8 +314,34 @@ docker run -it -u $(id -u):$(id -g) \
       when determining aggressor_side with mid-price from quote, 
       we are not getting the right looking gex profile.
 
+    *** QUESTIONS ***
+
     *** volatility is outdated CRITICAL? ***
-    *** cannote determine aggresorside CRITICAL? ***
+    + response: criticl if need sub 5-min level trend
+      since greeks including volatility is update once per minute
+      the diff of gex every second show weird spikes every minute!
+      indicating volatiltiy updates changes gamma values
+
+    *** cannote determine aggressor-side CRITICAL? ***
+    + of course accurate DDOI matters..
+      once you solve Volatility compute, you can determine side with guesstimated market maker IV
+      and IV based on traded price.
+
+
++ 15 min gamma-diff view looks odd
+  still have 1 minute artifacts
+  gex-net looks decent - since it is 1 min avg.
+  and i do like the realtime second level update
+  so how about do a gexbot order-flow like plot
+```
+select distinct tstamp::timestamp(0) as bucket,aggressor_side,contract_type, sum(size) as size from timeandsale
+where expiration = '2025-06-26'
+and tstamp >= '2025-06-26 19:59:00'
+group by bucket,aggressor_side,contract_type
+order by bucket,aggressor_side,contract_type
+
+
+```
 
 + [ ] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
 
