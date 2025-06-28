@@ -217,6 +217,12 @@ docker run -it -u $(id -u):$(id -g) \
 
     SELECT drop_chunks('conditions', '2017-01-01'::date);
 
+
+    ??? SELECT drop_chunks('gex_net', '2025-06-27'::date);
+    SELECT drop_chunks('get_net_1min', '2025-06-27'::date);
+
+    delete from gex_net where tstamp::date='2025-06-27'
+
 + auto drop
 
     SELECT add_retention_policy('conditions', drop_after => INTERVAL '6 months');
@@ -321,6 +327,13 @@ docker run -it -u $(id -u):$(id -g) \
       since greeks including volatility is update once per minute
       the diff of gex every second show weird spikes every minute!
       indicating volatiltiy updates changes gamma values
+
+    finding: quote event vs candle price is different...
+    unsure which one  to use.
+    computed IV is very far those in greeks event especially at last hr of expiration
+    for now, this is fugly-patched by padding additional time with funky log function.
+
+    [] undecided, use quote (dealer IV) or candle (customer IV) to determine second-level IV.
 
     *** cannote determine aggressor-side CRITICAL? ***
     + of course accurate DDOI matters..

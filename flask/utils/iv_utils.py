@@ -70,19 +70,22 @@ def compute_theo_price():
     df['theo_price'] = theo_price
     df['gamma'] = gamma
 
-def compute_implied_volatility(df):
-
+def compute_implied_volatility(df,price_column='price'):
     yield_10yr = 1e-5
     dividend_yield = 0.0
-    price = ((df.bid_price+df.ask_price)/2).astype(np.float16)
+    price = df[price_column].astype(np.float16)
     flag = df.contract_type.apply(lambda x: 'c' if x == 'C' else 'p')
     S = df.spot_price.astype(np.float16)
     K = df.strike.astype(np.float16)
+    
+    # shitty hack to boost iv to match volatility from dxlink greeks event
+    # pad more and more time as time approach zero, max 1 hr
     t = df.time_till_exp.astype(np.float16)
+    t += ((np.log1p(t+1000)*-1+1000)/1000)/(24*365)
+
     r = np.float64(yield_10yr)
     bsm_iv = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q=dividend_yield, return_as='numpy')
     df['bsm_iv'] = bsm_iv
-    raise NotImplementedError("pending cleanup and validation")
 
 def compute_exposure(tstamp,spot_price,spot_volatility,df):
 

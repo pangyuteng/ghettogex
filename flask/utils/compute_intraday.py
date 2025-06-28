@@ -318,7 +318,7 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','true_oi']]
     summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
 
-    greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega']]
+    greeks_df = greeks_df[['event_symbol','volatility','delta','gamma','theta','rho','vega']]
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
 
     timeandsale_df = ts_df[['event_symbol','size_signed']]
@@ -343,9 +343,18 @@ def compute_gex_core(df,from_scratch,first_minute=False):
         traceback.print_exc()
 
     try:
-        quote_df = quote_df[['event_symbol','ask_price','bid_price']]
+        #
+        # NOTE: is quote event BULL SHIT?
+        #   mid price and actual close is different, see scratch/archive/iv_postgres.ipynb
+        #   ALTERNATIVELY, replace query of `quote_df` from quote to candle??
+        #
+        quote_df['price'] = (quote_df.ask_price+quote_df.bid_price)/2.0
+        quote_df = quote_df[['event_symbol','price']]
         merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
-        compute_implied_volatility(merged_df)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            compute_implied_volatility(merged_df,price_column='price')
+        merged_df['volatility'] = merged_df['bsm_iv']
     except:
         traceback.print_exc()
 
@@ -445,7 +454,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
         'tstamp',
         'spot_price','gamma',
         'ticker','expiration','contract_type','strike',
-        'open_interest','true_oi',
+        'open_interest','true_oi','price',
         'volume_gex','state_gex',
         'dex','convexity','vex','cex'
     ]
@@ -501,13 +510,16 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             query_dict = {}
 
             event_agg_query_str = """
-                INSERT INTO event_agg (event_symbol,dstamp,open_interest,true_oi,tstamp,ticker,expiration,contract_type,strike) VALUES 
-                (%s,%s,%s,%s,%s,%s,%s,%s,%s) 
+                INSERT INTO event_agg (event_symbol,dstamp,price,open_interest,true_oi,tstamp,ticker,expiration,contract_type,strike) VALUES 
+                (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) 
                 on conflict (event_symbol,dstamp) do update set 
-                open_interest = %s, true_oi = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s
+                price = %s, open_interest = %s, true_oi = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s
             """
             async def insert_event_agg(row):
-                query_args = [row.event_symbol,row.dstamp,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike]
+                query_args = [row.event_symbol,row.dstamp,
+                              row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,
+                              row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,
+                              ]
                 return query_args
             query_dict[event_agg_query_str] = await asyncio.gather(*(insert_event_agg(row) for n,row in agg_df.iterrows()))
 
@@ -648,7 +660,7 @@ def main(ticker,my_date):
             break
         try:
             from_scratch = None
-            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=from_scratch,persist_to_postgres=True))
+            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=from_scratch,persist_to_postgres=True,overwrite=True))
         except KeyboardInterrupt:
             sys.exit(1)
         except:
