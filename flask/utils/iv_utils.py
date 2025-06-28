@@ -56,7 +56,8 @@ def interpolate_quote_price(df,s=0.1):
         interp_price = spline(strike)
         df.loc[put_idx,'interp_price'] = interp_price
 
-def compute_theo_price(df,df_call_symbol='C'):
+def compute_theo_price():
+    raise NotImplementedError("not tested")
     flag = df.contract_type.apply(lambda x: 'c' if x == df_call_symbol else 'p')
     S = df.spot_price.astype(np.float16)
     K = df.strike.astype(np.float16)
@@ -65,9 +66,9 @@ def compute_theo_price(df,df_call_symbol='C'):
     sigma = df.iv
     q = 0 # annualized continuous dividend yield.
     theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, sigma, q, return_as='numpy')
-    # gamma = py_vollib.black_scholes.greeks.numerical.gamma(flag, S, K, t, r, sigma, return_as='numpy')
+    gamma = py_vollib.black_scholes.greeks.numerical.gamma(flag, S, K, t, r, sigma, return_as='numpy')
     df['theo_price'] = theo_price
-    return df
+    df['gamma'] = gamma
 
 def compute_implied_volatility(df):
 
@@ -80,27 +81,8 @@ def compute_implied_volatility(df):
     t = df.time_till_exp.astype(np.float16)
     r = np.float64(yield_10yr)
     bsm_iv = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q=dividend_yield, return_as='numpy')
-    return bsm_iv
-    
-"""
-
-from .iv_utils import get_expiry_tstamp,get_annualized_time_to_expiration,compute_theo_price,compute_iv,interp_implied_volatility
-# compute and interpolate IV from price for put and calls
-# then determine side by checking if price is above or below theoretical price
-expiration_series = ts_df.expiration[ts_df.expiration.notnull()]
-expiry_mapper = {x.strftime("%Y-%m-%d"):get_expiry_tstamp(x.strftime("%Y-%m-%d"))  for x in list(expiration_series.unique())}
-ts_df['tte'] = ts_df.apply(lambda x: get_annualized_time_to_expiration(x,expiry_mapper),axis=1)
-ts_df['spot_price'] = spot_price
-ts_df = compute_iv(ts_df)
-call_ts_df = interp_implied_volatility(ts_df[ts_df.contract_type=='C'].copy())
-puts_ts_df = interp_implied_volatility(ts_df[ts_df.contract_type=='P'].copy())
-ts_df = pd.concat([call_ts_df,puts_ts_df])
-ts_df = compute_theo_price(ts_df)
-ts_df['theo_aggressor_side'] = np.where(ts_df['price']>=ts_df['theo_price'], 'BUY', 'SELL')
-
-"""
-
-
+    df['bsm_iv'] = bsm_iv
+    raise NotImplementedError("pending cleanup and validation")
 
 def compute_exposure(tstamp,spot_price,spot_volatility,df):
 
@@ -112,7 +94,6 @@ def compute_exposure(tstamp,spot_price,spot_volatility,df):
     dividend_yield = np.float64(dividend_yield)
     np_dividend_yield = np.array([dividend_yield])
 
-    df = df.copy()
     # S is spot price, K is strike price, vol is implied volatility
     # T is time to expiration, r is risk-free rate, q is dividend yield
     call_idx = df.index[df.contract_type=='C'].tolist()
@@ -164,5 +145,8 @@ def compute_exposure(tstamp,spot_price,spot_volatility,df):
         df.loc[put_idx,'state_gex'] = put_gamma*put_oi*spot_price*spot_price*-1
         df.loc[put_idx,'vex'] = calc_vanna_ex(np_spot_price, put_v, put_t, dividend_yield, put_oi, put_dp, put_pdf_dp).squeeze().astype(np.float32)
         df.loc[put_idx,'cex'] = calc_charm_ex(np_spot_price, put_v, put_t, yield_10yr, dividend_yield, put_opt_type, put_oi, put_dp, put_cdf_dp, put_pdf_dp).squeeze().astype(np.float32)
-        
-    return df
+
+
+
+
+

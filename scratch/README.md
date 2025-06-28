@@ -327,6 +327,11 @@ docker run -it -u $(id -u):$(id -g) \
       once you solve Volatility compute, you can determine side with guesstimated market maker IV
       and IV based on traded price.
 
+    py_vollib_vectorized error
+    "below_intrinsic, above_max_price = _check_below_and_above_intrinsic(K, F, flag, undiscounted_option_price, on_error)"
+    https://github.com/marcdemers/py_vollib_vectorized/issues/1
+    https://github.com/marcdemers/py_vollib_vectorized/issues/12
+    https://github.com/vollib/py_vollib/issues/14  very good
 
 + 15 min gamma-diff view looks odd
   still have 1 minute artifacts

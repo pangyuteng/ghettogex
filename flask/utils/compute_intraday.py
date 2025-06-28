@@ -288,9 +288,11 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     quote_df = df[df.event_type=='quote'].copy()
     quote_df = quote_df.sort_values(by=['contract_type','strike'])
     interpolate_quote_price(quote_df)
+
     # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
     ts_df = ts_df.merge(quote_df[['event_symbol','interp_price']],how='left',on=['event_symbol'])
+    # interp_price is no good, disabled via setting to np.nan
     ts_df['interp_price'] = np.nan
 
     large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
@@ -298,6 +300,7 @@ def compute_gex_core(df,from_scratch,first_minute=False):
         ts_df['large_order'] = ts_df['size'].apply(lambda x: x > large_order_th)
     else:
         ts_df['large_order'] = False
+
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotehist_df=quotehist_df),axis=1)
     ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
 
@@ -331,27 +334,20 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['customer_sign'] = -1
 
-    if False:
-        #
-        # NOTE on IV compute:
-        # + iv compute too slow
-        # + iv different those from dxfeed
-        # + need to deal with missing values.
-        # + likely neeed a precompute caching service
-        quote_df = quote_df[['event_symbol','ask_price','bid_price']]
-        quote_df = quote_df.groupby(['event_symbol']).agg(
-            ask_price=pd.NamedAgg(column="ask_price", aggfunc="last"),
-            bid_price=pd.NamedAgg(column="bid_price", aggfunc="last"),
-        ).reset_index()
-        merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
+    try:
+        expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(merged_df.expiration.unique())}
+        merged_df['time_till_exp'] = merged_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
+        epsilon = 1e-5
+        merged_df.loc[merged_df.time_till_exp==0,'time_till_exp'] = epsilon
+    except:
+        traceback.print_exc()
 
-        try:
-            expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(merged_df.expiration.unique())}
-            merged_df['time_till_exp'] = merged_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
-            iv = compute_implied_volatility(merged_df)
-            merged_df['bsm_iv'] = iv
-        except:
-            traceback.print_exc()
+    try:
+        quote_df = quote_df[['event_symbol','ask_price','bid_price']]
+        merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
+        compute_implied_volatility(merged_df)
+    except:
+        traceback.print_exc()
 
     for col_name in [
         'spot_volatility','delta','gamma','volatility',
@@ -387,14 +383,14 @@ def compute_gex_core(df,from_scratch,first_minute=False):
         merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.customer_sign
         # volume_gex is the vanilla flavor using bid/ask volume from candle event
         merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
-        if first_minute:
+        #if first_minute:
+        if False:
             # state_gex uses timeandsale and true_oi (for now starts from 0 at start of day)
             merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
         else:
             # you get oddball missing expiration during first minute... TODO: this if-else is fugly.
-            expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(merged_df.expiration.unique())}
-            merged_df['time_till_exp'] = merged_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
-            merged_df = compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
+            # no return! input arg `merged_df`` is being updated in `compute_exposure`
+            compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
     except:
         traceback.print_exc()
 

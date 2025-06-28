@@ -126,3 +126,7 @@ https://github.com/domokane/FinancePy
 
 https://www.youtube.com/watch?v=o8C6DxZh8dw
 https://www.youtube.com/watch?v=Jy4_AVEyO0w&t=83s
+
+
+https://github.com/search?q=Newton+Raphson+volatility+&type=repositories&s=stars&o=desc&p=3
+https://quant-next.com/implied-volatility-calculation-with-newton-raphson-algorithm/
