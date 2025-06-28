@@ -809,23 +809,38 @@ async def ws_sec_heatmap():
 @login_required
 async def ws_ex_query():
     try:
+
         ticker = websocket.args.get("ticker")
         arg_tstamp = websocket.args.get("tstamp")
+
         if ticker == "None":
             raise ValueError("Invalid ticker None!")
-        if arg_tstamp == "None":
+
+        if arg_tstamp == "debug":
+            pass
+        elif arg_tstamp == "None":
             arg_tstamp = None
 
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
             while True:
                 try:
-
+                    
                     ret_dict = {}
-                    if arg_tstamp is None:
-                        tstamp_et = now_in_new_york()
-                        tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
+                    if arg_tstamp == "debug":
+
+                        # find last tstamp from gex_net
+                        fetched = await apostgres_execute(apool,"select * from gex_net order by tstamp desc limit 1",())
+                        mylist = [dict(x) for x in fetched]
+                        tstamp_utc = mylist[0]['tstamp']
+                        tstamp_utc = tstamp_utc.replace(tzinfo=pytz.timezone('UTC'))
+
                     else:
-                        tstamp_utc = datetime.datetime.strptime(arg_tstamp,'%Y-%m-%d-%H-%M-%S').replace(tzinfo=pytz.timezone('UTC'))
+
+                        if arg_tstamp is None:
+                            tstamp_et = now_in_new_york()
+                            tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
+                        else:
+                            tstamp_utc = datetime.datetime.strptime(arg_tstamp,'%Y-%m-%d-%H-%M-%S').replace(tzinfo=pytz.timezone('UTC'))
 
                     dstamp_utc = tstamp_utc.strftime("%Y-%m-%d")
 
@@ -968,7 +983,7 @@ async def ws_ex_query():
                 await websocket.send_json(ret_dict)
                 await asyncio.sleep(0.5)
 
-                if arg_tstamp is not None:
+                if arg_tstamp is not None and arg_tstamp != 'debug':
                     break
 
     except asyncio.CancelledError:
