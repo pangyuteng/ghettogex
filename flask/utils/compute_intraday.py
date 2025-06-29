@@ -294,8 +294,7 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     ts_df = ts_df.merge(quote_df[['event_symbol','interp_price']],how='left',on=['event_symbol'])
     
     # NOTE: interp_price no good, disabled via setting to np.nan, ddoi ALL WRONG/ gex looked awfull.
-    if False:
-        ts_df['interp_price'] = np.nan
+    ts_df['interp_price'] = np.nan
 
     large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
     if not np.isnan(large_order_th):
