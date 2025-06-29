@@ -295,18 +295,17 @@ class GexService(object):
         logger.info("df.canceled.value_counts()")
         logger.info(df.canceled.value_counts())
 
-        self.symbol_list = df.option_chain_id.unique()
+        self.symbol_list = sorted(df.option_chain_id.unique())
         logger.info(self.symbol_list)
         logger.info('compute ddoi...')
         oi_list = []
         for option_chain_id in tqdm(self.symbol_list):
-            # assume this is sorted?
             tmp_oi = df[df.option_chain_id==option_chain_id].copy()
-            tmp_oi['oi'] = tmp_oi.size_signed
+            tmp_oi = tmp_oi.sort_values(['tstamp'])
+            tmp_oi['oi'] = tmp_oi.size_signed.copy()
             tmp_oi.oi = tmp_oi.oi.cumsum().astype(float)
-
-            tmp_oi['today_only_oi'] = tmp_oi.size_signed
-            tmp_oi.loc[oi_df.tstamp_sec < self.true_market_open,'today_only_oi'] = 0
+            tmp_oi['today_only_oi'] = tmp_oi.size_signed.copy()
+            tmp_oi.loc[tmp_oi.tstamp < self.true_market_open,'today_only_oi'] = 0
             tmp_oi.today_only_oi = tmp_oi.today_only_oi.cumsum().astype(float)
             oi_list.append(tmp_oi)
 
@@ -316,11 +315,10 @@ class GexService(object):
 
         logger.info('preparing gamma and gex compute...')
 
-        # keep today's data
-        # gex doesn't matter anyways.
+        # retain only today's trades
         oi_df = oi_df[oi_df.tstamp_sec >= self.true_market_open]
-        oi_df = oi_df.drop(['level_0'], axis=1) #??
-        oi_df = oi_df.reset_index()
+        #oi_df = oi_df.drop(['level_0'], axis=1) #??
+        #oi_df = oi_df.reset_index()
 
         # setup "structured grid" for tstamp_sec,option_chain_id
         xv, yv = np.meshgrid(self.time_sec_list,self.symbol_list)
@@ -336,7 +334,7 @@ class GexService(object):
         cols =  [
             'tstamp','tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
-            'side','side_mod','size','size_signed', 'contract_type_int', 'oi',
+            'side','side_mod','size','size_signed', 'contract_type_int', 'oi','today_only_oi',
             'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled',
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo',
             'large_order',
@@ -359,7 +357,7 @@ class GexService(object):
 
         # flip to show gexbot convexity, show where customer are long gamma irrespective of contract_type
         # oi that day !!! ignore prior days
-        gdf['convexity'] = gdf.today_only_oi * -1 * gdf.gamma * gdf.underlying_price * gdf.underlying_price
+        gdf['convexity'] = gdf.today_only_oi * -1 #* gdf.gamma * gdf.underlying_price * gdf.underlying_price
 
         sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','option_type','gamma','implied_volatility','oi','convexity']].copy()
         main_df = sg_df.groupby(['tstamp_sec','strike']).agg(
