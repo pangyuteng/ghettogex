@@ -292,8 +292,10 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
     ts_df = ts_df.merge(quote_df[['event_symbol','interp_price']],how='left',on=['event_symbol'])
-    # interp_price is no good, disabled via setting to np.nan
-    ts_df['interp_price'] = np.nan
+    
+    # NOTE: interp_price no good, disabled via setting to np.nan, ddoi ALL WRONG/ gex looked awfull.
+    if False:
+        ts_df['interp_price'] = np.nan
 
     large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
     if not np.isnan(large_order_th):
@@ -348,8 +350,12 @@ def compute_gex_core(df,from_scratch,first_minute=False):
         #   mid price and actual close is different, see scratch/archive/iv_postgres.ipynb
         #   ALTERNATIVELY, replace query of `quote_df` from quote to candle??
         #
-        quote_df['price'] = (quote_df.ask_price+quote_df.bid_price)/2.0
-        quote_df = quote_df[['event_symbol','price']]
+        if True:
+            quote_df['price'] = (quote_df.ask_price+quote_df.bid_price)/2.0
+            quote_df = quote_df[['event_symbol','price']]
+        else:
+            # maybe quote price is too slow????
+            pass
         merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -380,7 +386,9 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df.open_interest = merged_df.open_interest-merged_df.ask_volume+merged_df.bid_volume
     # true_oi aggregated from size in timeandsale events, and tweaked in get_side_mod (work-in-progress)
     merged_df.true_oi = merged_df.true_oi + merged_df.size_signed
-
+    
+    merged_df['delta'] = 0.0
+    merged_df['gamma'] = 0.0
     merged_df['convexity'] = 0.0
     merged_df['volume_gex'] = 0.0
     merged_df['state_gex'] = 0.0
@@ -392,15 +400,16 @@ def compute_gex_core(df,from_scratch,first_minute=False):
         merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.customer_sign
         # volume_gex is the vanilla flavor using bid/ask volume from candle event
         merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
-        #if first_minute:
         if False:
-            # state_gex uses timeandsale and true_oi (for now starts from 0 at start of day)
+            # 1st version of state_gex
             merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
         else:
-            # you get oddball missing expiration during first minute... TODO: this if-else is fugly.
-            # no return! input arg `merged_df`` is being updated in `compute_exposure`
+            # 2nd version
+            # using true_oi - which is just 
+            # + compute gamma using volatility
             compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
     except:
+        raise ValueError()
         traceback.print_exc()
 
     merged_df.volume_gex = merged_df.volume_gex.fillna(value=0)
@@ -437,10 +446,10 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
     future_utc_tstamp = utc_tstamp+datetime.timedelta(seconds=2) # grab quotes
     prior_minute_utc_tstamp = utc_tstamp-datetime.timedelta(seconds=300)
     
-    delta, market_open_tstamp_et = timedelta_from_market_open(et_tstamp)
+    marketopendelta, market_open_tstamp_et = timedelta_from_market_open(et_tstamp)
     market_open_tstamp_utc = market_open_tstamp_et.astimezone(tz=utc)
     lookback_tstamp_utc = market_open_tstamp_utc - datetime.timedelta(days=30)
-    if delta < datetime.timedelta(minutes=1):
+    if marketopendelta < datetime.timedelta(minutes=1):
         first_minute = True
     else:
         first_minute = False
@@ -452,14 +461,14 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
         'event_symbol',
         'dstamp',
         'tstamp',
-        'spot_price','gamma','volatility'
+        'spot_price',
+        'delta','gamma','volatility',
         'ticker','expiration','contract_type','strike',
         'open_interest','true_oi','price',
         'volume_gex','state_gex',
         'dex','convexity','vex','cex'
     ]
-    # 'open','high','low','close','volume','ask_volume','bid_volume',
-    # 'price','volatility','delta','gamma','theta','rho','vega',
+
     query_str = "SELECT * FROM gex_net WHERE ticker = %s and tstamp = %s"
     query_args = (ticker,utc_tstamp)
     fetched = await apostgres_execute(apool,query_str,query_args)
@@ -511,16 +520,17 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             event_agg_query_str = """
                 INSERT INTO event_agg (event_symbol,dstamp,
-                gamma,volatility,price,open_interest,true_oi,tstamp,ticker,expiration,contract_type,strike) VALUES 
-                (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) 
+                delta,gamma,volatility,price,open_interest,true_oi,tstamp,ticker,expiration,contract_type,strike) VALUES 
+                (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) 
                 on conflict (event_symbol,dstamp) do update set 
-                gamma = %s, volatility = %s, price = %s, open_interest = %s, true_oi = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s
+                delta = %s,gamma = %s, volatility = %s, price = %s, open_interest = %s, true_oi = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s
             """
             async def insert_event_agg(row):
-                query_args = [row.event_symbol,row.dstamp,
-                              row,gamma,row.volatility,row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,
-                              row,gamma,row.volatility,row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,
-                              ]
+                query_args = [
+                    row.event_symbol,row.dstamp,
+                    row.delta,row.gamma,row.volatility,row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,
+                    row.delta,row.gamma,row.volatility,row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,
+                ]
                 return query_args
             query_dict[event_agg_query_str] = await asyncio.gather(*(insert_event_agg(row) for n,row in agg_df.iterrows()))
 

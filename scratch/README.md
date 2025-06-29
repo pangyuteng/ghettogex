@@ -323,7 +323,7 @@ docker run -it -u $(id -u):$(id -g) \
     *** QUESTIONS ***
 
     *** volatility is outdated CRITICAL? ***
-    + response: criticl if need sub 5-min level trend
+    + response: critical if need sub 5-min level trend
       since greeks including volatility is update once per minute
       the diff of gex every second show weird spikes every minute!
       indicating volatiltiy updates changes gamma values
@@ -332,6 +332,7 @@ docker run -it -u $(id -u):$(id -g) \
     unsure which one  to use.
     computed IV is very far those in greeks event especially at last hr of expiration
     for now, this is fugly-patched by padding additional time with funky log function.
+
 
     [] undecided, use quote (dealer IV) or candle (customer IV) to determine second-level IV.
 
