@@ -304,6 +304,10 @@ class GexService(object):
             tmp_oi = df[df.option_chain_id==option_chain_id].copy()
             tmp_oi['oi'] = tmp_oi.size_signed
             tmp_oi.oi = tmp_oi.oi.cumsum().astype(float)
+
+            tmp_oi['today_only_oi'] = tmp_oi.size_signed
+            tmp_oi.loc[oi_df.tstamp_sec < self.true_market_open,'today_only_oi'] = 0
+            tmp_oi.today_only_oi = tmp_oi.today_only_oi.cumsum().astype(float)
             oi_list.append(tmp_oi)
 
         oi_df = pd.concat(oi_list)
@@ -354,7 +358,8 @@ class GexService(object):
             * gdf.underlying_price * gdf.underlying_price * 0.01 * gdf.contract_type_int
 
         # flip to show gexbot convexity, show where customer are long gamma irrespective of contract_type
-        gdf['convexity'] = gdf.oi * -1 * gdf.gamma * gdf.underlying_price * gdf.underlying_price
+        # oi that day !!! ignore prior days
+        gdf['convexity'] = gdf.today_only_oi * -1 * gdf.gamma * gdf.underlying_price * gdf.underlying_price
 
         sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','option_type','gamma','implied_volatility','oi','convexity']].copy()
         main_df = sg_df.groupby(['tstamp_sec','strike']).agg(
