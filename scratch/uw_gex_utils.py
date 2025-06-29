@@ -353,7 +353,8 @@ class GexService(object):
             gdf.gamma * gdf.oi * 100 \
             * gdf.underlying_price * gdf.underlying_price * 0.01 * gdf.contract_type_int
 
-        gdf['convexity'] = gdf.gamma * gdf.oi * -1 # flip to show gexbot convexity, show where customer are long gamma irrespective of contract_type
+        # flip to show gexbot convexity, show where customer are long gamma irrespective of contract_type
+        gdf['convexity'] = gdf.oi * -1 * gdf.gamma * gdf.underlying_price * gdf.underlying_price
 
         sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','option_type','gamma','implied_volatility','oi','convexity']].copy()
         main_df = sg_df.groupby(['tstamp_sec','strike']).agg(
@@ -449,9 +450,8 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     if len(tmpdf) == 0:
         return
 
-    if False:
-        #DISABLE TOTAL_GEX PLOT
-        fig, (ax1, ax2) = plt.subplots(2,1)
+    if True:
+        fig, (ax1, ax2) = plt.subplots(1,2)
     else:
         fig, ax1 = plt.subplots()
 
@@ -502,15 +502,44 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
 
     ax1.grid(True)
 
-    # plot total gex
-    if False:
-        ax2.scatter(tmptotal_gex_df.tstamp_sec,tmptotal_gex_df.total_gex,color='black',s=1)
-        ax2.axhline(0)
+    # plot convexity
+    if True:
+        color_label = 'tab:red'
+        ax2.set_xlabel('convexity', color=color_label)
+        ax2.set_ylabel('Strike')
+        # plot price, major pos/neg gex (**different from gexbot**)
+        ax2_twin = ax2.twiny()
+        ax2_twin.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color="black",linewidth=1)
+
+        for n,row in tmpdf.iterrows():
+            color = 'cyan' if row.convexity > 0 else 'purple'
+            x = [0,row.convexity]
+            y = [row.strike,row.strike]
+            ax2.plot(x,y,color=color,alpha=0.8)
+            if n == 0:
+                ax2.axhline(row.underlying_price,color='gray',linestyle='--')
+
+        ax2.tick_params(axis='x', labelcolor=color_label)
+        color_label = 'tab:blue'
+        ax2_twin.set_xlabel('time (utc)', color=color_label)
+        
+        ax2_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+        ax2_twin.tick_params(axis='x', rotation=30)
+        ax2_twin.tick_params(axis='y', labelcolor=color_label)
+
         if tstamp_lim:
-            ax2.set_xlim(tstamp_lim)
+            ax2_twin.set_xlim(tstamp_lim)
+        if price_lim:
+            ax2.set_ylim(price_lim)
+        conv_lim = [tmpdf.convexity.min(),tmpdf.convexity.max()]
+        if conv_lim and conv_lim[0] != conv_lim[1]:
+            ax2.set_xlim(conv_lim)
+
         ax2.grid(True)
 
+
     fig.tight_layout()
+
     plt.show()
     plt.savefig(png_file)
     plt.close()
