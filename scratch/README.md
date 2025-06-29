@@ -218,10 +218,12 @@ docker run -it -u $(id -u):$(id -g) \
     SELECT drop_chunks('conditions', '2017-01-01'::date);
 
 
-    ??? SELECT drop_chunks('gex_net', '2025-06-27'::date);
+    
+    delete from event_agg where tstamp::date='2025-06-27';
+    delete from gex_strike where tstamp::date='2025-06-27';
+    delete from gex_net where tstamp::date='2025-06-27';
+    
     SELECT drop_chunks('get_net_1min', '2025-06-27'::date);
-
-    delete from gex_net where tstamp::date='2025-06-27'
 
 + auto drop
 

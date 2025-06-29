@@ -386,9 +386,9 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df.open_interest = merged_df.open_interest-merged_df.ask_volume+merged_df.bid_volume
     # true_oi aggregated from size in timeandsale events, and tweaked in get_side_mod (work-in-progress)
     merged_df.true_oi = merged_df.true_oi + merged_df.size_signed
-    
-    merged_df['delta'] = 0.0
-    merged_df['gamma'] = 0.0
+
+    #merged_df['gamma'] = 0.0  #?????? unsure if this should be zeroed.
+    #merged_df['delta'] = 0.0
     merged_df['convexity'] = 0.0
     merged_df['volume_gex'] = 0.0
     merged_df['state_gex'] = 0.0
@@ -523,7 +523,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 delta,gamma,volatility,price,open_interest,true_oi,tstamp,ticker,expiration,contract_type,strike) VALUES 
                 (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) 
                 on conflict (event_symbol,dstamp) do update set 
-                delta = %s,gamma = %s, volatility = %s, price = %s, open_interest = %s, true_oi = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s
+                delta = %s, gamma = %s, volatility = %s, price = %s, open_interest = %s, true_oi = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s
             """
             async def insert_event_agg(row):
                 query_args = [
@@ -670,8 +670,7 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            from_scratch = None
-            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=from_scratch,persist_to_postgres=True,overwrite=True))
+            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=True))
         except KeyboardInterrupt:
             sys.exit(1)
         except:
