@@ -24,8 +24,8 @@ from .misc import timedelta_from_market_open
 from .iv_utils import (
     get_expiry_tstamp,
     TOTAL_SECONDS_ONE_YEAR,
+    compute_greeks,
     compute_exposure,
-    compute_implied_volatility,
     interpolate_quote_price,
 )
 
@@ -140,14 +140,14 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
 
     query_str = """
     select 'vix_candle' as event_type,event_symbol,close as spot_price,time,tstamp from candle
-    where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+    where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null and close != 0
     """
     query_args = (min_utc_tstamp,max_utc_tstamp,'VIX') # use vix as 
     uv = apostgres_execute(apool,query_str,query_args)
 
     query_str = """
     select 'underlying_candle' as event_type,event_symbol,close as spot_price,time,tstamp from candle
-    where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null
+    where tstamp >= %s and tstamp < %s and event_symbol = %s and ticker is null and close != 0
     """
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker) # underlying_candle
     uc = apostgres_execute(apool,query_str,query_args)
@@ -261,19 +261,18 @@ def get_size_signed(row):
     else:
         return 0 # assume mid is matched
     
-def compute_gex_core(df,from_scratch,first_minute=False):
+def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
+    tstamp = utc_tstamp.replace(tzinfo=None) # postgres tsamp have no tzinfo
     # NOTE: we sort by time first, since tstamp is postgres insert time.
     df = df.sort_values(by=['event_type','time','tstamp'])
 
-    underlying_candle_df = df[df.event_type=='underlying_candle']
+    underlying_candle_df = df[(df.event_type=='underlying_candle')]
     if len(underlying_candle_df)>0:
         spot_price = underlying_candle_df.spot_price.to_list()[-1]
-        tstamp = underlying_candle_df.tstamp.to_list()[-1]
     else:
         spot_price = np.nan
-        tstamp = np.nan
 
-    vix_candle_df = df[df.event_type=='vix_candle']
+    vix_candle_df = df[(df.event_type=='vix_candle')]
     if len(vix_candle_df)>0:
         spot_volatility = vix_candle_df.spot_price.to_list()[-1]
     else:
@@ -330,38 +329,18 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
 
+    if True:
+        quote_df['price'] = (quote_df.ask_price+quote_df.bid_price)/2.0
+        quote_df = quote_df[['event_symbol','price']]
+    else:
+        # maybe quote price is too slow????
+        pass
+    merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
+
     merged_df['spot_volatility'] = spot_volatility
     merged_df['spot_price'] = spot_price
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     merged_df['customer_sign'] = -1
-
-    try:
-        expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(merged_df.expiration.unique())}
-        merged_df['time_till_exp'] = merged_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
-        epsilon = 1e-5
-        merged_df.loc[merged_df.time_till_exp==0,'time_till_exp'] = epsilon
-    except:
-        traceback.print_exc()
-
-    try:
-        #
-        # NOTE: is quote event BULL SHIT?
-        #   mid price and actual close is different, see scratch/archive/iv_postgres.ipynb
-        #   ALTERNATIVELY, replace query of `quote_df` from quote to candle??
-        #
-        if True:
-            quote_df['price'] = (quote_df.ask_price+quote_df.bid_price)/2.0
-            quote_df = quote_df[['event_symbol','price']]
-        else:
-            # maybe quote price is too slow????
-            pass
-        merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            compute_implied_volatility(merged_df,price_column='price')
-        merged_df['volatility'] = merged_df['bsm_iv']
-    except:
-        traceback.print_exc()
 
     for col_name in [
         'spot_volatility','delta','gamma','volatility',
@@ -386,27 +365,45 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     # true_oi aggregated from size in timeandsale events, and tweaked in get_side_mod (work-in-progress)
     merged_df.true_oi = merged_df.true_oi + merged_df.size_signed
 
-    #merged_df['gamma'] = 0.0  #?????? unsure if this should be zeroed.
-    #merged_df['delta'] = 0.0
-    merged_df['convexity'] = 0.0
-    merged_df['volume_gex'] = 0.0
-    merged_df['state_gex'] = 0.0
-    merged_df['dex'] = 0.0
-    merged_df['vex'] = 0.0
-    merged_df['cex'] = 0.0
+    # volume_gex is the vanilla flavor using bid/ask volume from candle event
+    merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
+    if False:
+        # state_gex is computed below with updated greeks
+        merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
+
+    # time_till_exp ####################################
     try:
+        expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(merged_df.expiration.unique())}
+        merged_df['time_till_exp'] = merged_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
+        epsilon = 1e-5
+        merged_df.loc[merged_df.time_till_exp==0,'time_till_exp'] = epsilon
+    except:
+        traceback.print_exc()
+
+    # greeks ####################################
+    try:
+        #
+        # NOTE: is quote event BULL SHIT?
+        #   mid price and actual close is different, see scratch/archive/iv_postgres.ipynb
+        #   ALTERNATIVELY, replace query of `quote_df` from quote to candle??
+        #
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            compute_greeks(merged_df,price_column='price')
+        merged_df['volatility'] = merged_df['bsm_iv']
+    except:
+        traceback.print_exc()
+
+    # delta gamma charm vanna exposure ####################################
+    try:
+        merged_df['convexity'] = 0.0
+        merged_df['state_gex'] = 0.0
+        merged_df['dex'] = 0.0
+        merged_df['vex'] = 0.0
+        merged_df['cex'] = 0.0
+        compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
         # see gexbot convexity for definition.
         merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.customer_sign
-        # volume_gex is the vanilla flavor using bid/ask volume from candle event
-        merged_df['volume_gex'] = merged_df.gamma * merged_df.open_interest * 100 * merged_df.spot_price * merged_df.spot_price * 0.01 * merged_df.gamma_sign
-        if False:
-            # 1st version of state_gex
-            merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
-        else:
-            # 2nd version
-            # using true_oi - which is just 
-            # + compute gamma using volatility
-            compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
     except:
         raise ValueError()
         traceback.print_exc()
@@ -417,6 +414,7 @@ def compute_gex_core(df,from_scratch,first_minute=False):
     merged_df.dex = merged_df.dex.fillna(value=0)
     merged_df.vex = merged_df.vex.fillna(value=0)
     merged_df.cex = merged_df.cex.fillna(value=0)
+
     if from_scratch:
         # quality check
         reqd_event_list = ['summary','greeks','timeandsale','candle']
@@ -481,7 +479,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
             event_df = await get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,market_open_tstamp_utc)
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
-            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch,first_minute=first_minute)
+            agg_df, qc_pass = compute_gex_core(utc_tstamp,event_df.copy(deep=True),from_scratch,first_minute=first_minute)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
             logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.state_gex.sum()}')
@@ -495,7 +493,7 @@ async def _compute_gex(apool,ticker,et_tstamp,from_scratch=None,persist_to_postg
 
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
-            agg_df, qc_pass = compute_gex_core(event_df.copy(deep=True),from_scratch,first_minute=first_minute)
+            agg_df, qc_pass = compute_gex_core(utc_tstamp,event_df.copy(deep=True),from_scratch,first_minute=first_minute)
             agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
             logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.state_gex.sum()}')
@@ -669,7 +667,7 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=True))
+            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False))
         except KeyboardInterrupt:
             sys.exit(1)
         except:

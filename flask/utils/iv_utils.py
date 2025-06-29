@@ -66,13 +66,11 @@ def compute_theo_price():
     sigma = df.iv
     q = 0 # annualized continuous dividend yield.
     theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, sigma, q, return_as='numpy')
-    gamma = py_vollib.black_scholes.greeks.numerical.gamma(flag, S, K, t, r, sigma, return_as='numpy')
     df['theo_price'] = theo_price
-    df['gamma'] = gamma
 
-def compute_implied_volatility(df,price_column='price'):
+def compute_greeks(df,price_column='price'):
     yield_10yr = 1e-5
-    dividend_yield = 0.0
+    q = 0.0 # dividend_yield
     price = df[price_column].astype(np.float16)
     flag = df.contract_type.apply(lambda x: 'c' if x == 'C' else 'p')
     S = df.spot_price.astype(np.float16)
@@ -84,8 +82,12 @@ def compute_implied_volatility(df,price_column='price'):
     t += ((np.log1p(t+1000)*-1+1000)/1000)/(24*365)
 
     r = np.float64(yield_10yr)
-    bsm_iv = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q=dividend_yield, return_as='numpy')
+    bsm_iv = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q, return_as='numpy')
+    gamma = py_vollib.black_scholes_merton.greeks.numerical.gamma(flag, S, K, t, r, bsm_iv, q, return_as='numpy')
+    delta = py_vollib.black_scholes_merton.greeks.numerical.delta(flag, S, K, t, r, bsm_iv, q, return_as='numpy')
     df['bsm_iv'] = bsm_iv
+    df['gamma'] = gamma
+    df['delta'] = delta
 
 def compute_exposure(tstamp,spot_price,spot_volatility,df):
 
@@ -118,8 +120,6 @@ def compute_exposure(tstamp,spot_price,spot_volatility,df):
             yield_10yr,
             dividend_yield,
         )
-        df.loc[call_idx,'delta'] = call_delta
-        df.loc[call_idx,'gamma'] = call_gamma
         df.loc[call_idx,'dex'] = call_delta*call_oi*spot_price
         df.loc[call_idx,'state_gex'] = call_gamma*call_oi*spot_price*spot_price
         df.loc[call_idx,'vex'] = calc_vanna_ex(np_spot_price, call_v, call_t, dividend_yield, call_oi, call_dp, call_pdf_dp).squeeze().astype(np.float32)
@@ -144,8 +144,6 @@ def compute_exposure(tstamp,spot_price,spot_volatility,df):
             yield_10yr,
             dividend_yield,
         )
-        df.loc[put_idx,'delta'] = put_delta
-        df.loc[put_idx,'gamma'] = put_gamma
         df.loc[put_idx,'dex'] = put_delta*put_oi*spot_price
         df.loc[put_idx,'state_gex'] = put_gamma*put_oi*spot_price*spot_price*-1
         df.loc[put_idx,'vex'] = calc_vanna_ex(np_spot_price, put_v, put_t, dividend_yield, put_oi, put_dp, put_pdf_dp).squeeze().astype(np.float32)
