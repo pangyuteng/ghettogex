@@ -340,7 +340,6 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     merged_df['spot_volatility'] = spot_volatility
     merged_df['spot_price'] = spot_price
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
-    merged_df['customer_sign'] = -1
 
     for col_name in [
         'spot_volatility','delta','gamma','volatility',
@@ -396,14 +395,14 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
 
     # delta gamma charm vanna exposure ####################################
     try:
+
         merged_df['convexity'] = 0.0
         merged_df['state_gex'] = 0.0
         merged_df['dex'] = 0.0
         merged_df['vex'] = 0.0
         merged_df['cex'] = 0.0
         compute_exposure(tstamp,spot_price,spot_volatility,merged_df)
-        # see gexbot convexity for definition.
-        merged_df['convexity'] = merged_df.gamma * merged_df.true_oi * merged_df.customer_sign
+
     except:
         raise ValueError()
         traceback.print_exc()
