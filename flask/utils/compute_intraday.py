@@ -406,7 +406,10 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             compute_greeks(merged_df,spot_price,spot_volatility,price_column='price')
-        merged_df['volatility'] = merged_df['bsm_iv']
+        if not first_minute:
+            merged_df['volatility'] = merged_df['bsm_iv']
+            merged_df['delta'] = merged_df['bsm_delta']
+            merged_df['gamma'] = merged_df['bsm_gamma']
     except:
         traceback.print_exc()
 

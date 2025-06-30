@@ -94,8 +94,8 @@ def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
     delta = py_vollib.black_scholes_merton.greeks.numerical.delta(flag, S, K, t, r, bsm_iv, q, return_as='numpy')
 
     df['bsm_iv'] = bsm_iv
-    df['gamma'] = gamma
-    df['delta'] = delta
+    df['bsm_gamma'] = gamma
+    df['bsm_delta'] = delta
     
     if False:
         idx_interp = df.bsm_iv.notnull()
