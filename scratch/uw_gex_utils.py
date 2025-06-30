@@ -306,7 +306,7 @@ class GexService(object):
             tmp_oi.oi = tmp_oi.oi.cumsum().astype(float)
 
             tmp_oi['customer_oi'] = -1*tmp_oi.size_signed.copy() # flip (-1) to show customer sign
-            tmp_oi.loc[tmp_oi.tstamp < self.true_market_open,'customer_oi'] = customer_oi
+            tmp_oi.loc[tmp_oi.tstamp < self.true_market_open,'customer_oi'] = 0
             tmp_oi.customer_oi = tmp_oi.customer_oi.cumsum().astype(float)
 
             oi_list.append(tmp_oi)
