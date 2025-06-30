@@ -130,3 +130,7 @@ https://www.youtube.com/watch?v=Jy4_AVEyO0w&t=83s
 
 https://github.com/search?q=Newton+Raphson+volatility+&type=repositories&s=stars&o=desc&p=3
 https://quant-next.com/implied-volatility-calculation-with-newton-raphson-algorithm/
+
+
+
+https://quant.stackexchange.com/questions/74552/volatility-surface/74570#74570

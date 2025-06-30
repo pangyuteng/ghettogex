@@ -69,25 +69,46 @@ def compute_theo_price():
     df['theo_price'] = theo_price
 
 def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
+
+    # get price, remove deep ITM and way OTM
+    df['tmp_price'] = df['price'].copy()
+    idx1 = (df.strike<spot_price*0.98)|(df.strike>spot_price*1.02)
+    df.loc[idx1,'tmp_price']=np.nan
+    idx2 = (df.strike>1.01*spot_price)&(df.contract_type=='P')
+    df.loc[idx2,'tmp_price']=np.nan
+    idx3 = (df.strike<0.99*spot_price)&(df.contract_type=='C')
+    df.loc[idx3,'tmp_price']=np.nan
+
     yield_10yr = 1e-5
     q = 0.0 # dividend_yield
-    price = df[price_column].astype(np.float16)
+
+    price = df.tmp_price.astype(np.float16)
     flag = df.contract_type.apply(lambda x: 'c' if x == 'C' else 'p')
     S = df.spot_price.astype(np.float16)
     K = df.strike.astype(np.float16)
-    
-    # shitty hack to boost iv to match volatility from dxlink greeks event
-    # pad more and more time as time approach zero, max 1 hr
     t = df.time_till_exp.astype(np.float16)
-    t += ((np.log1p(t+1000)*-1+1000)/1000)/(24*365)
-
     r = np.float64(yield_10yr)
+
     bsm_iv = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q, return_as='numpy')
     gamma = py_vollib.black_scholes_merton.greeks.numerical.gamma(flag, S, K, t, r, bsm_iv, q, return_as='numpy')
     delta = py_vollib.black_scholes_merton.greeks.numerical.delta(flag, S, K, t, r, bsm_iv, q, return_as='numpy')
+
     df['bsm_iv'] = bsm_iv
     df['gamma'] = gamma
     df['delta'] = delta
+    
+    if False:
+        idx_interp = df.bsm_iv.notnull()
+        iv_list = df[idx_interp].bsm_iv
+        strike_list = df[idx_interp].strike
+        s = 0.1
+        spline = interpolate.UnivariateSpline(strike_list,iv_list,s=s)
+        df['interp_bsm_iv'] = spline(df.strike)
+        df.loc[idx1,'interp_bsm_iv']=np.nan
+    else:
+        idx1 = (df.strike<spot_price*0.98)|(df.strike>spot_price*1.02)
+        df.loc[idx1,'bsm_iv'] = df.bsm_iv.max()
+        #print(sorted(df.bsm_iv.unique()))
 
 def compute_exposure(df,spot_price,spot_volatility):
 
