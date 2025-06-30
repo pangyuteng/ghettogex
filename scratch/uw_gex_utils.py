@@ -305,18 +305,10 @@ class GexService(object):
             tmp_oi['oi'] = tmp_oi.size_signed.copy()
             tmp_oi.oi = tmp_oi.oi.cumsum().astype(float)
 
-            customer_long_oi = -1*tmp_oi.size_signed.copy() # flip (-1) to show customer sign
-            customer_long_oi[customer_long_oi < 0] = 0
-            customer_short_oi = -1*tmp_oi.size_signed.copy()
-            customer_short_oi[customer_short_oi > 0] = 0
-            tmp_oi['customer_long_oi'] = np.abs(customer_long_oi)
-            tmp_oi['customer_short_oi'] = np.abs(customer_short_oi)
-            tmp_oi.loc[tmp_oi.tstamp < self.true_market_open,'customer_long_oi'] = 0
-            tmp_oi.loc[tmp_oi.tstamp < self.true_market_open,'customer_short_oi'] = 0
-            tmp_oi.customer_long_oi = tmp_oi.customer_long_oi.cumsum().astype(float)
-            tmp_oi.customer_short_oi = tmp_oi.customer_short_oi.cumsum().astype(float)
-            epsilon = 1E-8
-            tmp_oi['customer_oi_imbalance'] = (tmp_oi.customer_long_oi+epsilon)/(tmp_oi.customer_short_oi+epsilon)-1
+            tmp_oi['customer_oi'] = -1*tmp_oi.size_signed.copy() # flip (-1) to show customer sign
+            tmp_oi.loc[tmp_oi.tstamp < self.true_market_open,'customer_long_oi'] = customer_oi
+            tmp_oi.customer_oi = tmp_oi.customer_oi.cumsum().astype(float)
+
             oi_list.append(tmp_oi)
 
         oi_df = pd.concat(oi_list)
@@ -344,11 +336,10 @@ class GexService(object):
         cols =  [
             'tstamp','tstamp_sec','option_chain_id',
             'strike', 'option_type', 'expiry',
-            'side','side_mod','size','size_signed', 'contract_type_int', 'oi','customer_oi_imbalance',
+            'side','side_mod','size','size_signed', 'contract_type_int', 'oi','customer_oi',
             'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled',
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo',
             'large_order',
-            #'underlying_price', 
         ] # once merged, underlying_price, price, greeks all likely outdated!
 
         oi_df = oi_df[cols]
@@ -374,7 +365,7 @@ class GexService(object):
         so likely ( long calls + long puts) / (short calls+ short puts) ??
         """
         # show gexbot convexity, show where customer are long gamma irrespective of contract_type
-        gdf['convexity'] = gdf.customer_oi_imbalance #* gdf.gamma * gdf.underlying_price * gdf.underlying_price
+        gdf['convexity'] = gdf.customer_oi #* gdf.gamma * gdf.underlying_price * gdf.underlying_price
 
         sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','option_type','gamma','implied_volatility','oi','convexity']].copy()
         main_df = sg_df.groupby(['tstamp_sec','strike']).agg(
