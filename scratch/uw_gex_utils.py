@@ -316,7 +316,7 @@ class GexService(object):
             tmp_oi.customer_long_oi = tmp_oi.customer_long_oi.cumsum().astype(float)
             tmp_oi.customer_short_oi = tmp_oi.customer_short_oi.cumsum().astype(float)
             epsilon = 1E-8
-            tmp_oi['customer_oi_imbalance'] = tmp_oi.customer_long_oi/(tmp_oi.customer_short_oi+epsilon)
+            tmp_oi['customer_oi_imbalance'] = (tmp_oi.customer_long_oi+epsilon)/(tmp_oi.customer_short_oi+epsilon)-1
             oi_list.append(tmp_oi)
 
         oi_df = pd.concat(oi_list)
@@ -551,7 +551,8 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
             ax2_twin.set_xlim(tstamp_lim)
         if price_lim:
             ax2.set_ylim(price_lim)
-        conv_lim = [tmpdf.convexity.min(),tmpdf.convexity.max()]
+        ftmpdf = tmpdf[(tmpdf.strike>price_lim[0])&(tmpdf.strike<price_lim[1])]
+        conv_lim = [ftmpdf.convexity.min(),ftmpdf.convexity.max()]
         if conv_lim and conv_lim[0] != conv_lim[1]:
             ax2.set_xlim(conv_lim)
 
