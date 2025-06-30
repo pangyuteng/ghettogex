@@ -68,7 +68,7 @@ def compute_theo_price():
     theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, sigma, q, return_as='numpy')
     df['theo_price'] = theo_price
 
-def compute_greeks(df,price_column='price'):
+def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
     yield_10yr = 1e-5
     q = 0.0 # dividend_yield
     price = df[price_column].astype(np.float16)
@@ -89,7 +89,7 @@ def compute_greeks(df,price_column='price'):
     df['gamma'] = gamma
     df['delta'] = delta
 
-def compute_exposure(tstamp,spot_price,spot_volatility,df):
+def compute_exposure(df,spot_price,spot_volatility):
 
     yield_10yr = 1e-5
     dividend_yield = 0.0
