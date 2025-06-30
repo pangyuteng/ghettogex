@@ -365,7 +365,7 @@ class GexService(object):
         so likely ( long calls + long puts) / (short calls+ short puts) ??
         """
         # show gexbot convexity, show where customer are long gamma irrespective of contract_type
-        gdf['convexity'] = gdf.customer_oi #* gdf.gamma * gdf.underlying_price * gdf.underlying_price
+        gdf['convexity'] = gdf.customer_oi * gdf.gamma * gdf.underlying_price * gdf.underlying_price
 
         sg_df = gdf[['tstamp_sec','strike','gex','underlying_price','option_type','gamma','implied_volatility','oi','convexity']].copy()
         main_df = sg_df.groupby(['tstamp_sec','strike']).agg(
