@@ -310,7 +310,7 @@ docker run -it -u $(id -u):$(id -g) \
        then derive IV from actual price,
        compute IV to determine side.
 
-    + [abandon] (for speed) compute volatility from quote event
+    + [wip] (for speed) compute volatility from quote event
 
         gex needs to be a realtime, or else we are viewing 1min-lagged greeks (`compute_intraday.py`)
 
@@ -336,7 +336,7 @@ docker run -it -u $(id -u):$(id -g) \
     for now, this is fugly-patched by padding additional time with funky log function.
 
 
-    [] undecided, use quote (dealer IV) or candle (customer IV) to determine second-level IV.
+    [x] undecided, use quote (dealer IV) or candle (customer IV) to determine second-level IV.
 
     *** cannote determine aggressor-side CRITICAL? ***
     + of course accurate DDOI matters..
@@ -349,20 +349,35 @@ docker run -it -u $(id -u):$(id -g) \
     https://github.com/marcdemers/py_vollib_vectorized/issues/12
     https://github.com/vollib/py_vollib/issues/14  very good
 
-+ 15 min gamma-diff view looks odd
-  still have 1 minute artifacts
-  gex-net looks decent - since it is 1 min avg.
-  and i do like the realtime second level update
-  so how about do a gexbot order-flow like plot
-```
-select distinct tstamp::timestamp(0) as bucket,aggressor_side,contract_type, sum(size) as size from timeandsale
-where expiration = '2025-06-26'
-and tstamp >= '2025-06-26 19:59:00'
-group by bucket,aggressor_side,contract_type
-order by bucket,aggressor_side,contract_type
+
+    + 15 min gamma-diff view looks odd
+    still have 1 minute artifacts
+    gex-net looks decent - since it is 1 min avg.
+    and i do like the realtime second level update
+    so how about do a gexbot order-flow like plot
+    ```
+    select distinct tstamp::timestamp(0) as bucket,aggressor_side,contract_type, sum(size) as size from timeandsale
+    where expiration = '2025-06-26'
+    and tstamp >= '2025-06-26 19:59:00'
+    group by bucket,aggressor_side,contract_type
+    order by bucket,aggressor_side,contract_type
 
 
-```
+    ```
+
+
+    + [x] above 1minute artifact was due to gamma value was still using greeks event.
+    now when GEX is computed using gamma,
+    derived from IV, which is derived from Quote event, error spikes up when expiration < 2 hr
+    error is still present when using candle event.
+    to reduce error, hacked time_till_expire to dynamically pad 1 hr max. (this gets you some error, and underestimation of IV)
+
+    main patches 
+
+    + https://github.com/pangyuteng/ghettogex.aigonewrong.com/compare/a75edb2...da5f9fa
+
+    
+    above IV is more right, but still wrong, given 0DTE IV is mostly kept as industry (open/secret) sauce
 
 + [ ] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
 
