@@ -107,7 +107,7 @@ def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
         df.loc[idx1,'interp_bsm_iv']=np.nan
     else:
         idx1 = (df.strike<spot_price*0.98)|(df.strike>spot_price*1.02)
-        df.loc[idx1,'bsm_iv'] = df.bsm_iv.max()
+        df.loc[idx1,'bsm_iv'] = 0
         #print(sorted(df.bsm_iv.unique()))
 
 def compute_exposure(df,spot_price,spot_volatility):
