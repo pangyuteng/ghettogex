@@ -109,6 +109,7 @@ def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
         idx1 = (df.strike<spot_price*0.98)|(df.strike>spot_price*1.02)
         df.loc[idx1,'bsm_iv'] = 0
         #print(sorted(df.bsm_iv.unique()))
+        # TODO: one you get the IV, then get IV for entire chain and recompute gamma, delta
 
 def compute_exposure(df,spot_price,spot_volatility):
 
