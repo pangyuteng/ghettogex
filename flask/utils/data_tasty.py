@@ -336,28 +336,28 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                         await lp.shutdown()
                     logger.info("pool close...")
                     # await apool.close() # ?why bother close if pool is used via "with"..
-                    logger.info("sys.exit")
-                    sys.exit(0)
+                    logger.info("break from while!!!")
+                    break
                 else:
                     logger.info("market open -------------------------------")
 
-                # print quotes
-                if len(live_prices_list)>0:
-                    tmp_candle = live_prices_list[0].candle[ticker]
-                    logger.info(f"Current candle: {tmp_candle}")
+                    # print quotes
+                    if len(live_prices_list)>0:
+                        tmp_candle = live_prices_list[0].candle[ticker]
+                        logger.info(f"Current candle: {tmp_candle}")
 
-                pathlib.Path(running_file).touch()
-                await asyncio.sleep(5)
+                    pathlib.Path(running_file).touch()
+                    await asyncio.sleep(5)
 
-                if os.path.exists(cancel_file):
-                    logger.info(f"canceljob receieved...")
-                    os.remove(cancel_file)
-                    logger.info(f"canceling!")
-                    for lp in live_prices_list:
-                        await lp.shutdown()
-                    if os.path.exists(running_file):
-                        os.remove(running_file)
-                    raise ValueError("canceljob")
+                    if os.path.exists(cancel_file):
+                        logger.info(f"canceljob receieved...")
+                        os.remove(cancel_file)
+                        logger.info(f"canceling!")
+                        for lp in live_prices_list:
+                            await lp.shutdown()
+                        if os.path.exists(running_file):
+                            os.remove(running_file)
+                        raise ValueError("canceljob")
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
     finally:
