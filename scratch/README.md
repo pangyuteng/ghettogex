@@ -378,6 +378,13 @@ docker run -it -u $(id -u):$(id -g) \
     
     above IV is more right, but still wrong, given 0DTE IV is mostly kept as industry (open/secret) sauce
 
++ [x] with pyvolib you can compute contract theo-price, and greeks with spot-volatility.
+      also TESTING using theo-price to determine aggressor side, see `iv-compute-postgres.ipynb` for investigation.
+
+     9ab08dd...62d67ee
+
+
+
 + [ ] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
 
 + [ ] compute next expiration gex_net,gex_strike seperatly.
