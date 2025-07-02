@@ -56,16 +56,17 @@ def interpolate_quote_price(df,s=0.1):
         interp_price = spline(strike)
         df.loc[put_idx,'interp_price'] = interp_price
 
-def compute_theo_price():
-    raise NotImplementedError("not tested")
-    flag = df.contract_type.apply(lambda x: 'c' if x == df_call_symbol else 'p')
+def compute_theo_price(df,spot_price,spot_volatility):
+
+    yield_10yr = 1e-5
+    q = 0.0 # dividend_yield
+
+    flag = df.contract_type.apply(lambda x: 'c' if x == 'C' else 'p')
     S = df.spot_price.astype(np.float16)
     K = df.strike.astype(np.float16)
-    t = df.tte.astype(np.float16)
-    r = 0.0 # interest rate
-    sigma = df.iv
-    q = 0 # annualized continuous dividend yield.
-    theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, sigma, q, return_as='numpy')
+    t = df.time_till_exp.astype(np.float16)
+    r = np.float64(yield_10yr)
+    theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, spot_volatility/100, q, return_as='numpy')
     df['theo_price'] = theo_price
 
 def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
@@ -90,13 +91,13 @@ def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
     r = np.float64(yield_10yr)
 
     bsm_iv = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q, return_as='numpy')
-    gamma = py_vollib.black_scholes_merton.greeks.numerical.gamma(flag, S, K, t, r, bsm_iv, q, return_as='numpy')
-    delta = py_vollib.black_scholes_merton.greeks.numerical.delta(flag, S, K, t, r, bsm_iv, q, return_as='numpy')
+    gamma = py_vollib.black_scholes_merton.greeks.numerical.gamma(flag, S, K, t, r, spot_volatility/100, q, return_as='numpy')
+    delta = py_vollib.black_scholes_merton.greeks.numerical.delta(flag, S, K, t, r, spot_volatility/100, q, return_as='numpy')
 
     df['bsm_iv'] = bsm_iv
     df['bsm_gamma'] = gamma
     df['bsm_delta'] = delta
-    
+
     if False:
         idx_interp = df.bsm_iv.notnull()
         iv_list = df[idx_interp].bsm_iv

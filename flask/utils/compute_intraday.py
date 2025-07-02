@@ -26,7 +26,7 @@ from .iv_utils import (
     TOTAL_SECONDS_ONE_YEAR,
     compute_greeks,
     compute_exposure,
-    interpolate_quote_price,
+    compute_theo_price,
 )
 
 async def get_events_df_from_scratch(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,min_utc_tstamp):
@@ -241,11 +241,13 @@ def get_side_mod(row,quotehist_df=None):
                 else:
                     side_mod = 'likely_bid' #???
             else:
-                if not np.isnan(row.interp_price):
-                    if row.price > row.interp_price:
+                if not np.isnan(row.theo_price):
+                    if (row.price - row.theo_price) > 1E-3:
                         side_mod = 'likely_ask'
-                    elif row.price < row.interp_price:
+                    elif (row.price - row.theo_price) < -1E-3:
                         side_mod = 'likely_bid'
+                    else:
+                        pass # assume mid is matched.
                 elif row.aggressor_side == 'BUY':
                     side_mod = 'ask' # BUY or near ask
                 elif row.aggressor_side == 'SELL':
@@ -253,11 +255,13 @@ def get_side_mod(row,quotehist_df=None):
                 elif row.aggressor_side == 'UNDEFINED':
                     pass # assume mid is matched.
         else:
-            if not np.isnan(row.interp_price):
-                if row.price > row.interp_price:
+            if not np.isnan(row.theo_price):
+                if (row.price - row.theo_price) > 1E-3:
                     side_mod = 'likely_ask'
-                elif row.price < row.interp_price:
+                elif (row.price - row.theo_price) < -1E-3:
                     side_mod = 'likely_bid'
+                else:
+                    pass # assume mid is matched.
             elif row.aggressor_side == 'BUY':
                 side_mod = 'ask' # BUY or near ask
             elif row.aggressor_side == 'SELL':
@@ -302,16 +306,16 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     quotehist_df = df[df.event_type=='quotehist']
     ts_df = df[df.event_type=='timeandsale'].copy()
 
-    quote_df = df[df.event_type=='quote'].copy()
-    quote_df = quote_df.sort_values(by=['contract_type','strike'])
-    interpolate_quote_price(quote_df)
+    # quote_df = df[df.event_type=='quote'].copy()
+    # quote_df = quote_df.sort_values(by=['contract_type','strike'])
+    # interpolate_quote_price(quote_df)
 
     # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
-    ts_df = ts_df.merge(quote_df[['event_symbol','interp_price']],how='left',on=['event_symbol'])
     
     # NOTE: interp_price no good, disabled via setting to np.nan, ddoi ALL WRONG/ gex looked awfull.
-    ts_df['interp_price'] = np.nan
+    #ts_df = ts_df.merge(quote_df[['event_symbol','interp_price']],how='left',on=['event_symbol'])
+    #ts_df['interp_price'] = np.nan
 
     large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
     if not np.isnan(large_order_th):
@@ -319,8 +323,25 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     else:
         ts_df['large_order'] = False
 
+    # time_till_exp ####################################
+    ts_df['theo_price'] = np.nan
+    try:
+        if len(ts_df) > 0:
+            expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(ts_df.expiration.unique())}
+            ts_df['time_till_exp'] = ts_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
+            epsilon = 1e-5
+            ts_df.loc[ts_df.time_till_exp==0,'time_till_exp'] = epsilon
+            ts_df['spot_price'] = spot_price
+            compute_theo_price(ts_df,spot_price,spot_volatility)
+            ts_df.loc[ts_df.theo_price==0.0,'theo_price']=np.nan
+    except:
+        traceback.print_exc()
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotehist_df=quotehist_df),axis=1)
     ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
+    # print("                                                                                                                ",np.sum((ts_df.theo_price-ts_df.price)>0),np.sum((ts_df.theo_price-ts_df.price)<0))
+    # print("                                                                                                                ",ts_df.aggressor_side.value_counts())
+    # print(ts_df[['theo_price','price']])
+    # print(spot_price)
 
     candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
     candle_df = candle_df.groupby(['event_symbol']).agg(
@@ -336,7 +357,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','true_oi']]
     summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
 
-    greeks_df = greeks_df[['event_symbol','volatility','delta','gamma','theta','rho','vega']]
+    greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega']]
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
 
     timeandsale_df = ts_df[['event_symbol','size_signed']]
@@ -347,12 +368,12 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
 
-    if False:
-        quote_df['price'] = (quote_df.ask_price+quote_df.bid_price)/2.0
-        quote_df = quote_df[['event_symbol','price']]
-    else:
-        quote_df = quote_df[['event_symbol','price']]
-    merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
+    # if False:
+    #     quote_df['price'] = (quote_df.ask_price+quote_df.bid_price)/2.0
+    #     quote_df = quote_df[['event_symbol','price']]
+    # else:
+    #     quote_df = quote_df[['event_symbol','price']]
+    # merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
 
     merged_df['spot_volatility'] = spot_volatility
     merged_df['spot_price'] = spot_price
@@ -407,7 +428,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
             warnings.simplefilter("ignore")
             compute_greeks(merged_df,spot_price,spot_volatility,price_column='price')
         if not first_minute:
-            merged_df['volatility'] = merged_df['bsm_iv']
+            #merged_df['volatility'] = merged_df['bsm_iv'] disable for now, too volatile.
             merged_df['delta'] = merged_df['bsm_delta']
             merged_df['gamma'] = merged_df['bsm_gamma']
     except:
