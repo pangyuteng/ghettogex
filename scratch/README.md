@@ -384,6 +384,8 @@ docker run -it -u $(id -u):$(id -g) \
      9ab08dd...62d67ee
 
 
+![image](https://github.com/user-attachments/assets/bbed99e0-a246-4d32-964b-a70c696fc423)
+
 
 + [ ] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
 
