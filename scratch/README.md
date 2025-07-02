@@ -383,6 +383,7 @@ docker run -it -u $(id -u):$(id -g) \
 
      9ab08dd...62d67ee
 
+![image](https://github.com/user-attachments/assets/f1b55297-e234-4b2e-bf0c-bb83b2da803d)
 
 ![image](https://github.com/user-attachments/assets/bbed99e0-a246-4d32-964b-a70c696fc423)
 
