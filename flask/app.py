@@ -902,7 +902,7 @@ async def ws_ex_query():
                             df = df.replace({np.nan: None})
                             spot_price = df["spot_price"].iloc[-1]
                             ret_dict['spot_price'] = spot_price
-                            if False:
+                            if True:
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
                                 ret_dict['diffgex'] = lst
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity_diff']]
