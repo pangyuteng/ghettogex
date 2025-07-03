@@ -306,16 +306,12 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     quotehist_df = df[df.event_type=='quotehist']
     ts_df = df[df.event_type=='timeandsale'].copy()
 
-    # quote_df = df[df.event_type=='quote'].copy()
-    # quote_df = quote_df.sort_values(by=['contract_type','strike'])
-    # interpolate_quote_price(quote_df)
+    # NOTE: quote_df is actually from candle event since price from quote and greeks seems off !!!
+    quote_df = df[df.event_type=='quote'].copy()
+    quote_df = quote_df.sort_values(by=['contract_type','strike'])
 
     # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
-    
-    # NOTE: interp_price no good, disabled via setting to np.nan, ddoi ALL WRONG/ gex looked awfull.
-    #ts_df = ts_df.merge(quote_df[['event_symbol','interp_price']],how='left',on=['event_symbol'])
-    #ts_df['interp_price'] = np.nan
 
     large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
     if not np.isnan(large_order_th):
@@ -334,14 +330,12 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
             ts_df['spot_price'] = spot_price
             compute_theo_price(ts_df,spot_price,spot_volatility)
             ts_df.loc[ts_df.theo_price==0.0,'theo_price']=np.nan
+            # disable tho_price since DDOI classification doesn't look right
+            ts_df['theo_price'] = np.nan
     except:
         traceback.print_exc()
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotehist_df=quotehist_df),axis=1)
     ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
-    # print("                                                                                                                ",np.sum((ts_df.theo_price-ts_df.price)>0),np.sum((ts_df.theo_price-ts_df.price)<0))
-    # print("                                                                                                                ",ts_df.aggressor_side.value_counts())
-    # print(ts_df[['theo_price','price']])
-    # print(spot_price)
 
     candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
     candle_df = candle_df.groupby(['event_symbol']).agg(
@@ -357,7 +351,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','true_oi']]
     summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
 
-    greeks_df = greeks_df[['event_symbol','price','volatility','delta','gamma','theta','rho','vega']]
+    greeks_df = greeks_df[['event_symbol','volatility','delta','gamma','theta','rho','vega']] # 'price',
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
 
     timeandsale_df = ts_df[['event_symbol','size_signed']]
@@ -368,12 +362,8 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
 
-    # if False:
-    #     quote_df['price'] = (quote_df.ask_price+quote_df.bid_price)/2.0
-    #     quote_df = quote_df[['event_symbol','price']]
-    # else:
-    #     quote_df = quote_df[['event_symbol','price']]
-    # merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
+    quote_df = quote_df[['event_symbol','price']]
+    merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
 
     merged_df['spot_volatility'] = spot_volatility
     merged_df['spot_price'] = spot_price
@@ -419,13 +409,10 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
 
     # greeks ####################################
     try:
-        #
-        # NOTE: is quote event BULL SHIT?
-        #   mid price and actual close is different, see scratch/archive/iv_postgres.ipynb
-        #   ALTERNATIVELY, replace query of `quote_df` from quote to candle??
-        #
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
+            # for now price is from candle `price` in populated from quote_df
+            # in compute_greeks, 
             compute_greeks(merged_df,spot_price,spot_volatility,price_column='price')
         if not first_minute:
             #merged_df['volatility'] = merged_df['bsm_iv'] disable for now, too volatile.
@@ -707,7 +694,7 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False))
+            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=True,persist_to_postgres=True,overwrite=False))
         except KeyboardInterrupt:
             sys.exit(1)
         except:

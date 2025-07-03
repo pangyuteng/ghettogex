@@ -66,7 +66,9 @@ def compute_theo_price(df,spot_price,spot_volatility):
     K = df.strike.astype(np.float16)
     t = df.time_till_exp.astype(np.float16)
     r = np.float64(yield_10yr)
-    theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, spot_volatility/100, q, return_as='numpy')
+    sv = spot_volatility/100
+
+    theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, sv, q, return_as='numpy')
     df['theo_price'] = theo_price
 
 def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
@@ -89,28 +91,19 @@ def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
     K = df.strike.astype(np.float16)
     t = df.time_till_exp.astype(np.float16)
     r = np.float64(yield_10yr)
+    sv = spot_volatility/100
 
     bsm_iv = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q, return_as='numpy')
-    gamma = py_vollib.black_scholes_merton.greeks.numerical.gamma(flag, S, K, t, r, spot_volatility/100, q, return_as='numpy')
-    delta = py_vollib.black_scholes_merton.greeks.numerical.delta(flag, S, K, t, r, spot_volatility/100, q, return_as='numpy')
+    gamma = py_vollib.black_scholes_merton.greeks.numerical.gamma(flag, S, K, t, r, sv, q, return_as='numpy')
+    delta = py_vollib.black_scholes_merton.greeks.numerical.delta(flag, S, K, t, r, sv, q, return_as='numpy')
 
     df['bsm_iv'] = bsm_iv
     df['bsm_gamma'] = gamma
     df['bsm_delta'] = delta
 
-    if False:
-        idx_interp = df.bsm_iv.notnull()
-        iv_list = df[idx_interp].bsm_iv
-        strike_list = df[idx_interp].strike
-        s = 0.1
-        spline = interpolate.UnivariateSpline(strike_list,iv_list,s=s)
-        df['interp_bsm_iv'] = spline(df.strike)
-        df.loc[idx1,'interp_bsm_iv']=np.nan
-    else:
-        idx1 = (df.strike<spot_price*0.98)|(df.strike>spot_price*1.02)
-        df.loc[idx1,'bsm_iv'] = 0
-        #print(sorted(df.bsm_iv.unique()))
-        # TODO: one you get the IV, then get IV for entire chain and recompute gamma, delta
+    # clean up volatility
+    idx_remove = (df.bsm_iv<1e-1)|(df.strike<spot_price*0.98)|(df.strike>spot_price*1.02)
+    df.loc[idx_remove,'bsm_iv'] = np.nan
 
 def compute_exposure(df,spot_price,spot_volatility):
 
