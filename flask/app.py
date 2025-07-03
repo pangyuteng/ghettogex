@@ -142,6 +142,11 @@ async def links():
 async def gexbots():
     return await render_template("gexbots.html")
 
+@app.route("/black")
+@login_required
+async def black():
+    return await render_template("black.html")
+
 @app.route("/")
 @login_required
 async def home():
