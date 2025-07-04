@@ -227,34 +227,29 @@ async def get_events_df(apool,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
 def get_side_mod(row,quotehist_df=None):
     try:
         side_mod = None
+        cond_met = False
+
         if row.large_order:
             tmp_df = quotehist_df[quotehist_df.event_symbol==row.event_symbol]
             cond_met = True if len(tmp_df) > 2 else False
-            if cond_met:
-                ask_price_list = tmp_df.ask_price.to_list()
-                bid_price_list = tmp_df.bid_price.to_list()
-                # TODO: hau volatility also uses ask_size and bid_size
-                if ask_price_list[-1] > ask_price_list[0]:
-                    side_mod = 'likely_ask'
-                elif bid_price_list[-1] > bid_price_list[0]:
-                    side_mod = 'likely_ask'
-                else:
-                    side_mod = 'likely_bid' #???
-            else:
-                if not np.isnan(row.theo_price):
-                    if (row.price - row.theo_price) > 1E-3:
-                        side_mod = 'likely_ask'
-                    elif (row.price - row.theo_price) < -1E-3:
-                        side_mod = 'likely_bid'
-                    else:
-                        pass # assume mid is matched.
-                elif row.aggressor_side == 'BUY':
-                    side_mod = 'ask' # BUY or near ask
-                elif row.aggressor_side == 'SELL':
-                    side_mod = 'bid' # SELL or near bid
-                elif row.aggressor_side == 'UNDEFINED':
-                    pass # assume mid is matched.
         else:
+            tmp_df = None
+
+        if row.large_order and cond_met:
+            ask_price_list = tmp_df.ask_price.to_list()
+            bid_price_list = tmp_df.bid_price.to_list()
+            # TODO: hau volatility also uses ask_size and bid_size
+            if ask_price_list[-1] > ask_price_list[0]:
+                side_mod = 'likely_ask'
+            elif bid_price_list[-1] > bid_price_list[0]:
+                side_mod = 'likely_ask'
+            else:
+                side_mod = 'likely_bid' #???
+        elif row.aggressor_side == 'BUY':
+            side_mod = 'ask' # BUY or near ask
+        elif row.aggressor_side == 'SELL':
+            side_mod = 'bid' # SELL or near bid
+        elif row.aggressor_side == 'UNDEFINED':
             if not np.isnan(row.theo_price):
                 if (row.price - row.theo_price) > 1E-3:
                     side_mod = 'likely_ask'
@@ -262,13 +257,6 @@ def get_side_mod(row,quotehist_df=None):
                     side_mod = 'likely_bid'
                 else:
                     pass # assume mid is matched.
-            elif row.aggressor_side == 'BUY':
-                side_mod = 'ask' # BUY or near ask
-            elif row.aggressor_side == 'SELL':
-                side_mod = 'bid' # SELL or near bid
-            elif row.aggressor_side == 'UNDEFINED':
-                pass # assume mid is matched.
-
 
         return side_mod
     except:
@@ -330,8 +318,6 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
             ts_df['spot_price'] = spot_price
             compute_theo_price(ts_df,spot_price,spot_volatility)
             ts_df.loc[ts_df.theo_price==0.0,'theo_price']=np.nan
-            # disable tho_price since DDOI classification doesn't look right
-            ts_df['theo_price'] = np.nan
     except:
         traceback.print_exc()
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotehist_df=quotehist_df),axis=1)
