@@ -693,9 +693,10 @@ def tryone(ticker,tstampstr):
     print(ticker,tstamp)
     try:
         agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=False,overwrite=False))
-        logger.debug(agg_df.head())
-        logger.debug(f'volume_gex {agg_df.volume_gex.sum()}')
-        logger.debug(f'state_gex {agg_df.state_gex.sum()}')
+        if agg_df is not None:
+            logger.debug(agg_df.head())
+            logger.debug(f'volume_gex {agg_df.volume_gex.sum()}')
+            logger.debug(f'state_gex {agg_df.state_gex.sum()}')
 
     except KeyboardInterrupt:
         sys.exit(1)
