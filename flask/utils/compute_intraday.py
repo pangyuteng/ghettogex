@@ -688,10 +688,11 @@ def main(ticker,my_date):
             sys.exit(1)
 
 def tryone(ticker,tstampstr):
-    tstamp = datetime.datetime.strptime(tstampstr,'%Y-%m-%d-%H-%M-%S').replace(tzinfo=pytz.timezone('America/New_York'))
+    tstamp = datetime.datetime.strptime(tstampstr,'%Y-%m-%d-%H-%M-%S')
+    tstamp = pytz.timezone('US/Eastern').localize(tstamp)
     print(ticker,tstamp)
     try:
-        agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=False,overwrite=True))
+        agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=False,overwrite=False))
         logger.debug(agg_df.head())
         logger.debug(f'volume_gex {agg_df.volume_gex.sum()}')
         logger.debug(f'state_gex {agg_df.state_gex.sum()}')
@@ -725,5 +726,9 @@ export POSTGRES_URI=postgres://postgres:postgres@192.168.68.143:5432/postgres
 python -m utils.compute_intraday SPX 2025-06-23-09-00-01
 
 python -m utils.compute_intraday SPX 2025-06-05
+
+python -m utils.compute_intraday SPX 2025-07-02-10-00-00
+
+/uplot?ticker=SPX&tstamp=2025-07-02-14-00-00
 
 """
