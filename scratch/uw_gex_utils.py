@@ -513,10 +513,34 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
 
     ax1.grid(True)
 
-    # plot convexity
+    # plot net_gex
     if True:
+        color_label = 'tab:blue'
+        ax2.set_xlabel('time (utc)')
+        ax2.set_ylabel('price',color=color_label)
+        ax2.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color="black",linewidth=1)
+        ax2.tick_params(axis='y', labelcolor=color)
+        ax2.tick_params(axis='x', rotation=30)
+        ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+
+        ax2_twin = ax2.twinx()
+        color_label = 'tab:green'
+        ax2_twin.set_ylabel('GEX ($ bn/1% move)', color=color_label)
+        ax2_twin.plot(tmptotal_gex_df.tstamp_sec, tmptotal_gex_df.total_gex, color="green",linewidth=1)
+        ax2_twin.tick_params(axis='y', labelcolor=color_label)
+
+        if price_lim:
+            ax2.set_ylim(price_lim)
+        if tstamp_lim:
+            ax2.set_xlim(tstamp_lim)
+
+        ax2_twin.set_ylim(total_gex_df.total_gex.min(),total_gex_df.total_gex.max())
+        ax2.grid(True)
+
+    # plot convexity
+    if False:
         color_label = 'tab:red'
-        ax2.set_xlabel('convexity', color=color_label)
+        ax2.set_xlabel('convexity(wrong,since ddoi is wrong!)', color=color_label)
         ax2.set_ylabel('Strike')
         # plot price, major pos/neg gex (**different from gexbot**)
         ax2_twin = ax2.twiny()
@@ -638,6 +662,6 @@ docker run -it -u $(id -u):$(id -g) -w $PWD -v /mnt:/mnt -p 8888:8888 fi-noteboo
 docker run -it -w $PWD -v /mnt:/mnt  -p 8888:8888 fi-notebook:latest bash
 
 python uw_gex_utils.py SPY 2025-05-08
-python uw_gex_utils.py SPX 2025-05-09
+python uw_gex_utils.py SPX 2025-07-03
 
 """
