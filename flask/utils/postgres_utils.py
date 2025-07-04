@@ -5,6 +5,7 @@ import datetime
 import os
 import sys
 import traceback
+import asyncio
 import psycopg
 import psycopg_pool
 from psycopg.rows import dict_row
@@ -38,8 +39,8 @@ async def apostgres_execute_many(apool,query_dict):
         await apool.check()
         async with apool.connection() as aconn:
             async with aconn.cursor(row_factory=dict_row) as curs:
-                for query_str,query_list in query_dict.items():
-                    await curs.executemany(query_str,query_list)
+                coros = [curs.executemany(query_str,query_list) for query_str,query_list in query_dict.items()]
+                await asyncio.gather(*coros)
     except:
         traceback.print_exc()
     return response
