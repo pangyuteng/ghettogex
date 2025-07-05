@@ -114,7 +114,7 @@ async def apostgres_copy(apool,query_str,stdin):
                     async with curs.copy(query_str) as copy:
                         await copy.write(stdin)
         else:
-            await apool.check()
+            # await apool.check() SLOW!!!
             async with apool.connection() as aconn:
                 async with aconn.cursor() as curs:
                     async with curs.copy(query_str) as copy:
@@ -135,7 +135,7 @@ async def apostgres_execute(apool,query_str,query_args,is_commit=False):
                     if is_commit is False:
                         response = await curs.fetchall()
         else:
-            await apool.check()
+            #await apool.check() # not good! SLOW
             async with apool.connection() as aconn:
                 # row_factory=dict_row
                 async with aconn.cursor() as curs:
@@ -150,6 +150,7 @@ async def apostgres_execute(apool,query_str,query_args,is_commit=False):
 
 
 async def myfunca():
+    print("COPY")
     timea = time.time()
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         for x in range(1000):
@@ -161,6 +162,7 @@ async def myfunca():
 
 
 async def myfuncb():
+    print("INSERT")
     timea = time.time()
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         for x in range(1000):
@@ -173,8 +175,8 @@ async def myfuncb():
     print(timeb-timea)
 
 
-
 async def myfuncc():
+    print("not working...")
     timea = time.time()
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         query_str = "COPY hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) FROM STDIN DELIMITER ','"
@@ -185,10 +187,10 @@ async def myfuncc():
     print(timeb-timea)
 
 async def main():
-    #await myfuncc() # not working
-    #await myfunca()
     await myfuncb()
-    print("both are slow!!!!!")
+    await myfunca()
+    
+    # print("both are slow!!!!!")
     
 
 if __name__ == "__main__":
