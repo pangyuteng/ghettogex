@@ -3,6 +3,28 @@
 
 """
 
+CREATE TABLE IF NOT EXISTS hola (
+    
+    hola_id SERIAL,
+    event_symbol text NOT NULL,
+    event_time numeric,
+    sequence numeric,
+    time_nano_part numeric,
+    bid_time numeric,
+    bid_exchange_code text,
+    ask_time numeric,
+    ask_exchange_code text,
+    bid_price double precision,
+    ask_price double precision,
+    bid_size double precision,
+    ask_size double precision,
+    ticker text,
+    expiration TIMESTAMP,
+    contract_type text,
+    strike double precision,
+    tstamp TIMESTAMP default (now() at time zone 'utc')
+)
+
 
 CREATE TABLE IF NOT EXISTS hola (
     
@@ -105,15 +127,18 @@ async def apostgres_execute(apool,query_str,query_args,is_commit=False):
     response = None
     try:
         if apool is None:
-            async with await psycopg.AsyncConnection.connect(postgres_uri,autocommit=True,row_factory=dict_row) as aconn:
-                    async with aconn.cursor(row_factory=dict_row) as curs:
-                        await curs.execute(query_str,query_args)
-                        if is_commit is False:
-                            response = await curs.fetchall()
+            # ,row_factory=dict_row
+            async with await psycopg.AsyncConnection.connect(postgres_uri,autocommit=True) as aconn:
+                #row_factory=dict_row
+                async with aconn.cursor() as curs:
+                    await curs.execute(query_str,query_args)
+                    if is_commit is False:
+                        response = await curs.fetchall()
         else:
             await apool.check()
             async with apool.connection() as aconn:
-                async with aconn.cursor(row_factory=dict_row) as curs:
+                # row_factory=dict_row
+                async with aconn.cursor() as curs:
                     await curs.execute(query_str,query_args)
                     if is_commit is False:
                         response = await curs.fetchall()
@@ -160,9 +185,11 @@ async def myfuncc():
     print(timeb-timea)
 
 async def main():
-    await myfunca()
+    #await myfuncc() # not working
+    #await myfunca()
     await myfuncb()
-    #await myfuncc()
+    print("both are slow!!!!!")
+    
 
 if __name__ == "__main__":
     asyncio.run(main())
