@@ -222,7 +222,7 @@ async def mycreate():
 
 
 async def main():
-    #await mycreate()
+    await mycreate()
     await myfuncb()
     await myfunca()
     
@@ -231,3 +231,24 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+"""
+
+ssh hawktuah 
+docker run -d --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:17.2-bullseye
+
+export POSTGRES_URI="postgres://postgres:postgres@192.168.68.156:5432/postgres"
+
+2.8,2.5 seconds
+
+docker stop postgres && docker rm postgres
+
+docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=postgres timescale/timescaledb:latest-pg17
+
+2.5,2.9 seconds
+
+
+docker stop timescaledb && docker rm timescaledb
+
+"""
