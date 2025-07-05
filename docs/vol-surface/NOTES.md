@@ -142,3 +142,4 @@ https://github.com/JackJacquier/SSVI/blob/master/SSVILocalVol.ipynb
 
 https://github.com/chi-gamma/SVI_and_SSVI_Volatility_Surface_fitting/blob/main/svi_parametrization
 https://github.com/chi-gamma/CVI-Vol-Surface-Fitting/tree/main
+https://github.com/rwicl/operator-deep-smoothing-for-implied-volatility
