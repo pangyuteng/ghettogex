@@ -77,7 +77,7 @@ kubectl port-forward --address 0.0.0.0 pod/task-pv-pod -n default 5432:5432
 cd ghettogex/scratch/archive/psycopg-memory-profile
 python pg_profiling.py
 
-not faster???
-but docker is fast
+pvc with ssd (5sec) not faster than nfs (5 sec).
+but docker is fast <2 sec.
 
 ```
