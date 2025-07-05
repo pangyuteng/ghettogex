@@ -392,6 +392,12 @@ docker run -it -u $(id -u):$(id -g) \
 ![image](https://github.com/user-attachments/assets/bbed99e0-a246-4d32-964b-a70c696fc423)
 
 
++ [nah] speedup upsert???
+    https://hakibenita.com/fast-load-data-python-postgresql
+    https://github.com/apache/arrow-adbc/issues/2046
+    https://github.com/mkleehammer/pyodbc/issues/120#issuecomment-223331595
+    https://www.tigerdata.com/blog/13-tips-to-improve-postgresql-insert-performance
+    
 + [ ] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
 
 + [ ] compute next expiration gex_net,gex_strike seperatly.

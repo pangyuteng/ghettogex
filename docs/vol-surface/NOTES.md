@@ -134,3 +134,11 @@ https://quant-next.com/implied-volatility-calculation-with-newton-raphson-algori
 
 
 https://quant.stackexchange.com/questions/74552/volatility-surface/74570#74570
+
+
+https://quant.stackexchange.com/questions/16909/local-volatility-svi-parametrization
+https://quant.stackexchange.com/questions/77910/how-to-calibrate-a-volatility-surface-using-ssvi-with-market-data
+https://github.com/JackJacquier/SSVI/blob/master/SSVILocalVol.ipynb
+
+https://github.com/chi-gamma/SVI_and_SSVI_Volatility_Surface_fitting/blob/main/svi_parametrization
+https://github.com/chi-gamma/CVI-Vol-Surface-Fitting/tree/main
