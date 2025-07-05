@@ -21,7 +21,6 @@ async def apostgres_execute(apool,query_str,query_args,is_commit=False):
                         if is_commit is False:
                             response = await curs.fetchall()
         else:
-            await apool.check()
             async with apool.connection() as aconn:
                 async with aconn.cursor(row_factory=dict_row) as curs:
                     await curs.execute(query_str,query_args)
@@ -36,7 +35,6 @@ async def apostgres_execute(apool,query_str,query_args,is_commit=False):
 async def apostgres_execute_many(apool,query_dict):
     response = None
     try:
-        await apool.check()
         async with apool.connection() as aconn:
             async with aconn.cursor(row_factory=dict_row) as curs:
                 coros = [curs.executemany(query_str,query_list) for query_str,query_list in query_dict.items()]
