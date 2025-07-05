@@ -186,7 +186,43 @@ async def myfuncc():
     timeb = time.time()
     print(timeb-timea)
 
+
+async def mycreate():
+    print("CREATE")
+    timea = time.time()
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+
+        query_str = """
+            CREATE TABLE IF NOT EXISTS hola (
+                
+                hola_id SERIAL,
+                event_symbol text NOT NULL,
+                event_time numeric,
+                sequence numeric,
+                time_nano_part numeric,
+                bid_time numeric,
+                bid_exchange_code text,
+                ask_time numeric,
+                ask_exchange_code text,
+                bid_price double precision,
+                ask_price double precision,
+                bid_size double precision,
+                ask_size double precision,
+                ticker text,
+                expiration TIMESTAMP,
+                contract_type text,
+                strike double precision,
+                tstamp TIMESTAMP default (now() at time zone 'utc')
+            )
+        """
+        query_args = ()
+        await apostgres_execute(apool,query_str,query_args,is_commit=True)
+    timeb = time.time()
+    print(timeb-timea)
+
+
 async def main():
+    #await mycreate()
     await myfuncb()
     await myfunca()
     

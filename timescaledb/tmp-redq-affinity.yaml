@@ -11,7 +11,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/mnt/kxg256gb/pgmount"
+    path: "/mnt/ok/pgmount"
 
 ---
 apiVersion: v1
