@@ -308,7 +308,8 @@ async def myfuncpipelineSIMULATE():
                             async with aconn.transaction() as tx:
                                 await curs.execute(query_str,query_args)
                     timeb = time.time()
-                    print("done",timeb-timea)
+                    duration = timeb-timea
+                    print(f"done. duration(sec):{duration} rows/sec:{bolus_size/duration}",)
                     await asyncio.sleep(np.random.rand())
 
 
