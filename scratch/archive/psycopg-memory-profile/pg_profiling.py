@@ -236,14 +236,32 @@ async def mycreate():
     timeb = time.time()
     print(timeb-timea)
 
+async def myfuncpipeline():
+    print("PIPELINE")
+    timea = time.time()
+
+    cols = "event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp".split(",")
+    colstr = ','.join(["%s"]*len(cols))
+    query_str = f"""INSERT INTO hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) VALUES ({colstr})"""
+    query_args = ('.SPX250620C5400',0,0,0,0,'C',0,'C',578.5,590.8,21,21,'SPX','2025-06-20','C',5400,'2025-06-18 20:00:28.66071' )
+
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+        async with apool.connection() as aconn:
+            async with aconn.pipeline() as apipeline:
+                for x in range(1000):
+                    await aconn.execute(query_str, query_args, prepare=True)
+
+    timeb = time.time()
+    print(timeb-timea)
 
 async def main():
     #await mycreate()
     #await myfuncb()
     #await myfunca()
-    await myfuncbb()
-    await myfuncaa()
+    #await myfuncbb()
+    #await myfuncaa()
     #await myfuncc()
+    await myfuncpipeline()
     # print("both are slow!!!!!")
     
 

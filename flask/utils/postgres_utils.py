@@ -11,6 +11,27 @@ import psycopg_pool
 from psycopg.rows import dict_row
 postgres_uri = os.environ.get("POSTGRES_URI")
 
+async def cpostgres_execute(aconn,query_str,query_args,is_commit=False):
+    response = None
+    try:
+        async with aconn.cursor(row_factory=dict_row) as curs:
+            await curs.execute(query_str,query_args)
+            if is_commit is False:
+                response = await curs.fetchall()
+    except:
+        traceback.print_exc()
+    return response
+
+async def cpostgres_execute_many(aconn,query_dict):
+    response = None
+    try:
+        async with aconn.cursor() as curs:
+            coros = [curs.executemany(query_str,query_list) for query_str,query_list in query_dict.items()]
+            await asyncio.gather(*coros)
+    except:
+        traceback.print_exc()
+    return response
+
 async def apostgres_execute(apool,query_str,query_args,is_commit=False):
     response = None
     try:

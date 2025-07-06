@@ -38,8 +38,8 @@ from tastytrade.utils import today_in_new_york
 
 from .misc import now_in_new_york, is_market_open, CACHE_FOLDER, CACHE_TASTY_FOLDER
 from .postgres_utils import (
-    apostgres_execute,
-    psycopg_pool,postgres_uri,
+    cpostgres_execute,
+    psycopg,psycopg_pool,postgres_uri,
 )
 
 
@@ -92,7 +92,7 @@ def postgres_friendly(value):
     else:
         return value
 
-async def persist_to_postgres(apool,ticker,streamer_symbol,event_type,event):
+async def persist_to_postgres(aconn,ticker,streamer_symbol,event_type,event):
     event_dict = dict(event)
 
     if streamer_symbol.startswith("."):
@@ -111,7 +111,7 @@ async def persist_to_postgres(apool,ticker,streamer_symbol,event_type,event):
     vals_str = ", ".join(vals_str_list)
     query_str = "INSERT INTO {event_type} ({cols}) VALUES ({vals_str})".format(event_type=event_type,cols = ','.join(cols), vals_str = vals_str)
     query_args = vals
-    await apostgres_execute(apool,query_str,query_args,is_commit=True)
+    await cpostgres_execute(aconn,query_str,query_args,is_commit=True)
 
 # sample event_symbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
@@ -154,7 +154,7 @@ class LivePrices:
     @classmethod
     async def create(
         cls,
-        apool: psycopg_pool.AsyncConnectionPool,
+        aconn: psycopg.Connection,
         session: Session,
         ticker: str = 'SPY',
         expiration: datetime.date = today_in_new_york(),
@@ -197,19 +197,19 @@ class LivePrices:
                    streamer, equity, streamer_symbols,[],ticker,expiration,
                    save_to_json=save_to_json,save_to_postres=save_to_postres)
 
-        t_listen_candles = asyncio.create_task(self._update_candle(apool))
-        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",apool))
+        t_listen_candles = asyncio.create_task(self._update_candle(aconn))
+        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",aconn))
 
         if expiration is not None:
-            t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",apool))
-            t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary",apool))
-            t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",apool))
+            t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",aconn))
+            t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary",aconn))
+            t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",aconn))
 
         if False:
-            t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile",apool))
-            t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice",apool))
-            t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying",apool))
-            t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade",apool))
+            t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile",aconn))
+            t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice",aconn))
+            t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying",aconn))
+            t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade",aconn))
 
         self.task_list = [
             t_listen_candles,
@@ -265,23 +265,23 @@ class LivePrices:
         await self.streamer.close()
         logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
-    async def _update_candle(self,apool):
+    async def _update_candle(self,aconn):
         async for e in self.streamer.listen(Candle):
             streamer_symbol = e.event_symbol.replace("{="+CANDLE_TYPE+",tho=true}","")
             self.candle[streamer_symbol] = e
             if self.save_to_json:
                 await save_data_to_json(self.ticker,streamer_symbol,'candle',e)
             if self.save_to_postres:
-                await persist_to_postgres(apool,self.ticker,streamer_symbol,'candle',e)
+                await persist_to_postgres(aconn,self.ticker,streamer_symbol,'candle',e)
 
-    async def _update_event(self,event_type,attribue_name,apool):
+    async def _update_event(self,event_type,attribue_name,aconn):
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
             myparam[e.event_symbol] = e
             if self.save_to_json:
                 await save_data_to_json(self.ticker,e.event_symbol,attribue_name,e)
             if self.save_to_postres:
-                await persist_to_postgres(apool,self.ticker,e.event_symbol,attribue_name,e)
+                await persist_to_postgres(aconn,self.ticker,e.event_symbol,attribue_name,e)
 
 def get_cancel_file(ticker):
     ticker = ticker.replace("/","^")
@@ -312,52 +312,55 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         expirations = sorted(list(chain.keys()))
         live_prices_list = []
         EXPIRATION_LIM = 3
-
-        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+        max_lifetime = 25200
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
             await apool.check()
-            # underlying
-            live_prices = await LivePrices.create(apool,session,ticker,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
-            live_prices_list.append(live_prices)
+            async with apool.connection() as aconn:
+                async with aconn.pipeline() as apipeline:
+                    # underlying
+                    live_prices = await LivePrices.create(aconn,session,ticker,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
+                    live_prices_list.append(live_prices)
 
-            for expiration in expirations:
-                if ticker == 'VIX': # ignore options for VIX
-                    continue
-                live_prices = await LivePrices.create(apool,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
-                live_prices_list.append(live_prices)
-                if len(live_prices_list)>=EXPIRATION_LIM:
-                    break
+                    for expiration in expirations:
+                        if ticker == 'VIX': # ignore options for VIX
+                            continue
+                        live_prices = await LivePrices.create(aconn,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
+                        live_prices_list.append(live_prices)
+                        if len(live_prices_list)>=EXPIRATION_LIM:
+                            break
 
-            while True:
-                if not is_market_open():
-                    logger.info("market closing -------------------------------")
-                    await asyncio.sleep(10)
-                    for lp in live_prices_list:
-                        logger.info("shutdown...")
-                        await lp.shutdown()
-                    logger.info("pool close...")
-                    # await apool.close() # ?why bother close if pool is used via "with"..
-                    logger.info("break from while!!!")
-                    break
-                else:
-                    logger.info("market open -------------------------------")
+                    while True:
+                        if not is_market_open():
+                            logger.info("market closing -------------------------------")
+                            await asyncio.sleep(10)
+                            for lp in live_prices_list:
+                                logger.info("shutdown...")
+                                await lp.shutdown()
+                            logger.info("pool close...")
+                            # await aconn.close() # ?why bother close if pool is used via "with"..
+                            logger.info("break from while!!!")
+                            break
+                        else:
+                            logger.info("market open -------------------------------")
 
-                    # print quotes
-                    if len(live_prices_list)>0:
-                        tmp_candle = live_prices_list[0].candle[ticker]
-                        logger.info(f"Current candle: {tmp_candle}")
+                            # print quotes
+                            if len(live_prices_list)>0:
+                                tmp_candle = live_prices_list[0].candle[ticker]
+                                logger.info(f"Current candle: {tmp_candle}")
 
-                    pathlib.Path(running_file).touch()
-                    await asyncio.sleep(5)
+                            pathlib.Path(running_file).touch()
+                            await asyncio.sleep(5)
 
-                    if os.path.exists(cancel_file):
-                        logger.info(f"canceljob receieved...")
-                        os.remove(cancel_file)
-                        logger.info(f"canceling!")
-                        for lp in live_prices_list:
-                            await lp.shutdown()
-                        if os.path.exists(running_file):
-                            os.remove(running_file)
-                        raise ValueError("canceljob")
+                            if os.path.exists(cancel_file):
+                                logger.info(f"canceljob receieved...")
+                                os.remove(cancel_file)
+                                logger.info(f"canceling!")
+                                for lp in live_prices_list:
+                                    await lp.shutdown()
+                                if os.path.exists(running_file):
+                                    os.remove(running_file)
+                                raise ValueError("canceljob")
+
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
     finally:
