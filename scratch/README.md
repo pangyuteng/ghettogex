@@ -408,10 +408,20 @@ docker run -it -u $(id -u):$(id -g) \
   + for postgres insert speedup
 
     + purchsed sdd.
+
+    ioping -q -c 10 -s 8k .
+    ioping -q -c 10 -s 8k -W .
+
+
+    more suggestions:
+
+    https://www.tigerdata.com/blog/13-tips-to-improve-postgresql-insert-performance
+
     + added usage of pipeline (added cpostgres_execute, cpostgres_execute_many)
 
     https://www.postgresql.org/docs/current/libpq-pipeline-mode.html
     https://www.psycopg.org/articles/2024/05/08/psycopg3-pipeline-mode/
+
 
   + [ ] rerun contract-intraday-pg-viz.ipynb to confirm above fixes quote event.
   
