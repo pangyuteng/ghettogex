@@ -113,6 +113,71 @@ async def persist_to_postgres(aconn,ticker,streamer_symbol,event_type,event):
     query_args = vals
     await cpostgres_execute(aconn,query_str,query_args,is_commit=True)
 
+async def cpostgres_execute_list(aconn,insert_list):
+    response = None
+    try:
+        async with aconn.cursor() as curs:
+            async with aconn.transaction() as tx:
+                for query_str,query_args in insert_list:
+                    await curs.execute(query_str,query_args)
+    except:
+        traceback.print_exc()
+    return response
+
+class PgInsertQueue():
+    def __init__(self):
+        self.queue = asyncio.Queue()
+        self.max_queue_size = 500
+        self.interval = 0.25
+        self.flush_event = asyncio.Event()
+
+    async def push(self,ticker,streamer_symbol,event_type,event):
+        event_dict = dict(event)
+        if streamer_symbol.startswith("."):
+            ticker,expiration,contract_type,strike = parse_symbol(streamer_symbol)
+            event_dict['ticker']=ticker
+            event_dict['expiration']=expiration
+            event_dict['contract_type']=contract_type
+            event_dict['strike']=strike
+
+        if "{=" in event_dict["event_symbol"]: # eventSymbol
+            event_dict['event_symbol'] = streamer_symbol
+
+        cols = list(event_dict.keys())
+        vals = [postgres_friendly(event_dict[x]) for x in cols]
+        vals_str_list = ["%s"] * len(vals)
+        vals_str = ", ".join(vals_str_list)
+        query_str = "INSERT INTO {event_type} ({cols}) VALUES ({vals_str})".format(event_type=event_type,cols = ','.join(cols), vals_str = vals_str)
+        query_args = vals
+
+        await self.queue.put((query_str,query_args))
+        if self.queue.qsize() >= self.max_queue_size:
+            self.flush_event.set()
+
+async def flusher(myqueue,aconn):
+    while True:
+        done, pending = await asyncio.wait(
+            [myqueue.flush_event.wait(), asyncio.sleep(myqueue.interval)],
+            return_when=asyncio.FIRST_COMPLETED
+        )
+
+        insert_list = []
+        while True:
+            try:
+                item = myqueue.queue.get_nowait()
+                insert_list.append(item)
+            except asyncio.QueueEmpty:
+                break
+
+        if len(insert_list) > 0:
+            await cpostgres_execute_list(aconn,insert_list)
+
+        # clear flush event if it was set
+        if myqueue.flush_event.is_set():
+            myqueue.flush_event.clear()
+        #print(myqueue.flush_event.is_set(),len(insert_list))
+
+
 # sample event_symbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
 
@@ -154,7 +219,7 @@ class LivePrices:
     @classmethod
     async def create(
         cls,
-        aconn: psycopg.AsyncConnection,
+        myqueue: PgInsertQueue,
         session: Session,
         ticker: str = 'SPY',
         expiration: datetime.date = today_in_new_york(),
@@ -197,19 +262,19 @@ class LivePrices:
                    streamer, equity, streamer_symbols,[],ticker,expiration,
                    save_to_json=save_to_json,save_to_postres=save_to_postres)
 
-        t_listen_candles = asyncio.create_task(self._update_candle(aconn))
-        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",aconn))
+        t_listen_candles = asyncio.create_task(self._update_candle(myqueue))
+        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",myqueue))
 
         if expiration is not None:
-            t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",aconn))
-            t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary",aconn))
-            t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",aconn))
+            t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",myqueue))
+            t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary",myqueue))
+            t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",myqueue))
 
         if False:
-            t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile",aconn))
-            t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice",aconn))
-            t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying",aconn))
-            t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade",aconn))
+            t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile",myqueue))
+            t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice",myqueue))
+            t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying",myqueue))
+            t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade",myqueue))
 
         self.task_list = [
             t_listen_candles,
@@ -262,26 +327,33 @@ class LivePrices:
             logger.info(f"cancel tasks...{task}")
             task.cancel()
 
+        for task in self.task_list:
+            try:
+                logger.info(f"wait...{task}")
+                await task
+            except asyncio.CancelledError:
+                pass
+
         await self.streamer.close()
         logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
-    async def _update_candle(self,aconn):
+    async def _update_candle(self,myqueue):
         async for e in self.streamer.listen(Candle):
             streamer_symbol = e.event_symbol.replace("{="+CANDLE_TYPE+",tho=true}","")
             self.candle[streamer_symbol] = e
             if self.save_to_json:
                 await save_data_to_json(self.ticker,streamer_symbol,'candle',e)
             if self.save_to_postres:
-                await persist_to_postgres(aconn,self.ticker,streamer_symbol,'candle',e)
+                await myqueue.push(ticker,streamer_symbol,'candle',e)
 
-    async def _update_event(self,event_type,attribue_name,aconn):
+    async def _update_event(self,event_type,attribue_name,myqueue):
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
             myparam[e.event_symbol] = e
             if self.save_to_json:
                 await save_data_to_json(self.ticker,e.event_symbol,attribue_name,e)
             if self.save_to_postres:
-                await persist_to_postgres(aconn,self.ticker,e.event_symbol,attribue_name,e)
+                await myqueue.push(self.ticker,e.event_symbol,attribue_name,e)
 
 def get_cancel_file(ticker):
     ticker = ticker.replace("/","^")
@@ -315,29 +387,39 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         max_lifetime = 25200
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
             await apool.check()
-            async with apool.connection(autocommit=True) as aconn:
+            async with apool.connection() as aconn:
                 async with aconn.pipeline() as apipeline:
+                    myqueue = PgInsertQueue()
+                    flusher_task = asyncio.create_task(flusher(myqueue, aconn))
                     # underlying
-                    live_prices = await LivePrices.create(aconn,session,ticker,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
+                    live_prices = await LivePrices.create(myqueue,session,ticker,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
                     live_prices_list.append(live_prices)
 
                     for expiration in expirations:
                         if ticker == 'VIX': # ignore options for VIX
                             continue
-                        live_prices = await LivePrices.create(aconn,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
+                        live_prices = await LivePrices.create(myqueue,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
                         live_prices_list.append(live_prices)
                         if len(live_prices_list)>=EXPIRATION_LIM:
                             break
 
                     while True:
+                        await asyncio.sleep(1000)
                         if not is_market_open():
                             logger.info("market closing -------------------------------")
                             await asyncio.sleep(10)
                             for lp in live_prices_list:
                                 logger.info("shutdown...")
                                 await lp.shutdown()
+
+                            # clean up
+                            flusher_task.cancel()
+                            try:
+                                await flusher_task
+                            except asyncio.CancelledError:
+                                pass
+
                             logger.info("pool close...")
-                            # await aconn.close() # ?why bother close if pool is used via "with"..
                             logger.info("break from while!!!")
                             break
                         else:
@@ -357,8 +439,17 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                                 logger.info(f"canceling!")
                                 for lp in live_prices_list:
                                     await lp.shutdown()
+
                                 if os.path.exists(running_file):
                                     os.remove(running_file)
+
+                                # clean up
+                                flusher_task.cancel()
+                                try:
+                                    await flusher_task
+                                except asyncio.CancelledError:
+                                    pass
+                                    
                                 raise ValueError("canceljob")
 
     except KeyboardInterrupt:
@@ -386,7 +477,6 @@ if __name__ == "__main__":
 
 python -m utils.data_tasty "/ES" background_subscribe
 
-python -m utils.data_tasty SPX background_subscribe
 python -m utils.data_tasty NDX background_subscribe
 
 """

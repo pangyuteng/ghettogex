@@ -73,3 +73,13 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+"""
+https://gist.github.com/pangyuteng/91323f79aa15bff8603cad6d96aaecb3
+
+buffer flushing logic using python asyncio Queue and Event
+
+keywords: buffer flushing, producer consumer
+
+"""
