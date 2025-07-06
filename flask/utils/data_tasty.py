@@ -315,7 +315,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
         max_lifetime = 25200
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
             await apool.check()
-            async with apool.connection() as aconn:
+            async with apool.connection(autocommit=True) as aconn:
                 async with aconn.pipeline() as apipeline:
                     # underlying
                     live_prices = await LivePrices.create(aconn,session,ticker,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)

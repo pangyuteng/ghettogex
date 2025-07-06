@@ -19,7 +19,7 @@ async def cpostgres_execute(aconn,query_str,query_args,is_commit=False):
             if is_commit is False:
                 response = await curs.fetchall()
             else:
-                aconn.commit()
+                await aconn.commit()
     except:
         traceback.print_exc()
     return response
@@ -30,7 +30,7 @@ async def cpostgres_execute_many(aconn,query_dict):
         async with aconn.cursor() as curs:
             coros = [curs.executemany(query_str,query_list) for query_str,query_list in query_dict.items()]
             await asyncio.gather(*coros)
-            aconn.commit()
+            await aconn.commit()
     except:
         traceback.print_exc()
     return response
