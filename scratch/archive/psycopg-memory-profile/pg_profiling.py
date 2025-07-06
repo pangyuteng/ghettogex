@@ -211,30 +211,42 @@ async def mycreate():
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
 
         query_str = """
-            CREATE TABLE IF NOT EXISTS hola (
-                
-                hola_id SERIAL,
-                event_symbol text NOT NULL,
-                event_time numeric,
-                sequence numeric,
-                time_nano_part numeric,
-                bid_time numeric,
-                bid_exchange_code text,
-                ask_time numeric,
-                ask_exchange_code text,
-                bid_price double precision,
-                ask_price double precision,
-                bid_size double precision,
-                ask_size double precision,
-                ticker text,
-                expiration TIMESTAMP,
-                contract_type text,
-                strike double precision,
-                tstamp TIMESTAMP default (now() at time zone 'utc')
-            )
+        CREATE TABLE IF NOT EXISTS hola (
+            
+            hola_id SERIAL,
+            event_symbol text NOT NULL,
+            event_time numeric,
+            sequence numeric,
+            time_nano_part numeric,
+            bid_time numeric,
+            bid_exchange_code text,
+            ask_time numeric,
+            ask_exchange_code text,
+            bid_price double precision,
+            ask_price double precision,
+            bid_size double precision,
+            ask_size double precision,
+            ticker text,
+            expiration TIMESTAMP,
+            contract_type text,
+            strike double precision,
+            tstamp TIMESTAMP default (now() at time zone 'utc')
+        ) WITH (
+        tsdb.hypertable=true,
+        tsdb.partition_column='tstamp',
+        tsdb.segmentby='ticker',
+        tsdb.orderby='tstamp DESC'
+        );
+        CALL add_columnstore_policy('hola', after => INTERVAL '1d');
         """
         query_args = ()
         await apostgres_execute(apool,query_str,query_args,is_commit=True)
+        # query_str = """
+        # create index hola_tstamp_event_symbol_index on hola using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+        # create index hola_tstamp_ticker_index on hola using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+        # """
+        # query_args = ()
+        # await apostgres_execute(None,query_str,query_args,is_commit=True)
     timeb = time.time()
     print(timeb-timea)
 
@@ -260,6 +272,7 @@ async def myfuncpipeline():
 
 
 async def mymonitor():
+    await mycreate()
     print("MONITOR")
     max_lifetime = 25200
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
@@ -310,7 +323,6 @@ async def main():
     await myfuncpipeline()
 
 async def mainsim():
-    await mycreate()
     coros = [myfuncpipelineSIMULATE() for x in range(5)]
     await asyncio.gather(*coros)
 
