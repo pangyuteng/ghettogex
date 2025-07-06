@@ -307,14 +307,18 @@ async def main():
     #await myfuncbb()
     #await myfuncaa()
     #await myfuncc()
-    #await myfuncpipeline()
-    await myfuncpipelineSIMULATE()
+    await myfuncpipeline()
 
-    
+async def mainsim():
+    await mycreate()
+    coros = [myfuncpipelineSIMULATE() for x in range(5)]
+    await asyncio.gather(*coros)
 
 if __name__ == "__main__":
     if sys.argv[1] == "monitor":
         asyncio.run(mymonitor())
+    elif sys.argv[1] == "sim":
+        asyncio.run(mainsim())
     else:
         asyncio.run(main())
 
@@ -330,7 +334,7 @@ export POSTGRES_URI="postgres://postgres:postgres@192.168.68.156:5432/postgres"
 
 docker stop postgres && docker rm postgres
 
-docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=postgres timescale/timescaledb:latest-pg17
+docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e TS_TUNE_MAX_CONNS=2000 timescale/timescaledb:latest-pg17
 
 2.5,2.9 seconds
 
