@@ -74,14 +74,16 @@ psql -U postgres postgres -c  "COPY hola(event_symbol,event_time,sequence,time_n
 
 
 
-import time
-import datetime
 import os
 import sys
 import traceback
+import time
+import datetime
+import numpy as np
 import asyncio
 import psycopg
 import psycopg_pool
+
 from psycopg.rows import dict_row
 postgres_uri = os.environ.get("POSTGRES_URI")
 
@@ -244,29 +246,77 @@ async def myfuncpipeline():
     colstr = ','.join(["%s"]*len(cols))
     query_str = f"""INSERT INTO hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) VALUES ({colstr})"""
     query_args = ('.SPX250620C5400',0,0,0,0,'C',0,'C',578.5,590.8,21,21,'SPX','2025-06-20','C',5400,'2025-06-18 20:00:28.66071' )
-
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+    max_lifetime = 25200
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
         async with apool.connection() as aconn:
             async with aconn.pipeline() as apipeline:
                 for x in range(1000):
-                    await aconn.execute(query_str, query_args, prepare=True)
+                    async with aconn.cursor(row_factory=dict_row) as curs:
+                        async with aconn.transaction() as tx:
+                            await curs.execute(query_str,query_args)
 
     timeb = time.time()
     print(timeb-timea)
+
+
+async def mymonitor():
+    print("MONITOR")
+    max_lifetime = 25200
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
+        async with apool.connection() as aconn:
+            async with aconn.pipeline() as apipeline:
+                while True:
+                    async with aconn.cursor(row_factory=dict_row) as curs:
+                        async with aconn.transaction() as tx:
+                            query_str = "select count(1) from hola"
+                            await curs.execute(query_str,())
+                            response = await curs.fetchall()
+                            fetched = [dict(x) for x in response]
+                            print(fetched)
+                    await asyncio.sleep(1)
+    
+
+async def myfuncpipelineSIMULATE():
+    print("PIPELINE")
+    cols = "event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp".split(",")
+    colstr = ','.join(["%s"]*len(cols))
+    query_str = f"""INSERT INTO hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) VALUES ({colstr})"""
+    query_args = ('.SPX250620C5400',0,0,0,0,'C',0,'C',578.5,590.8,21,21,'SPX','2025-06-20','C',5400,'2025-06-18 20:00:28.66071' )
+    max_lifetime = 25200
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
+        async with apool.connection() as aconn:
+            async with aconn.pipeline() as apipeline:
+                while True:
+                    bolus_size = np.random.randint(10,1000)
+                    print(bolus_size)
+                    timea = time.time()
+                    for x in range(bolus_size):
+                        async with aconn.cursor(row_factory=dict_row) as curs:
+                            async with aconn.transaction() as tx:
+                                await curs.execute(query_str,query_args)
+                    timeb = time.time()
+                    print("done",timeb-timea)
+                    await asyncio.sleep(np.random.rand())
+
 
 async def main():
     #await mycreate()
     #await myfuncb()
     #await myfunca()
+    # print("both are slow!!!!!")
     #await myfuncbb()
     #await myfuncaa()
     #await myfuncc()
-    await myfuncpipeline()
-    # print("both are slow!!!!!")
+    #await myfuncpipeline()
+    await myfuncpipelineSIMULATE()
+
     
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    if sys.argv[1] == "monitor":
+        asyncio.run(mymonitor())
+    else:
+        asyncio.run(main())
 
 
 """
