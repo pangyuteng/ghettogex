@@ -154,7 +154,7 @@ class LivePrices:
     @classmethod
     async def create(
         cls,
-        aconn: psycopg.Connection,
+        aconn: psycopg.AsyncConnection,
         session: Session,
         ticker: str = 'SPY',
         expiration: datetime.date = today_in_new_york(),
