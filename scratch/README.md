@@ -406,21 +406,22 @@ docker run -it -u $(id -u):$(id -g) \
   IMPLEMENTED POSSIBLE RESOLUTION:
   + specify refresh_interval to 0.5 to reduce updates for quotes, maybe remove to set back to 0.1
   + for postgres insert speedup
+    
+    https://www.tigerdata.com/blog/13-tips-to-improve-postgresql-insert-performance
 
     + purchsed sdd.
 
     ioping -q -c 10 -s 8k .
     ioping -q -c 10 -s 8k -W .
 
-
-    more suggestions:
-
-    https://www.tigerdata.com/blog/13-tips-to-improve-postgresql-insert-performance
-
     + added usage of pipeline (added cpostgres_execute, cpostgres_execute_many)
 
     https://www.postgresql.org/docs/current/libpq-pipeline-mode.html
     https://www.psycopg.org/articles/2024/05/08/psycopg3-pipeline-mode/
+
+    + "Insert rows in batches"
+
+      added usage of asyncio.Queue Event to buffer prior calling postgres
 
 
   + [ ] rerun contract-intraday-pg-viz.ipynb to confirm above fixes quote event.
