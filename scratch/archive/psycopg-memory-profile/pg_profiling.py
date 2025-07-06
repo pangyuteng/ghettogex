@@ -85,26 +85,6 @@ import psycopg_pool
 from psycopg.rows import dict_row
 postgres_uri = os.environ.get("POSTGRES_URI")
 
-async def apostgres_copyrows(apool,query_str,mylist):
-    try:
-        if apool is None:
-            raise NotImplementedError()
-            async with await psycopg.AsyncConnection.connect(postgres_uri) as aconn:
-                async with aconn.cursor() as curs:
-                    async with curs.copy(query_str) as copy:
-                        for row in mylist:
-                            await copy.write_row(row)
-        else:
-            await apool.check()
-            async with apool.connection() as aconn:
-                async with aconn.cursor() as curs:
-                    async with curs.copy(query_str) as copy:
-                        for row in mylist:
-                            await copy.write_row(row)
-    except:
-        traceback.print_exc()
-    return 1
-
 
 async def apostgres_copy(apool,query_str,stdin):
     try:
@@ -148,6 +128,22 @@ async def apostgres_execute(apool,query_str,query_args,is_commit=False):
     return response
 
 
+async def myfunnotworking():
+    print("not working...")
+    timea = time.time()
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+        query_str = "COPY hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) FROM STDIN DELIMITER ','"
+        stdin = ".SPX250620C5400,0,0,0,0,C,0,C,578.5,590.8,21,21,SPX,2025-06-20,C,5400,2025-06-18 20:00:28.66071"
+        mylist = [stdin for x in range(1000)]
+        async with apool.connection() as aconn:
+            async with aconn.cursor() as curs:
+                async with curs.copy(query_str) as copy:
+                    for row in mylist:
+                        await copy.write_row(row)
+    timeb = time.time()
+    print(timeb-timea)
+
+
 
 async def myfunca():
     print("COPY")
@@ -159,6 +155,22 @@ async def myfunca():
             ok = await apostgres_copy(apool,query_str,stdin)
         timeb = time.time()
     print(timeb-timea)
+
+
+async def myfuncaa():
+    print("COPY2")
+    timea = time.time()
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+        async with apool.connection() as aconn:
+            async with aconn.cursor() as curs:
+                query_str = "COPY hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) FROM STDIN DELIMITER ','"
+                stdin = ".SPX250620C5400,0,0,0,0,C,0,C,578.5,590.8,21,21,SPX,2025-06-20,C,5400,2025-06-18 20:00:28.66071"
+                for x in range(1000):
+                    async with curs.copy(query_str) as copy:
+                        await copy.write(stdin)
+    timeb = time.time()
+    print(timeb-timea)
+
 
 
 async def myfuncb():
@@ -175,17 +187,21 @@ async def myfuncb():
     print(timeb-timea)
 
 
-async def myfuncc():
-    print("not working...")
+async def myfuncbb():
+    print("INSERT2")
     timea = time.time()
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
-        query_str = "COPY hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) FROM STDIN DELIMITER ','"
-        stdin = ".SPX250620C5400,0,0,0,0,C,0,C,578.5,590.8,21,21,SPX,2025-06-20,C,5400,2025-06-18 20:00:28.66071"
-        mylist = [stdin for x in range(1000)]
-        await apostgres_copyrows(apool,query_str,mylist)
+        
+        cols = "event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp".split(",")
+        colstr = ','.join(["%s"]*len(cols))
+        query_str = f"""INSERT INTO hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) VALUES ({colstr})"""
+        query_args = ('.SPX250620C5400',0,0,0,0,'C',0,'C',578.5,590.8,21,21,'SPX','2025-06-20','C',5400,'2025-06-18 20:00:28.66071' )
+        async with apool.connection() as aconn:
+            async with aconn.cursor() as curs:
+                for x in range(1000):
+                    await curs.execute(query_str,query_args)
     timeb = time.time()
     print(timeb-timea)
-
 
 async def mycreate():
     print("CREATE")
@@ -222,10 +238,12 @@ async def mycreate():
 
 
 async def main():
-    await mycreate()
-    await myfuncb()
-    await myfunca()
-    
+    #await mycreate()
+    #await myfuncb()
+    #await myfunca()
+    await myfuncbb()
+    await myfuncaa()
+    #await myfuncc()
     # print("both are slow!!!!!")
     
 
@@ -247,6 +265,11 @@ docker stop postgres && docker rm postgres
 docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=postgres timescale/timescaledb:latest-pg17
 
 2.5,2.9 seconds
+
+
+https://stackoverflow.com/questions/52548446/increase-data-insert-speed-of-postgresql
+
+iostat -x 1
 
 
 docker stop timescaledb && docker rm timescaledb
