@@ -301,7 +301,7 @@ async def myfuncpipelineSIMULATE():
             async with aconn.pipeline() as apipeline:
                 while True:
                     bolus_size = np.random.randint(10,1000)
-                    print(bolus_size)
+                    #print(bolus_size)
                     timea = time.time()
                     for x in range(bolus_size):
                         async with aconn.cursor(row_factory=dict_row) as curs:
