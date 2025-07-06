@@ -398,8 +398,23 @@ docker run -it -u $(id -u):$(id -g) \
     https://github.com/mkleehammer/pyodbc/issues/120#issuecomment-223331595
     https://www.tigerdata.com/blog/13-tips-to-improve-postgresql-insert-performance
     
-+ [ ] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
++ [nah] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
 
++ issue `LIKELY quote event does not match up with timesandscale`
+  likely is due to postgres insert being too slow.
+
+  IMPLEMENTED POSSIBLE RESOLUTION:
+  + specify refresh_interval to 0.5 to reduce updates for quotes, maybe remove to set back to 0.1
+  + for postgres insert speedup
+
+    + purchsed sdd.
+    + added usage of pipeline (added cpostgres_execute, cpostgres_execute_many)
+
+    https://www.postgresql.org/docs/current/libpq-pipeline-mode.html
+    https://www.psycopg.org/articles/2024/05/08/psycopg3-pipeline-mode/
+
+  + [ ] rerun contract-intraday-pg-viz.ipynb to confirm above fixes quote event.
+  
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
 
