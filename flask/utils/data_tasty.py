@@ -117,21 +117,24 @@ async def cpostgres_execute_list(aconn,insert_list):
     response = None
     try:
         async with aconn.cursor() as curs:
-            async with aconn.transaction() as tx:
-                for query_str,query_args in insert_list:
-                    await curs.execute(query_str,query_args)
+            for query_str,query_args in insert_list:
+                await curs.execute(query_str,query_args)
+        await aconn.commit()
     except:
         traceback.print_exc()
     return response
 
-class PgInsertQueue():
-    def __init__(self):
-        self.queue = asyncio.Queue()
-        self.max_queue_size = 500
-        self.interval = 0.25
-        self.flush_event = asyncio.Event()
-
-    async def push(self,ticker,streamer_symbol,event_type,event):
+@dataclass
+class PgInsertQueue:
+    queue: asyncio.Queue
+    max_queue_size: int
+    interval: float
+    flush_event: asyncio.Event
+    @classmethod
+    async def create(cls):
+        self = cls(asyncio.Queue(),500,0.25,asyncio.Event())
+        return self
+    async def push_event(self,ticker,streamer_symbol,event_type,event):
         event_dict = dict(event)
         if streamer_symbol.startswith("."):
             ticker,expiration,contract_type,strike = parse_symbol(streamer_symbol)
@@ -175,8 +178,6 @@ async def flusher(myqueue,aconn):
         # clear flush event if it was set
         if myqueue.flush_event.is_set():
             myqueue.flush_event.clear()
-        #print(myqueue.flush_event.is_set(),len(insert_list))
-
 
 # sample event_symbol ".TSLA240927C105"
 PATTERN = r"\.([A-Z]+)(\d{6})([CP])(\d+)"
@@ -344,7 +345,7 @@ class LivePrices:
             if self.save_to_json:
                 await save_data_to_json(self.ticker,streamer_symbol,'candle',e)
             if self.save_to_postres:
-                await myqueue.push(ticker,streamer_symbol,'candle',e)
+                await myqueue.push_event(self.ticker,streamer_symbol,'candle',e)
 
     async def _update_event(self,event_type,attribue_name,myqueue):
         async for e in self.streamer.listen(event_type):
@@ -353,7 +354,7 @@ class LivePrices:
             if self.save_to_json:
                 await save_data_to_json(self.ticker,e.event_symbol,attribue_name,e)
             if self.save_to_postres:
-                await myqueue.push(self.ticker,e.event_symbol,attribue_name,e)
+                await myqueue.push_event(self.ticker,e.event_symbol,attribue_name,e)
 
 def get_cancel_file(ticker):
     ticker = ticker.replace("/","^")
@@ -363,7 +364,7 @@ def get_running_file(ticker):
     ticker = ticker.replace("/","^")
     return os.path.join(CACHE_TASTY_FOLDER,f"running-{ticker}.txt")
 
-async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
+async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
     try:
 
         running_file = get_running_file(ticker)
@@ -389,8 +390,8 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
             await apool.check()
             async with apool.connection() as aconn:
                 async with aconn.pipeline() as apipeline:
-                    myqueue = PgInsertQueue()
-                    flusher_task = asyncio.create_task(flusher(myqueue, aconn))
+                    myqueue = await PgInsertQueue.create()
+                    flusher_task = asyncio.create_task(flusher(myqueue,aconn))
                     # underlying
                     live_prices = await LivePrices.create(myqueue,session,ticker,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
                     live_prices_list.append(live_prices)
@@ -404,7 +405,6 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
                             break
 
                     while True:
-                        await asyncio.sleep(1000)
                         if not is_market_open():
                             logger.info("market closing -------------------------------")
                             await asyncio.sleep(10)
@@ -459,7 +459,7 @@ async def background_subscribe(ticker,save_to_postres=False,save_to_json=True):
             os.remove(running_file)
 
 if __name__ == "__main__":
-    log_level = logging.INFO # logging.DEBUG
+    log_level = logging.INFO #  logging.DEBUG # 
     tastytrade.logger.setLevel(log_level)
     logging.basicConfig(
         level=log_level,
@@ -470,7 +470,7 @@ if __name__ == "__main__":
     action = sys.argv[2]
     
     if action == "background_subscribe":
-        output = asyncio.run(background_subscribe(ticker))
+        output = asyncio.run(background_subscribe(ticker,save_to_postres=True))
 
 """
 
