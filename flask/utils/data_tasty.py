@@ -470,7 +470,7 @@ if __name__ == "__main__":
     action = sys.argv[2]
     
     if action == "background_subscribe":
-        output = asyncio.run(background_subscribe(ticker,save_to_postres=True))
+        output = asyncio.run(background_subscribe(ticker,save_to_postres=False))
 
 """
 
