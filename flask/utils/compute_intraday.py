@@ -100,7 +100,7 @@ async def get_events_df_from_scratch(aconn,ticker,utc_tstamp,max_utc_tstamp,futu
     query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
     oqh = cpostgres_execute(aconn,query_str,query_args)
 
-    query_str = """
+    quote_query_str = """
     select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
         last(ask_price,tstamp) as ask_price,last(bid_price,tstamp) as bid_price,last(tstamp,tstamp) as tstamp
     FROM quote WHERE
@@ -109,7 +109,7 @@ async def get_events_df_from_scratch(aconn,ticker,utc_tstamp,max_utc_tstamp,futu
     AND ticker = %s AND expiration = %s 
     GROUP BY event_symbol,contract_type,ticker,strike,expiration
     """
-    query_str = """
+    candle_query_str = """
     select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
         last(close,tstamp) as price,last(tstamp,tstamp) as tstamp
     FROM candle WHERE
@@ -119,7 +119,7 @@ async def get_events_df_from_scratch(aconn,ticker,utc_tstamp,max_utc_tstamp,futu
     GROUP BY event_symbol,contract_type,ticker,strike,expiration
     """
     query_args = (utc_tstamp,utc_tstamp,ticker_alt,expiration) # quote
-    oq = cpostgres_execute(aconn,query_str,query_args)
+    oq = cpostgres_execute(aconn,quote_query_str,query_args)
 
     all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oqh,oq)
     with warnings.catch_warnings():
@@ -196,7 +196,7 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote history
     oqh = cpostgres_execute(aconn,query_str,query_args)
 
-    query_str = """
+    quote_query_str = """
     select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
         last(ask_price,tstamp) as ask_price,last(bid_price,tstamp) as bid_price,last(tstamp,tstamp) as tstamp
     FROM quote WHERE
@@ -205,7 +205,7 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     AND ticker = %s AND expiration = %s 
     GROUP BY event_symbol,contract_type,ticker,strike,expiration
     """
-    query_str = """
+    candle_query_str = """
     select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
         last(close,tstamp) as price,last(tstamp,tstamp) as tstamp
     FROM candle WHERE
@@ -215,7 +215,7 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     GROUP BY event_symbol,contract_type,ticker,strike,expiration
     """
     query_args = (utc_tstamp,utc_tstamp,ticker_alt,expiration) # quote
-    oq = cpostgres_execute(aconn,query_str,query_args)
+    oq = cpostgres_execute(aconn,quote_query_str,query_args)
 
     all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oqh,oq)
     with warnings.catch_warnings():
@@ -279,6 +279,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     underlying_candle_df = df[(df.event_type=='underlying_candle')]
     if len(underlying_candle_df)>0:
         spot_price = underlying_candle_df.spot_price.to_list()[-1]
+        avg_spot_price = np.mean(underlying_candle_df.spot_price.to_list()[-5:])
     else:
         spot_price = np.nan
 
@@ -297,6 +298,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     # NOTE: quote_df is actually from candle event since price from quote and greeks seems off !!!
     quote_df = df[df.event_type=='quote'].copy()
     quote_df = quote_df.sort_values(by=['contract_type','strike'])
+    quote_df['price'] = (quote_df['ask_price']+quote_df['bid_price'])/2.0
 
     # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
@@ -353,11 +355,12 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
 
     merged_df['spot_volatility'] = spot_volatility
     merged_df['spot_price'] = spot_price
+    merged_df['avg_spot_price'] = avg_spot_price
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
 
     for col_name in [
         'spot_volatility','delta','gamma','volatility',
-        'open_interest','true_oi','spot_price',
+        'open_interest','true_oi','spot_price','avg_spot_price',
         'size_signed','price','volume','ask_volume','bid_volume',
         'gamma_sign']:
 
