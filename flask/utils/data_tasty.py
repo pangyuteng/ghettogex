@@ -307,7 +307,7 @@ class LivePrices:
         return self
 
     async def shutdown(self):
-        logger.info(f"sreamer.unsubscribe...{self.ticker}")
+        logger.info(f"streamer.unsubscribe...{self.ticker}")
 
         await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
         await self.streamer.unsubscribe(Quote,self.streamer_symbols)
@@ -323,19 +323,13 @@ class LivePrices:
             await self.streamer.unsubscribe(TheoPrice, self.streamer_symbols)
             await self.streamer.unsubscribe(Underlying, self.streamer_symbols)
 
+        await self.streamer.close()
+
         logger.info(f"cancel tasks...{self.ticker}")
         for task in self.task_list:
             logger.info(f"cancel tasks...{task}")
             task.cancel()
 
-        for task in self.task_list:
-            try:
-                logger.info(f"wait...{task}")
-                await task
-            except asyncio.CancelledError:
-                pass
-
-        await self.streamer.close()
         logger.debug(f"sreamer closed...{self.streamer_symbols}")
 
     async def _update_candle(self,myqueue):
