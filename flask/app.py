@@ -899,10 +899,10 @@ async def ws_ex_query():
 
                             # smooth if out man ??
                             # or use gex_strike???
-                            df['dex_diff'] = df.dex.rolling(10).mean().diff()
-                            df['convexity_diff'] = df.convexity.rolling(10).mean().diff()
-                            df['volume_gex_diff'] = df.volume_gex.rolling(10).mean().diff()
-                            df['state_gex_diff'] = df.state_gex.rolling(10).mean().diff()
+                            df['dex_diff'] = df.dex.rolling(5).mean().diff(5)
+                            df['convexity_diff'] = df.convexity.rolling(5).mean().diff(5)
+                            df['volume_gex_diff'] = df.volume_gex.rolling(5).mean().diff(5)
+                            df['state_gex_diff'] = df.state_gex.rolling(5).mean().diff(5)
 
                             df = df.replace({np.nan: None})
                             spot_price = df["spot_price"].iloc[-1]
