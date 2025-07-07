@@ -911,14 +911,14 @@ async def ws_ex_query():
                                 ret_dict['diffgex'] = lst
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity_diff']]
                                 ret_dict['diffconvexity'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','spot_price','dex_diff']]
+                                lst = [df[i].tolist() for i in ['tstamp','vix_price','dex_diff']]
                                 ret_dict['diffdex'] = lst
                             else:
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
                                 ret_dict['diffgex'] = lst
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity']]
                                 ret_dict['diffconvexity'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','spot_price','dex']]
+                                lst = [df[i].tolist() for i in ['tstamp','vix_price','dex']]
                                 ret_dict['diffdex'] = lst
 
                             app.logger.info(f'historical gex_net hgn {len(lst)}')
