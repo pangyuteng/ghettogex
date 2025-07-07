@@ -965,14 +965,14 @@ async def ws_ex_query():
                             ret_dict['netgex'] = lst
                             lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity']]
                             ret_dict['netconvexity'] = lst
-                            lst = [df[i].tolist() for i in ['tstamp','spot_price','dex']]
+                            lst = [df[i].tolist() for i in ['tstamp','vix_price','dex']]
                             ret_dict['netdex'] = lst
                             if False:
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
                                 ret_dict['diffgex'] = lst
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity_diff']]
                                 ret_dict['diffconvexity'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','spot_price','dex_diff']]
+                                lst = [df[i].tolist() for i in ['tstamp','vix_price','dex_diff']]
                                 ret_dict['diffdex'] = lst
 
                             app.logger.info(f'historical gex strike hgs {len(lst)}')
