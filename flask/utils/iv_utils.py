@@ -82,6 +82,11 @@ def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
     idx3 = (df.strike<0.99*spot_price)&(df.contract_type=='C')
     df.loc[idx3,'tmp_price']=np.nan
 
+    # pad by ~ 1 minute, bad hack to reduce gamma sensitivity to spot price at end
+    # maybe we don't need this...
+    timepad = np.float16(2E-6)
+    timepad = 0
+
     yield_10yr = 1e-5
     q = 0.0 # dividend_yield
 
