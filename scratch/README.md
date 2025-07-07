@@ -414,6 +414,10 @@ docker run -it -u $(id -u):$(id -g) \
     ioping -q -c 10 -s 8k .
     ioping -q -c 10 -s 8k -W .
 
+    https://stackoverflow.com/questions/52548446/increase-data-insert-speed-of-postgresql
+    
+    iostat -x 1
+
     + added usage of pipeline (added cpostgres_execute, cpostgres_execute_many)
 
     https://www.postgresql.org/docs/current/libpq-pipeline-mode.html
@@ -423,8 +427,7 @@ docker run -it -u $(id -u):$(id -g) \
 
       added usage of asyncio.Queue Event to buffer prior calling postgres
 
-
-  + [ ] rerun contract-intraday-pg-viz.ipynb to confirm above fixes quote event.
+  + [x] rerun contract-intraday-pg-viz.ipynb to confirm above fixes quote event.
   
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
