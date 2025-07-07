@@ -282,6 +282,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
         avg_spot_price = np.mean(underlying_candle_df.spot_price.to_list()[-5:])
     else:
         spot_price = np.nan
+        avg_spot_price = np.nan
 
     vix_candle_df = df[(df.event_type=='vix_candle')]
     if len(vix_candle_df)>0:
@@ -686,7 +687,8 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            get_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False))
+            agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False))
+            logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
         except KeyboardInterrupt:
             sys.exit(1)
         except:
@@ -701,8 +703,7 @@ def tryone(ticker,tstampstr):
         agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=False,overwrite=False))
         if agg_df is not None:
             logger.debug(agg_df.head())
-            logger.debug(f'volume_gex {agg_df.volume_gex.sum()}')
-            logger.debug(f'state_gex {agg_df.state_gex.sum()}')
+            logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
 
     except KeyboardInterrupt:
         sys.exit(1)
