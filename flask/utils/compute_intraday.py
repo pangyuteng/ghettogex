@@ -688,7 +688,8 @@ def main(ticker,my_date):
             break
         try:
             agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False))
-            logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
+            if agg_df is not None:
+                logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
         except KeyboardInterrupt:
             sys.exit(1)
         except:
