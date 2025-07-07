@@ -892,6 +892,7 @@ async def ws_ex_query():
                             df.volume_gex = df.volume_gex.ffill()
                             df.state_gex = df.state_gex.ffill()
                             df.convexity = df.convexity.ffill()
+                            df.vix_price = df.vix_price.ffill()
 
                             df.dex = df.dex/1e9
                             df.volume_gex = df.volume_gex/1e9
