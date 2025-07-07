@@ -897,18 +897,16 @@ async def ws_ex_query():
                             df.volume_gex = df.volume_gex/1e9
                             df.state_gex = df.state_gex/1e9
 
-                            # smooth if out man ??
-                            # or use gex_strike???
-
-                            df['dex_diff'] = df.dex.rolling(window=10).median().diff()
-                            df['convexity_diff'] = df.convexity.rolling(window=10).median().diff()
-                            df['volume_gex_diff'] = df.volume_gex.rolling(window=10).median().diff()
-                            df['state_gex_diff'] = df.state_gex.rolling(window=10).median().diff()
+                            # need some smoothing prior doing a diff
+                            df['dex_diff'] = df.dex.diff()
+                            df['convexity_diff'] = df.convexity.diff()
+                            df['volume_gex_diff'] = df.volume_gex.diff()
+                            df['state_gex_diff'] = df.state_gex.diff()
 
                             df = df.replace({np.nan: None})
                             spot_price = df["spot_price"].iloc[-1]
                             ret_dict['spot_price'] = spot_price
-                            if True:
+                            if False:
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
                                 ret_dict['diffgex'] = lst
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity_diff']]
