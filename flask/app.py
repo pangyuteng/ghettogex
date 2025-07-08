@@ -893,7 +893,7 @@ async def ws_ex_query():
                             df.state_gex = df.state_gex.ffill()
                             df.convexity = df.convexity.ffill()
                             df.vix_price = df.vix_price.ffill()
-                            df.net_oi = df.call_oi - df.put_oi
+                            df['net_oi'] = df.call_oi - df.put_oi
 
                             df.dex = df.dex/1e9
                             df.volume_gex = df.volume_gex/1e9
@@ -954,7 +954,7 @@ async def ws_ex_query():
                             df.dex = df.dex/1e9
                             df.state_gex = df.state_gex/1e9
                             df.volume_gex = df.volume_gex/1e9
-                            df.net_oi = df.call_oi - df.put_oi
+                            df['net_oi'] = df.call_oi - df.put_oi
                             
                             df['dex_diff'] = df.dex.diff()
                             df['convexity_diff'] = df.convexity.diff()
