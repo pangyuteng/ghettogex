@@ -42,7 +42,7 @@ AND strike > (select close*0.98 from last_price)
 
 LATEST_DAY_GEX_NET_QUERY = """
 WITH gex_net AS (select * from gex_net where tstamp::date = %s and tstamp >= %s - interval '15 minute' and ticker = %s order by tstamp),
-vix_price AS (select tstamp::timestamp(0),close as vix_price from candle where tstamp::date = %s and tstamp >= %s - interval '15 minute' and event_symbol = 'VIX')
+vix_price AS (select tstamp::timestamp(0),close as vix_price from candle where tstamp::date = %s and tstamp >= %s - interval '15 minute' and event_symbol = 'VIX' and close != 0)
 SELECT * FROM gex_net
 LEFT JOIN vix_price using (tstamp)
 ORDER BY tstamp
@@ -50,7 +50,7 @@ ORDER BY tstamp
 
 GEX_NET_1MIN_QUERY = """
 WITH get_net_1min AS (select * from get_net_1min where tstamp::date = %s and ticker = %s),
-candle_1min AS (select tstamp, close as vix_price from candle_1min where tstamp::date = %s and event_symbol = 'VIX')
+candle_1min AS (select tstamp, close as vix_price from candle_1min where tstamp::date = %s and event_symbol = 'VIX' and close != 0)
 SELECT * FROM get_net_1min
 LEFT JOIN candle_1min using (tstamp)
 ORDER BY tstamp
@@ -69,7 +69,7 @@ AND strike > (select close*0.98 from last_price)
 
 explain analyze
 WITH get_net_1min AS (select * from gex_net where tstamp::date = '2025-06-20' and ticker = 'SPX'),
-candle_1min AS (select tstamp, close as vix_price from candle_1min where tstamp::date = '2025-06-20' and event_symbol = 'VIX')
+candle_1min AS (select tstamp, close as vix_price from candle_1min where tstamp::date = '2025-06-20' and event_symbol = 'VIX' and close != 0)
 SELECT * FROM gex_net
 LEFT JOIN candle_1min using (tstamp)
 ORDER BY tstamp
