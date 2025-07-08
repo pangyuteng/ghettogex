@@ -273,16 +273,16 @@ def get_size_signed(row):
     
 def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     tstamp = utc_tstamp.replace(tzinfo=None) # postgres tsamp have no tzinfo
-    # NOTE: we sort by time first, since tstamp is postgres insert time.
+    # NOTE: we sort by time first, since tstamp col is postgres insert time.
     df = df.sort_values(by=['event_type','time','tstamp'])
 
     underlying_candle_df = df[(df.event_type=='underlying_candle')]
     if len(underlying_candle_df)>0:
         spot_price = underlying_candle_df.spot_price.to_list()[-1]
-        avg_spot_price = np.mean(underlying_candle_df.spot_price.to_list()[-5:])
+        #avg_spot_price = np.mean(underlying_candle_df.spot_price.to_list()[-5:])
     else:
         spot_price = np.nan
-        avg_spot_price = np.nan
+        #avg_spot_price = np.nan
 
     vix_candle_df = df[(df.event_type=='vix_candle')]
     if len(vix_candle_df)>0:
@@ -356,12 +356,11 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
 
     merged_df['spot_volatility'] = spot_volatility
     merged_df['spot_price'] = spot_price
-    merged_df['avg_spot_price'] = avg_spot_price
     merged_df['gamma_sign'] = merged_df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
 
     for col_name in [
         'spot_volatility','delta','gamma','volatility',
-        'open_interest','true_oi','spot_price','avg_spot_price',
+        'open_interest','true_oi','spot_price',
         'size_signed','price','volume','ask_volume','bid_volume',
         'gamma_sign']:
 
@@ -701,7 +700,7 @@ def tryone(ticker,tstampstr):
     tstamp = pytz.timezone('US/Eastern').localize(tstamp)
     print(ticker,tstamp)
     try:
-        agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=False,overwrite=False))
+        agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=False,overwrite=True))
         if agg_df is not None:
             logger.debug(agg_df.head())
             logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
