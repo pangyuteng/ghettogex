@@ -893,6 +893,7 @@ async def ws_ex_query():
                             df.state_gex = df.state_gex.ffill()
                             df.convexity = df.convexity.ffill()
                             df.vix_price = df.vix_price.ffill()
+                            df.net_oi = df.call_oi - df.put_oi
 
                             df.dex = df.dex/1e9
                             df.volume_gex = df.volume_gex/1e9
@@ -910,14 +911,14 @@ async def ws_ex_query():
                             if False:
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
                                 ret_dict['diffgex'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity_diff']]
+                                lst = [df[i].tolist() for i in ['tstamp','net_oi','convexity_diff']]
                                 ret_dict['diffconvexity'] = lst
                                 lst = [df[i].tolist() for i in ['tstamp','vix_price','dex_diff']]
                                 ret_dict['diffdex'] = lst
                             else:
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
                                 ret_dict['diffgex'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity']]
+                                lst = [df[i].tolist() for i in ['tstamp','net_oi','convexity']]
                                 ret_dict['diffconvexity'] = lst
                                 lst = [df[i].tolist() for i in ['tstamp','vix_price','dex']]
                                 ret_dict['diffdex'] = lst
@@ -953,6 +954,7 @@ async def ws_ex_query():
                             df.dex = df.dex/1e9
                             df.state_gex = df.state_gex/1e9
                             df.volume_gex = df.volume_gex/1e9
+                            df.net_oi = df.call_oi - df.put_oi
                             
                             df['dex_diff'] = df.dex.diff()
                             df['convexity_diff'] = df.convexity.diff()
@@ -964,14 +966,14 @@ async def ws_ex_query():
 
                             lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
                             ret_dict['netgex'] = lst
-                            lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity']]
+                            lst = [df[i].tolist() for i in ['tstamp','net_oi','convexity']]
                             ret_dict['netconvexity'] = lst
                             lst = [df[i].tolist() for i in ['tstamp','vix_price','dex']]
                             ret_dict['netdex'] = lst
                             if False:
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
                                 ret_dict['diffgex'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','spot_price','convexity_diff']]
+                                lst = [df[i].tolist() for i in ['tstamp','net_oi','convexity_diff']]
                                 ret_dict['diffconvexity'] = lst
                                 lst = [df[i].tolist() for i in ['tstamp','vix_price','dex_diff']]
                                 ret_dict['diffdex'] = lst
