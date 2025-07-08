@@ -429,6 +429,16 @@ docker run -it -u $(id -u):$(id -g) \
 
   + [x] rerun contract-intraday-pg-viz.ipynb to confirm above fixes quote event.
   
++ compute IV surface again with quote data?
+    
+    NOTE: in iv_utils.py 
+
+      `sv = spot_volatility/100`
+      using VIX as sigma, but sigma is supposed to be annualized realized volatility.
+
+  https://quant.stackexchange.com/questions/39988/which-volatility-as-input-in-black-scholes-formula
+  https://cdn.cboe.com/api/global/us_indices/governance/Volatility_Index_Methodology_Cboe_Volatility_Index.pdf
+
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
 
