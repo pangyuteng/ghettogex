@@ -140,7 +140,7 @@ async def links():
 @app.route("/gexbots")
 @login_required
 async def gexbots():
-    return await render_template("gexbots.html")
+    return await render_template("gexbots-vert.html")
 
 @app.route("/black")
 @login_required
