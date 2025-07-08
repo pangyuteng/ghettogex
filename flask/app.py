@@ -911,16 +911,16 @@ async def ws_ex_query():
                             if False:
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
                                 ret_dict['diffgex'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','net_oi','convexity_diff']]
+                                lst = [df[i].tolist() for i in ['tstamp','vix_price','convexity_diff']]
                                 ret_dict['diffconvexity'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','vix_price','dex_diff']]
+                                lst = [df[i].tolist() for i in ['tstamp','net_oi','dex_diff']]
                                 ret_dict['diffdex'] = lst
                             else:
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
                                 ret_dict['diffgex'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','net_oi','convexity']]
+                                lst = [df[i].tolist() for i in ['tstamp','vix_price','convexity']]
                                 ret_dict['diffconvexity'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','vix_price','dex']]
+                                lst = [df[i].tolist() for i in ['tstamp','net_oi','dex']]
                                 ret_dict['diffdex'] = lst
 
                             app.logger.info(f'historical gex_net hgn {len(lst)}')
@@ -966,16 +966,16 @@ async def ws_ex_query():
 
                             lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex','state_gex']]
                             ret_dict['netgex'] = lst
-                            lst = [df[i].tolist() for i in ['tstamp','net_oi','convexity']]
+                            lst = [df[i].tolist() for i in ['tstamp','vix_price','convexity']]
                             ret_dict['netconvexity'] = lst
-                            lst = [df[i].tolist() for i in ['tstamp','vix_price','dex']]
+                            lst = [df[i].tolist() for i in ['tstamp','net_oi','dex']]
                             ret_dict['netdex'] = lst
                             if False:
                                 lst = [df[i].tolist() for i in ['tstamp','spot_price','volume_gex_diff','state_gex_diff']]
                                 ret_dict['diffgex'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','net_oi','convexity_diff']]
+                                lst = [df[i].tolist() for i in ['tstamp','vix_price','convexity_diff']]
                                 ret_dict['diffconvexity'] = lst
-                                lst = [df[i].tolist() for i in ['tstamp','vix_price','dex_diff']]
+                                lst = [df[i].tolist() for i in ['tstamp','net_oi','dex_diff']]
                                 ret_dict['diffdex'] = lst
 
                             app.logger.info(f'historical gex strike hgs {len(lst)}')
