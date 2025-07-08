@@ -92,7 +92,7 @@ def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
 
     price = df.tmp_price.astype(np.float16)
     flag = df.contract_type.apply(lambda x: 'c' if x == 'C' else 'p')
-    S = df.avg_spot_price.astype(np.float16)
+    S = df.spot_price.astype(np.float16)
     K = df.strike.astype(np.float16)
     t = df.time_till_exp.astype(np.float16)
     r = np.float64(yield_10yr)
