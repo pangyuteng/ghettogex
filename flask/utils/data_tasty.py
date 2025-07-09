@@ -378,7 +378,7 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
         chain = get_option_chain(session, ticker)
         expirations = sorted(list(chain.keys()))
         live_prices_list = []
-        EXPIRATION_LIM = 10
+        EXPIRATION_LIM = 3
         max_lifetime = 25200
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
             await apool.check()
