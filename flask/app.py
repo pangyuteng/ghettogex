@@ -140,12 +140,17 @@ async def links():
 @app.route("/gexbots")
 @login_required
 async def gexbots():
-    return await render_template("gexbots-vert.html")
+    return await render_template("gexbots.html")
+
+@app.route("/gexbots2cols")
+@login_required
+async def gexbots2cols():
+    return await render_template("gexbots-2cols.html")
 
 @app.route("/gexbots3cols")
 @login_required
 async def gexbots3cols():
-    return await render_template("gexbots-cols.html")
+    return await render_template("gexbots-3cols.html")
 
 @app.route("/black")
 @login_required
