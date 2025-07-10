@@ -142,6 +142,11 @@ async def links():
 async def gexbots():
     return await render_template("gexbots-vert.html")
 
+@app.route("/gexbots3cols")
+@login_required
+async def gexbots3cols():
+    return await render_template("gexbots-cols.html")
+
 @app.route("/black")
 @login_required
 async def black():
