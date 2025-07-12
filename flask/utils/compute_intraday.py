@@ -257,7 +257,6 @@ def get_side_mod(row,quotehist_df=None):
                     side_mod = 'likely_bid'
                 else:
                     pass # assume mid is matched.
-
         return side_mod
     except:
         traceback.print_exc()
@@ -294,9 +293,13 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     summary_df = df[df.event_type=='summary']
     greeks_df = df[df.event_type=='greeks']
     quotehist_df = df[df.event_type=='quotehist']
+
+    # use copy since will be adding columns to the df
     ts_df = df[df.event_type=='timeandsale'].copy()
 
-    # NOTE: quote_df is actually from candle event since price from quote and greeks seems off !!!
+    # NOTE:
+    # quote data not really usable, as it is not synced with timeandsale...
+    # once synced with timeandsale, can derive vol surface for better determine ddoi
     quote_df = df[df.event_type=='quote'].copy()
     quote_df = quote_df.sort_values(by=['contract_type','strike'])
     quote_df['price'] = (quote_df['ask_price']+quote_df['bid_price'])/2.0
@@ -314,13 +317,20 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     ts_df['theo_price'] = np.nan
     try:
         if len(ts_df) > 0:
-            expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(ts_df.expiration.unique())}
-            ts_df['time_till_exp'] = ts_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
-            epsilon = 1e-5
-            ts_df.loc[ts_df.time_till_exp==0,'time_till_exp'] = epsilon
-            ts_df['spot_price'] = spot_price
-            compute_theo_price(ts_df,spot_price,spot_volatility)
-            ts_df.loc[ts_df.theo_price==0.0,'theo_price']=np.nan
+            if False:
+                expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(ts_df.expiration.unique())}
+                ts_df['time_till_exp'] = ts_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
+                epsilon = 1e-5
+                ts_df.loc[ts_df.time_till_exp==0,'time_till_exp'] = epsilon
+                ts_df['spot_price'] = spot_price
+                if False:
+                    # comment: we now are cmoparing using lagged data from qute event!
+                    # even if you query the lagged 1sec quote it gex profile still looks wrong!
+                    ts_df.drop(['price'], axis=1,inplace=True)
+                    ts_df = ts_df.merge(quote_df[['event_symbol','price']],how='left',on=['event_symbol'])
+                # TDOO: compute IV merge with quote_df, compare IV?
+                compute_theo_price(ts_df,spot_price,spot_volatility)
+                ts_df.loc[ts_df.theo_price==0.0,'theo_price']=np.nan
     except:
         traceback.print_exc()
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotehist_df=quotehist_df),axis=1)
@@ -400,8 +410,6 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            # for now price is from candle `price` in populated from quote_df
-            # in compute_greeks, 
             compute_greeks(merged_df,spot_price,spot_volatility,price_column='price')
         if not first_minute:
             #merged_df['volatility'] = merged_df['bsm_iv'] disable for now, too volatile.
@@ -686,7 +694,7 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False))
+            agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=True))
             if agg_df is not None:
                 logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
         except KeyboardInterrupt:
@@ -733,7 +741,7 @@ export POSTGRES_URI=postgres://postgres:postgres@192.168.68.143:5432/postgres
 
 python -m utils.compute_intraday SPX 2025-06-23-09-00-01
 
-python -m utils.compute_intraday SPX 2025-06-05
+python -m utils.compute_intraday SPX 2025-07-11
 
 python -m utils.compute_intraday SPX 2025-07-02-10-00-00
 

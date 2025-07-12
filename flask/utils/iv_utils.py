@@ -56,6 +56,7 @@ def interpolate_quote_price(df,s=0.1):
         interp_price = spline(strike)
         df.loc[put_idx,'interp_price'] = interp_price
 
+# TODO:why bother using the args?, just use single df? or replace args as kwargs
 def compute_theo_price(df,spot_price,spot_volatility):
 
     yield_10yr = 1e-5
@@ -71,6 +72,7 @@ def compute_theo_price(df,spot_price,spot_volatility):
     theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, sv, q, return_as='numpy')
     df['theo_price'] = theo_price
 
+# TODO:why bother using the args?, just use single df? or replace args as kwargs
 def compute_greeks(df,spot_price,spot_volatility,price_column='price'):
 
     # get price, remove deep ITM and way OTM
