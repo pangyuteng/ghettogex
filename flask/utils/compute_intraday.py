@@ -316,21 +316,20 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     # time_till_exp ####################################
     ts_df['theo_price'] = np.nan
     try:
-        if len(ts_df) > 0:
+        if len(ts_df) > 0 and False:
+            expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(ts_df.expiration.unique())}
+            ts_df['time_till_exp'] = ts_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
+            epsilon = 1e-5
+            ts_df.loc[ts_df.time_till_exp==0,'time_till_exp'] = epsilon
+            ts_df['spot_price'] = spot_price
             if False:
-                expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(ts_df.expiration.unique())}
-                ts_df['time_till_exp'] = ts_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
-                epsilon = 1e-5
-                ts_df.loc[ts_df.time_till_exp==0,'time_till_exp'] = epsilon
-                ts_df['spot_price'] = spot_price
-                if False:
-                    # comment: we now are cmoparing using lagged data from qute event!
-                    # even if you query the lagged 1sec quote it gex profile still looks wrong!
-                    ts_df.drop(['price'], axis=1,inplace=True)
-                    ts_df = ts_df.merge(quote_df[['event_symbol','price']],how='left',on=['event_symbol'])
-                # TDOO: compute IV merge with quote_df, compare IV?
-                compute_theo_price(ts_df,spot_price,spot_volatility)
-                ts_df.loc[ts_df.theo_price==0.0,'theo_price']=np.nan
+                # comment: we now are cmoparing using lagged data from qute event!
+                # even if you query the lagged 1sec quote it gex profile still looks wrong!
+                ts_df.drop(['price'], axis=1,inplace=True)
+                ts_df = ts_df.merge(quote_df[['event_symbol','price']],how='left',on=['event_symbol'])
+            # TDOO: compute IV merge with quote_df, compare IV?
+            compute_theo_price(ts_df,spot_price,spot_volatility)
+            ts_df.loc[ts_df.theo_price==0.0,'theo_price']=np.nan
     except:
         traceback.print_exc()
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotehist_df=quotehist_df),axis=1)
