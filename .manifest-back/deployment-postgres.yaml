@@ -42,12 +42,10 @@ spec:
           name: web
           protocol: TCP
         volumeMounts:
-        - name: nfs-volume
+        - name: task-pv-storage
           mountPath: /var/lib/postgresql/data
           subPath: pgdata
       volumes:
-      - name: nfs-volume
-        nfs:
-          server: 192.168.68.141
-          path: /mnt/hd1/data/pgmount
-          readOnly: false
+        - name: task-pv-storage
+          persistentVolumeClaim:
+            claimName: task-pv-claim
