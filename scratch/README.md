@@ -221,12 +221,12 @@ docker run -it -u $(id -u):$(id -g) \
     delete from event_agg where tstamp::date='2025-07-03';
     delete from gex_strike where tstamp::date='2025-07-03';
     delete from gex_net where tstamp::date='2025-07-03';
-    select drop_chunks('get_net_1min', '2025-07-03'::date);
+    select drop_chunks('gex_net_1min', '2025-07-03'::date);
 
     DELETE FROM event_agg where tstamp::date=now()::date;
     DELETE FROM gex_strike where tstamp::date=now()::date;
     DELETE FROM gex_net where tstamp::date=now()::date;
-    SELECT drop_chunks('get_net_1min', now()::date);
+    SELECT drop_chunks('gex_net_1min', now()::date);
     
 + auto drop
 

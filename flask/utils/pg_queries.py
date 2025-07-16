@@ -49,9 +49,9 @@ ORDER BY tstamp
 """
 
 GEX_NET_1MIN_QUERY = """
-WITH get_net_1min AS (select * from get_net_1min where tstamp::date = %s and ticker = %s),
+WITH gex_net_1min AS (select * from gex_net_1min where tstamp::date = %s and ticker = %s),
 candle_1min AS (select tstamp, close as vix_price from candle_1min where tstamp::date = %s and event_symbol = 'VIX' and close != 0)
-SELECT * FROM get_net_1min
+SELECT * FROM gex_net_1min
 LEFT JOIN candle_1min using (tstamp)
 ORDER BY tstamp
 """
@@ -68,7 +68,7 @@ AND strike > (select close*0.98 from last_price)
 
 
 explain analyze
-WITH get_net_1min AS (select * from gex_net where tstamp::date = '2025-06-20' and ticker = 'SPX'),
+WITH gex_net_1min AS (select * from gex_net where tstamp::date = '2025-06-20' and ticker = 'SPX'),
 candle_1min AS (select tstamp, close as vix_price from candle_1min where tstamp::date = '2025-06-20' and event_symbol = 'VIX' and close != 0)
 SELECT * FROM gex_net
 LEFT JOIN candle_1min using (tstamp)
