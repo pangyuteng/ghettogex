@@ -42,11 +42,23 @@ kubectl get secrets tasty-env -n default -o json |  jq 'del(.metadata["namespace
 ```
 
 
++ in proxmox host6, prepare for postgres
+
+  + setup ssd passthrough
+
+  + tweaked host6 ram cpu
+
++ label host6 to have ssd
+
+kubectl label nodes host6 disktype=ssd
+
+
 + for now this is deployed manually (if postgres Dockerfile was updated, remember to run build_and_push.sh)
 
 ```
 
 cd ..
+kubectl apply -f .manifest-volume
 kubectl apply -f .manifest-back
 
 ```
