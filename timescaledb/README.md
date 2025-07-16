@@ -1,5 +1,15 @@
 
++ in proxmox tweaked host6 ram cpu
 
+kubectl label nodes host6 disktype=ssd
+
+kubectl apply -f .manifest-back/deployment-postgres.yaml
+
+
+
+
+
+# OLD NOTES, playing with longhorn`
 
 
 ```
@@ -55,9 +65,8 @@ https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes-using
 
 # sudo sh -c "echo 'Hello from Kubernetes storage' > /mnt/kxg256gb/pgmount/index.html"
 
-move timescaledb to host5 to use nvme 
+move timescaledb to host6 to use nvme 
 
-+ in proxmox tweaked host5 ram, drop spec for host6
 
 + in longhorn , reserve 100G to nvme in host5
 
