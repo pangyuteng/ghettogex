@@ -1,7 +1,7 @@
 
 <script>
 
-function makeChartH(opts) {
+function makeChartH2(opts) {
 	let bars = uPlot.paths.bars({align: 0, size: [1, 4], gap: 0});
 	opts = uPlot.assign({
 		scales: {
@@ -41,13 +41,13 @@ function makeChartH(opts) {
 		],
 	}, opts);
 
-	return new uPlot(opts, [], document.getElementById("myGexStrike"));
+	return new uPlot(opts, [], document.getElementById("myGexStrike2"));
 }
 
-function linesPlugin({lines}) {
+function linesPlugin2({lines2}) {
 	function drawLines(u) {
   		const { ctx, bbox } = u;
-		lines.forEach( item => {
+		lines2.forEach( item => {
 			xVal = item[0];
 			color = item[1];
 			let x4 = u.valToPos(xVal, 'x', true);
@@ -72,12 +72,12 @@ function linesPlugin({lines}) {
   };
 }
 
-const lines = [];
+const lines2 = [];
 
-let mychartH = makeChartH({
+let mychartH2 = makeChartH2({
 	width: 420,
 	height: 420,
-	title: "ghettogex",
+	title: "gex-volume",
 	scales: {
 		x: {
 			dir: 1,
@@ -89,7 +89,7 @@ let mychartH = makeChartH({
 		}
 	},
 	plugins: [
-		linesPlugin({lines})
+		linesPlugin2({lines2})
 	],
 	axes: [
 		{
@@ -107,25 +107,13 @@ let mychartH = makeChartH({
 	],
 });
 
-function prepData(packed) {
-	console.time("prep");
-	let data = packed;
-	console.timeEnd("prep");
-	return data
+
+function updateChartH2(data){
+	lines2[0] = [data.major_call_volume,'green'];
+	lines2[1] = [data.major_put_volume,'red'];
+	lines2[2] = [data.spot_price_volume,'white'];
+	mychartH2.setData(data.lgs_volume);
 }
-
-function updateChartH(data){
-	lines[0] = [data.major_call,'green'];
-	lines[1] = [data.major_put,'red'];
-	lines[2] = [data.spot_price,'white'];
-	mychartH.setData(data.lgs);
-}
-
-
-// fetch("/myjsonHorizontals").then(r => r.json()).then(packed => {
-// 	let data = prepData(packed);
-// 	setTimeout(() => updateChartH(data), 0);
-// });
 
 
 </script>

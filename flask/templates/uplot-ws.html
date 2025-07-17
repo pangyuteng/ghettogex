@@ -9,7 +9,8 @@
         statusDiv.textContent = newdata.status;
         tstampSpan.textContent = newdata.server_tstamp;
         spotpriceSpan.textContent = newdata.spot_price;
-        updateChartH(newdata);
+        updateChartH1(newdata);
+        updateChartH2(newdata);
         updateChartBarV1(newdata.diffgex);
         updateChartBarV2(newdata.diffconvexity);
         updateChartBarV3(newdata.diffdex);
