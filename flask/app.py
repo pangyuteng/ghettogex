@@ -940,10 +940,13 @@ async def ws_ex_query():
                         # put_convexity	put_oi	put_dex	put_gex	put_vex	put_cex 
                         if gathered_res[2] is not None:
                             df = pd.DataFrame([dict(x) for x in gathered_res[2]])
-                            df.state_gex = df.state_gex/1e9
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                            df['pos_gex'] = df.state_gex.where(df.state_gex>0)
-                            df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
+                            df.state_gex = df.state_gex/1e9
+                            df.volume_gex = df.volume_gex/1e9
+                            # df['pos_gex'] = df.state_gex.where(df.state_gex>0)
+                            # df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
+                            df['pos_gex'] = df.volume_gex.where(df.volume_gex>0)
+                            df['neg_gex'] = df.volume_gex.where(df.volume_gex<=0)
                             df = df.replace({np.nan: None})
                             lst = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
                             major_call_strike = df["strike"].iloc[df.call_gex.argmax()]
