@@ -943,11 +943,14 @@ async def ws_ex_query():
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                             df.state_gex = df.state_gex/1e9
                             df.volume_gex = df.volume_gex/1e9
-                            # df['pos_gex'] = df.state_gex.where(df.state_gex>0)
-                            # df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
-                            df['pos_gex'] = df.volume_gex.where(df.volume_gex>0)
-                            df['neg_gex'] = df.volume_gex.where(df.volume_gex<=0)
+
+                            df['pos_gex'] = df.state_gex.where(df.state_gex>0)
+                            df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
+                            df['pos_volume_gex'] = df.volume_gex.where(df.volume_gex>0)
+                            df['neg_volume_gex'] = df.volume_gex.where(df.volume_gex<=0)
+
                             df = df.replace({np.nan: None})
+
                             lst = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
                             major_call_strike = df["strike"].iloc[df.call_gex.argmax()]
                             major_put_strike = df["strike"].iloc[df.put_gex.argmin()]
@@ -955,6 +958,14 @@ async def ws_ex_query():
                             ret_dict['lgs'] = lst
                             ret_dict['major_call'] = major_call_strike
                             ret_dict['major_put'] = major_put_strike
+                            
+                            lst_volume = [df[i].tolist() for i in ['strike','pos_volume_gex','neg_volume_gex']]
+                            major_call_strike_volume = df["strike"].iloc[df.pos_volume_gex.argmax()]
+                            major_put_strike_volume = df["strike"].iloc[df.neg_volume_gex.argmin()]
+
+                            ret_dict['lst_volume'] = lst_volume
+                            ret_dict['major_call_volume'] = major_call_strike_volume
+                            ret_dict['major_put_volume'] = major_put_strike_volume
 
                             app.logger.info(f'latest gex_strike lgs {len(lst)}')
 
