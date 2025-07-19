@@ -28,7 +28,7 @@ async def cpostgres_execute_many(aconn,query_dict):
     response = None
     try:
         async with aconn.cursor() as curs:
-            coros = [curs.executemany(query_str,query_list) for query_str,query_list in query_dict.items()]
+            coros = [curs.executemany(query_str,query_list,returning=False) for query_str,query_list in query_dict.items()]
             await asyncio.gather(*coros)
         await aconn.commit()
     except:
