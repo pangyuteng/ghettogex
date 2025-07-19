@@ -291,45 +291,6 @@ async def myfuncpipeline2():
                     timeb = time.time()
                     print(timeb-timea)
 
-# 0.4 sec
-async def myfuncpipeline3():
-    print("PIPELINE")
-    while True:
-        timea = time.time()
-        cols = "event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp".split(",")
-        colstr = ','.join(["%s"]*len(cols))
-        query_str = f"""INSERT INTO hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) VALUES ({colstr})"""
-        query_args = ('.SPX250620C5400',0,0,0,0,'C',0,'C',578.5,590.8,21,21,'SPX','2025-06-20','C',5400,'2025-06-18 20:00:28.66071' )
-        query_list= [query_args for x in range(1000)]
-        max_lifetime = 25200
-        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
-            async with apool.connection() as aconn:
-                async with aconn.pipeline() as apipeline:
-                    async with aconn.cursor() as curs:
-                        await curs.executemany(query_str,query_list)
-                    await aconn.commit()
-        timeb = time.time()
-        print(timeb-timea)
-
-
-async def mymonitor():
-    await mycreate()
-    print("MONITOR")
-    max_lifetime = 25200
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
-        async with apool.connection() as aconn:
-            async with aconn.pipeline() as apipeline:
-                while True:
-                    async with aconn.cursor(row_factory=dict_row) as curs:
-                        async with aconn.transaction() as tx:
-                            query_str = "select count(1) from hola"
-                            await curs.execute(query_str,())
-                            response = await curs.fetchall()
-                            fetched = [dict(x) for x in response]
-                            print(fetched)
-                    await asyncio.sleep(1)
-    
-
 async def myfuncpipelineSIMULATE():
     print("PIPELINE")
     cols = "event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp".split(",")
@@ -352,6 +313,50 @@ async def myfuncpipelineSIMULATE():
                     duration = timeb-timea
                     print(f"done. row_count:{bolus_size} duration(sec):{duration} rows/sec:{bolus_size/duration}",)
                     await asyncio.sleep(np.random.rand())
+
+
+# 0.4 sec
+async def myfuncpipeline3():
+    print("PIPELINE")
+    cols = "event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp".split(",")
+    colstr = ','.join(["%s"]*len(cols))
+    query_str = f"""INSERT INTO hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) VALUES ({colstr})"""
+    query_args = ('.SPX250620C5400',0,0,0,0,'C',0,'C',578.5,590.8,21,21,'SPX','2025-06-20','C',5400,'2025-06-18 20:00:28.66071' )
+    # print(query_str)
+    # print(query_args)
+    # sys.exit(1)
+    query_list= [query_args for x in range(1000)]
+    max_lifetime = 25200
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
+        async with apool.connection() as aconn:
+            async with aconn.pipeline() as apipeline:
+                while True:
+                    timea = time.time()
+                    async with aconn.cursor() as curs:
+                        await curs.executemany(query_str,query_list)
+                    await aconn.commit()
+                    timeb = time.time()
+                    print(timeb-timea)
+
+
+async def mymonitor():
+    await mycreate()
+    print("MONITOR")
+    max_lifetime = 25200
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
+        async with apool.connection() as aconn:
+            async with aconn.pipeline() as apipeline:
+                while True:
+                    async with aconn.cursor(row_factory=dict_row) as curs:
+                        async with aconn.transaction() as tx:
+                            query_str = "select count(1) from hola"
+                            await curs.execute(query_str,())
+                            response = await curs.fetchall()
+                            fetched = [dict(x) for x in response]
+                            print(fetched)
+                    await asyncio.sleep(1)
+    
+
 
 
 async def main():
