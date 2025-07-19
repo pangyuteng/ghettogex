@@ -273,7 +273,6 @@ async def myfuncpipeline():
 
 async def myfuncpipeline2():
     print("PIPELINE")
-    timea = time.time()
 
     cols = "event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp".split(",")
     colstr = ','.join(["%s"]*len(cols))
@@ -283,15 +282,16 @@ async def myfuncpipeline2():
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
         async with apool.connection() as aconn:
             async with aconn.pipeline() as apipeline:
-                async with aconn.transaction() as tx:
-                    async with aconn.cursor(row_factory=dict_row) as curs:
-                        for x in range(2000):
+                while True:
+                    timea = time.time()
+                    async with aconn.cursor() as curs:
+                        for x in range(1000):
                             await curs.execute(query_str,query_args)
 
-    timeb = time.time()
-    print(timeb-timea)
+                    timeb = time.time()
+                    print(timeb-timea)
 
-
+# 0.4 sec
 async def myfuncpipeline3():
     print("PIPELINE")
     while True:
@@ -300,7 +300,7 @@ async def myfuncpipeline3():
         colstr = ','.join(["%s"]*len(cols))
         query_str = f"""INSERT INTO hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) VALUES ({colstr})"""
         query_args = ('.SPX250620C5400',0,0,0,0,'C',0,'C',578.5,590.8,21,21,'SPX','2025-06-20','C',5400,'2025-06-18 20:00:28.66071' )
-        query_list= [query_args for x in range(2000)]
+        query_list= [query_args for x in range(1000)]
         max_lifetime = 25200
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
             async with apool.connection() as aconn:
@@ -384,7 +384,8 @@ if __name__ == "__main__":
 ssh hawktuah 
 docker run -d --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:17.2-bullseye
 
-export POSTGRES_URI="postgres://postgres:postgres@192.168.68.156:5432/postgres"
+export POSTGRES_URI="postgres://postgres:postgres@192.168.68.139:5432/postgres"
+
 
 2.8,2.5 seconds
 
