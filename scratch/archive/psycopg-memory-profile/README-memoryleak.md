@@ -110,4 +110,7 @@ TODO:
     today SPX stream worker is at 9.11/22.9 GB at 12:35pm!
 
 
-above memory issue resolved after specifying memory limit for pods
+*** above memory issue resolved after specifying memory limit for pods ***
+
+
+
