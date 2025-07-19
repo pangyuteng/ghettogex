@@ -3,9 +3,19 @@
 
 kubectl label nodes host6 disktype=ssd
 
+kubectl delete -f .manifest-back/deployment-postgres.yaml
+
+you need to stop postgres container and remove existing container
+k3s crictl rmi --prune
+
+cd timescaledb
+bash build_and_push.sh 
+
 kubectl apply -f .manifest-back/deployment-postgres.yaml
 
 
+show max_connections;
+show shared_buffers;
 
 
 
