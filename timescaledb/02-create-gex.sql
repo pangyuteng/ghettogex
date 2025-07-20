@@ -68,7 +68,7 @@ CALL add_columnstore_policy('gex_net', after => INTERVAL '1d');
 CREATE TABLE IF NOT EXISTS event_agg (
     event_agg_id SERIAL,
     event_symbol text NOT NULL,
-    dstamp TIMESTAMP,
+    tstamp TIMESTAMP,
     spot_price double precision,
     open double precision,
     high double precision,
@@ -90,16 +90,15 @@ CREATE TABLE IF NOT EXISTS event_agg (
     expiration TIMESTAMP,
     contract_type text,
     strike double precision,
-    tstamp TIMESTAMP,
-    UNIQUE (event_symbol, dstamp)
+    UNIQUE (event_symbol, tstamp)
 ) WITH (
   tsdb.hypertable=true,
-  tsdb.partition_column='dstamp',
+  tsdb.partition_column='tstamp',
   tsdb.segmentby='ticker',
-  tsdb.orderby='dstamp DESC'
+  tsdb.orderby='tstamp DESC'
 );
 
-CALL add_columnstore_policy('event_agg', after => INTERVAL '3 months');
+CALL add_columnstore_policy('event_agg', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS settings (
     settings_id bool PRIMARY KEY DEFAULT true
