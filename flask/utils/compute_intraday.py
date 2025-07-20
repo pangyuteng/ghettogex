@@ -169,10 +169,18 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     oc = cpostgres_execute(aconn,query_str,query_args)
 
     query_str = """
-    select 'summary' as event_type,event_symbol,true_oi,open_interest,tstamp,ticker,expiration,contract_type,strike from event_agg
-    where dstamp = %s and ticker = %s and expiration = %s
+    select distinct 'summary' as event_type, event_symbol,
+        last(true_oi,tstamp) as true_oi,
+        last(open_interest,tstamp) as open_interest,
+        last(tstamp,tstamp) as tstamp,
+        ticker,expiration,contract_type,strike
+        from event_agg
+    where tstamp < %s 
+    AND tstamp > %s - interval '5 second'
+    and ticker = %s and expiration = %s
+    GROUP BY event_type,event_symbol,ticker,expiration,contract_type,strike
     """
-    query_args = (utc_tstamp.date(),ticker_alt,expiration) # event_agg
+    query_args = (utc_tstamp,utc_tstamp,ticker_alt,expiration) # greeks
     os = cpostgres_execute(aconn,query_str,query_args)
 
     query_str = """
@@ -203,7 +211,7 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     tstamp <= %s
     AND tstamp > %s - interval '180 second'
     AND ticker = %s AND expiration = %s 
-    GROUP BY event_symbol,contract_type,ticker,strike,expiration
+    GROUP BY event_type,event_symbol,contract_type,ticker,strike,expiration
     """
     candle_query_str = """
     select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
@@ -212,7 +220,7 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     tstamp <= %s
     AND tstamp > %s - interval '180 second'
     AND ticker = %s AND expiration = %s 
-    GROUP BY event_symbol,contract_type,ticker,strike,expiration
+    GROUP BY event_type,event_symbol,contract_type,ticker,strike,expiration
     """
     query_args = (utc_tstamp,utc_tstamp,ticker_alt,expiration) # quote
     oq = cpostgres_execute(aconn,quote_query_str,query_args)
@@ -482,7 +490,6 @@ async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postg
     # the first minute, grab everything
     event_agg_columns = [
         'event_symbol',
-        'dstamp',
         'tstamp',
         'spot_price',
         'delta','gamma','volatility',
@@ -506,7 +513,6 @@ async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postg
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
             agg_df, qc_pass = compute_gex_core(utc_tstamp,event_df.copy(deep=True),from_scratch,first_minute=first_minute)
-            agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
             logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.state_gex.sum()}')
 
@@ -520,7 +526,6 @@ async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postg
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
             agg_df, qc_pass = compute_gex_core(utc_tstamp,event_df.copy(deep=True),from_scratch,first_minute=first_minute)
-            agg_df['dstamp']=utc_tstamp.date()
             agg_df['tstamp']=utc_tstamp
             logger.debug(f'{from_scratch},{et_tstamp},{qc_pass},{len(event_df)},{len(agg_df)},{agg_df.state_gex.sum()}')
 
@@ -542,27 +547,13 @@ async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postg
             query_dict = {}
 
             event_agg_query_str = """
-                INSERT INTO event_agg (event_symbol,dstamp,
-                delta,gamma,volatility,price,open_interest,true_oi,tstamp,ticker,expiration,contract_type,strike) VALUES 
-                (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) 
-                on conflict (event_symbol,dstamp) do update set 
-                delta = %s, gamma = %s, volatility = %s, price = %s, open_interest = %s, true_oi = %s, tstamp = %s, ticker = %s, expiration = %s, contract_type = %s, strike = %s
+                COPY event_agg (event_symbol,tstamp,
+                delta,gamma,volatility,price,open_interest,true_oi,ticker,expiration,contract_type,strike) FROM STDIN
             """
             async def insert_event_agg(row):
                 query_args = [
-                    row.event_symbol,row.dstamp,
-                    row.delta,row.gamma,row.volatility,row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,
-                    row.delta,row.gamma,row.volatility,row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,
-                ]
-                return query_args
-            event_agg_query_str = """
-                COPY event_agg (event_symbol,dstamp,
-                delta,gamma,volatility,price,open_interest,true_oi,tstamp,ticker,expiration,contract_type,strike) FROM STDIN
-            """
-            async def insert_event_agg(row):
-                query_args = [
-                    row.event_symbol,row.dstamp,
-                    row.delta,row.gamma,row.volatility,row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike
+                    row.event_symbol,row.tstamp,
+                    row.delta,row.gamma,row.volatility,row.price,row.open_interest,row.true_oi,row.ticker,row.expiration,row.contract_type,row.strike
                 ]
                 return query_args
 
@@ -604,31 +595,9 @@ async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postg
             strike_ex_df = strike_ex_df.merge(put_strike_ex_df,how='left',on=['ticker','strike','tstamp'])
 
             gex_strike_query_str = """
-                INSERT INTO gex_strike (ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vex,cex,
-                call_convexity,call_oi,call_dex,call_gex,call_vex,call_cex,
-                put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex
-                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,
-                    %s,%s,%s,%s,%s,%s,
-                    %s,%s,%s,%s,%s,%s)
-                on conflict (ticker,strike,tstamp) do update set 
-                volume_gex = %s,state_gex = %s,dex = %s,convexity = %s,vex = %s,cex = %s,
-                call_convexity = %s,call_oi = %s,call_dex = %s,call_gex = %s,call_vex = %s,call_cex = %s,
-                put_convexity = %s,put_oi = %s,put_dex = %s,put_gex = %s,put_vex = %s,put_cex = %s
-            """
-            async def insert_gex_strike(row):
-                query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vex,row.cex,
-                row.call_convexity,row.call_oi,row.call_dex,row.call_gex,row.call_vex,row.call_cex,
-                row.put_convexity,row.put_oi,row.put_dex,row.put_gex,row.put_vex,row.put_cex,
-                row.volume_gex,row.state_gex,row.dex,row.convexity,row.vex,row.cex,
-                row.call_convexity,row.call_oi,row.call_dex,row.call_gex,row.call_vex,row.call_cex,
-                row.put_convexity,row.put_oi,row.put_dex,row.put_gex,row.put_vex,row.put_cex]
-                return query_args
-
-            gex_strike_query_str = """
                 COPY gex_strike (ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vex,cex,
                 call_convexity,call_oi,call_dex,call_gex,call_vex,call_cex,
-                put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex
-                ) FROM STDIN
+                put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex) FROM STDIN
             """
             async def insert_gex_strike(row):
                 query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vex,row.cex,
@@ -666,28 +635,6 @@ async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 put_vex=pd.NamedAgg(column="put_vex", aggfunc="sum"),
                 put_cex=pd.NamedAgg(column="put_cex", aggfunc="sum"),
             ).reset_index()
-
-            gex_net_query_str = """
-                INSERT INTO gex_net (ticker,tstamp,volume_gex,state_gex,spot_price,dex,convexity,vex,cex,
-                    call_convexity,call_oi,call_dex,call_gex,call_vex,call_cex,
-                    put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,
-                    %s,%s,%s,%s,%s,%s,
-                    %s,%s,%s,%s,%s,%s)
-                on conflict (ticker,tstamp) do update set 
-                volume_gex = %s,state_gex = %s, spot_price = %s,dex = %s,convexity = %s,vex = %s,cex = %s,
-                call_convexity = %s,call_oi = %s,call_dex = %s,call_gex = %s,call_vex = %s,call_cex = %s,
-                put_convexity = %s,put_oi = %s,put_dex = %s,put_gex = %s,put_vex = %s,put_cex = %s
-            """
-            async def insert_gex_net(row):
-                query_args = [row.ticker,row.tstamp,row.volume_gex,row.state_gex,row.spot_price,row.dex,row.convexity,row.vex,row.cex,
-                row.call_convexity,row.call_oi,row.call_dex,row.call_gex,row.call_vex,row.call_cex,
-                row.put_convexity,row.put_oi,row.put_dex,row.put_gex,row.put_vex,row.put_cex,
-                row.volume_gex,row.state_gex,row.spot_price,row.dex,row.convexity,row.vex,row.cex,
-                row.call_convexity,row.call_oi,row.call_dex,row.call_gex,row.call_vex,row.call_cex,
-                row.put_convexity,row.put_oi,row.put_dex,row.put_gex,row.put_vex,row.put_cex,
-                ]
-                return query_args
 
             gex_net_query_str = """
                 COPY gex_net (ticker,tstamp,volume_gex,state_gex,spot_price,dex,convexity,vex,cex,
