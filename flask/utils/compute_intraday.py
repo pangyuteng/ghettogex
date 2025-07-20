@@ -109,15 +109,6 @@ async def get_events_df_from_scratch(aconn,ticker,utc_tstamp,max_utc_tstamp,futu
     AND ticker = %s AND expiration = %s 
     GROUP BY event_symbol,contract_type,ticker,strike,expiration
     """
-    candle_query_str = """
-    select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
-        last(close,tstamp) as price,last(tstamp,tstamp) as tstamp
-    FROM candle WHERE
-    tstamp <= %s
-    AND tstamp > %s - interval '180 second'
-    AND ticker = %s AND expiration = %s 
-    GROUP BY event_symbol,contract_type,ticker,strike,expiration
-    """
     query_args = (utc_tstamp,utc_tstamp,ticker_alt,expiration) # quote
     oq = cpostgres_execute(aconn,quote_query_str,query_args)
 
@@ -208,15 +199,6 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
         last(ask_price,tstamp) as ask_price,last(bid_price,tstamp) as bid_price,last(tstamp,tstamp) as tstamp
     FROM quote WHERE
-    tstamp <= %s
-    AND tstamp > %s - interval '180 second'
-    AND ticker = %s AND expiration = %s 
-    GROUP BY event_type,event_symbol,contract_type,ticker,strike,expiration
-    """
-    candle_query_str = """
-    select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
-        last(close,tstamp) as price,last(tstamp,tstamp) as tstamp
-    FROM candle WHERE
     tstamp <= %s
     AND tstamp > %s - interval '180 second'
     AND ticker = %s AND expiration = %s 
