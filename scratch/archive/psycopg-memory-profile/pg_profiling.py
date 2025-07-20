@@ -205,7 +205,7 @@ async def myfuncbb():
     timeb = time.time()
     print(timeb-timea)
 
-async def mycreate():
+async def mycreatetimescale():
     print("CREATE")
     timea = time.time()
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
@@ -249,6 +249,41 @@ async def mycreate():
         # await apostgres_execute(None,query_str,query_args,is_commit=True)
     timeb = time.time()
     print(timeb-timea)
+
+async def mycreatepostgres():
+    print("CREATE")
+    timea = time.time()
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+
+        query_str = """
+        CREATE TABLE IF NOT EXISTS hola (
+            
+            hola_id SERIAL,
+            event_symbol text NOT NULL,
+            event_time numeric,
+            sequence numeric,
+            time_nano_part numeric,
+            bid_time numeric,
+            bid_exchange_code text,
+            ask_time numeric,
+            ask_exchange_code text,
+            bid_price double precision,
+            ask_price double precision,
+            bid_size double precision,
+            ask_size double precision,
+            ticker text,
+            expiration TIMESTAMP,
+            contract_type text,
+            strike double precision,
+            tstamp TIMESTAMP default (now() at time zone 'utc')
+        ) 
+        """
+        query_args = ()
+        await apostgres_execute(apool,query_str,query_args,is_commit=True)
+
+    timeb = time.time()
+    print(timeb-timea)
+
 
 async def myfuncpipeline():
     print("PIPELINE")
@@ -325,22 +360,22 @@ async def myfuncpipeline3():
     # print(query_str)
     # print(query_args)
     # sys.exit(1)
-    query_list= [query_args for x in range(1000)]
+    query_list= [query_args for x in range(2000)]
     max_lifetime = 25200
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
         async with apool.connection() as aconn:
             async with aconn.pipeline() as apipeline:
-                while True:
+                for x in range(10):
                     timea = time.time()
                     async with aconn.cursor() as curs:
-                        await curs.executemany(query_str,query_list)
+                        await curs.executemany(query_str,query_list,returning=False)
                     await aconn.commit()
                     timeb = time.time()
                     print(timeb-timea)
 
 
 async def mymonitor():
-    await mycreate()
+    await mycreatetimescale()
     print("MONITOR")
     max_lifetime = 25200
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
@@ -380,9 +415,10 @@ if __name__ == "__main__":
         asyncio.run(mymonitor())
     elif sys.argv[1] == "sim":
         asyncio.run(mainsim())
-    else:
+    elif sys.argv[1] == "ok":
         asyncio.run(main())
-
+    else:
+        raise NotImplementedError()
 
 """
 
@@ -405,7 +441,8 @@ https://stackoverflow.com/questions/52548446/increase-data-insert-speed-of-postg
 
 iostat -x 1
 
-
 docker stop timescaledb && docker rm timescaledb
+
+
 
 """
