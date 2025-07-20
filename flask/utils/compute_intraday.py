@@ -460,9 +460,9 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
 
 async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False):
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
-        #await apool.check()
+        #await apool.check() # <-- this is slow
         async with apool.connection() as aconn:
-            #async with aconn.pipeline() as apipeline:
+            #async with aconn.pipeline() as apipeline: # <-- using copy, dont use pipeline
             return await _compute_gex(aconn,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgres,overwrite=overwrite)
 
 async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False):
