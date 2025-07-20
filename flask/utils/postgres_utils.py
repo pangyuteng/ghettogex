@@ -9,6 +9,7 @@ import asyncio
 import psycopg
 import psycopg_pool
 from psycopg.rows import dict_row
+
 postgres_uri = os.environ.get("POSTGRES_URI")
 
 async def cpostgres_execute(aconn,query_str,query_args,is_commit=False):
@@ -31,6 +32,19 @@ async def cpostgres_execute_many(aconn,query_dict):
             coros = [curs.executemany(query_str,query_list,returning=False) for query_str,query_list in query_dict.items()]
             await asyncio.gather(*coros)
         await aconn.commit()
+    except:
+        traceback.print_exc()
+    return response
+                
+async def cpostgres_copy(aconn,query_dict):
+    response = None
+    try:
+        async with aconn.cursor() as curs:
+            for query_str,query_list in query_dict.items():
+                async with curs.copy(query_str) as copy:
+                    for row in query_list:
+                        await copy.write_row(row)
+            await aconn.commit()
     except:
         traceback.print_exc()
     return response

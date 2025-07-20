@@ -15,7 +15,7 @@ from tqdm import tqdm
 import asyncio
 
 from .postgres_utils import (
-    cpostgres_execute, cpostgres_execute_many,
+    cpostgres_execute, cpostgres_copy,
     psycopg_pool,postgres_uri,
 )
 
@@ -454,8 +454,8 @@ async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=Tru
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         #await apool.check()
         async with apool.connection() as aconn:
-            async with aconn.pipeline() as apipeline:
-                return await _compute_gex(aconn,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgres,overwrite=overwrite)
+            #async with aconn.pipeline() as apipeline:
+            return await _compute_gex(aconn,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgres,overwrite=overwrite)
 
 async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False):
     time_a = time.time()
@@ -555,6 +555,17 @@ async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postg
                     row.delta,row.gamma,row.volatility,row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike,
                 ]
                 return query_args
+            event_agg_query_str = """
+                COPY event_agg (event_symbol,dstamp,
+                delta,gamma,volatility,price,open_interest,true_oi,tstamp,ticker,expiration,contract_type,strike) FROM STDIN
+            """
+            async def insert_event_agg(row):
+                query_args = [
+                    row.event_symbol,row.dstamp,
+                    row.delta,row.gamma,row.volatility,row.price,row.open_interest,row.true_oi,row.tstamp,row.ticker,row.expiration,row.contract_type,row.strike
+                ]
+                return query_args
+
             query_dict[event_agg_query_str] = await asyncio.gather(*(insert_event_agg(row) for n,row in agg_df.iterrows()))
 
             table_cols = ['ticker','strike','tstamp','spot_price','volume_gex','state_gex','dex','convexity','vex','cex','true_oi']
@@ -612,6 +623,19 @@ async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 row.call_convexity,row.call_oi,row.call_dex,row.call_gex,row.call_vex,row.call_cex,
                 row.put_convexity,row.put_oi,row.put_dex,row.put_gex,row.put_vex,row.put_cex]
                 return query_args
+
+            gex_strike_query_str = """
+                COPY gex_strike (ticker,strike,tstamp,volume_gex,state_gex,dex,convexity,vex,cex,
+                call_convexity,call_oi,call_dex,call_gex,call_vex,call_cex,
+                put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex
+                ) FROM STDIN
+            """
+            async def insert_gex_strike(row):
+                query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex,row.dex,row.convexity,row.vex,row.cex,
+                row.call_convexity,row.call_oi,row.call_dex,row.call_gex,row.call_vex,row.call_cex,
+                row.put_convexity,row.put_oi,row.put_dex,row.put_gex,row.put_vex,row.put_cex
+                ]
+                return query_args
             query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in strike_ex_df.iterrows()))
             
             table_cols = [
@@ -664,11 +688,24 @@ async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postg
                 row.put_convexity,row.put_oi,row.put_dex,row.put_gex,row.put_vex,row.put_cex,
                 ]
                 return query_args
+
+            gex_net_query_str = """
+                COPY gex_net (ticker,tstamp,volume_gex,state_gex,spot_price,dex,convexity,vex,cex,
+                    call_convexity,call_oi,call_dex,call_gex,call_vex,call_cex,
+                    put_convexity,put_oi,put_dex,put_gex,put_vex,put_cex) FROM STDIN
+            """
+            async def insert_gex_net(row):
+                query_args = [row.ticker,row.tstamp,row.volume_gex,row.state_gex,row.spot_price,row.dex,row.convexity,row.vex,row.cex,
+                row.call_convexity,row.call_oi,row.call_dex,row.call_gex,row.call_vex,row.call_cex,
+                row.put_convexity,row.put_oi,row.put_dex,row.put_gex,row.put_vex,row.put_cex,
+                ]
+                return query_args
+
             query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
 
             time_c = time.time()
             logger.info(f'query prep {time_c-time_d}')
-            await cpostgres_execute_many(aconn,query_dict)
+            await cpostgres_copy(aconn,query_dict)
 
             time_e = time.time()
             logger.info(f'postgres_execute_many {time_e-time_c}')
