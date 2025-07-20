@@ -149,30 +149,47 @@ async def myfunnotworking():
 
 async def myfunca():
     print("COPY")
-    timea = time.time()
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
-        for x in range(1000):
-            query_str = "COPY hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) FROM STDIN DELIMITER ','"
-            stdin = ".SPX250620C5400,0,0,0,0,C,0,C,578.5,590.8,21,21,SPX,2025-06-20,C,5400,2025-06-18 20:00:28.66071"
-            ok = await apostgres_copy(apool,query_str,stdin)
-        timeb = time.time()
-    print(timeb-timea)
+    while True:
+        timea = time.time()
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+            for x in range(1000):
+                query_str = "COPY hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) FROM STDIN DELIMITER ','"
+                stdin = ".SPX250620C5400,0,0,0,0,C,0,C,578.5,590.8,21,21,SPX,2025-06-20,C,5400,2025-06-18 20:00:28.66071"
+                ok = await apostgres_copy(apool,query_str,stdin)
+            timeb = time.time()
+        print(timeb-timea)
 
 
 async def myfuncaa():
     print("COPY2")
-    timea = time.time()
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
-        async with apool.connection() as aconn:
-            async with aconn.cursor() as curs:
-                query_str = "COPY hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) FROM STDIN DELIMITER ','"
-                stdin = ".SPX250620C5400,0,0,0,0,C,0,C,578.5,590.8,21,21,SPX,2025-06-20,C,5400,2025-06-18 20:00:28.66071"
-                for x in range(1000):
-                    async with curs.copy(query_str) as copy:
-                        await copy.write(stdin)
-    timeb = time.time()
-    print(timeb-timea)
+    while True:
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+            async with apool.connection() as aconn:
+                timea = time.time()
+                async with aconn.cursor() as curs:
+                    query_str = "COPY hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) FROM STDIN DELIMITER ','"
+                    stdin = ".SPX250620C5400,0,0,0,0,C,0,C,578.5,590.8,21,21,SPX,2025-06-20,C,5400,2025-06-18 20:00:28.66071"
+                    for x in range(1000):
+                        async with curs.copy(query_str) as copy:
+                            await copy.write(stdin)
+                timeb = time.time()
+                print(timeb-timea)
 
+
+async def myfuncaaa():
+    print("COPY2")
+    while True:
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+            async with apool.connection() as aconn:
+                timea = time.time()
+                async with aconn.cursor() as curs:
+                    query_str = "COPY hola (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike,tstamp) FROM STDIN"
+                    query_args = ('.SPX250620C5400',0,0,0,0,'C',0,'C',578.5,590.8,21,21,'SPX','2025-06-20','C',5400,'2025-06-18 20:00:28.66071' )                    
+                    async with curs.copy(query_str) as copy:
+                        for x in range(1000):
+                            await copy.write_row(query_args)
+                timeb = time.time()
+                print(timeb-timea)
 
 
 async def myfuncb():
@@ -422,11 +439,12 @@ async def main():
     # print("both are slow!!!!!")
     #await myfuncbb()
     #await myfuncaa()
+    await myfuncaaa()
     #await myfuncc()
     #await myfuncpipeline()
     #await myfuncpipeline2()
     #await myfuncpipeline3()
-    await myfuncpipeline4()
+    #await myfuncpipeline4()
 
 async def mainsim():
     coros = [myfuncpipelineSIMULATE() for x in range(5)]

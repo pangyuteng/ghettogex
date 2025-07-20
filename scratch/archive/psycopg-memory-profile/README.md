@@ -13,3 +13,6 @@ docker run -it -p 5000:5000 -w /workdir -v $PWD:/workdir snakeviz:latest \
     bash -c "snakeviz -p 5000 --hostname="*" --server program.prof"
 
 http://192.168.68.143:5000/snakeviz/
+
+
+https://stackoverflow.com/questions/8134602/psycopg2-insert-multiple-rows-with-one-query
