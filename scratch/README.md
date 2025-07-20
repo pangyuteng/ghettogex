@@ -197,10 +197,11 @@ docker run -it -u $(id -u):$(id -g) \
 
     https://docs.tigerdata.com/use-timescale/latest/continuous-aggregates/create-a-continuous-aggregate/
 
-+ [o] continue to monitor memory usage for workers
++ [x] continue to monitor memory usage for workers
     for detail see see `scratch/psycopg2-memory-leak-issue`
 
     *** MEMORY LEAK CRITICAL ISSUE ***
+    resolved via setting memory in kube pod config.
 
 + [x] tastytrade version updated to tastytrade==10.2.3
     observations:
@@ -429,7 +430,8 @@ docker run -it -u $(id -u):$(id -g) \
 
   + [x] rerun contract-intraday-pg-viz.ipynb to confirm above fixes quote event.
   
-+ compute IV surface again with quote data?
+
++ compute IV surface again with quote data? unsure if this is good or bad.
     
     NOTE: in iv_utils.py 
 
@@ -438,6 +440,28 @@ docker run -it -u $(id -u):$(id -g) \
 
   https://quant.stackexchange.com/questions/39988/which-volatility-as-input-in-black-scholes-formula
   https://cdn.cboe.com/api/global/us_indices/governance/Volatility_Index_Methodology_Cboe_Volatility_Index.pdf
+
+
+
++ timescaledb now in host6 using local ssd
+
++ *** insert speed performance, at the potential size increase or query time in event_agg  ***
+    noticed insert in comput_intraday takes .3 to .4 sec
+    + event_agg now using tstamp and now dstamp
+    + postgres upsert is replaced with copy
+
+    f3258109359d8ec79adf0b5ac6fcb19f9e69ee0c...0a566ca868409cca0599b58b6558fa0a430d8b98
+
+    above boost insert from .3 sec to ~0.05 sec
+
+    2025-07-20 18:31:35,593 - DEBUG - pg select 0.06237387657165527 0
+    2025-07-20 18:31:35,794 - INFO - get_events_df 0.20096158981323242
+    2025-07-20 18:31:35,907 - DEBUG - False,2025-07-18 10:02:55-04:00,True,8303,968,387268112.70612144
+    2025-07-20 18:31:35,907 - INFO - compute_gex_core 0.11278104782104492
+    2025-07-20 18:31:36,085 - INFO - query prep 0.17842674255371094
+    2025-07-20 18:31:36,130 - INFO - postgres_execute_many 0.0447230339050293
+    2025-07-20 18:31:36,134 - DEBUG - volume_gex 74826100.86846352 state_gex 387268112.70612144
+
 
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
