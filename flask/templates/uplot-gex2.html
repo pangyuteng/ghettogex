@@ -111,7 +111,7 @@ let mychartH2 = makeChartH2({
 function updateChartH2(data){
 	lines2[0] = [data.major_call_volume,'green'];
 	lines2[1] = [data.major_put_volume,'red'];
-	lines2[2] = [data.spot_price_volume,'white'];
+	lines2[2] = [data.spot_price,'white'];
 	mychartH2.setData(data.lgs_volume);
 }
 

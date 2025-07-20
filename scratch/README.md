@@ -428,22 +428,12 @@ docker run -it -u $(id -u):$(id -g) \
 
       added usage of asyncio.Queue Event to buffer prior calling postgres
 
-  + [x] rerun contract-intraday-pg-viz.ipynb to confirm above fixes quote event.
-  
+    + [x] rerun contract-intraday-pg-viz.ipynb to confirm above fixes quote event.
+        
+        but bid/ask in quote and timeandsale still inconsistent
+        ??? ddoi with IV surface... still unsolved.
 
-+ compute IV surface again with quote data? unsure if this is good or bad.
-    
-    NOTE: in iv_utils.py 
-
-      `sv = spot_volatility/100`
-      using VIX as sigma, but sigma is supposed to be annualized realized volatility.
-
-  https://quant.stackexchange.com/questions/39988/which-volatility-as-input-in-black-scholes-formula
-  https://cdn.cboe.com/api/global/us_indices/governance/Volatility_Index_Methodology_Cboe_Volatility_Index.pdf
-
-
-
-+ timescaledb now in host6 using local ssd
+    + timescaledb now in host6 using local ssd
 
 + *** insert speed performance, at the potential size increase or query time in event_agg  ***
     noticed insert in comput_intraday takes .3 to .4 sec
@@ -462,6 +452,16 @@ docker run -it -u $(id -u):$(id -g) \
     2025-07-20 18:31:36,130 - INFO - postgres_execute_many 0.0447230339050293
     2025-07-20 18:31:36,134 - DEBUG - volume_gex 74826100.86846352 state_gex 387268112.70612144
 
+
++ compute IV surface again with quote data? unsure if this is good or bad.
+    
+    NOTE: in iv_utils.py 
+
+      `sv = spot_volatility/100`
+      using VIX as sigma, but sigma is supposed to be annualized realized volatility.
+
+  https://quant.stackexchange.com/questions/39988/which-volatility-as-input-in-black-scholes-formula
+  https://cdn.cboe.com/api/global/us_indices/governance/Volatility_Index_Methodology_Cboe_Volatility_Index.pdf
 
 + [ ] compute next expiration gex_net,gex_strike seperatly.
       or add cron task to get true_oi and open_interest
