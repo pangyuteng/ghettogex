@@ -94,7 +94,7 @@ async def get_events_df_from_scratch(aconn,ticker,utc_tstamp,max_utc_tstamp,futu
     ot = cpostgres_execute(aconn,query_str,query_args)
 
     query_str = """
-    select 'quotehist' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
+    select 'quotefuture' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
@@ -198,7 +198,7 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     ot = cpostgres_execute(aconn,query_str,query_args)
 
     query_str = """
-    select 'quotehist' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
+    select 'quotefuture' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote history
@@ -232,13 +232,13 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
         df = pd.concat(pd_list,ignore_index=True)
     return df
 
-def get_side_mod(row,quotehist_df=None):
+def get_side_mod(row,quotefut_df=None):
     try:
         side_mod = None
         cond_met = False
 
         if row.large_order:
-            tmp_df = quotehist_df[quotehist_df.event_symbol==row.event_symbol]
+            tmp_df = quotefut_df[quotefut_df.event_symbol==row.event_symbol]
             cond_met = True if len(tmp_df) > 2 else False
         else:
             tmp_df = None
@@ -300,7 +300,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     candle_df = df[df.event_type=='candle']
     summary_df = df[df.event_type=='summary']
     greeks_df = df[df.event_type=='greeks']
-    quotehist_df = df[df.event_type=='quotehist']
+    quotefut_df = df[df.event_type=='quotefuture']
 
     # use copy since will be adding columns to the df
     ts_df = df[df.event_type=='timeandsale'].copy()
@@ -340,7 +340,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
             ts_df.loc[ts_df.theo_price==0.0,'theo_price']=np.nan
     except:
         traceback.print_exc()
-    ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotehist_df=quotehist_df),axis=1)
+    ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotefut_df=quotefut_df),axis=1)
     ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
 
     candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
