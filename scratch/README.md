@@ -463,7 +463,21 @@ docker run -it -u $(id -u):$(id -g) \
   https://quant.stackexchange.com/questions/39988/which-volatility-as-input-in-black-scholes-formula
   https://cdn.cboe.com/api/global/us_indices/governance/Volatility_Index_Methodology_Cboe_Volatility_Index.pdf
 
-+ [ ] compute next expiration gex_net,gex_strike seperatly.
++ [x] optimize db insert in Liveprices
+
+    + added postgres statement with queue and flusher logic
+    https://github.com/pangyuteng/ghettogex.aigonewrong.com/compare/28269f148d0116040ae99f1433720411c934d9cd...ca97250a26320fbd7b10b7848286552dd5404c6e
+    
+    + in flusher updated to use copy_rows
+    https://github.com/pangyuteng/ghettogex.aigonewrong.com/compare/0451835ec81a6f515acea6f12603ec3b397c26e2...e216efb22b34ad3eb343cebe043ece716f45c2aa
+
+
++ [ ] make optiondepth chart
+      https://x.com/aigonewrong/status/1945939514930942004
+      https://x.com/phlegminglib/status/1948918214894797063
+
+
++ [ ] compute next expiration gex_net,gex_strike seperately.
       or add cron task to get true_oi and open_interest
 
 + [ ] investigate GEX Regime classification and future 1min,5min,10min,30min probability.
