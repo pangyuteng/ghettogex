@@ -463,7 +463,7 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
         chain = get_option_chain(session, ticker)
         expirations = sorted(list(chain.keys()))
         live_prices_list = []
-        EXPIRATION_LIM = 3
+        EXPIRATION_LIM = 10000
         myqueue = await PgInsertQueue.create()
         event_type_list = ['candle_underlying','quote_underlying','candle','quote','greeks','summary','timeandsale']
         flusher_task_list = [asyncio.create_task(flusher(myqueue,event_type)) for event_type in event_type_list]
