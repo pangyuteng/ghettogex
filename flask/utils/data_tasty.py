@@ -294,7 +294,6 @@ class LivePrices:
     trade: dict[str, Trade]
     underlying: dict[str, Underlying]
     streamer: DXLinkStreamer
-    equity: list[Equity]
     streamer_symbols: list[str]
     task_list: list[str]
     ticker: str
@@ -306,24 +305,12 @@ class LivePrices:
         cls,
         myqueue: PgInsertQueue,
         session: Session,
-        ticker: str = 'SPY',
-        expiration: datetime.date = today_in_new_york(),
+        ticker: str,
+        streamer_symbols: list,
+        expiration: None,
         save_to_json: bool = True,
         save_to_postres: bool = False,
         ):
-        if "/" in ticker:
-            warnings.warn("futures not tested")
-            equity = await Future.a_get(session, ticker)
-            chain = get_future_option_chain(session, ticker)
-        else:
-            equity = await Equity.a_get(session, ticker)
-            chain = get_option_chain(session, ticker)
-
-        if expiration is not None:
-            options_list = [o for o in chain[expiration]]
-            streamer_symbols = [o.streamer_symbol for o in options_list]
-        else:
-            streamer_symbols = [equity.streamer_symbol]
 
         streamer = await DXLinkStreamer(session)
         # subscribe to quotes and greeks for all options on that date
@@ -344,7 +331,7 @@ class LivePrices:
 
 
         self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
-                   streamer, equity, streamer_symbols,[],ticker,expiration,
+                   streamer, streamer_symbols,[],ticker,expiration,
                    save_to_json=save_to_json,save_to_postres=save_to_postres)
 
         t_listen_candles = asyncio.create_task(self._update_candle(myqueue))
@@ -460,21 +447,32 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
         
         session = get_session()
         
+        if "/" in ticker:
+            warnings.warn("futures not tested")
+            equity = await Future.a_get(session, ticker)
+            chain = get_future_option_chain(session, ticker)
+        else:
+            equity = await Equity.a_get(session, ticker)
+            chain = get_option_chain(session, ticker)
+
         chain = get_option_chain(session, ticker)
         expirations = sorted(list(chain.keys()))
         live_prices_list = []
-        EXPIRATION_LIM = 10000
+        EXPIRATION_LIM = 3 # 10 likely the max dxlink let tastytrade api handle?
         myqueue = await PgInsertQueue.create()
         event_type_list = ['candle_underlying','quote_underlying','candle','quote','greeks','summary','timeandsale']
         flusher_task_list = [asyncio.create_task(flusher(myqueue,event_type)) for event_type in event_type_list]
         # underlying
-        live_prices = await LivePrices.create(myqueue,session,ticker,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
+        underlying_streamer_symbols = [equity.streamer_symbol]
+        live_prices = await LivePrices.create(myqueue,session,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
         live_prices_list.append(live_prices)
 
         for expiration in expirations:
             if ticker == 'VIX': # ignore options for VIX
                 continue
-            live_prices = await LivePrices.create(myqueue,session,ticker,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
+            options_list = [o for o in chain[expiration]]
+            streamer_symbols = [o.streamer_symbol for o in options_list]
+            live_prices = await LivePrices.create(myqueue,session,ticker,streamer_symbols,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
             live_prices_list.append(live_prices)
             if len(live_prices_list)>=EXPIRATION_LIM:
                 break
