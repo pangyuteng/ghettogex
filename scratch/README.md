@@ -476,6 +476,17 @@ docker run -it -u $(id -u):$(id -g) \
       https://x.com/aigonewrong/status/1945939514930942004
       https://x.com/phlegminglib/status/1948918214894797063
 
+```
+step through time
+  for each strike
+    assume same oi, volatility
+    set spot-price to strike
+    compute gamma
+```
+
+<img width="2048" height="1152" alt="image" src="https://github.com/user-attachments/assets/463d1f64-7a9b-445a-98a9-22110e555d46" />
+<img width="2048" height="1152" alt="image" src="https://github.com/user-attachments/assets/c9a920e5-05f0-4518-a264-a196b37f72cf" />
+
 
 + [ ] compute next expiration gex_net,gex_strike seperately.
       or add cron task to get true_oi and open_interest
