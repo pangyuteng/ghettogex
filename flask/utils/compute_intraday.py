@@ -19,8 +19,8 @@ from .postgres_utils import (
     psycopg_pool,postgres_uri,
 )
 
-from .data_tasty import background_subscribe, is_market_open, now_in_new_york
-from .misc import timedelta_from_market_open
+
+from .misc import timedelta_from_market_open, now_in_new_york
 from .iv_utils import (
     get_expiry_tstamp,
     TOTAL_SECONDS_ONE_YEAR,
