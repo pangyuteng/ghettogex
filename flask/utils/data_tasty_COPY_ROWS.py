@@ -196,7 +196,7 @@ class PgInsertQueue:
         )
 
         max_queue_size = 500
-        interval = 1
+        interval = 0.1
 
         self = cls(queue_dict,flush_event_dict,max_queue_size,interval)
         return self
@@ -223,7 +223,7 @@ class PgInsertQueue:
         if self.queue_dict[flusher_key].qsize() >= self.max_queue_size:
             self.flush_event_dict[flusher_key].set()
 
-async def flusher(myqueue,aconn,flusher_key):
+async def flusher(myqueue,flusher_key):
     max_lifetime = 25200
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
         await apool.check()
@@ -247,9 +247,6 @@ async def flusher(myqueue,aconn,flusher_key):
                     query_dict = {
                         copy_statement:insert_list
                     }
-                    print("???????????????????????")
-                    print(copy_statement)
-                    print(insert_list[0])
                     await cpostgres_copy(aconn,query_dict)
 
                 # clear flush event if it was set
@@ -528,24 +525,6 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
         if os.path.exists(running_file):
             os.remove(running_file)
 
-async def huh():
-    EXPIRATION_LIM = 3
-    max_lifetime = 25200
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
-        await apool.check()
-        async with apool.connection() as aconn:
-            """COPY quote (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size,ticker,expiration,contract_type,strike) FROM STDIN"""
-            insert_list = [['.SPY250729C596', 0, 0, 0, 0, 'N', 0, 'A', 39.83, 42.46, 6.0, 10.0, 'SPY', datetime.date(2025, 7, 29), 'C', 596.0]]
-            event_type = 'quote'
-            copy_statement = COPY_STATEMENT_DICT[event_type]
-            query_dict = {
-                copy_statement:insert_list
-            }
-            print("???????????????????????")
-            print(copy_statement)
-            print(insert_list[0])
-            await cpostgres_copy(aconn,query_dict)
-
 if __name__ == "__main__":
     log_level = logging.INFO #  logging.DEBUG # 
     tastytrade.logger.setLevel(log_level)
@@ -559,7 +538,7 @@ if __name__ == "__main__":
     
     if action == "background_subscribe":
         output = asyncio.run(background_subscribe(ticker,save_to_postres=True))
-    #asyncio.run(huh())
+
 """
 
 
