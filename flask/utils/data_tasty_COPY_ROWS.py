@@ -144,15 +144,6 @@ def print_copy_statements():
         copy_statement = f'COPY {k} ({cols_str}) FROM STDIN'
         print(copy_statement)
 
-"""
-COPY event_agg (event_symbol,tstamp,
-delta,gamma,volatility,price,open_interest,true_oi,ticker,expiration,contract_type,strike) FROM STDIN
-
-COPY candle (event_symbol,event_time,
-event_flags,index,time,sequence,count,volume,vwap,bid_volume,ask_volume,imp_volatility,open_interest,
-open,high,low,close,ticker,expiration,contract_type,strike) FROM STDIN
-"""
-
 COPY_STATEMENT_DICT = dict(
     candle_underlying="""COPY candle (event_symbol,event_time,event_flags,index,time,sequence,count,volume,vwap,bid_volume,ask_volume,imp_volatility,open_interest,open,high,low,close) FROM STDIN""",
     quote_underlying="""COPY quote (event_symbol,event_time,sequence,time_nano_part,bid_time,bid_exchange_code,ask_time,ask_exchange_code,bid_price,ask_price,bid_size,ask_size) FROM STDIN""",
@@ -216,7 +207,7 @@ class PgInsertQueue:
         if "{=" in event_dict["event_symbol"]: # eventSymbol
             event_dict['event_symbol'] = streamer_symbol
 
-        # ordering needs to match COPY_STATEMENT_DICT
+        # NOTE: ordering needs to match COPY_STATEMENT_DICT
         cols = list(event_dict.keys())
         vals = [postgres_friendly(event_dict[x]) for x in cols]
         await self.queue_dict[flusher_key].put(vals)
