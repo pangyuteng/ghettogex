@@ -32,19 +32,22 @@ def is_market_open(tstamp=None):
 
 def get_market_open_close(day_stamp,no_tzinfo=True):
     early = nyse.schedule(start_date=day_stamp, end_date=day_stamp)
+    if len(early) == 0:
+        raise LookupError("market not open today!")
     market_open = list(early.to_dict()['market_open'].values())[0]
     market_close = list(early.to_dict()['market_close'].values())[0]
     if no_tzinfo:
         return market_open.replace(tzinfo=None),market_close.replace(tzinfo=None)
     else:
         return market_open,market_close
+
 def timedelta_from_market_open(now_tstamp_et):
     if now_tstamp_et is None:
         tstamp = now_in_new_york()
     today = now_tstamp_et.strftime("%Y-%m-%d")
     early = nyse.schedule(start_date=today, end_date=today)
     if len(early) == 0:
-        return None
+        raise LookupError("market not open today!")
     market_open_tstamp = list(early.to_dict()['market_open'].values())[0]
     return now_tstamp_et - market_open_tstamp, market_open_tstamp
 

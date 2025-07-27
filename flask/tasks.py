@@ -17,7 +17,8 @@ import luigi
 from celery import Celery
 
 from utils.postgres_utils import postgres_execute, vaccum_full_analyze
-from utils.data_tasty import background_subscribe, is_market_open, now_in_new_york
+from utils.data_tasty import background_subscribe
+from utils.misc import is_market_open, now_in_new_york, timedelta_from_market_open
 from utils.compute_intraday import compute_gex
 from utils.data_cache import cache_cboe
 
@@ -39,9 +40,22 @@ class Subscription(luigi.Task):
     def output(self): # an output that never exists
         return AlwaysRunTarget()
     def run(self):
-        if not is_market_open():
-            logger.info(f"market closed no need to trigger background_subscribe")
+        et_tstamp = now_in_new_york()
+
+        try:
+            marketopendelta, _ = timedelta_from_market_open(et_tstamp)
+        except:
+            logger.warning('market likely not open today')
+            marketopendelta = None
+
+        if marketopendelta is None:
+            logger.info(f"market closed today, no need to trigger background_subscribe")
             return
+
+        if marketopendelta.total_seconds() < -30:
+            logger.info(f"market not yet open, no need to trigger background_subscribe")
+            return
+
         tastytrade.logger.setLevel(logging.INFO)
         output = asyncio.run(background_subscribe(self.ticker,save_to_postres=True,save_to_json=False))
 

@@ -36,7 +36,13 @@ from tastytrade.session import Session
 from tastytrade.streamer import EventType
 from tastytrade.utils import today_in_new_york
 
-from .misc import now_in_new_york, is_market_open, CACHE_FOLDER, CACHE_TASTY_FOLDER
+from .misc import (
+    now_in_new_york,
+    is_market_open,
+    timedelta_from_market_open,
+    CACHE_FOLDER,
+    CACHE_TASTY_FOLDER,
+)
 from .postgres_utils import (
     cpostgres_execute,cpostgres_copy,
     psycopg,psycopg_pool,postgres_uri,
@@ -444,12 +450,13 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
         if not os.path.exists(running_file):
             pathlib.Path(running_file).touch()
 
-        while True:
-            if not is_market_open():
-                logger.info(f"market is closed! {ticker}")
-                await asyncio.sleep(1)
-            else:
-                break
+        # # why not just start???
+        # while True:
+        #     if not is_market_open():
+        #         logger.info(f"market is closed! {ticker}")
+        #         await asyncio.sleep(0.1)
+        #     else:
+        #         break
         
         session = get_session()
         
@@ -473,7 +480,15 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
                 break
 
         while True:
-            if not is_market_open():
+            et_tstamp = now_in_new_york()
+            try:
+                marketopendelta, _ = timedelta_from_market_open(et_tstamp)
+            except:
+                traceback.print_exc()
+                warnings.warn('market likely not open today')
+                marketopendelta = 0
+
+            if not is_market_open() and marketopendelta > 0:
                 logger.info("market closing -------------------------------")
                 await asyncio.sleep(10)
                 for lp in live_prices_list:
