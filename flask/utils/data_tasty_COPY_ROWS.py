@@ -310,7 +310,7 @@ class LivePrices:
         # subscribe to quotes and greeks for all options on that date
         start_time = now_in_new_york() # start from now
         await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time)
-        await streamer.subscribe(Quote,streamer_symbols,refresh_interval=0.5)
+        await streamer.subscribe(Quote,streamer_symbols,refresh_interval=0.1)
 
         if expiration is not None:
             await streamer.subscribe(Greeks, streamer_symbols)
