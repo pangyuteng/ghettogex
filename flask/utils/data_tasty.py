@@ -214,6 +214,19 @@ class PgInsertQueue:
         if self.queue_dict[flusher_key].qsize() >= self.max_queue_size:
             self.flush_event_dict[flusher_key].set()
 
+# 
+# NOTE: 
+# copy_rows upside: probably fastest way to populate rows.
+# copy_rows downside: you need to seperate connection pools per table. can't handle two concurrent calls.
+#
+# +if you want to increase tickers, while not blow up db connections
+# ideally you want to share flusher among tickers (li) LivePrices instances.
+# with VIX,SPX you have 2*7 flushers which yields 14*4 connections.
+#
+# + another alternative is to go back to using insert, 
+#   but construct full sql statement with multiple rows and values inside the sql statement (frawned upon but we dont care about sql injections).
+#
+
 async def flusher(myqueue,flusher_key):
     max_lifetime = 25200
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
@@ -431,12 +444,12 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
         if not os.path.exists(running_file):
             pathlib.Path(running_file).touch()
 
-        # while True:
-        #     if not is_market_open():
-        #         logger.info(f"market is closed! {ticker}")
-        #         await asyncio.sleep(1)
-        #     else:
-        #         break
+        while True:
+            if not is_market_open():
+                logger.info(f"market is closed! {ticker}")
+                await asyncio.sleep(1)
+            else:
+                break
         
         session = get_session()
         
@@ -460,8 +473,7 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
                 break
 
         while True:
-            if False:
-            #if not is_market_open():
+            if not is_market_open():
                 logger.info("market closing -------------------------------")
                 await asyncio.sleep(10)
                 for lp in live_prices_list:
