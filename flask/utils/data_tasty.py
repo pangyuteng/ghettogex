@@ -484,9 +484,9 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
             except:
                 traceback.print_exc()
                 warnings.warn('market likely not open today')
-                marketopendelta = 0
+                marketopendelta = datetime.timedelta(minutes=1)
 
-            if not is_market_open() and marketopendelta > 0:
+            if not is_market_open() and marketopendelta.total_seconds() > 0:
                 logger.info("market closing -------------------------------")
                 await asyncio.sleep(10)
                 for lp in live_prices_list:
