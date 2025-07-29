@@ -502,8 +502,8 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
                         pass
 
                 logger.info("pool close...")
-                logger.info("break from while!!!")
-                break
+                logger.info("sys.exit")
+                sys.exit(0)
             else:
                 logger.info("market open -------------------------------")
 
