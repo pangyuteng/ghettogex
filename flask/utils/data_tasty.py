@@ -449,13 +449,13 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
         
         if "/" in ticker:
             warnings.warn("futures not tested")
-            equity = await Future.a_get(session, ticker)
             chain = get_future_option_chain(session, ticker)
+            underlying_symbol = list(chain.values())[0][0].underlying_symbol
+            equity = await Future.a_get(session, underlying_symbol)
         else:
             equity = await Equity.a_get(session, ticker)
             chain = get_option_chain(session, ticker)
 
-        chain = get_option_chain(session, ticker)
         expirations = sorted(list(chain.keys()))
         live_prices_list = []
         EXPIRATION_LIM = 3 # 10 likely the max dxlink let tastytrade api handle?
