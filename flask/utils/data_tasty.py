@@ -429,6 +429,9 @@ def get_running_file(ticker):
     ticker = ticker.replace("/","^")
     return os.path.join(CACHE_TASTY_FOLDER,f"running-{ticker}.txt")
 
+class MarketCloseException(Exception):
+    pass
+
 async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
     try:
 
@@ -502,8 +505,7 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
                         pass
 
                 logger.info("pool close...")
-                logger.info("sys.exit")
-                sys.exit(0)
+                raise MarketCloseException("market closed!")
             else:
                 logger.info("market open -------------------------------")
 
@@ -535,6 +537,9 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
                             
                     raise ValueError("canceljob")
 
+    except MarketCloseException:
+        logger.error("MarketCloseException...")
+        sys.exit(1)
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
     finally:
