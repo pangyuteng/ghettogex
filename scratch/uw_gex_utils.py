@@ -5,6 +5,7 @@ import traceback
 import os
 import sys
 import datetime
+from datetime import timezone
 import pytz
 import time
 import pathlib
@@ -59,7 +60,7 @@ def format_stamp(x):
     else:
         return datetime.datetime.strptime(x,'%Y-%m-%d %H:%M:%S+00')
 
-et_tz = "America/New_York"
+et_tz = "US/Eastern"
 
 def get_side_mod(row,arg_df):
     try:
@@ -124,6 +125,10 @@ class GexService(object):
         self.oi_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-oi.parquet.gzip')
         self.sg_pq_file = os.path.join(self.output_folder,f'{self.ticker}-{self.day_stamp_str}-sg.parquet.gzip')
 
+        self.true_market_open, self.true_market_close = get_market_open_close(self.day_stamp)
+        # TODO: you'll get nan for expiry_mapper using below market_open
+        self.time_sec_list = pd.date_range(start=self.true_market_open,end=self.true_market_close,freq='s')
+
     def _cache_ticker_flow(self):
         # save option flow parquet file.
         self.zip_file_list = sorted(str(x) for x in pathlib.Path(BOT_EOD_ROOT).rglob("*.zip"))
@@ -152,8 +157,8 @@ class GexService(object):
                         df.to_parquet(pq_file,compression='gzip')
 
         self.pq_file_list = sorted(str(x) for x in pathlib.Path(os.path.join(CACHE_FOLDER,self.ticker)).rglob("*.gzip"))
-
-    def get_gex_detailed(self,):
+        
+    def get_gex_detailed(self):
 
         self._cache_ticker_flow()
 
@@ -177,10 +182,6 @@ class GexService(object):
         self.input_day_df = pd.read_parquet(self.input_day_pq_file)
 
         market_open, market_close = self.input_day_df.tstamp_sec.min(),self.input_day_df.tstamp_sec.max()
-
-        # TODO: you'll get nan for expiry_mapper using below market_open
-        self.true_market_open, self.true_market_close = get_market_open_close(self.day_stamp)
-        self.time_sec_list = pd.date_range(start=self.true_market_open,end=self.true_market_close,freq='s')
 
         self.input_day_df = self.input_day_df[
             (self.input_day_df.tstamp_sec>=self.true_market_open) &\
@@ -404,6 +405,11 @@ class GexService(object):
 
 
     def gen_mp4(self):
+
+        self.price_df = pd.read_parquet(self.price_pq_file)
+        self.oi_df = pd.read_parquet(self.oi_pq_file)
+        self.sg_df = pd.read_parquet(self.sg_pq_file)
+
         png_folder = os.path.join(self.output_folder,f'pngs-{self.ticker}-{self.day_stamp_str}')
         if os.path.exists(png_folder):
             shutil.rmtree(png_folder)
@@ -499,7 +505,8 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     color_label = 'tab:blue'
     ax1_twin.set_xlabel('time (utc)', color=color_label)
 
-    ax1_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
+    #ax1_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz))) # ???
+    ax1_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
     ax1_twin.tick_params(axis='x', rotation=30)
     ax1_twin.tick_params(axis='y', labelcolor=color_label)
 
@@ -618,7 +625,7 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
     plt.xticks(rotation=30)
 
-    plt.title(f"{ticker} {tstamp}\n directionalized gex ($ bn/1% move)")
+    plt.title(f"{ticker} {tstamp}\n volume gex ($ bn/1% move)")
 
     filter = price_df.tstamp_sec.apply(lambda x: x.time()) <= datetime.time(20,0,0)
     tmp_price_df = price_df[filter]
@@ -645,7 +652,10 @@ if __name__ == "__main__":
     output_folder = "tmp"
     gs = GexService(ticker,output_folder,day_stamp_str,expiration_count)
     if not os.path.exists(gs.mp4_file):
-        gs.get_gex_detailed()
+        if not os.path.exists(gs.sg_pq_file):
+            gs.get_gex_detailed()
+        else:
+            print(f'using cached parquet files... {gs.sg_pq_file}')
         gs.gen_mp4()
     heatmap_png_file = os.path.join(gs.output_folder,f"{gs.ticker}-{gs.day_stamp_str}-heatmap.png")
     if not os.path.exists(heatmap_png_file):
