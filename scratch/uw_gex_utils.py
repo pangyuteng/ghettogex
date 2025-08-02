@@ -498,8 +498,8 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     ax1.tick_params(axis='x', labelcolor=color_label)
     color_label = 'tab:blue'
     ax1_twin.set_xlabel('time (utc)', color=color_label)
-    
-    ax1_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+
+    ax1_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
     ax1_twin.tick_params(axis='x', rotation=30)
     ax1_twin.tick_params(axis='y', labelcolor=color_label)
 
