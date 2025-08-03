@@ -532,7 +532,7 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
 
         ax2_twin = ax2.twinx()
         color_label = 'tab:green'
-        ax2_twin.set_ylabel('GEX ($ bn/1% move)', color=color_label)
+        ax2_twin.set_ylabel('net GEX ($ bn/1% move)', color=color_label)
         ax2_twin.plot(tmptotal_gex_df.tstamp_sec, tmptotal_gex_df.total_gex, color="green",linewidth=1)
         ax2_twin.tick_params(axis='y', labelcolor=color_label)
 
