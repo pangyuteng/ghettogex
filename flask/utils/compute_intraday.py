@@ -235,6 +235,8 @@ def get_side_mod(row,quotefut_df=None):
                 side_mod = 'likely_ask'
             else:
                 side_mod = 'likely_bid' #???
+        elif row.mid_price == row.price:
+            pass # assume mid is matched.
         elif row.aggressor_side == 'BUY':
             side_mod = 'ask' # BUY or near ask
         elif row.aggressor_side == 'SELL':
@@ -294,6 +296,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     quote_df = quote_df.sort_values(by=['contract_type','strike'])
     quote_df['price'] = (quote_df['ask_price']+quote_df['bid_price'])/2.0
 
+    ts_df['mid_price'] = (ts_df['ask_price']+ts_df['bid_price'])/2.0
     # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
 
@@ -322,6 +325,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
             ts_df.loc[ts_df.theo_price==0.0,'theo_price']=np.nan
     except:
         traceback.print_exc()
+
     ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotefut_df=quotefut_df),axis=1)
     ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
 
