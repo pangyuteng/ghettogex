@@ -52,8 +52,12 @@ class Subscription(luigi.Task):
             logger.info(f"market closed today, no need to trigger background_subscribe")
             return
 
-        if marketopendelta.total_seconds() < -30:
+        if marketopendelta.total_seconds() < -30 and is_market_open() is False:
             logger.info(f"market not yet open, no need to trigger background_subscribe")
+            return
+
+        if marketopendelta.total_seconds() > 0 and is_market_open() is False:
+            logger.info(f"market closed")
             return
 
         tastytrade.logger.setLevel(logging.INFO)
