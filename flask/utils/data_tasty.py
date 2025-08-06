@@ -539,7 +539,6 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
 
     except MarketCloseException:
         logger.error("MarketCloseException...")
-        sys.exit(1)
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
     finally:
