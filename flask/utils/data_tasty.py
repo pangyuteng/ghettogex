@@ -542,6 +542,7 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
     except KeyboardInterrupt:
         logger.error("Stopping live price streaming...")
     finally:
+        logger.info("finally...")
         if os.path.exists(running_file):
             os.remove(running_file)
 
