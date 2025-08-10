@@ -3,15 +3,16 @@ import datetime
 import pandas as pd
 from jinja2 import Environment
 
-market_open = datetime.datetime(2024,12,1)
+#market_open = datetime.datetime(2024,12,1)
+market_open = datetime.datetime(2025,3,3)
 market_close = datetime.datetime.now()
 mylist = pd.date_range(start=market_open,end=market_close,freq='d')
 
-SH_TEMPLATE="""
-{% for x in date_list %}
 # python uw_gex_utils.py SPY {{x}}
 # python uw_gex_utils.py QQQ {{x}}
 # python uw_gex_utils.py NDX {{x}}
+SH_TEMPLATE="""
+{% for x in date_list %}
 python uw_gex_utils.py SPX {{x}}{% endfor %}
 """
 date_list = [x.strftime('%Y-%m-%d') for x in mylist]
@@ -35,7 +36,7 @@ HTML_TEMPLATE = """
 """
 
 
-png_file_list = sorted([str(x) for x in pathlib.Path("tmp").rglob("*heatmap.png")])
+png_file_list = sorted([str(x) for x in pathlib.Path("tmp/SPX").rglob("*heatmap.png")])
 with open('gex-heatmap.html','w') as f:
     content = Environment().from_string(HTML_TEMPLATE).render(mylist=png_file_list)
     f.write(content)

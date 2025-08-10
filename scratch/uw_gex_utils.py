@@ -611,27 +611,57 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     logger.info(f'{min_val},{max_val}')
     df=df[(df.strike<=max_val)&(df.strike>=min_val)]
 
+
+    fig, (ax1, ax2) = plt.subplots(1,2)
+
     color_palette = "RdYlGn"
     filter = df.tstamp_min.apply(lambda x: x.time()) <= datetime.time(20,0,0)
     tmp_df = df[filter]
-    ax = sns.scatterplot(data=tmp_df,x='tstamp_min',y='strike',hue='gex',
+    _ax = sns.scatterplot(data=tmp_df,x='tstamp_min',y='strike',hue='gex',
        hue_norm=hue_norm,palette=sns.color_palette(color_palette, as_cmap=True),
-       legend=False
+       legend=False,ax=ax1
     )
 
     norm = plt.Normalize(*hue_norm)
     sm = plt.cm.ScalarMappable(cmap=color_palette, norm=norm)
-    ax.figure.colorbar(sm, ax=ax)
+    ax1.figure.colorbar(sm, ax=ax1)
 
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz)))
     plt.xticks(rotation=30)
-
-    plt.title(f"{ticker} {tstamp}\n volume gex ($ bn/1% move)")
+    ax1.set_title(f"{ticker} {tstamp}\n volume gex ($ bn/1% move)")
 
     filter = price_df.tstamp_sec.apply(lambda x: x.time()) <= datetime.time(20,0,0)
     tmp_price_df = price_df[filter]
-    sns.lineplot(data=tmp_price_df,x='tstamp_sec',y='underlying_price',color='green')
-    plt.grid(True)
+    sns.lineplot(data=tmp_price_df,x='tstamp_sec',y='underlying_price',color='black',linewidth=1,ax=ax1)
+    ax1.grid(True)
+
+    total_gex_df = sg_df.groupby(['tstamp_sec']).agg(
+            total_gex=pd.NamedAgg(column="gex", aggfunc="sum"),
+        ).reset_index()
+    filter = total_gex_df.tstamp_sec.apply(lambda x: x.time()) <= datetime.time(20,0,0)
+    tmptotal_gex_df = total_gex_df[filter].reset_index()
+
+    price_lim = [price_df.underlying_price.min()*0.98,price_df.underlying_price.max()*1.02]
+
+    color_label = 'tab:blue'
+    ax2.set_xlabel('time (utc)')
+    ax2.set_ylabel('price',color='black')
+
+    ax2.plot(tmp_price_df.tstamp_sec, tmp_price_df.underlying_price, color="black",linewidth=1)
+    ax2.tick_params(axis='y', labelcolor=color_label)
+    ax2.tick_params(axis='x', rotation=30)
+    ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+    ax2.set_ylim(price_lim)
+
+    ax2_twin = ax2.twinx()
+    color_label = 'tab:green'
+    ax2_twin.set_ylabel('net GEX ($ bn/1% move)', color='black')
+    ax2_twin.plot(tmptotal_gex_df.tstamp_sec, tmptotal_gex_df.total_gex, color="green",linewidth=1)
+    ax2_twin.tick_params(axis='y', labelcolor=color_label)
+
+    ax2_twin.set_ylim(tmptotal_gex_df.total_gex.min(),tmptotal_gex_df.total_gex.max())
+    ax2.set_title(f"net gex")
+    ax2.grid(True)
 
     plt.show()
     plt.savefig(png_file)
