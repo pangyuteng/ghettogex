@@ -988,3 +988,27 @@ python uw_gex_utils.py SPX 2025-08-03
 # python uw_gex_utils.py QQQ 2025-08-04
 # python uw_gex_utils.py NDX 2025-08-04
 python uw_gex_utils.py SPX 2025-08-04
+# python uw_gex_utils.py SPY 2025-08-05
+# python uw_gex_utils.py QQQ 2025-08-05
+# python uw_gex_utils.py NDX 2025-08-05
+python uw_gex_utils.py SPX 2025-08-05
+# python uw_gex_utils.py SPY 2025-08-06
+# python uw_gex_utils.py QQQ 2025-08-06
+# python uw_gex_utils.py NDX 2025-08-06
+python uw_gex_utils.py SPX 2025-08-06
+# python uw_gex_utils.py SPY 2025-08-07
+# python uw_gex_utils.py QQQ 2025-08-07
+# python uw_gex_utils.py NDX 2025-08-07
+python uw_gex_utils.py SPX 2025-08-07
+# python uw_gex_utils.py SPY 2025-08-08
+# python uw_gex_utils.py QQQ 2025-08-08
+# python uw_gex_utils.py NDX 2025-08-08
+python uw_gex_utils.py SPX 2025-08-08
+# python uw_gex_utils.py SPY 2025-08-09
+# python uw_gex_utils.py QQQ 2025-08-09
+# python uw_gex_utils.py NDX 2025-08-09
+python uw_gex_utils.py SPX 2025-08-09
+# python uw_gex_utils.py SPY 2025-08-10
+# python uw_gex_utils.py QQQ 2025-08-10
+# python uw_gex_utils.py NDX 2025-08-10
+python uw_gex_utils.py SPX 2025-08-10
