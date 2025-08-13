@@ -392,6 +392,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
         merged_df['state_gex'] = merged_df.gamma * merged_df.true_oi * merged_df.spot_price * merged_df.spot_price * merged_df.gamma_sign
 
     # time_till_exp ####################################
+    merged_df['time_till_exp'] = np.nan
     try:
         expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(merged_df.expiration.unique())}
         merged_df['time_till_exp'] = merged_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
