@@ -397,7 +397,8 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
         epsilon = 1e-5
         merged_df.loc[merged_df.time_till_exp==0,'time_till_exp'] = epsilon
     except:
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
+        raise ValueError()
 
     # greeks ####################################
     try:
@@ -409,7 +410,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
             merged_df['delta'] = merged_df['bsm_delta']
             merged_df['gamma'] = merged_df['bsm_gamma']
     except:
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
 
     # delta gamma charm vanna exposure ####################################
     try:
@@ -422,8 +423,8 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
         compute_exposure(merged_df,spot_price,spot_volatility)
 
     except:
+        logger.error(traceback.format_exc())
         raise ValueError()
-        traceback.print_exc()
 
     merged_df.volume_gex = merged_df.volume_gex.fillna(value=0)
     merged_df.state_gex = merged_df.state_gex.fillna(value=0)
