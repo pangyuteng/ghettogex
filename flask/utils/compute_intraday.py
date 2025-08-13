@@ -308,6 +308,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
 
     # time_till_exp ####################################
     ts_df['theo_price'] = np.nan
+    ts_df['time_till_exp'] = np.nan
     try:
         if len(ts_df) > 0 and False:
             expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(ts_df.expiration.unique())}
