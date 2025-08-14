@@ -44,8 +44,11 @@ def get_open_close(pq_file):
     price_df = price_df.groupby(['tstamp_sec']).agg(
         underlying_price=pd.NamedAgg(column="underlying_price", aggfunc="last"),
     ).resample('1s').ffill().reset_index()
-    price_open = price_df.underlying_price.to_list()[0]
-    price_close = price_df.underlying_price.to_list()[-1]
+    price_list = price_df.underlying_price.to_list()
+    price_open = price_list[0]
+    price_high = np.nanmax(price_list)
+    price_low = np.nanmin(price_list)
+    price_close = price_list[-1]
 
     first_few_min = market_close - datetime.timedelta(minutes=1)
     first_few_df = df[(df.tstamp_sec<first_few_min)]
@@ -59,10 +62,13 @@ def get_open_close(pq_file):
     vix_df = vix_df[(vix_df.tstamp_sec >= market_open)&(vix_df.tstamp_sec <= market_close)]
     vix_df = vix_df.sort_values(['tstamp']).reset_index()
     vix_df = vix_df.sort_values(['tstamp']).reset_index()
-    vix_price_open = vix_df.underlying_price.to_list()[0]
-    vix_price_close = vix_df.underlying_price.to_list()[-1]
+    vix_price_list = vix_df.underlying_price.to_list()
+    vix_open = vix_price_list[0]
+    vix_high = np.nanmax(price_list)
+    vix_low = np.nanmin(price_list)
+    vix_close = vix_price_list[-1]
 
-    return day_stamp,price_open,price_close,vix_price_open,vix_price_close
+    return day_stamp,price_open,price_high,price_low,price_close,vix_open,vix_high,vix_low,vix_close
 
 def process(pq_file):
     ticker = 'SPX'
@@ -141,10 +147,24 @@ def process(pq_file):
 def main():
     myfolder = "/mnt/hd1/data/uw-options-cache/SPX"
     pq_file_list = sorted([str(x) for x in pathlib.Path(myfolder).rglob("*parquet.gzip")])
+    mylist = []
     for pq_file in pq_file_list:
-        day_stamp,price_open,price_close,vix_price_open,vix_price_close = get_open_close(pq_file)
-        print(day_stamp,price_open,price_close,vix_price_open,vix_price_close)
+        day_stamp,price_open,price_high,price_low,price_close,vix_open,vix_high,vix_low,vix_close = get_open_close(pq_file)
 
+        item = dict(
+            tstamp=day_stamp,
+            spx_open=price_open,
+            spx_high=price_high,
+            spx_low=price_low,
+            spx_close=price_close,
+            vix_open=vix_open,
+            vix_high=vix_high,
+            vix_low=vix_low,
+            vix_close=vix_close
+            )
+        mylist.append(item)
+    df = pd.DataFrame(mylist)
+    df.to_csv("ohlc-spx-vix.price")
 
 if __name__ == "__main__":
     main()
