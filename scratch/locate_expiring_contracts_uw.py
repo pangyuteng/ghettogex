@@ -172,7 +172,7 @@ if __name__ == "__main__":
     df['prct_change'] = 100*(df.spx_close-df.spx_open)/df.spx_open
     sns.scatterplot(df,x='vix_open',y='prct_change')
     plt.xlabel('vix open price')
-    plt.ylabel('spx prct change')
+    plt.ylabel('spx daily prct change')
     plt.title(f"n={len(df)}, {df.iloc[0,:].tstamp} to {df.iloc[-1,:].tstamp}")
     plt.grid(True)
     plt.savefig("price.png")
