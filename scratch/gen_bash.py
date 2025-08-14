@@ -13,7 +13,9 @@ mylist = pd.date_range(start=market_open,end=market_close,freq='d')
 # python uw_gex_utils.py NDX {{x}}
 SH_TEMPLATE="""
 {% for x in date_list %}
-python uw_gex_utils.py SPX {{x}}{% endfor %}
+python uw_gex_utils.py VIX {{x}}
+python uw_gex_utils.py SPX {{x}}
+{% endfor %}
 """
 date_list = [x.strftime('%Y-%m-%d') for x in mylist]
 
