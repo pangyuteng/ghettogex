@@ -548,6 +548,8 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
         logger.info("finally...")
         if os.path.exists(running_file):
             os.remove(running_file)
+    logger.info("attempt to exit!!")
+    sys.exit(0)
 
 if __name__ == "__main__":
     log_level = logging.INFO #  logging.DEBUG # 
