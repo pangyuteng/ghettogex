@@ -170,6 +170,8 @@ if __name__ == "__main__":
     #main()
     df = pd.read_csv("ohlc-spx-vix.price")
     df['prct_change'] = 100*(df.spx_close-df.spx_open)/df.spx_open
+    df['prior_day_vix_close'] = df.vix_close.shift()
+    df['prior_day_vix_open'] = df.vix_open.shift()
     sns.scatterplot(df,x='vix_open',y='prct_change')
     plt.xlabel('vix open price')
     plt.ylabel('spx daily prct change')
