@@ -64,8 +64,8 @@ def get_open_close(pq_file):
     vix_df = vix_df.sort_values(['tstamp']).reset_index()
     vix_price_list = vix_df.underlying_price.to_list()
     vix_open = vix_price_list[0]
-    vix_high = np.nanmax(price_list)
-    vix_low = np.nanmin(price_list)
+    vix_high = np.nanmax(vix_price_list)
+    vix_low = np.nanmin(vix_price_list)
     vix_close = vix_price_list[-1]
 
     return day_stamp,price_open,price_high,price_low,price_close,vix_open,vix_high,vix_low,vix_close
@@ -148,7 +148,7 @@ def main():
     myfolder = "/mnt/hd1/data/uw-options-cache/SPX"
     pq_file_list = sorted([str(x) for x in pathlib.Path(myfolder).rglob("*parquet.gzip")])
     mylist = []
-    for pq_file in pq_file_list:
+    for pq_file in tqdm(pq_file_list):
         day_stamp,price_open,price_high,price_low,price_close,vix_open,vix_high,vix_low,vix_close = get_open_close(pq_file)
 
         item = dict(
@@ -164,7 +164,7 @@ def main():
             )
         mylist.append(item)
     df = pd.DataFrame(mylist)
-    df.to_csv("ohlc-spx-vix.price")
+    df.to_csv("ohlc-spx-vix.price",index=False)
 
 if __name__ == "__main__":
     main()
