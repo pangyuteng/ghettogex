@@ -170,7 +170,7 @@ if __name__ == "__main__":
     #main()
     df = pd.read_csv("ohlc-spx-vix.price")
     df['prct_change'] = 100*(df.spx_close-df.spx_open)/df.spx_open
-    sns.scatterplot(df,y='vix_open',x='prct_change')
+    sns.scatterplot(df,x='vix_open',y='prct_change')
     plt.xlabel('vix open price')
     plt.ylabel('spx prct change')
     plt.title(f"n={len(df)}, {df.iloc[0,:].tstamp} to {df.iloc[-1,:].tstamp}")
