@@ -440,7 +440,10 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
         if not os.path.exists(running_file):
             pathlib.Path(running_file).touch()
 
-        # # why not just start???
+        # why wait?
+        # when below was disabled, time_till_expire was erroring out.
+        # maybe disabling wait is the culprit, you need market to open then sub to get all the evetns???
+        # 
         # while True:
         #     if not is_market_open():
         #         logger.info(f"market is closed! {ticker}")
