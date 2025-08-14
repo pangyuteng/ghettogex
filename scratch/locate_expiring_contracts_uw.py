@@ -31,7 +31,7 @@ TOTAL_SECONDS_ONE_YEAR = 365*24*60*60 # total seconds
 BOT_EOD_ROOT = "/mnt/hd2/data/finance/bot-eod-zip"
 CACHE_FOLDER = "/mnt/hd1/data/uw-options-cache"
 
-def get_atm_iv(pq_file):
+def get_open_close(pq_file):
     ticker = 'SPX'
     day_stamp = os.path.basename(pq_file).replace(".parquet.gzip","")
     market_open,market_close = get_market_open_close(day_stamp,no_tzinfo=True)
@@ -53,7 +53,16 @@ def get_atm_iv(pq_file):
     row = df.loc[idx,:]
     atm_df = first_few_df[first_few_df.strike==row.strike]
     atm_iv = np.nanmean(atm_df.implied_volatility)
-    return day_stamp,price_open,row.strike,atm_iv*1000
+
+    vix_pq_file = pq_file.replace("SPX","VIX")
+    vix_df = pd.read_parquet(vix_pq_file)
+    vix_df = vix_df[(vix_df.tstamp_sec >= market_open)&(vix_df.tstamp_sec <= market_close)]
+    vix_df = vix_df.sort_values(['tstamp']).reset_index()
+    vix_df = vix_df.sort_values(['tstamp']).reset_index()
+    vix_price_open = vix_df.underlying_price.to_list()[0]
+    vix_price_close = vix_df.underlying_price.to_list()[-1]
+
+    return day_stamp,price_open,price_close,vix_price_open,vix_price_close
 
 def process(pq_file):
     ticker = 'SPX'
@@ -133,8 +142,8 @@ def main():
     myfolder = "/mnt/hd1/data/uw-options-cache/SPX"
     pq_file_list = sorted([str(x) for x in pathlib.Path(myfolder).rglob("*parquet.gzip")])
     for pq_file in pq_file_list:
-        day_stamp,price_open,strike,iv = get_atm_iv(pq_file)
-        print(day_stamp,price_open,strike,iv)
+        day_stamp,price_open,price_close,vix_price_open,vix_price_close = get_open_close(pq_file)
+        print(day_stamp,price_open,price_close,vix_price_open,vix_price_close)
 
 
 if __name__ == "__main__":
