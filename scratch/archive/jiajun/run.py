@@ -31,27 +31,48 @@ def main():
     print(df.shape)
 
     df['prct_change'] = 100*(df.spx_close-df.spx_open)/df.spx_open
+    df.to_csv("history.csv",index=False)
 
     # https://www.tastylive.com/concepts-strategies/implied-volatility-rank-percentile
     def iv_rank(w):
         return 100* ( w.iloc[-1] - np.min(w) ) / (np.max(w)-np.min(w))
 
     df['iv_rank'] =df.vix_open.rolling(252).apply(iv_rank)
+
+    df['prior_day_vix_close']=df.vix_close.shift()
+    df['prior_day_vix_open']=df.vix_open.shift()
+    df['prior_day_vix_prct_change']=(df.vix_open-df.prior_day_vix_open)/df.prior_day_vix_open
+    print(df.prior_day_vix_prct_change.min(),df.prior_day_vix_prct_change.max())
     df = df.dropna()
 
     fig = plt.figure()
     ax = fig.add_subplot(2,1,1)
-    sns.scatterplot(df,x='vix_open',y='prct_change',alpha=0.5,size=0.2,ax=ax)
+    # palette = sns.color_palette("bwr", as_cmap=True) # red is vol spike
+    # sns.scatterplot(df,x='vix_open',y='prct_change',palette=palette,markers='+',
+    #     hue='prior_day_vix_prct_change',hue_norm=(-0.5,0.5),alpha=0.5,size=1,ax=ax,legend=False)
+    sns.scatterplot(df,x='vix_open',y='prct_change',alpha=0.1,size=0.2,ax=ax,markers=['+']*len(df))
     ax.set_yscale('symlog')
     plt.xlabel('vix open price')
     plt.ylabel('spx daily prct change')
     plt.title(f"n={len(df)}, {min_tstamp} to {max_tstamp}")
     plt.grid(True)
+    if False:
+        ax = fig.add_subplot(2,1,2)
+        sns.scatterplot(df,x='iv_rank',y='prct_change',alpha=0.5,size=0.2,ax=ax)
+        ax.set_yscale('symlog')
+        plt.xlabel('IV rank')
+        plt.ylabel('spx daily prct change')
+        plt.grid(True)
 
     ax = fig.add_subplot(2,1,2)
-    sns.scatterplot(df,x='iv_rank',y='prct_change',alpha=0.5,size=0.2,ax=ax)
-    ax.set_yscale('symlog')
-    plt.xlabel('IV rank')
+    # print(df.shape)
+    # df = df[df.tstamp.apply(lambda x: x.year >= 2018)]
+    # print(df.shape)
+    sns.scatterplot(df,x='prior_day_vix_prct_change',y='prct_change',alpha=0.5,size=0.2,ax=ax,markers=['+']*len(df))
+    # plt.xlim(-1,1)
+    # plt.ylim(-1,1)
+    #ax.set_yscale('symlog')
+    plt.xlabel('prior_day_vix_prct_change')
     plt.ylabel('spx daily prct change')
     plt.grid(True)
 
