@@ -100,7 +100,7 @@ def main():
     df = df.sort_values(['tstamp']).reset_index()
     df = df.dropna()
     min_tstamp = df.tstamp.to_list()[0]
-    max_tstamp = df.tstamp.to_list()[1]
+    max_tstamp = df.tstamp.to_list()[-1]
     print(df.head())
     print(df.shape)
 
