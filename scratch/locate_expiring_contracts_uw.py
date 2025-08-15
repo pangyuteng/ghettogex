@@ -167,26 +167,6 @@ def main():
     df.to_csv("ohlc-spx-vix.price",index=False)
 
 if __name__ == "__main__":
-    #main()
-    df = pd.read_csv("ohlc-spx-vix.price")
-    df['prct_change'] = 100*(df.spx_close-df.spx_open)/df.spx_open
-    df['prior_day_vix_close'] = df.vix_close.shift()
-    df['prior_day_vix_open'] = df.vix_open.shift()
-    sns.scatterplot(df,x='vix_open',y='prct_change')
-    plt.xlabel('vix open price')
-    plt.ylabel('spx daily prct change')
-    plt.plot([12.5,12.5],[-0.41,0.45])
-    plt.plot([17.5,17.5],[-0.66,0.66])
-    plt.plot([22.5,22.5],[-0.99,0.92])
-    plt.plot([27.5,27.5],[-1.19,1.10])
-    plt.plot([32.5,32.5],[-1.19,1.10])
-    plt.plot([37.5,37.5],[-1.56,1.62])
-
-    #plt.plot([37.5,37.5],[-1.56,1.62])
-    plt.title(f"n={len(df)}, {df.iloc[0,:].tstamp} to {df.iloc[-1,:].tstamp}")
-    plt.grid(True)
-    plt.savefig("price.png")
-    plt.close()
 
     # pq_file = "/mnt/hd1/data/uw-options-cache/SPX/2025-08-07.parquet.gzip"
     # process(pq_file)
