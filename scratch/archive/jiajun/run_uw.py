@@ -97,57 +97,68 @@ def generate():
 
 def main():
     df = pd.read_csv(csv_file)
+    df = df.sort_values(['tstamp']).reset_index()
     df = df.dropna()
-    min_tstamp = df.tstamp.min().strftime('%Y-%m-%d')
-    max_tstamp = df.tstamp.max().strftime('%Y-%m-%d')
+    min_tstamp = df.tstamp.to_list()[0]
+    max_tstamp = df.tstamp.to_list()[1]
     print(df.head())
     print(df.shape)
 
     df['prct_change'] = 100*(df.spx_close-df.spx_open)/df.spx_open
 
-    # https://www.tastylive.com/concepts-strategies/implied-volatility-rank-percentile
+    # # https://www.tastylive.com/concepts-strategies/implied-volatility-rank-percentile
     def iv_rank(w):
         return 100* ( w.iloc[-1] - np.min(w) ) / (np.max(w)-np.min(w))
 
     df['iv_rank'] =df.vix_open.rolling(252).apply(iv_rank)
-    df = df.dropna()
+
 
     fig = plt.figure()
-    ax = fig.add_subplot(2,1,1)
-    sns.scatterplot(df,x='vix_open',y='prct_change',alpha=0.5,size=0.2,ax=ax)
+    ax = fig.add_subplot(1,1,1)
+    sns.scatterplot(df,x='vix_open',y='prct_change',alpha=0.5,size=0.2,ax=ax,legend=False)
+    
+    historicaldf = pd.read_csv("SPX.csv")
+    hist_prct_change = (historicaldf.Close-historicaldf.Open)/historicaldf.Open
+    #np.percentile(hist_prct_change,[0.5])
+    # 67,49,38,30,23,15
+    # plt.plot([15,20,25,30,35,40],[])
     ax.set_yscale('symlog')
-    plt.xlabel('vix open price')
-    plt.ylabel('spx daily prct change')
-    plt.title(f"n={len(df)}, {min_tstamp} to {max_tstamp}")
-    plt.grid(True)
 
-    ax = fig.add_subplot(2,1,2)
-    sns.scatterplot(df,x='iv_rank',y='prct_change',alpha=0.5,size=0.2,ax=ax)
-    ax.set_yscale('symlog')
-    plt.xlabel('IV rank')
+    plt.xlabel('vix open price (same day)')
     plt.ylabel('spx daily prct change')
+    plt.title(f"n={len(df)}, {min_tstamp} to {max_tstamp} \n h/t Jiajun & LIZJNY Tastylive")
     plt.grid(True)
-
     plt.tight_layout()
-    plt.savefig("prct_change.png")
-    plt.close()
+    plt.savefig("prct_change_uw.png")
+
+    if False:
+        ax = fig.add_subplot(2,1,2)
+        sns.scatterplot(df,x='iv_rank',y='prct_change',alpha=0.5,size=0.2,ax=ax)
+        ax.set_yscale('symlog')
+        plt.xlabel('IV rank')
+        plt.ylabel('spx daily prct change')
+        plt.grid(True)
+        plt.tight_layout()
+
+        plt.savefig("prct_change_uw.png")
+        plt.close()
 
 
-    # fig = plt.figure()
-    # plt.subplot(311)
-    # plt.plot(df.tstamp,df.spx_close)
-    # plt.title("SPX")
-    # plt.grid(True)
-    # plt.subplot(312)
-    # plt.plot(df.tstamp,df.vix_close)
-    # plt.title("VIX")
-    # plt.grid(True)
-    # plt.subplot(313)
-    # plt.plot(df.tstamp,df.iv_rank)
-    # plt.title("IV rank")
-    # plt.grid(True)
-    # plt.savefig("price.png")
-    # plt.close()
+        fig = plt.figure()
+        plt.subplot(311)
+        plt.plot(df.tstamp,df.spx_close)
+        plt.title("SPX")
+        plt.grid(True)
+        plt.subplot(312)
+        plt.plot(df.tstamp,df.vix_close)
+        plt.title("VIX")
+        plt.grid(True)
+        plt.subplot(313)
+        plt.plot(df.tstamp,df.iv_rank)
+        plt.title("IV rank")
+        plt.grid(True)
+        plt.savefig("price.png")
+        plt.close()
 
 
 
@@ -160,7 +171,5 @@ if __name__ == "__main__":
 """
 
 docker run -it -w $PWD -v /mnt:/mnt -p 8888:8888 fi-notebook:latest bash
-
-python locate_expiring_contracts_uw.py SPX
 
 """
