@@ -1,4 +1,5 @@
 import datetime
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -23,34 +24,49 @@ print(vix_df.shape)
 
 df = vix_df.merge(spx_df,how='left',on=['tstamp'])
 df = df.dropna()
+min_tstamp = df.tstamp.min().strftime('%Y-%m-%d')
+max_tstamp = df.tstamp.max().strftime('%Y-%m-%d')
 print(df.head())
 print(df.shape)
 
 df['prct_change'] = 100*(df.spx_close-df.spx_open)/df.spx_open
 
+# https://www.tastylive.com/concepts-strategies/implied-volatility-rank-percentile
+def iv_rank(w):
+    return 100* ( w.iloc[-1] - np.min(w) ) / (np.max(w)-np.min(w))
+
+df['iv_rank'] =df.vix_open.rolling(252).apply(iv_rank)
+df = df.dropna()
+
 fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-sns.scatterplot(df,x='vix_open',y='prct_change',alpha=0.5,ax=ax)
-#ax.set_yscale('symlog')
+ax = fig.add_subplot(2,1,1)
+sns.scatterplot(df,x='vix_open',y='prct_change',alpha=0.5,size=0.5,ax=ax)
+ax.set_yscale('symlog')
 plt.xlabel('vix open price')
 plt.ylabel('spx daily prct change')
-plt.plot([12.5,12.5],[-0.41,0.45])
-plt.plot([17.5,17.5],[-0.66,0.66])
-plt.plot([22.5,22.5],[-0.99,0.92])
-plt.plot([27.5,27.5],[-1.19,1.10])
-plt.plot([32.5,32.5],[-1.19,1.10])
-plt.plot([37.5,37.5],[-1.56,1.62])
-
-plt.title(f"n={len(df)}, {df.iloc[0,:].tstamp} to {df.iloc[-1,:].tstamp}")
+plt.title(f"n={len(df)}, {min_tstamp} to {max_tstamp}")
 plt.grid(True)
+
+ax = fig.add_subplot(2,1,2)
+sns.scatterplot(df,x='iv_rank',y='prct_change',alpha=0.5,size=0.5,ax=ax)
+ax.set_yscale('symlog')
+plt.xlabel('IV Rank')
+plt.ylabel('spx daily prct change')
+plt.grid(True)
+
+plt.tight_layout()
 plt.savefig("prct_change.png")
 plt.close()
+
 
 fig = plt.figure()
 plt.subplot(211)
 plt.plot(df.tstamp,df.spx_close)
+plt.title("SPX")
+plt.grid(True)
 plt.subplot(212)
 plt.plot(df.tstamp,df.vix_close)
+plt.title("VIX")
 plt.grid(True)
 plt.savefig("price.png")
 plt.close()
