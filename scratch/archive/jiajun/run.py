@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def main():
+def get_df():
     spx_df = pd.read_csv("SPX_dailyOHLC.csv")
     # tradeday_ID,Symbol,Open,High,Low,Close,Date,Weekday
     spx_df['tstamp'] = spx_df.Date.apply(lambda x: datetime.datetime.strptime(x,"%Y-%m-%d"))
@@ -30,13 +30,18 @@ def main():
     print(df.shape)
 
     df['prct_change'] = 100*(df.spx_close-df.spx_open)/df.spx_open
-    df.to_csv("history.csv",index=False)
 
     # https://www.tastylive.com/concepts-strategies/implied-volatility-rank-percentile
     def iv_rank(w):
         return 100* ( w.iloc[-1] - np.min(w) ) / (np.max(w)-np.min(w))
 
     df['iv_rank'] =df.vix_open.rolling(252).apply(iv_rank)
+    df.to_csv("history.csv",index=False)
+    
+def main():
+
+    df = get_df
+
 
     df['prior_day_vix_close']=df.vix_close.shift()
     df['prior_day_vix_open']=df.vix_open.shift()

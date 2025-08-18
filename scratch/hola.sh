@@ -494,3 +494,15 @@ python uw_gex_utils.py SPX 2025-08-13
 
 python uw_gex_utils.py VIX 2025-08-14
 python uw_gex_utils.py SPX 2025-08-14
+
+python uw_gex_utils.py VIX 2025-08-15
+python uw_gex_utils.py SPX 2025-08-15
+
+python uw_gex_utils.py VIX 2025-08-16
+python uw_gex_utils.py SPX 2025-08-16
+
+python uw_gex_utils.py VIX 2025-08-17
+python uw_gex_utils.py SPX 2025-08-17
+
+python uw_gex_utils.py VIX 2025-08-18
+python uw_gex_utils.py SPX 2025-08-18
