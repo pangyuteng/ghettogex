@@ -512,6 +512,10 @@ async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postg
             time_a = time.time()
             event_df = await get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,prior_minute_utc_tstamp)
 
+            # WIP... attempt to play catchup??
+            if len(event_df) == 0:
+                event_df = await get_events_df_from_scratch(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,market_open_tstamp_utc)
+
             time_b = time.time()
             logger.info(f'get_events_df {time_b-time_a}')
             agg_df, qc_pass = compute_gex_core(utc_tstamp,event_df.copy(deep=True),from_scratch,first_minute=first_minute)
