@@ -467,9 +467,9 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
     # ??? why no df...
     if len(tmpdf) == 0:
         return
-
+    plt.figure(figsize=(10,40))
     if True:
-        fig, (ax1, ax2) = plt.subplots(1,2)
+        fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(10,5), width_ratios=[1,2,1])
     else:
         fig, ax1 = plt.subplots()
 
@@ -545,6 +545,7 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         ax2_twin.set_ylim(total_gex_df.total_gex.min(),total_gex_df.total_gex.max())
         ax2.grid(True)
 
+
     # plot convexity
     if False:
         color_label = 'tab:red'
@@ -580,6 +581,53 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
             ax2.set_xlim(conv_lim)
 
         ax2.grid(True)
+
+    if True:
+        ax3.set_title(f"aggressor-tagged open interest")
+
+        color_label = 'tab:red'
+        ax3.set_xlabel('OI', color=color_label)
+        ax3.set_ylabel('Strike')
+        # plot price, major pos/neg gex (**different from gexbot**)
+        ax3_twin = ax3.twiny()
+        ax3_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_pos_gex_strike,color="lightgreen",alpha=0.5,linewidth=2)
+        ax3_twin.plot(tmpmajor_df.tstamp_sec,tmpmajor_df.major_neg_gex_strike,color="lightpink",alpha=0.5,linewidth=2)
+        ax3_twin.plot(tmp_price.tstamp_sec, tmp_price.underlying_price, color="black",linewidth=1)
+
+        for n,row in tmpdf.iterrows():
+            color = 'green'
+            x = [0,row.call_oi]
+            y = [row.strike+1,row.strike+1]
+            ax3.plot(x,y,color=color,alpha=0.8)
+            color = 'red'
+            x = [0,row.put_oi]
+            y = [row.strike-1,row.strike-1]
+            ax3.plot(x,y,color=color,alpha=0.8)
+            if n == 0:
+                ax3.axhline(row.underlying_price,color='gray',linestyle='--')
+
+        ax3.tick_params(axis='x', labelcolor=color_label)
+        color_label = 'tab:blue'
+        ax3_twin.set_xlabel('time (utc)', color=color_label)
+
+        #ax3_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S',tz=pytz.timezone(et_tz))) # ???
+        ax3_twin.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+        ax3_twin.tick_params(axis='x', rotation=30)
+        ax3_twin.tick_params(axis='y', labelcolor=color_label)
+
+        if tstamp_lim:
+            ax3_twin.set_xlim(tstamp_lim)
+        if price_lim:
+            ax3.set_ylim(price_lim)
+
+        if False:
+            ftmpdf = tmpdf[(tmpdf.strike>price_lim[0])&(tmpdf.strike<price_lim[1])]
+            #conv_lim = [ftmpdf.convexity.min(),ftmpdf.convexity.max()]
+            gex_lim = [tmpdf.gex.min(),tmpdf.gex.max()]
+            if gex_lim and gex_lim[0] != gex_lim[1]:
+                ax3.set_xlim(gex_lim)
+
+        ax3.grid(True)
 
 
     fig.tight_layout()
