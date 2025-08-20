@@ -167,7 +167,7 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
         ticker,expiration,contract_type,strike
         from event_agg
     where tstamp < %s 
-    AND tstamp > %s - interval '5 second'
+    AND tstamp > %s - interval '30 second'
     and ticker = %s and expiration = %s
     GROUP BY event_type,event_symbol,ticker,expiration,contract_type,strike
     """
