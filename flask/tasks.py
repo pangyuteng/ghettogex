@@ -93,6 +93,52 @@ def manage_subscriptions(*args,**kwargs):
             trigger_subscription.apply_async(args=[ticker],queue="stream")
 
 @celery_app.task
+def trigger_vaccum_full(*args,**kwargs):
+    vaccum_full_analyze()
+
+@celery_app.task
+def trigger_cache_cboe(*args,**kwargs):
+    cache_cboe()
+
+@celery_app.task
+def trigger_shutdown(*args,**kwargs):
+    celery_app.control.shutdown()
+
+class GexTarget(luigi.Target):
+    ticker = luigi.parameter.Parameter()
+    et_tstamp = luigi.parameter.DateSecondParameter()
+    def __init__(self,ticker,et_tstamp):
+        super().__init__()
+        self.ticker = ticker
+        self.et_tstamp = et_tstamp
+    def exists(self):
+        utc_tstamp = self.et_tstamp.astimezone(tz=pytz.timezone('UTC'))
+        query_str = "select * from gex_net where ticker = %s and tstamp = %s"
+        query_args = (self.ticker,utc_tstamp)
+        fetched = postgres_execute(query_str,query_args,is_commit=False)
+        if fetched is None:
+            return
+        fetched = [dict(x) for x in fetched]
+        if len(fetched)>0:
+            return True
+        else:
+            return False
+
+class ComputeSpotGex(luigi.Task):
+    ticker = luigi.parameter.Parameter()
+    et_tstamp = luigi.parameter.DateSecondParameter()
+    def output(self):
+        return GexTarget(self.ticker,self.et_tstamp)
+    def requires(self):
+        if self.et_tstamp.hour == 9 and self.et_tstamp.minute == 30:
+            return None
+        prior_tstamp = self.et_tstamp-datetime.timedelta(seconds=1)
+        return ComputeSpotGex(self.ticker,prior_tstamp)
+    def run(self):
+        et_tstamp = self.et_tstamp.astimezone(tz=pytz.timezone('US/Eastern'))
+        output = asyncio.run(compute_gex(self.ticker,et_tstamp,from_scratch=None,persist_to_postgres=True))
+
+@celery_app.task
 def trigger_gex_cache(*args,**kwargs):
     query_str = "select * from watchlist,settings"
     query_args = ()
@@ -114,57 +160,8 @@ def trigger_gex_cache(*args,**kwargs):
                 continue
             logger.info(f"trigger_gex_cache {ticker}")
             output = asyncio.run(compute_gex(ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=True))
-
-@celery_app.task
-def trigger_vaccum_full(*args,**kwargs):
-    vaccum_full_analyze()
-
-@celery_app.task
-def trigger_cache_cboe(*args,**kwargs):
-    cache_cboe()
-
-@celery_app.task
-def trigger_shutdown(*args,**kwargs):
-    celery_app.control.shutdown()
-
-# TODO: you can implement backfill via luigi
-class GexTarget(luigi.Target):
-    ticker = luigi.parameter.Parameter()
-    tstamp = luigi.parameter.DateSecondParameter()
-    def __init__(self,ticker,tstamp):
-        super().__init__()
-        self.ticker = ticker
-        self.tstamp = tstamp
-    def exists(self):
-        # TODO
-        raise NotImplementedError()
-        query_str = "select * from gex_net where ticker = %s and tstamp = %s"
-        query_args = (self,ticker,self.tstamp)
-        fetched = postgres_execute(query_str,query_args,is_commit=False)
-        if fetched is None:
-            return
-        fetched = [dict(x) for x in fetched]
-        if len(fetched)>0:
-            return True
-        else:
-            return False
-
-class ComputeSpotGex(luigi.Task):
-    ticker = luigi.parameter.Parameter()
-    tstamp = luigi.parameter.DateSecondParameter()
-    def output(self):
-        return GexTarget(self.tstamp,self.tstamp)
-    def requires():
-        # TODO
-        raise NotImplementedError()
-        prior_tstamp = self.tstamp-datetime.timedelta(second=1)
-        return ComputeSpotGex(self.ticker,prior_tstamp)
-    def run(self):
-        # TODO
-        raise NotImplementedError()
-        compute_gex(self.ticker,tstamp,persist_to_postgres=True,from_scratch=False)
-
-
+            # task = ComputeSpotGex(ticker=ticker,et_tstamp=et_tstamp)
+            # ret_code = luigi.build([task])
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
@@ -174,7 +171,7 @@ if __name__ == "__main__":
 
 python -m luigi --module tasks Subscription --ticker SPX --local-scheduler
 
-python -m luigi --module tasks ComputeSpotGex --ticker SPX --tstamp 2024-10-18-13-30
+python -m luigi --module tasks ComputeSpotGex --ticker SPX --et-tstamp 2025-08-21T093000 --local-scheduler
 
 celery_app.control.broadcast('shutdown') ??
 
