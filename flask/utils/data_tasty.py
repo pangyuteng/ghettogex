@@ -46,6 +46,7 @@ from .misc import (
 from .postgres_utils import (
     cpostgres_execute,cpostgres_copy,
     psycopg,psycopg_pool,postgres_uri,
+    postgres_execute,
 )
 
 
@@ -55,30 +56,49 @@ def time_to_datetime(epoch_time):
 def is_test_func():
     return False if os.environ.get('IS_TEST') == 'FALSE' else True
 
-def get_session(remember_me=True):
-
+def get_session():
     is_test = is_test_func()
     username = os.environ.get('TASTYTRADE_USERNAME')
-    
+    password = os.environ.get('TASTYTRADE_PASSWORD')
+    session = Session(username,password,is_test=is_test)
+    return session
+
+def get_session_reuse():
+    remember_me = True
+    is_test = is_test_func()
+    username = os.environ.get('TASTYTRADE_USERNAME')
+    password = os.environ.get('TASTYTRADE_PASSWORD')
     daystamp = now_in_new_york().strftime("%Y-%m-%d")
-    token_file = f'/tmp/.tastytoken-{daystamp}.json'
-    logger.debug(token_file)
-    if not os.path.exists(token_file):
-        password = os.environ.get('TASTYTRADE_PASSWORD')
-        logger.debug(username)
-        session = Session(username,password,remember_me=remember_me,is_test=is_test)
-        # #use of remember_token locks the account!
-        # TOFO: need to read tasty api
-        # with open(token_file,'w') as f:
-        #    f.write(json.dumps({"remember_token":session.remember_token}))
-        return session
+
+    fetched = postgres_execute("select * from session where session_id = 1",(),is_commit=False)
+    if len(fetched) == 0:
+        serialized_session = None
+        logger.debug("no existing session found, will create new session")
     else:
-        logger.debug('loading token file...')
-        with open(token_file,'r') as f:
-            content = json.loads(f.read())
-            remember_token = content["remember_token"]
-            logger.debug(f"remember_token {remember_token}")
-            return Session(username,remember_token=remember_token,is_test=is_test)
+        serialized_session = fetched[0]['serialized_session']
+        streamer_expiration = json.loads(serialized_session)['streamer_expiration']
+        expiration_tstamp = datetime.datetime.strptime(streamer_expiration,'%Y-%m-%d %H:%M:%S%z')
+        if datetime.datetime.utcnow() > expiration_tstamp.replace(tzinfo=None):
+            logger.debug("session expired, will create new session")
+            serialized_session = None
+        else:
+            logger.debug("session found will use existing session")
+
+    if serialized_session:
+        # ** reuse of remember_token can only be used once, second time locks the account** so we use serialize!
+        session = Session.deserialize(serialized_session)
+    else:
+        session = Session(username,password,remember_me=remember_me,is_test=is_test)
+        serialized_session = session.serialize()
+        
+        query_str = """
+        INSERT INTO session (session_id,serialized_session) VALUES (%s,%s) ON CONFLICT (session_id) DO UPDATE SET serialized_session = %s;
+        """
+        query_args = (1,serialized_session,serialized_session)
+        postgres_execute(query_str,query_args,is_commit=True)
+        logger.debug("persisting new session to postgres")
+
+    return session
 
 async def save_data_to_json(ticker,streamer_symbols,event_type,event):
     tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
@@ -451,7 +471,7 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
         #     else:
         #         break
         
-        session = get_session()
+        session = get_session_reuse()
         
         if "/" in ticker:
             warnings.warn("futures not tested")
@@ -491,8 +511,8 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
                 traceback.print_exc()
                 warnings.warn('market likely not open today')
                 marketopendelta = datetime.timedelta(minutes=1)
-
-            if not is_market_open() and marketopendelta.total_seconds() > 0:
+            if False:
+            #if not is_market_open() and marketopendelta.total_seconds() > 0:
                 logger.info("market closing -------------------------------")
                 await asyncio.sleep(10)
                 for lp in live_prices_list:
