@@ -4,7 +4,7 @@ metadata:
   namespace: gg
   name: worker-stream
 spec:
-  replicas: 4
+  replicas: 10
   selector:
     matchLabels:
       app: worker-stream
