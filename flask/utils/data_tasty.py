@@ -452,9 +452,9 @@ def get_running_file(ticker):
 class MarketCloseException(Exception):
     pass
 
-async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
+async def background_subscribe(ticker,expirations_str,save_to_postres=True,save_to_json=True):
     try:
-
+        expiration_list = expirations_str.split(",")
         running_file = get_running_file(ticker)
         cancel_file = get_cancel_file(ticker)
         if not os.path.exists(running_file):
@@ -484,24 +484,25 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
 
         expirations = sorted(list(chain.keys()))
         live_prices_list = []
-        EXPIRATION_LIM = 3 # 10 likely the max dxlink let tastytrade api handle?
         myqueue = await PgInsertQueue.create()
         event_type_list = ['candle_underlying','quote_underlying','candle','quote','greeks','summary','timeandsale']
         flusher_task_list = [asyncio.create_task(flusher(myqueue,event_type)) for event_type in event_type_list]
         # underlying
-        underlying_streamer_symbols = [equity.streamer_symbol]
-        live_prices = await LivePrices.create(myqueue,session,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
-        live_prices_list.append(live_prices)
+        if "None" in expiration_list:
+            underlying_streamer_symbols = [equity.streamer_symbol]
+            live_prices = await LivePrices.create(myqueue,session,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
+            live_prices_list.append(live_prices)
 
         for expiration in expirations:
             if ticker == 'VIX': # ignore options for VIX
+                continue 
+            if expiration.strftime("%Y-%m-%d") not in expiration_list:
                 continue
             options_list = [o for o in chain[expiration]]
             streamer_symbols = [o.streamer_symbol for o in options_list]
+            print(streamer_symbols)
             live_prices = await LivePrices.create(myqueue,session,ticker,streamer_symbols,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
             live_prices_list.append(live_prices)
-            if len(live_prices_list)>=EXPIRATION_LIM:
-                break
 
         while True:
             et_tstamp = now_in_new_york()
@@ -511,8 +512,8 @@ async def background_subscribe(ticker,save_to_postres=True,save_to_json=True):
                 traceback.print_exc()
                 warnings.warn('market likely not open today')
                 marketopendelta = datetime.timedelta(minutes=1)
-            if False:
-            #if not is_market_open() and marketopendelta.total_seconds() > 0:
+
+            if not is_market_open() and marketopendelta.total_seconds() > 0:
                 logger.info("market closing -------------------------------")
                 await asyncio.sleep(10)
                 for lp in live_prices_list:
@@ -580,16 +581,11 @@ if __name__ == "__main__":
         datefmt='%Y-%m-%d %H:%M:%S',
     )
     ticker = sys.argv[1]
-    action = sys.argv[2]
-    
-    if action == "background_subscribe":
-        output = asyncio.run(background_subscribe(ticker,save_to_postres=True))
+    expirations_str = sys.argv[2]
+    output = asyncio.run(background_subscribe(ticker,expirations_str,save_to_postres=True))
 
 """
 
-
-python -m utils.data_tasty "/ES" background_subscribe
-
-python -m utils.data_tasty NDX background_subscribe
+python -m utils.data_tasty NDX None,2025-09-04,2025-09-05
 
 """

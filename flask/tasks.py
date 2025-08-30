@@ -16,8 +16,10 @@ import threading
 import luigi
 from celery import Celery
 
+from tastytrade.instruments import get_option_chain
+
 from utils.postgres_utils import postgres_execute, vaccum_full_analyze
-from utils.data_tasty import background_subscribe
+from utils.data_tasty import background_subscribe, get_session_reuse
 from utils.misc import is_market_open, now_in_new_york, timedelta_from_market_open
 from utils.compute_intraday import compute_gex
 from utils.data_cache import cache_cboe
@@ -37,6 +39,7 @@ class AlwaysRunTarget(luigi.Target):
 
 class Subscription(luigi.Task):
     ticker = luigi.parameter.Parameter()
+    expirations_str = luigi.parameter.Parameter()
     def output(self): # an output that never exists
         return AlwaysRunTarget()
     def run(self):
@@ -61,19 +64,25 @@ class Subscription(luigi.Task):
             return
 
         tastytrade.logger.setLevel(logging.INFO)
-        output = asyncio.run(background_subscribe(self.ticker,save_to_postres=True,save_to_json=False))
+        output = asyncio.run(background_subscribe(self.ticker,self.expirations_str,save_to_postres=True,save_to_json=False))
 
 @celery_app.task
 def trigger_subscription(*args,**kwargs):
     ticker = args[0]
+    expirations_str = args[1]
     logger.info(f"trigger_subscription! {ticker}")
-    task = Subscription(ticker=ticker)
+    task = Subscription(ticker=ticker,expirations_str=expirations_str)
     ret_code = luigi.build([task])
 
 # for fast jobs don't bother with luigi
 @celery_app.task
 def task_foo(*args,**kwargs):
     print(args)
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
 @celery_app.task
 def manage_subscriptions(*args,**kwargs):
@@ -86,11 +95,26 @@ def manage_subscriptions(*args,**kwargs):
         fetched = postgres_execute(query_str,query_args,is_commit=False)
         if fetched is None:
             return
+
+        session = get_session_reuse()
         fetched = [dict(x) for x in fetched]
         for row in fetched:
             ticker = row['ticker']
             logger.info(f"trigger subscriptions apply_async {ticker}")
-            trigger_subscription.apply_async(args=[ticker],queue="stream")
+            if ticker == "VIX":
+                expirations_str = "None"
+                trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
+            else:
+                chain = get_option_chain(session, ticker)
+                expiration_list = ["None"]
+                expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items()])
+
+                chunk_list = [','.join(x) for x in chunks(expiration_list, 3)]
+                for n,expirations_str in enumerate(chunk_list):
+                    trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
+                    if n > 4:
+                        break
+
 
 @celery_app.task
 def trigger_vaccum_full(*args,**kwargs):
@@ -165,7 +189,8 @@ def trigger_gex_cache(*args,**kwargs):
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
-    trigger_subscription(ticker)
+    expirations_str = sys.argv[2] # None,2025-09-03,2025-09-04
+    trigger_subscription(ticker,expirations_str)
 
 """ 
 
