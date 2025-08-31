@@ -77,13 +77,15 @@ def get_side_mod(row,arg_df):
             else:
                 side_mod = 'likely_bid' #???
         else:
-            if row.side == 'ask': # near ask, client bought, dealer short
+            if row.price == (row.ask_price+row.bid_price)/2 :
+                pass # assume mid is matched.
+            elif row.side == 'ask': # near ask, client bought, dealer short
                 side_mod = 'ask'
             elif row.side == 'bid': # near bid, client sold, dealer long
                 side_mod = 'bid'
             else:
                 # unusualwhales side colume values: bid,ask,mid,no_side
-                pass # assume mid is matched??
+                pass # assume mid is matched.
                 # TODO: volatility surface fitting
         return side_mod
     except:
@@ -536,6 +538,8 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         ax2_twin.set_ylabel('net GEX ($ bn/1% move)', color=color_label)
         ax2_twin.plot(tmptotal_gex_df.tstamp_sec, tmptotal_gex_df.total_gex, color="green",linewidth=1)
         ax2_twin.tick_params(axis='y', labelcolor=color_label)
+        ax2_twin.axhline(0,color='gray',linestyle='--')
+        ax2_twin.set_yscale('symlog')
 
         if price_lim:
             ax2.set_ylim(price_lim)
@@ -708,6 +712,8 @@ def gex_heatmap(ticker,tstamp,price_file,oi_file,sg_file,png_file):
     ax2_twin.tick_params(axis='y', labelcolor=color_label)
 
     ax2_twin.set_ylim(tmptotal_gex_df.total_gex.min(),tmptotal_gex_df.total_gex.max())
+    ax2_twin.axhline(0,color='gray',linestyle='--')
+    ax2_twin.set_yscale('symlog')
     ax2.set_title(f"net gex")
     ax2.grid(True)
 
