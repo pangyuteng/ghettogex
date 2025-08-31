@@ -77,7 +77,7 @@ def get_side_mod(row,arg_df):
             else:
                 side_mod = 'likely_bid' #???
         else:
-            if row.price == (row.ask_price+row.bid_price)/2 :
+            if row.price == (row.nbbo_ask+row.nbbo_bid)/2 :
                 pass # assume mid is matched.
             elif row.side == 'ask': # near ask, client bought, dealer short
                 side_mod = 'ask'
@@ -85,7 +85,7 @@ def get_side_mod(row,arg_df):
                 side_mod = 'bid'
             else:
                 # unusualwhales side colume values: bid,ask,mid,no_side
-                pass # assume mid is matched.
+                pass
                 # TODO: volatility surface fitting
         return side_mod
     except:
