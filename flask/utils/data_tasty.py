@@ -441,24 +441,12 @@ class LivePrices:
             if self.save_to_postres:
                 await myqueue.push_event(self.ticker,e.event_symbol,attribue_name,e)
 
-def get_cancel_file(ticker):
-    ticker = ticker.replace("/","^")
-    return os.path.join(CACHE_TASTY_FOLDER,f"cancel-{ticker}.txt")
-
-def get_running_file(ticker):
-    ticker = ticker.replace("/","^")
-    return os.path.join(CACHE_TASTY_FOLDER,f"running-{ticker}.txt")
-
 class MarketCloseException(Exception):
     pass
 
 async def background_subscribe(ticker,expirations_str,save_to_postres=True,save_to_json=True):
     try:
         expiration_list = expirations_str.split(",")
-        running_file = get_running_file(ticker)
-        cancel_file = get_cancel_file(ticker)
-        if not os.path.exists(running_file):
-            pathlib.Path(running_file).touch()
 
         # why wait?
         # when below was disabled, time_till_expire was erroring out.
@@ -535,31 +523,10 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True,save_
 
                 # print quotes
                 if len(live_prices_list)>0:
-                    tmp_candle = live_prices_list[0].candle[ticker]
+                    tmp_candle = list(live_prices_list[0].candle.values())[0]
                     logger.info(f"Current candle: {tmp_candle}")
 
-                pathlib.Path(running_file).touch()
                 await asyncio.sleep(5)
-
-                if os.path.exists(cancel_file):
-                    logger.info(f"canceljob receieved...")
-                    os.remove(cancel_file)
-                    logger.info(f"canceling!")
-                    for lp in live_prices_list:
-                        await lp.shutdown()
-
-                    if os.path.exists(running_file):
-                        os.remove(running_file)
-
-                    for flusher_task in flusher_task_list:
-                        # clean up
-                        flusher_task.cancel()
-                        try:
-                            await flusher_task
-                        except asyncio.CancelledError:
-                            pass
-                            
-                    raise ValueError("canceljob")
 
     except MarketCloseException:
         logger.error("MarketCloseException...")
@@ -567,8 +534,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True,save_
         logger.error("Stopping live price streaming...")
     finally:
         logger.info("finally...")
-        if os.path.exists(running_file):
-            os.remove(running_file)
+
     logger.info("attempt to exit!!")
     sys.exit(0)
 
