@@ -51,13 +51,10 @@ beat_schedule = {
        'options': {'queue': 'default'},
        'args': [],
    },
-}
-
-"""
    'trigger_shutdown': {
        'task': 'tasks.trigger_shutdown',
-       'schedule': crontab(minute=1, hour=13), # shutdown 1 hr prior marketopen
+       'schedule': crontab(minute=5, hour=20), # can't figure out why streamer unable to exit - so shutdown after market close
        'options': {'queue': 'default'},
        'args': [],
    },
-"""
+}
