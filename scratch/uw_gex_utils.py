@@ -62,7 +62,7 @@ def format_stamp(x):
 
 et_tz = "US/Eastern"
 
-def get_side_mod(row,arg_df):
+def get_side_mod_OLD(row,arg_df):
     try:
         side_mod = None
         # if mid, assume buy/sell is matched, return 0
@@ -91,6 +91,39 @@ def get_side_mod(row,arg_df):
     except:
         traceback.print_exc()
         return "exception"
+#
+# Leander Gayda Inferring the Trade Direction in Option Auctions
+# https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5144915
+# https://cdn.cboe.com/resources/release_notes/2023/Cboe-Options-to-Update-AIM-Price-Improvement-Requirements-for-Orders-of-Less-Than-50-Contracts.pdf
+#
+def get_side_mod(row,arg_df):
+    try:
+        side_mod = None
+        if row.size < 50 and row.nbbo_ask-row.nbbo_bid == 0.01:
+            if row.price > row.mid_price:
+                side_mod = 'likely_bid' # client sell
+            if row.price < row.mid_price:
+                side_mod = 'likely_ask' # client buy
+        elif row.size >= 50 and row.nbbo_ask-row.nbbo_bid > 0.01:
+            if row.price > row.mid_price:
+                side_mod = 'likely_ask'
+            if row.price < row.mid_price:
+                side_mod = 'likely_bid'
+        else:
+            if row.price == row.mid_price:
+                pass # assume mid is matched.
+            elif row.side == 'ask': # near ask, client bought, dealer short
+                side_mod = 'ask'
+            elif row.side == 'bid': # near bid, client sold, dealer long
+                side_mod = 'bid'
+            else:
+                # unusualwhales side colume values: bid,ask,mid,no_side
+                pass
+        return side_mod
+    except:
+        traceback.print_exc()
+        return "exception"
+
 
 def get_size_signed(row):
     if row.side_mod in ['ask','likely_ask']: # near ask, client bought, dealer short
@@ -278,12 +311,7 @@ class GexService(object):
         if ask price increase, likely was buy order.
 
         """
-
-        # TODO: insert logic to flag large orders
-        # crude rolling mean and std of size - flawed since you are mixing strike and time
-        df['large_order_th'] = df['size'].rolling(60).mean()+3*df['size'].rolling(60).std()
-        df['large_order'] = np.where(df['size']>=df['large_order_th'], True,False)
-        # TODO: use future order flow history to flag large_order (since no quote events)
+        df['mid_price'] = (df.nbbo_ask+df.nbbo_bid)/2.0
         df['side_mod'] = df.apply(lambda x: get_side_mod(x, df),axis=1)
         df['size_signed'] = df.apply(lambda x: get_size_signed(x),axis=1)
 
@@ -343,7 +371,6 @@ class GexService(object):
             'side','side_mod','size','size_signed', 'contract_type_int', 'oi','customer_oi',
             'price','nbbo_bid','nbbo_ask','ewma_nbbo_bid','ewma_nbbo_ask','canceled',
             'implied_volatility','delta', 'theta', 'gamma', 'vega', 'rho', 'theo',
-            'large_order',
         ] # once merged, underlying_price, price, greeks all likely outdated!
 
         oi_df = oi_df[cols]
@@ -634,7 +661,7 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         ax3.grid(True)
 
 
-    fig.tight_layout()
+    #fig.tight_layout()
 
     plt.show()
     plt.savefig(png_file)

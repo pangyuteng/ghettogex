@@ -214,7 +214,7 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
         df = pd.concat(pd_list,ignore_index=True)
     return df
 
-def get_side_mod(row,quotefut_df=None):
+def get_side_modOLD(row,quotefut_df=None):
     try:
         side_mod = None
         cond_met = False
@@ -249,6 +249,39 @@ def get_side_mod(row,quotefut_df=None):
                     side_mod = 'likely_bid'
                 else:
                     pass # assume mid is matched.
+        return side_mod
+    except:
+        traceback.print_exc()
+        return "exception"
+
+#
+# Leander Gayda Inferring the Trade Direction in Option Auctions
+# https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5144915
+# https://cdn.cboe.com/resources/release_notes/2023/Cboe-Options-to-Update-AIM-Price-Improvement-Requirements-for-Orders-of-Less-Than-50-Contracts.pdf
+#
+def get_side_mod(row):
+    try:
+        side_mod = None
+
+        if row.size < 50 and row.ask_price-row.bid_price == 0.01:
+            if row.price > row.mid_price:
+                side_mod = 'likely_bid' # client sell
+            if row.price < row.mid_price:
+                side_mod = 'likely_ask' # client buy
+        elif row.size >= 50 and row.ask_price-row.bid_price > 0.01:
+            if row.price > row.mid_price:
+                side_mod = 'likely_ask'
+            if row.price < row.mid_price:
+                side_mod = 'likely_bid'
+        else:
+            if row.mid_price == row.price:
+                pass # assume mid is matched.
+            elif row.aggressor_side == 'BUY':
+                side_mod = 'ask' # BUY or near ask
+            elif row.aggressor_side == 'SELL':
+                side_mod = 'bid' # SELL or near bid
+            elif row.aggressor_side == 'UNDEFINED':
+                pass # ???
         return side_mod
     except:
         traceback.print_exc()
@@ -300,11 +333,12 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
 
-    large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
-    if not np.isnan(large_order_th):
-        ts_df['large_order'] = ts_df['size'].apply(lambda x: x > large_order_th)
-    else:
-        ts_df['large_order'] = False
+    if False:
+        large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
+        if not np.isnan(large_order_th):
+            ts_df['large_order'] = ts_df['size'].apply(lambda x: x > large_order_th)
+        else:
+            ts_df['large_order'] = False
 
     # time_till_exp ####################################
     ts_df['theo_price'] = np.nan
@@ -327,7 +361,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     except:
         traceback.print_exc()
 
-    ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x,quotefut_df=quotefut_df),axis=1)
+    ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x),axis=1)
     ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
 
     candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
