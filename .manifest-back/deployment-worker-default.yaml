@@ -21,7 +21,7 @@ spec:
         imagePullPolicy: Always
         resources:
           limits:
-            memory: "10Gi"
+            memory: "2Gi"
         command: ["bash"]
         args: ["worker.sh","default"]
         env:
