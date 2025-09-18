@@ -66,6 +66,55 @@ class Subscription(luigi.Task):
         tastytrade.logger.setLevel(logging.INFO)
         output = asyncio.run(background_subscribe(self.ticker,self.expirations_str,save_to_postres=True,save_to_json=False))
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+class ManageSubscription(luigi.Task):
+    def output(self):
+        return AlwaysRunTarget()
+    def run(self):
+        query_str = "select * from watchlist"
+        query_args = ()
+        mydict = {}
+        if is_market_open() is False:
+            pass
+        else:
+            while True:
+                fetched = postgres_execute(query_str,query_args,is_commit=False)
+                if fetched is None:
+                    return
+
+                fetched = [dict(x) for x in fetched]
+                for row in fetched:
+                    ticker = row['ticker']
+                    logger.info(f"trigger subscriptions apply_async {ticker}")
+                    if ticker == "VIX":
+
+                        expirations_str = "None"
+                        trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
+
+                    else:
+                        if ticker not in mydict.keys():
+                            session = get_session_reuse()
+                            chain = get_option_chain(session, ticker)
+                            expiration_list = ["None"]
+                            expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items()])
+                        else:
+                            expiration_list = mydict[ticker]
+
+                        chunk_list = [','.join(x) for x in chunks(expiration_list, 3)]
+                        for n,expirations_str in enumerate(chunk_list):
+                            trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
+                            if n > 3:
+                                break
+
+                if is_market_open():
+                    time.sleep(60)
+                else:
+                    break
+
 @celery_app.task
 def trigger_subscription(*args,**kwargs):
     ticker = args[0]
@@ -79,42 +128,10 @@ def trigger_subscription(*args,**kwargs):
 def task_foo(*args,**kwargs):
     print(args)
 
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
-
 @celery_app.task
 def manage_subscriptions(*args,**kwargs):
-    query_str = "select * from watchlist"
-    query_args = ()
-
-    if is_market_open() is False:
-        pass
-    else:
-        fetched = postgres_execute(query_str,query_args,is_commit=False)
-        if fetched is None:
-            return
-
-        session = get_session_reuse()
-        fetched = [dict(x) for x in fetched]
-        for row in fetched:
-            ticker = row['ticker']
-            logger.info(f"trigger subscriptions apply_async {ticker}")
-            if ticker == "VIX":
-                expirations_str = "None"
-                trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
-            else:
-                chain = get_option_chain(session, ticker)
-                expiration_list = ["None"]
-                expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items()])
-
-                chunk_list = [','.join(x) for x in chunks(expiration_list, 3)]
-                for n,expirations_str in enumerate(chunk_list):
-                    trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
-                    if n > 3:
-                        break
-
+    task = ManageSubscription()
+    ret_code = luigi.build([task])
 
 @celery_app.task
 def trigger_vaccum_full(*args,**kwargs):
