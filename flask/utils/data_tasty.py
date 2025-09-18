@@ -89,7 +89,7 @@ def get_session_reuse():
         # ** reuse of remember_token can only be used once, second time locks the account** so we use serialize!
         session = OAuthSession.deserialize(serialized_session)
     else:
-        session = OAuthSession(client_secret,refresh_token,remember_me=remember_me,is_test=is_test)
+        session = OAuthSession(client_secret,refresh_token,is_test=is_test)
         serialized_session = session.serialize()
         
         query_str = """
