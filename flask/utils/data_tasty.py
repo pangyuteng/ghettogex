@@ -32,7 +32,7 @@ from tastytrade.dxfeed import (
     Candle, Greeks, Profile, Quote, Summary, TheoPrice, TimeAndSale, Trade, Underlying, 
 )
 from tastytrade.instruments import Equity, Option, Future, FutureOption, OptionType
-from tastytrade.session import Session
+from tastytrade.session import OAuthSession
 from tastytrade.streamer import EventType
 from tastytrade.utils import today_in_new_york
 
@@ -58,16 +58,17 @@ def is_test_func():
 
 def get_session():
     is_test = is_test_func()
-    username = os.environ.get('TASTYTRADE_USERNAME')
-    password = os.environ.get('TASTYTRADE_PASSWORD')
-    session = Session(username,password,is_test=is_test)
+    client_secret = os.environ.get('TASTYTRADE_CLIENT_SECRET')
+    refresh_token = os.environ.get('TASTYTRADE_REFRESH_TOKEN')
+    session = OAuthSession(client_secret,refresh_token,is_test=is_test)
     return session
 
 def get_session_reuse():
     remember_me = True
     is_test = is_test_func()
-    username = os.environ.get('TASTYTRADE_USERNAME')
-    password = os.environ.get('TASTYTRADE_PASSWORD')
+    client_secret = os.environ.get('TASTYTRADE_CLIENT_SECRET')
+    refresh_token = os.environ.get('TASTYTRADE_REFRESH_TOKEN')
+
     daystamp = now_in_new_york().strftime("%Y-%m-%d")
 
     fetched = postgres_execute("select * from session where session_id = 1",(),is_commit=False)
@@ -86,9 +87,9 @@ def get_session_reuse():
 
     if serialized_session:
         # ** reuse of remember_token can only be used once, second time locks the account** so we use serialize!
-        session = Session.deserialize(serialized_session)
+        session = OAuthSession.deserialize(serialized_session)
     else:
-        session = Session(username,password,remember_me=remember_me,is_test=is_test)
+        session = OAuthSession(client_secret,refresh_token,remember_me=remember_me,is_test=is_test)
         serialized_session = session.serialize()
         
         query_str = """
@@ -98,6 +99,8 @@ def get_session_reuse():
         postgres_execute(query_str,query_args,is_commit=True)
         logger.debug("persisting new session to postgres")
 
+    if now_in_new_york() > session.session_expiration:
+        session.refresh()
     return session
 
 async def save_data_to_json(ticker,streamer_symbols,event_type,event):
@@ -324,7 +327,7 @@ class LivePrices:
     async def create(
         cls,
         myqueue: PgInsertQueue,
-        session: Session,
+        session: OAuthSession,
         ticker: str,
         streamer_symbols: list,
         expiration: None,

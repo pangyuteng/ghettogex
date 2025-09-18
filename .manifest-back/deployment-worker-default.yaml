@@ -44,16 +44,16 @@ spec:
             secretKeyRef:
               name: tasty-env
               key: IS_TEST
-        - name: TASTYTRADE_USERNAME
+        - name: TASTYTRADE_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
               name: tasty-env
-              key: TASTYTRADE_USERNAME
-        - name: TASTYTRADE_PASSWORD
+              key: TASTYTRADE_CLIENT_SECRET
+        - name: TASTYTRADE_REFRESH_TOKEN
           valueFrom:
             secretKeyRef:
               name: tasty-env
-              key: TASTYTRADE_PASSWORD
+              key: TASTYTRADE_REFRESH_TOKEN
         volumeMounts:
         - name: nfs-volume
           mountPath: /mnt/hd1/data

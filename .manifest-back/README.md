@@ -27,15 +27,16 @@ kubectl apply -f registry-credentials.yml
 
 kubectl get secrets registry-credentials -n default -o json |  jq 'del(.metadata["namespace","creationTimestamp","resourceVersion","selfLink","uid","annotations"])' | kubectl apply -n gg -f -
 
+kubectl delete secret tasty-env -n gg
+
 IS_TEST=
-TASTYTRADE_USERNAME=
-TASTYTRADE_PASSWORD=
+TASTYTRADE_CLIENT_SECRET=
+TASTYTRADE_REFRESH_TOKEN=
 
-kubectl create secret generic tasty-env --from-env-file=.tasty
+kubectl create secret generic tasty-env  -n gg --from-env-file=.tasty
 
-kubectl get secret tasty-env -o yaml
-
-kubectl get secrets tasty-env -n default -o json |  jq 'del(.metadata["namespace","creationTimestamp","resourceVersion","selfLink","uid","annotations"])' | kubectl apply -n gg -f -
+# (no need) kubectl get secret tasty-env -o yaml
+#  (no need) kubectl get secrets tasty-env -n default -o json |  jq 'del(.metadata["namespace","creationTimestamp","resourceVersion","selfLink","uid","annotations"])' | kubectl apply -n gg -f -
 
 
 

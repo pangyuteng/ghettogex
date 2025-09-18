@@ -1045,8 +1045,8 @@ kubectl port-forward --address 0.0.0.0 svc/redis -n gg 6379:6379
 -v $PWD/tmp:/.local 
 
 export IS_TEST=FALSE
-export TASTYTRADE_USERNAME=
-export TASTYTRADE_PASSWORD=''
+export TASTYTRADE_CLIENT_SECRET=
+export TASTYTRADE_REFRESH_TOKEN=''
 
 docker run -it \
     -e CACHE_FOLDER="/mnt/hd1/data/fi" \

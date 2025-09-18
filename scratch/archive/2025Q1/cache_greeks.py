@@ -64,8 +64,8 @@ def time_to_datetime(tstamp):
 def get_session():
 
     is_test = False if os.environ.get('IS_TEST') == 'FALSE' else True
-    username = os.environ.get('TASTYTRADE_USERNAME')
-    password = os.environ.get('TASTYTRADE_PASSWORD')
+    username = os.environ.get('TASTYTRADE_CLIENT_SECRET')
+    password = os.environ.get('TASTYTRADE_REFRESH_TOKEN')
     logger.debug(username)
     session = Session(username,password,is_test=is_test)
     return session
