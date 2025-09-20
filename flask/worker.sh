@@ -7,9 +7,8 @@ echo -n $WORKERNAME > /tmp/workername.txt
 celery -A tasks worker -Q $QUEUENAME \
     --hostname=$WORKERNAME \
     --pidfile /tmp/celeryworker.pid \
-    --pool=solo \
-    --concurrency=1 -Ofair --max-tasks-per-child=1 \
+    --pool=gevent --concurrency=10 \
     --prefetch-multiplier=1 --without-gossip --loglevel=INFO
 
-
+# -Ofair --pool=solo --concurrency=1 --max-tasks-per-child=1 \
 #    --logfile=$LOGFILE \

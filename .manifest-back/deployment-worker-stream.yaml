@@ -4,7 +4,7 @@ metadata:
   namespace: gg
   name: worker-stream
 spec:
-  replicas: 12
+  replicas: 4
   selector:
     matchLabels:
       app: worker-stream
@@ -21,7 +21,7 @@ spec:
         imagePullPolicy: Always
         resources:
           limits:
-            memory: "2Gi"
+            memory: "10Gi"
         command: ["bash"]
         args: ["worker.sh","stream"]
         env:
