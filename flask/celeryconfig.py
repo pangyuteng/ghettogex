@@ -27,7 +27,7 @@ task_queues = (
 beat_schedule = {
     'manage_subscriptions': {
         'task': 'tasks.manage_subscriptions',
-        'schedule': 5,
+        'schedule': 300,
         'relative': True,
         'options': {'queue': 'stream'},
         'args': [],
