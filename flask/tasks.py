@@ -64,7 +64,7 @@ class Subscription(luigi.Task):
             return
 
         tastytrade.logger.setLevel(logging.INFO)
-        output = asyncio.run(background_subscribe(self.ticker,self.expirations_str,save_to_postres=True,save_to_json=False))
+        asyncio.run(background_subscribe(self.ticker,self.expirations_str,save_to_postres=True,save_to_json=False))
 
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
@@ -177,7 +177,7 @@ class ComputeSpotGex(luigi.Task):
         return ComputeSpotGex(self.ticker,prior_tstamp)
     def run(self):
         et_tstamp = self.et_tstamp.astimezone(tz=pytz.timezone('US/Eastern'))
-        output = asyncio.run(compute_gex(self.ticker,et_tstamp,from_scratch=None,persist_to_postgres=True))
+        asyncio.run(compute_gex(self.ticker,et_tstamp,from_scratch=None,persist_to_postgres=True))
 
 @celery_app.task
 def trigger_gex_cache(*args,**kwargs):
@@ -200,7 +200,9 @@ def trigger_gex_cache(*args,**kwargs):
             if not is_compute_gex:
                 continue
             logger.info(f"trigger_gex_cache {ticker}")
-            output = asyncio.run(compute_gex(ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=True))
+            asyncio.run(compute_gex(ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=True))
+            
+            # TODO: testbelow?
             # task = ComputeSpotGex(ticker=ticker,et_tstamp=et_tstamp)
             # ret_code = luigi.build([task])
 
