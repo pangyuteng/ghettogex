@@ -60,7 +60,7 @@ def get_session():
     is_test = is_test_func()
     client_secret = os.environ.get('TASTYTRADE_CLIENT_SECRET')
     refresh_token = os.environ.get('TASTYTRADE_REFRESH_TOKEN')
-    session = OAuthSession(client_secret,refresh_token,is_test=is_test,dxfeed_tos_compliant=False)
+    session = OAuthSession(client_secret,refresh_token,is_test=is_test)
     return session
 
 def get_session_reuse():
@@ -89,7 +89,7 @@ def get_session_reuse():
         # ** reuse of remember_token can only be used once, second time locks the account** so we use serialize!
         session = OAuthSession.deserialize(serialized_session)
     else:
-        session = OAuthSession(client_secret,refresh_token,is_test=is_test,dxfeed_tos_compliant=False)
+        session = OAuthSession(client_secret,refresh_token,is_test=is_test)
         serialized_session = session.serialize()
         
         query_str = """
