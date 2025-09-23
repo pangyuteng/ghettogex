@@ -31,3 +31,11 @@ i played the open and this stuff in state futs
 --
 
 https://x.com/hauvolatility/status/1369330081999556616
+
+
+https://x.com/VolSignals/status/1773882497530561003
+
+# 2025-03-31 https://x.com/OptionsDepth/status/1906733192616214751/photo/1
+# 2025-05-08 https://x.com/OptionsDepth/status/1920512128852586718/photo/1
+# "The Pitfalls of Open Interest_ Unlocking True Market Positions.pdf"
+# https://spotgamma.com/the-anatomy-of-an-spx-0dte-driven-market/
