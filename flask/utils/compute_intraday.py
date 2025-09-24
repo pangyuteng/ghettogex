@@ -471,7 +471,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
 
     if from_scratch:
         # quality check
-        reqd_event_list = ['summary','greeks','timeandsale','candle']
+        reqd_event_list = ['summary','greeks']
         if np.isnan(spot_price) or not all([event_type in df.event_type.unique() for event_type in reqd_event_list]):
             qc_pass = False
         else:
