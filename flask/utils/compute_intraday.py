@@ -92,13 +92,6 @@ async def get_events_df_from_scratch(aconn,ticker,utc_tstamp,max_utc_tstamp,futu
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
     ot = cpostgres_execute(aconn,query_str,query_args)
 
-    query_str = """
-    select 'quotefuture' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
-    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
-    """
-    query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote
-    oqh = cpostgres_execute(aconn,query_str,query_args)
-
     quote_query_str = """
     select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
         last(ask_price,tstamp) as ask_price,last(bid_price,tstamp) as bid_price,last(tstamp,tstamp) as tstamp
@@ -111,7 +104,7 @@ async def get_events_df_from_scratch(aconn,ticker,utc_tstamp,max_utc_tstamp,futu
     query_args = (utc_tstamp,utc_tstamp,ticker_alt,expiration) # quote
     oq = cpostgres_execute(aconn,quote_query_str,query_args)
 
-    all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oqh,oq)
+    all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oq)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
@@ -187,13 +180,6 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     query_args = (utc_tstamp,max_utc_tstamp,ticker_alt,expiration) # timeandsale
     ot = cpostgres_execute(aconn,query_str,query_args)
 
-    query_str = """
-    select 'quotefuture' as event_type,event_symbol,bid_time,ask_time,bid_price,ask_price,bid_size,ask_size,tstamp,ticker,expiration,contract_type,strike from quote
-    where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
-    """
-    query_args = (utc_tstamp,future_utc_tstamp,ticker_alt,expiration) # quote history
-    oqh = cpostgres_execute(aconn,query_str,query_args)
-
     quote_query_str = """
     select distinct 'quote' as event_type,event_symbol,ticker,expiration,contract_type,strike,
         last(ask_price,tstamp) as ask_price,last(bid_price,tstamp) as bid_price,last(tstamp,tstamp) as tstamp
@@ -206,7 +192,7 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
     query_args = (utc_tstamp,utc_tstamp,ticker_alt,expiration) # quote
     oq = cpostgres_execute(aconn,quote_query_str,query_args)
 
-    all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oqh,oq)
+    all_groups = await asyncio.gather(uv,uc,oc,os,og,ot,oq)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         pd_list = [pd.DataFrame(x,columns=columns) for x in all_groups if x is not None]
@@ -276,7 +262,6 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     candle_df = df[df.event_type=='candle']
     summary_df = df[df.event_type=='summary']
     greeks_df = df[df.event_type=='greeks']
-    quotefut_df = df[df.event_type=='quotefuture']
 
     # NOTE:
     # quote data not really usable, as it is not synced with timeandsale...
