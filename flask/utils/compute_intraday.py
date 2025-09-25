@@ -214,46 +214,6 @@ async def get_events_df(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp
         df = pd.concat(pd_list,ignore_index=True)
     return df
 
-def get_side_modOLD(row,quotefut_df=None):
-    try:
-        side_mod = None
-        cond_met = False
-
-        if row.large_order:
-            tmp_df = quotefut_df[quotefut_df.event_symbol==row.event_symbol]
-            cond_met = True if len(tmp_df) > 2 else False
-        else:
-            tmp_df = None
-
-        if row.large_order and cond_met:
-            ask_price_list = tmp_df.ask_price.to_list()
-            bid_price_list = tmp_df.bid_price.to_list()
-            # TODO: hau volatility also uses ask_size and bid_size
-            if ask_price_list[-1] > ask_price_list[0]:
-                side_mod = 'likely_ask'
-            elif bid_price_list[-1] > bid_price_list[0]:
-                side_mod = 'likely_ask'
-            else:
-                side_mod = 'likely_bid' #???
-        elif row.mid_price == row.price:
-            pass # assume mid is matched.
-        elif row.aggressor_side == 'BUY':
-            side_mod = 'ask' # BUY or near ask
-        elif row.aggressor_side == 'SELL':
-            side_mod = 'bid' # SELL or near bid
-        elif row.aggressor_side == 'UNDEFINED':
-            if not np.isnan(row.theo_price):
-                if (row.price - row.theo_price) > 1E-3:
-                    side_mod = 'likely_ask'
-                elif (row.price - row.theo_price) < -1E-3:
-                    side_mod = 'likely_bid'
-                else:
-                    pass # assume mid is matched.
-        return side_mod
-    except:
-        traceback.print_exc()
-        return "exception"
-
 #
 # Leander Gayda Inferring the Trade Direction in Option Auctions
 # https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5144915
@@ -332,13 +292,6 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     ts_df['mid_price'] = (ts_df['ask_price']+ts_df['bid_price'])/2.0
     # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
     ts_df['size'] = ts_df['size'].astype(float)
-
-    if False:
-        large_order_th = ts_df['size'].mean()+3*ts_df['size'].std()
-        if not np.isnan(large_order_th):
-            ts_df['large_order'] = ts_df['size'].apply(lambda x: x > large_order_th)
-        else:
-            ts_df['large_order'] = False
 
     # time_till_exp ####################################
     ts_df['theo_price'] = np.nan
