@@ -26,7 +26,6 @@ from .iv_utils import (
     TOTAL_SECONDS_ONE_YEAR,
     compute_greeks,
     compute_exposure,
-    compute_theo_price,
 )
 
 async def get_events_df_from_scratch(aconn,ticker,utc_tstamp,max_utc_tstamp,future_utc_tstamp,min_utc_tstamp):
@@ -279,43 +278,12 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     greeks_df = df[df.event_type=='greeks']
     quotefut_df = df[df.event_type=='quotefuture']
 
-    # use copy since will be adding columns to the df
-    ts_df = df[df.event_type=='timeandsale'].copy()
-
     # NOTE:
     # quote data not really usable, as it is not synced with timeandsale...
     # once synced with timeandsale, can derive vol surface for better determine ddoi
     quote_df = df[df.event_type=='quote'].copy()
     quote_df = quote_df.sort_values(by=['contract_type','strike'])
     quote_df['price'] = (quote_df['ask_price']+quote_df['bid_price'])/2.0
-
-    ts_df['mid_price'] = (ts_df['ask_price']+ts_df['bid_price'])/2.0
-    # flag large orders using timeandsale (NOTE: alternatively use size relative to bid/ask size in quote event)
-    ts_df['size'] = ts_df['size'].astype(float)
-
-    # time_till_exp ####################################
-    ts_df['theo_price'] = np.nan
-    ts_df['time_till_exp'] = np.nan
-    try:
-        if len(ts_df) > 0 and False:
-            expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(ts_df.expiration.unique())}
-            ts_df['time_till_exp'] = ts_df.expiration.apply(lambda x: (expiration_mapper[x]-tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR )
-            epsilon = 1e-5
-            ts_df.loc[ts_df.time_till_exp==0,'time_till_exp'] = epsilon
-            ts_df['spot_price'] = spot_price
-            if False:
-                # comment: we now are cmoparing using lagged data from qute event!
-                # even if you query the lagged 1sec quote it gex profile still looks wrong!
-                ts_df.drop(['price'], axis=1,inplace=True)
-                ts_df = ts_df.merge(quote_df[['event_symbol','price']],how='left',on=['event_symbol'])
-            # TDOO: compute IV merge with quote_df, compare IV?
-            compute_theo_price(ts_df,spot_price,spot_volatility)
-            ts_df.loc[ts_df.theo_price==0.0,'theo_price']=np.nan
-    except:
-        traceback.print_exc()
-
-    ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x),axis=1)
-    ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
 
     candle_df = candle_df[['event_symbol','open','high','low','close','volume','bid_volume','ask_volume']]
     candle_df = candle_df.groupby(['event_symbol']).agg(
@@ -327,6 +295,7 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
         bid_volume=pd.NamedAgg(column="bid_volume", aggfunc="sum"),
         ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="sum"),
     ).reset_index()
+    candle_df['size_signed'] = candle_df.ask_volume - candle_df.bid_volume
 
     summary_df = summary_df[['event_symbol','ticker','strike','contract_type','expiration','open_interest','true_oi']]
     summary_df = summary_df.groupby(['event_symbol','ticker','strike','contract_type','expiration']).last().reset_index()
@@ -334,14 +303,10 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
     greeks_df = greeks_df[['event_symbol','volatility','delta','gamma','theta','rho','vega']] # 'price',
     greeks_df = greeks_df.groupby(['event_symbol']).last().reset_index()
 
-    timeandsale_df = ts_df[['event_symbol','size_signed']]
-    timeandsale_df = timeandsale_df.groupby(['event_symbol']).sum().reset_index()
-
     # NOTE: start with summary since you always have summary
     merged_df = summary_df.merge(greeks_df,how='left',on=['event_symbol'])
-    merged_df = merged_df.merge(timeandsale_df,how='left',on=['event_symbol'])
     merged_df = merged_df.merge(candle_df,how='left',on=['event_symbol'])
-
+    
     quote_df = quote_df[['event_symbol','price']]
     merged_df = merged_df.merge(quote_df,how='left',on=['event_symbol'])
 
