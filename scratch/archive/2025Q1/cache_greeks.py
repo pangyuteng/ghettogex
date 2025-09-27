@@ -55,8 +55,7 @@ def is_market_open(tstamp=None):
     else:
         return False
 
-CACHE_TASTY_FOLDER = "tmp"
-os.makedirs(CACHE_TASTY_FOLDER,exist_ok=True)
+os.makedirs("tmp",exist_ok=True)
 
 def time_to_datetime(tstamp):
     return datetime.datetime.fromtimestamp(float(tstamp) / 1e3)
@@ -73,7 +72,7 @@ def get_session():
 async def save_data_to_json(ticker,streamer_symbols,event_type,event):
     tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
     daystamp = now_in_new_york().strftime("%Y-%m-%d")
-    workdir = os.path.join(CACHE_TASTY_FOLDER,ticker,daystamp,streamer_symbols,event_type)
+    workdir = os.path.join("tmp",ticker,daystamp,streamer_symbols,event_type)
     await aiofiles.os.makedirs(workdir,exist_ok=True)
     uid = uuid.uuid4().hex
     json_file = os.path.join(workdir,f'{tstamp}-uid-{uid}.json')

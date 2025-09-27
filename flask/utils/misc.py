@@ -3,9 +3,8 @@ logger = logging.getLogger(__file__)
 
 import os
 CACHE_FOLDER = os.environ.get("CACHE_FOLDER")
-CACHE_TASTY_FOLDER = os.environ.get("CACHE_TASTY_FOLDER")
 os.makedirs(CACHE_FOLDER,exist_ok=True)
-os.makedirs(CACHE_TASTY_FOLDER,exist_ok=True)
+
 import pytz
 import datetime
 import pandas_market_calendars as mcal

@@ -109,12 +109,11 @@ def plot_iv(pq_file,ticker):
 
 def main():
 
-    CACHE_TASTY_FOLDER = "tmp"
     ticker = 'SPX'
     pq_file = f'{ticker}.parquet.gzip'
 
     if not os.path.exists(pq_file):
-        root_folder = os.path.join(CACHE_TASTY_FOLDER,ticker)
+        root_folder = os.path.join("tmp",ticker)
         json_file_list = [str(x) for x in pathlib.Path(root_folder).rglob("*.json")]
         json_file_list = [x for x in json_file_list if 'greeks' in x]
 

@@ -24,8 +24,6 @@ spec:
         env:
         - name: CACHE_FOLDER
           value: /mnt/hd1/data/fi
-        - name: CACHE_TASTY_FOLDER
-          value: /mnt/hd1/data/tastyfi
         - name: AMQP_URI
           value: amqp://rabbitmq:5672
         - name: REDIS_URI

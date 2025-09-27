@@ -40,8 +40,6 @@ from .misc import (
     now_in_new_york,
     is_market_open,
     timedelta_from_market_open,
-    CACHE_FOLDER,
-    CACHE_TASTY_FOLDER,
 )
 from .postgres_utils import (
     cpostgres_execute,cpostgres_copy,
@@ -104,17 +102,6 @@ def get_session_reuse(refresh_serialized=False):
     if now_in_new_york() > session.session_expiration:
         session.refresh()
     return session
-
-async def save_data_to_json(ticker,streamer_symbols,event_type,event):
-    tstamp = now_in_new_york().strftime("%Y-%m-%d-%H-%M-%S.%f")
-    daystamp = now_in_new_york().strftime("%Y-%m-%d")
-    workdir = os.path.join(CACHE_TASTY_FOLDER,ticker,daystamp,streamer_symbols,event_type)
-    await aiofiles.os.makedirs(workdir,exist_ok=True)
-    uid = uuid.uuid4().hex
-    json_file = os.path.join(workdir,f'{tstamp}-uid-{uid}.json')
-    async with aiofiles.open(json_file,'w') as f:
-        event_dict = dict(event)
-        await f.write(json.dumps(event_dict,indent=4,sort_keys=True,default=str))
 
 from decimal import Decimal
 def postgres_friendly(value):
@@ -323,7 +310,6 @@ class LivePrices:
     task_list: list[str]
     ticker: str
     expiration: datetime.date
-    save_to_json: bool=True
     save_to_postres: bool=False
     @classmethod
     async def create(
@@ -333,7 +319,6 @@ class LivePrices:
         ticker: str,
         streamer_symbols: list,
         expiration: None,
-        save_to_json: bool = True,
         save_to_postres: bool = False,
         ):
 
@@ -356,8 +341,7 @@ class LivePrices:
 
 
         self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
-                   streamer, streamer_symbols,[],ticker,expiration,
-                   save_to_json=save_to_json,save_to_postres=save_to_postres)
+                   streamer, streamer_symbols,[],ticker,expiration,save_to_postres=save_to_postres)
 
         t_listen_candles = asyncio.create_task(self._update_candle(myqueue))
         t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",myqueue))
@@ -432,8 +416,6 @@ class LivePrices:
         async for e in self.streamer.listen(Candle):
             streamer_symbol = e.event_symbol.replace("{="+CANDLE_TYPE+",tho=true}","")
             self.candle[streamer_symbol] = e
-            if self.save_to_json:
-                await save_data_to_json(self.ticker,streamer_symbol,'candle',e)
             if self.save_to_postres:
                 await myqueue.push_event(self.ticker,streamer_symbol,'candle',e)
 
@@ -441,15 +423,13 @@ class LivePrices:
         async for e in self.streamer.listen(event_type):
             myparam = getattr(self,attribue_name)
             myparam[e.event_symbol] = e
-            if self.save_to_json:
-                await save_data_to_json(self.ticker,e.event_symbol,attribue_name,e)
             if self.save_to_postres:
                 await myqueue.push_event(self.ticker,e.event_symbol,attribue_name,e)
 
 class MarketCloseException(Exception):
     pass
 
-async def background_subscribe(ticker,expirations_str,save_to_postres=True,save_to_json=True):
+async def background_subscribe(ticker,expirations_str,save_to_postres=True):
     try:
         expiration_list = expirations_str.split(",")
 
@@ -483,7 +463,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True,save_
         # underlying
         if "None" in expiration_list:
             underlying_streamer_symbols = [equity.streamer_symbol]
-            live_prices = await LivePrices.create(myqueue,session,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres,save_to_json=save_to_json)
+            live_prices = await LivePrices.create(myqueue,session,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres)
             live_prices_list.append(live_prices)
 
         for expiration in expirations:
@@ -494,7 +474,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True,save_
             options_list = [o for o in chain[expiration]]
             streamer_symbols = [o.streamer_symbol for o in options_list]
             print(streamer_symbols)
-            live_prices = await LivePrices.create(myqueue,session,ticker,streamer_symbols,expiration=expiration,save_to_postres=save_to_postres,save_to_json=save_to_json)
+            live_prices = await LivePrices.create(myqueue,session,ticker,streamer_symbols,expiration=expiration,save_to_postres=save_to_postres)
             live_prices_list.append(live_prices)
 
         while True:

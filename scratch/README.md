@@ -569,7 +569,7 @@ order by tstamp
 
 
 docker run -it  \
--e CACHE_FOLDER="/mnt/hd1/data/fi" -e CACHE_TASTY_FOLDER="/mnt/hd1/data/tastyfi"  \
+-e CACHE_FOLDER="/mnt/hd1/data/fi"  \
 -e POSTGRES_URI="postgres://postgres:postgres@192.168.68.143:5432/postgres" \
 -e REDIS_URI="redis://192.168.68.143:6379/1" \
 -w $PWD -v /mnt:/mnt \
