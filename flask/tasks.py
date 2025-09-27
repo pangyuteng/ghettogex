@@ -82,6 +82,9 @@ class ManageSubscription(luigi.Task):
         if is_market_open() is False:
             return
 
+        # refresh serialized session
+        session = get_session_reuse(refresh_serialized=True)
+
         while True:
             fetched = postgres_execute(query_str,query_args,is_commit=False)
             if fetched is None:

@@ -63,15 +63,18 @@ def get_session():
     session = OAuthSession(client_secret,refresh_token,is_test=is_test)
     return session
 
-def get_session_reuse():
-    remember_me = True
+def get_session_reuse(refresh_serialized=False):
     is_test = is_test_func()
     client_secret = os.environ.get('TASTYTRADE_CLIENT_SECRET')
     refresh_token = os.environ.get('TASTYTRADE_REFRESH_TOKEN')
 
     daystamp = now_in_new_york().strftime("%Y-%m-%d")
 
-    fetched = postgres_execute("select * from session where session_id = 1",(),is_commit=False)
+    if refresh_serialized is False:
+        fetched = postgres_execute("select * from session where session_id = 1",(),is_commit=False)
+    else:
+        fetched = []
+
     if len(fetched) == 0:
         serialized_session = None
         logger.debug("no existing session found, will create new session")
@@ -86,7 +89,6 @@ def get_session_reuse():
             logger.debug("session found will use existing session")
 
     if serialized_session:
-        # ** reuse of remember_token can only be used once, second time locks the account** so we use serialize!
         session = OAuthSession.deserialize(serialized_session)
     else:
         session = OAuthSession(client_secret,refresh_token,is_test=is_test)
