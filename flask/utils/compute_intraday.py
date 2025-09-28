@@ -208,12 +208,17 @@ def get_side_mod(row):
     try:
         side_mod = None
 
-        if row.size < 50 and row.ask_price-row.bid_price == 0.01:
+        if row.ask_price > 3:
+            spread = 0.1
+        elif row.ask_price < 3:
+            spread = 0.05
+
+        if row.size < 50 and row.ask_price-row.bid_price == spread:
             if row.price > row.mid_price:
                 side_mod = 'likely_bid' # client sell
             if row.price < row.mid_price:
                 side_mod = 'likely_ask' # client buy
-        elif row.size >= 50 and row.ask_price-row.bid_price > 0.01:
+        elif row.size >= 50 and row.ask_price-row.bid_price > spread:
             if row.price > row.mid_price:
                 side_mod = 'likely_ask'
             if row.price < row.mid_price:
