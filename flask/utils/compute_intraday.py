@@ -281,6 +281,12 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
         ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="sum"),
     ).reset_index()
 
+    if False: # not used, salvaged from 71fa54e, likely can be used later or for sake of hoarding it in master.
+        ts_df = df[df.event_type=='timeandsale'].copy()
+        ts_df['mid_price'] = (ts_df['ask_price']+ts_df['bid_price'])/2.0
+        ts_df['side_mod'] = ts_df.apply(lambda x: get_side_mod(x),axis=1)
+        ts_df['size_signed'] = ts_df.apply(lambda x: get_size_signed(x),axis=1)
+
     # ask_volume--> (likely) client bought--> dealer short --> set as negative (refer to old impl when we still have timeandsale event: get_side_mod, get_size_signed)
     candle_df['size_signed'] = -1*candle_df.ask_volume + candle_df.bid_volume
 
