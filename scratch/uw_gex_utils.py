@@ -620,10 +620,10 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         ax2.grid(True)
 
     if True:
-        ax3.set_title(f"aggressor-tagged open interest")
+        ax3.set_title(f"put/call gex")
 
         color_label = 'tab:red'
-        ax3.set_xlabel('DDOI', color=color_label)
+        ax3.set_xlabel('gex', color=color_label)
         ax3.set_ylabel('Strike')
         # plot price, major pos/neg gex (**different from gexbot**)
         ax3_twin = ax3.twiny()
@@ -633,11 +633,11 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
 
         for n,row in tmpdf.iterrows():
             color = 'green'
-            x = [0,row.call_oi]
+            x = [0,row.call_gex]
             y = [row.strike+1,row.strike+1]
             ax3.plot(x,y,color=color,alpha=0.8)
             color = 'red'
-            x = [0,row.put_oi]
+            x = [0,row.put_gex]
             y = [row.strike-1,row.strike-1]
             ax3.plot(x,y,color=color,alpha=0.8)
             if n == 0:
