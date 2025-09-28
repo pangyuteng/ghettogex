@@ -617,7 +617,7 @@ def plot_func(ticker,time_sec,png_file,sg_df,price_df,major_df,total_gex_df,tsta
         ax3.set_title(f"aggressor-tagged open interest")
 
         color_label = 'tab:red'
-        ax3.set_xlabel('OI', color=color_label)
+        ax3.set_xlabel('DDOI', color=color_label)
         ax3.set_ylabel('Strike')
         # plot price, major pos/neg gex (**different from gexbot**)
         ax3_twin = ax3.twiny()
