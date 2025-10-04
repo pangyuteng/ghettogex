@@ -472,6 +472,35 @@ docker run -it -u $(id -u):$(id -g) \
     https://github.com/pangyuteng/ghettogex.aigonewrong.com/compare/0451835ec81a6f515acea6f12603ec3b397c26e2...e216efb22b34ad3eb343cebe043ece716f45c2aa
 
 
++ [ ] get timeandsale from schwab-py or mock timeandsale from candle volume?
+
+```
+select foo.event_symbol,
+volume,ask_volume,bid_volume,vwap,( (ask_price+bid_price)/2 ) as mid_price, ask_price,bid_price,spread,open,high,low,close 
+from 
+(select 'candle' as event_type,event_symbol,open,high,low,close,vwap,volume,ask_volume,bid_volume,time,tstamp,ticker,expiration,contract_type,strike, 
+date_trunc('second', to_timestamp(time/1000)) as event_tstamp, tstamp
+from candle
+where ticker = 'SPXW' --event_symbol = '.SPXW251003P6700' 
+and tstamp > '2025-10-03 16:00:00'
+and tstamp < '2025-10-03 16:00:10' 
+) as foo, (
+select event_symbol,bid_price,ask_price,ask_price-bid_price as spread,date_trunc('second', tstamp) as event_tstamp 
+from quote 
+where ticker = 'SPXW'  -- event_symbol = '.SPXW251003P6700' 
+and tstamp > '2025-10-03 16:00:00'
+and tstamp < '2025-10-03 16:00:10' 
+) as bar
+where foo.event_symbol = bar.event_symbol 
+and foo.event_tstamp = bar.event_tstamp
+
+```
++ [ ]order-imbalance
+
+  tracking by every minute, 10 minute
+  or every second, but using data for whole day, maybe this is the impl for "gex-bot state gamma".
+
+
 + [ ] make optiondepth chart
       https://x.com/aigonewrong/status/1945939514930942004
       https://x.com/phlegminglib/status/1948918214894797063
