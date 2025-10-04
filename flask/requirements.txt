@@ -29,3 +29,4 @@ py_vollib_vectorized==0.1.1
 numba==0.61.0
 financepy==0.360
 pandarallel==1.6.5
+schwab_py==1.5.1

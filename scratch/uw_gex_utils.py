@@ -99,11 +99,11 @@ def get_side_mod_OLD(row,arg_df):
 def get_side_mod(row,arg_df):
     try:
         side_mod = None
-        
-        if row.nbbo_ask > 3:
-            spread = 0.1
-        elif row.nbbo_ask < 3:
+
+        if row.nbbo_ask < 3:
             spread = 0.05
+        else:
+            spread = 0.1
 
         if row.size < 50 and row.nbbo_ask-row.nbbo_bid == spread:
             if row.price > row.mid_price:

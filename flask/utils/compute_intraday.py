@@ -208,10 +208,10 @@ def get_side_mod(row):
     try:
         side_mod = None
 
-        if row.ask_price > 3:
-            spread = 0.1
-        elif row.ask_price < 3:
+        if row.ask_price < 3:
             spread = 0.05
+        else:
+            spread = 0.1
 
         if row.size < 50 and row.ask_price-row.bid_price == spread:
             if row.price > row.mid_price:
