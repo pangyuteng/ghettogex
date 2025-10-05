@@ -467,7 +467,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
             live_prices_list.append(live_prices)
 
         for expiration in expirations:
-            if ticker == 'VIX': # ignore options for VIX
+            if ticker in ['VIX','VIX1D']: # ignore options for VIX
                 continue 
             if expiration.strftime("%Y-%m-%d") not in expiration_list:
                 continue
