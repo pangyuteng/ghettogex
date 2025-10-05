@@ -446,11 +446,11 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
         
         session = get_session_reuse()
         
-        if "/" in ticker:
-            warnings.warn("futures not tested")
+        if ticker in ["ES"]:
+            future_list = await Future.a_get(session,product_codes=ticker)
+            future_list = sorted(future_list,key=lambda x: x.expires_at,reverse=False)
+            equity = await Future.a_get(session, future_list[0].symbol)
             chain = get_future_option_chain(session, ticker)
-            underlying_symbol = list(chain.values())[0][0].underlying_symbol
-            equity = await Future.a_get(session, underlying_symbol)
         else:
             equity = await Equity.a_get(session, ticker)
             chain = get_option_chain(session, ticker)
@@ -467,7 +467,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
             live_prices_list.append(live_prices)
 
         for expiration in expirations:
-            if ticker in ['VIX','VIX1D']: # ignore options for VIX
+            if ticker in ["VIX","VIX1D","ES"]: # ignore options for VIX and futures.
                 continue 
             if expiration.strftime("%Y-%m-%d") not in expiration_list:
                 continue
