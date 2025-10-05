@@ -31,10 +31,10 @@ spec:
         resources:
           limits:
             cpu: "6"
-            memory: "20Gi"
+            memory: "10Gi"
           requests:
             cpu: "4.2"
-            memory: "20Gi"
+            memory: "10Gi"
         env:
         - name: POSTGRES_USER
           value: postgres
