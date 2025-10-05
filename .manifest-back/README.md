@@ -60,6 +60,7 @@ kubectl label nodes host6 disktype=ssd
 
 cd ..
 kubectl apply -f .manifest-volume
+kubectl apply -f .manifest-etc
 kubectl apply -f .manifest-back
 
 ```
@@ -71,22 +72,30 @@ kubectl rollout restart deployment postgres -n gg
 kubectl rollout restart deployment adminer -n gg
 kubectl rollout restart deployment rabbitmq -n gg
 kubectl rollout restart deployment redis -n gg
+```
 
 
+
++ misc commands
+
+```
+
+kubectl get pods -o wide -n gg
+
+kubectl port-forward --address 0.0.0.0 svc/postgres -n gg 5432:5432
+
+kubectl logs -l app=worker-default -n gg -f --max-log-requests 12 --tail=2000
+kubectl logs -l app=worker-stream -n gg -f --max-log-requests 12 --tail=2000
+
+```
+
++ restart deployments
+
+```
 kubectl rollout restart deployment luigi -n gg
 kubectl rollout restart deployment enqueue -n gg
 kubectl rollout restart deployment beat -n gg
 kubectl rollout restart deployment worker-default -n gg
 kubectl rollout restart deployment worker-stream -n gg
-
-```
-
-+ tail logs
-
-```
-
-kubectl logs -l app=worker-default -n gg -f --max-log-requests 12 --tail=2000
-kubectl logs -l app=worker-stream -n gg -f --max-log-requests 12 --tail=2000
-
 
 ```
