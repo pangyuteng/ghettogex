@@ -451,6 +451,9 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
             future_list = sorted(future_list,key=lambda x: x.expires_at,reverse=False)
             equity = await Future.a_get(session, future_list[0].symbol)
             chain = get_future_option_chain(session, ticker)
+        elif ticker == "VIX1D":
+            equity= None
+            chain = {}
         else:
             equity = await Equity.a_get(session, ticker)
             chain = get_option_chain(session, ticker)
@@ -462,7 +465,10 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
         flusher_task_list = [asyncio.create_task(flusher(myqueue,event_type)) for event_type in event_type_list]
         # underlying
         if "None" in expiration_list:
-            underlying_streamer_symbols = [equity.streamer_symbol]
+            if ticker == "VIX1D":
+                underlying_streamer_symbols = "VIX1D"
+            else:
+                underlying_streamer_symbols = [equity.streamer_symbol]
             live_prices = await LivePrices.create(myqueue,session,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres)
             live_prices_list.append(live_prices)
 
