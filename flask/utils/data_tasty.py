@@ -466,7 +466,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
         # underlying
         if "None" in expiration_list:
             if ticker == "VIX1D":
-                underlying_streamer_symbols = "VIX1D"
+                underlying_streamer_symbols = ["VIX1D"]
             else:
                 underlying_streamer_symbols = [equity.streamer_symbol]
             live_prices = await LivePrices.create(myqueue,session,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres)
