@@ -128,10 +128,6 @@ async def logout():
 async def redirect_to_login(*_):
     return redirect(url_for("login"))
 
-@app.route("/about")
-async def about():
-    return await render_template("about.html")
-
 @app.route("/links")
 @login_required
 async def links():
@@ -157,19 +153,84 @@ async def gexbots3cols():
 async def black():
     return await render_template("black.html")
 
+@app.route("/")
+@login_required
+async def home():
+    if not await current_user.is_authenticated:
+        return redirect(url_for("login"))
+    dstamp = request.args.get("dstamp",None)
+    if dstamp is None:
+        tstamp_et = now_in_new_york()
+        dstamp = tstamp_et.strftime("%Y-%m-%d")
+        nyse_schedule = nyse.schedule(start_date=dstamp, end_date=dstamp)
+    else:
+        nyse_schedule = nyse.schedule(start_date=dstamp, end_date=dstamp)
+    return await render_template("index.html",nyse_schedule=nyse_schedule,dstamp=dstamp)
+
+@app.websocket('/ws-main-socket') # name so bad
+@login_required
+async def ws_main_socket():
+    message = None
+    try:
+        dstamp = websocket.args.get("dstamp")
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+            while True:
+                try:
+                    ticker == "SPX"
+                    early = nyse.schedule(start_date=dstamp, end_date=dstamp)
+                    if len(early) == 0:
+                        message = "break-while-loop"
+                        raise ValueError("market closed!")
+
+                    ret_dict = {}
+                    tstamp_et = now_in_new_york()
+                    tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
+                    market_open,market_close = get_market_open_close(dstamp,no_tzinfo=False)
+
+                    timea = time.time()
+                    query_list = [
+                        apostgres_execute(apool,EVENT_STATUS_QUERY,()),
+                        apostgres_execute(apool,GEX_NET_1MIN_QUERY,(dstamp,ticker,dstamp)),
+                    ]
+
+                    gathered_res = await asyncio.gather(*query_list)
+                    timeb = time.time()
+                    duration = timeb-timea
+
+                    if gathered_res[0] is not None:
+                        df = pd.DataFrame([x for x in gathered_res[0]])
+                        ret_dict['status']=json.dumps({row.event_type:f'{row.id_count} {row.tstamp}' for n,row in df.iterrows()})
+
+                    if gathered_res[1] is not None: 
+                        df = pd.DataFrame([dict(x) for x in gathered_res[1]])
+                        ret_dict['duration_sec']=duration
+                        ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                except:
+                    ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                    ret_dict['status'] = 'traceback:'+traceback.format_exc()
+                    app.logger.error(traceback.format_exc())
+
+                await websocket.send_json(ret_dict)
+                await asyncio.sleep(0.5)
+
+                if message is not None:
+                    break
+
+    except asyncio.CancelledError:
+        app.logger.warning(traceback.format_exc())
+        app.logger.error('Client disconnected')
+        raise
+
+
+###############################
+## OLD STUFF TO DELETE LATER
+
 @app.route("/legacy/home")
 @login_required
 async def legacy_home():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
     return await render_template("old-index-2024-Q4.html",listoflist=HOME_TICKER_LIST_OF_LIST)
-
-@app.route("/")
-@login_required
-async def home():
-    if not await current_user.is_authenticated:
-        return redirect(url_for("login"))
-    return await render_template("index.html")
 
 @app.route("/eod-gex")
 @login_required

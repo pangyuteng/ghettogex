@@ -59,7 +59,7 @@ CALL refresh_continuous_aggregate('gex_net_1min', NULL, NULL);
 CREATE MATERIALIZED VIEW candle_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,
 last(close,tstamp) as close
-FROM candle where event_symbol in ('SPX','VIX')
+FROM candle where (event_symbol in ('SPX','VIX','VIX1D') or event_symbol like '/ES%' )
 GROUP BY time_bucket('1m', tstamp), event_symbol;
 
 SELECT add_continuous_aggregate_policy('candle_1min',
@@ -68,7 +68,7 @@ SELECT add_continuous_aggregate_policy('candle_1min',
   schedule_interval => INTERVAL '1 min');
 
 CALL refresh_continuous_aggregate('candle_1min', NULL, NULL);
-
+ALTER MATERIALIZED VIEW candle_1min set (timescaledb.materialized_only = false);
 
 -- DROP MATERIALIZED VIEW gex_net_1min;
 -- SELECT remove_continuous_aggregate_policy('gex_net_1min');
