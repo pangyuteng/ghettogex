@@ -269,12 +269,6 @@ async def ws_prices():
         raise
     # no return, means connection is kept open.
 
-@app.route("/ticker/overview")
-@login_required
-async def overview():
-    ticker = request.args.get("ticker")
-    return redirect(url_for("eod_gex",ticker=ticker))
-    return await render_template("overview.html",ticker=ticker)
 
 @app.websocket("/ticker/daily-ws-gex-strike")
 @login_required
