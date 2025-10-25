@@ -18,9 +18,7 @@
 {% if nyse_schedule | length  == 0 %}
 market closed!
 {% else %}
-
-
-server_tstamp: <span id="tstampSpan" style="font-size: 18px !important; color: #ffffff;"></span>
+data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <br>
 /es: <span id="espriceSpan" style="font-size: 20px !important; color: #8f8f8f;"></span>
 , vix: <span id="vixSpan" style="font-size: 20px !important; color: #ff0000;"></span>
@@ -28,10 +26,15 @@ server_tstamp: <span id="tstampSpan" style="font-size: 18px !important; color: #
 , spx: <span id="spxpriceSpan" style="font-size: 20px !important; color: #ffffff;"></span>
 <div class="box">
     <div class="one" id="mySPXVIX"></div>
+    <div class="one" id="myGexStrike"></div>
 </div>
+<br>
+server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
+, query_time: <span id="queryTimeSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
+<br>
 {% include 'index-spx-vix.html' %}
+{% include 'index-gex.html' %}
 {% include 'index-ws.html' %}
-
 # ES candle volume?<br>
 # show candle volume gex <br>
 # show candle volume order imbalance <br>

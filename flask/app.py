@@ -188,14 +188,23 @@ async def ws_main_socket():
                     tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
                     market_open,market_close = get_market_open_close(dstamp,no_tzinfo=False)
 
+                    if tstamp_utc < market_open:
+                        message = "break-while-loop"
+                    if tstamp_utc > market_close:
+                        message = "break-while-loop"
+
+                    tstamp_utc = market_close
+                    ticker = 'SPX'
+
                     timea = time.time()
                     query_list = [
                         apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp)),
+                        apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
                     timeb = time.time()
-                    duration = timeb-timea
+                    duration_time = timeb-timea
 
                     if gathered_res[0] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[0]])
@@ -207,8 +216,44 @@ async def ws_main_socket():
                         ret_dict['vix_price'] = ret_dict['prices'][2][-1]
                         ret_dict['vix1d_price'] = ret_dict['prices'][3][-1]
                         ret_dict['spx_price'] = ret_dict['prices'][4][-1]
+                        data_tstamp = datetime.datetime.fromtimestamp(df.tstamp.iloc[-1])
+                        ret_dict['data_tstamp'] = data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
+
+                    if gathered_res[1] is not None:
+                        df = pd.DataFrame([dict(x) for x in gathered_res[1]])
+                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df.state_gex = df.state_gex/1e9
+                        df.volume_gex = df.volume_gex/1e9
+
+                        df['pos_gex'] = df.state_gex.where(df.state_gex>0)
+                        df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
+                        df['pos_volume_gex'] = df.volume_gex.where(df.volume_gex>0)
+                        df['neg_volume_gex'] = df.volume_gex.where(df.volume_gex<=0)
+                        df = df.replace({np.nan: None})
+
+                        lgs = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
+                        major_call_strike = df["strike"].iloc[df.call_gex.argmax()]
+                        major_put_strike = df["strike"].iloc[df.put_gex.argmin()]
+
+                        ret_dict['lgs'] = lgs
+                        ret_dict['major_call'] = major_call_strike
+                        ret_dict['major_put'] = major_put_strike
+                            
+                        #lgs_volume = [df[i].tolist() for i in ['strike','pos_volume_gex','neg_volume_gex']]
+                        #major_call_strike_volume = df["strike"].iloc[df.pos_volume_gex.argmax()]
+                        #major_put_strike_volume = df["strike"].iloc[df.neg_volume_gex.argmin()]
+
+                        #ret_dict['lgs_volume'] = lgs_volume
+                        #ret_dict['major_call_volume'] = major_call_strike_volume
+                        #ret_dict['major_put_volume'] = major_put_strike_volume
+                        
+                        #app.logger.error(f"{df}")
+
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                    ret_dict['duration_time'] = f"{duration_time:0.3f}sec"
                 except:
+                    ret_dict['duration_time'] = None
+                    ret_dict['data_tstamp'] = None
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['status'] = 'traceback:'+traceback.format_exc()
                     app.logger.error(traceback.format_exc())

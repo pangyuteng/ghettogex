@@ -1,7 +1,9 @@
 
 <script>
     const ws = new WebSocket("/ws-main-socket?dstamp={{ dstamp }}");
-    let tstampSpan = document.getElementById("tstampSpan");
+    let serverTstampSpan = document.getElementById("serverTstampSpan");
+    let queryTimeSpan = document.getElementById("queryTimeSpan");
+    let dataTstampSpan = document.getElementById("dataTstampSpan");
     let spxpriceSpan = document.getElementById("spxpriceSpan");
     let espriceSpan = document.getElementById("espriceSpan");
     let vixSpan = document.getElementById("vixSpan");
@@ -9,13 +11,14 @@
     //let statusDiv = document.getElementById("statusDiv");
     ws.onmessage = function(event) {
         let newdata = JSON.parse(event.data);
-        //statusDiv.textContent = newdata.status;
-        tstampSpan.textContent = newdata.server_tstamp;
+        serverTstampSpan.textContent = newdata.server_tstamp;
+        queryTimeSpan.textContent = newdata.duration_time;
+        dataTstampSpan.textContent = newdata.data_tstamp;
         spxpriceSpan.textContent = newdata.spx_price;
         espriceSpan.textContent = newdata.es_price;
         vixSpan.textContent = newdata.vix_price;
         vix1dSpan.textContent = newdata.vix1d_price;
         updateSPXVIXChart(newdata.prices);
-
+        updateChartGex(newdata);
     }
 </script>
