@@ -75,3 +75,19 @@ ALTER MATERIALIZED VIEW candle_1min set (timescaledb.materialized_only = false);
 -- DROP MATERIALIZED VIEW candle_1min;
 -- SELECT remove_continuous_aggregate_policy('candle_1min');
 -- https://gist.github.com/mathisve/3cf9fd3f97ba75ec4d20c483fd5016d2
+
+
+CREATE MATERIALIZED VIEW order_imbalance WITH (timescaledb.continuous) AS
+SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,
+sum(ask_volume)-sum(bid_volume) as order_imbalance
+FROM candle where ticker in ('SPXW')
+GROUP BY time_bucket('5m', tstamp), event_symbol;
+
+SELECT add_continuous_aggregate_policy('order_imbalance',
+  start_offset => NULL,
+  end_offset => INTERVAL '5 min',
+  schedule_interval => INTERVAL '5 min');
+
+CALL refresh_continuous_aggregate('order_imbalance', NULL, NULL);
+ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.materialized_only = false);
+
