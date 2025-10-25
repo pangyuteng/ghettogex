@@ -9,13 +9,6 @@ function makeChartLineV1() {
 		series: [
 			{},
 			{ 
-				label: "spx",
-				scale: "scale0",
-				value: (u, v) => v == null ? null : v.toFixed(2) + "",
-				stroke: "rgba(255,255,255,1)",
-				width: 2/devicePixelRatio,
-			},
-			{
 				label: "/es",
 				scale: "scale0",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
@@ -26,8 +19,8 @@ function makeChartLineV1() {
 				label: "vix",
 				scale: "scale1",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
-				width: 2/devicePixelRatio,
 				stroke: "rgba(255,0,0,1)",
+				width: 2/devicePixelRatio,
 			},
 			{
 				label: "vix1d",
@@ -35,6 +28,13 @@ function makeChartLineV1() {
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
 				width: 2/devicePixelRatio,
 				stroke: "rgba(255,165,0,1)",
+			},
+			{
+				label: "spx",
+				scale: "scale0",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				width: 2/devicePixelRatio,
+				stroke: "rgba(255,255,255,1)",
 			},
 		],
 		axes: [

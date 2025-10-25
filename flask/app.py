@@ -201,12 +201,12 @@ async def ws_main_socket():
                         df = pd.DataFrame([dict(x) for x in gathered_res[0]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df = df.replace({np.nan: None})
-                        lst = [df[i].tolist() for i in ['tstamp','spx_close','es_close','vix_close','vix1d_close']]
+                        lst = [df[i].tolist() for i in ['tstamp','es_close','vix_close','vix1d_close','spx_close',]]
                         ret_dict['prices'] = lst
-                        ret_dict['spx_price'] = ret_dict['prices'][1][-1]
-                        ret_dict['es_price'] = ret_dict['prices'][2][-1]
-                        ret_dict['vix_price'] = ret_dict['prices'][3][-1]
-                        ret_dict['vix1d_price'] = ret_dict['prices'][4][-1]
+                        ret_dict['es_price'] = ret_dict['prices'][1][-1]
+                        ret_dict['vix_price'] = ret_dict['prices'][2][-1]
+                        ret_dict['vix1d_price'] = ret_dict['prices'][3][-1]
+                        ret_dict['spx_price'] = ret_dict['prices'][4][-1]
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                 except:
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
