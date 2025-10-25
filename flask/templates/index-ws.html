@@ -1,0 +1,21 @@
+
+<script>
+    const ws = new WebSocket("/ws-main-socket?dstamp={{ dstamp }}");
+    let tstampSpan = document.getElementById("tstampSpan");
+    let spxpriceSpan = document.getElementById("spxpriceSpan");
+    let espriceSpan = document.getElementById("espriceSpan");
+    let vixSpan = document.getElementById("vixSpan");
+    let vix1dSpan = document.getElementById("vix1dSpan");
+    //let statusDiv = document.getElementById("statusDiv");
+    ws.onmessage = function(event) {
+        let newdata = JSON.parse(event.data);
+        //statusDiv.textContent = newdata.status;
+        tstampSpan.textContent = newdata.server_tstamp;
+        spxpriceSpan.textContent = newdata.spx_price;
+        espriceSpan.textContent = newdata.es_price;
+        vixSpan.textContent = newdata.vix_price;
+        vix1dSpan.textContent = newdata.vix1d_price;
+        updateSPXVIXChart(newdata.prices);
+
+    }
+</script>

@@ -21,6 +21,19 @@ from gex_strike where tstamp > now() - interval '4 second'
 )
 """
 
+CANDLE_1MIN_QUERY = """
+WITH spx_1min AS (select tstamp,close as spx_close from candle_1min where tstamp::date = %s and event_symbol = 'SPX' and close != 0),
+es_1min AS (select tstamp,close as es_close from candle_1min where tstamp::date = %s and event_symbol like '/ES%%' and close != 0),
+vix_1min AS (select tstamp,close as vix_close from candle_1min where tstamp::date = %s and event_symbol = 'VIX' and close != 0),
+vix1d_1min AS (select tstamp,close as vix1d_close from candle_1min where tstamp::date = %s and event_symbol = 'VIX1D' and close != 0)
+SELECT * FROM spx_1min
+LEFT JOIN es_1min using (tstamp)
+LEFT JOIN vix_1min using (tstamp)
+LEFT JOIN vix1d_1min using (tstamp)
+ORDER BY tstamp
+"""
+
+
 LATEST_GEX_STRIKE_QUERY = """
 WITH last_tstamp AS (select tstamp from gex_net where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp desc limit 1),
 last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike),

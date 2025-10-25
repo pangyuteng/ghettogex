@@ -1,0 +1,76 @@
+<script>
+
+function makeChartLineV1() {
+	
+	const opts = {
+		title: "prices",
+		width: 420,
+		height: 420,
+		series: [
+			{},
+			{ 
+				label: "SPX",
+				scale: "scale0",
+				value: (u, v) => v == null ? null : v.toFixed(2)+"spx",
+				stroke: "rgba(255,255,255,1)",
+				width: 2/devicePixelRatio,
+			},
+			{
+				label: "/ES",
+				scale: "scale0",
+				value: (u, v) => v == null ? null : v.toFixed(2)+"ex",
+				stroke: "rgba(100,255,100,1)",
+				width: 2/devicePixelRatio,
+			},
+			{
+				label: "VIX",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "VIX",
+				width: 2/devicePixelRatio,
+				stroke: "rgba(255,0,0,1)",
+			},
+			{
+				label: "VIX1D",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "VIX1D",
+				width: 2/devicePixelRatio,
+				stroke: "rgba(255,165,0,1)",
+			},
+		],
+		axes: [
+			{
+				side: 0,
+				stroke: "#666666",
+				tick: {stroke: "#666666",width:1},
+				grid: {stroke: "#666666",width:1},
+			},
+			{
+				side: 3,
+				scale: "scale0",
+				values: (u, vals, space) => vals.map(v => v.toFixed(1) +""),
+				stroke: "#666666",
+				grid: {stroke: "#666666",width:1},
+				tick: {stroke: "#666666",width:1},
+			},
+			{
+				side: 1,
+				scale: "scale1",
+				values: (u, vals, space) => vals.map(v => v.toFixed(2) + ""),
+				stroke: "#666666",
+				grid: {show: false},
+				tick: {stroke: "#666666",width:1},
+			},
+		],
+	};
+	
+	return new uPlot(opts, [], document.getElementById("mySPXVIX"));
+}
+
+let mychartLineV1 = makeChartLineV1();
+
+function updateSPXVIXChart(data){
+	mychartLineV1.setData(data);
+}
+
+
+</script>

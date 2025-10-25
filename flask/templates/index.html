@@ -19,16 +19,20 @@
 market closed!
 {% else %}
 
-{{ dstamp }}
-<div class="box">
-    <div class="one" id="mySPX"></div>
-    <div class="one" id="myVIX"></div>
-</div>
-{% include 'main-spx.html' %}
-{% include 'main-vix.html' %}
 
-# show /ES, SPX price and /ES candle volume<br>
-# show vix vix1d <br>
+<span id="tstampSpan" style="font-size: 20px !important; color: #ffffff;"></span>
+<br>
+spx: <span id="spxpriceSpan" style="font-size: 20px !important; color: #ffffff;"></span>
+, es: <span id="espriceSpan" style="font-size: 20px !important; color: #42e900;"></span>
+, vix: <span id="vixSpan" style="font-size: 20px !important; color: #ff0000;"></span>
+, vix1d: <span id="vix1dSpan" style="font-size: 20px !important; color: #ff8800;"></span>
+<div class="box">
+    <div class="one" id="mySPXVIX"></div>
+</div>
+{% include 'index-spx-vix.html' %}
+{% include 'index-ws.html' %}
+
+# ES candle volume?<br>
 # show candle volume gex <br>
 # show candle volume order imbalance <br>
 

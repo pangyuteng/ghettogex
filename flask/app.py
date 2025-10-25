@@ -66,6 +66,7 @@ from utils.pg_queries import (
     LATEST_DAY_GEX_NET_QUERY,
     LATEST_ONE_MIN_GEX_STRIKE_QUERY,
     GEX_NET_1MIN_QUERY,
+    CANDLE_1MIN_QUERY,
 )
 et_tz = "America/New_york"
 
@@ -170,27 +171,26 @@ async def home():
 @app.websocket('/ws-main-socket') # name so bad
 @login_required
 async def ws_main_socket():
-    message = None
     try:
+        message = None
+        ret_dict = {}
         dstamp = websocket.args.get("dstamp")
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
             while True:
                 try:
-                    ticker == "SPX"
+
                     early = nyse.schedule(start_date=dstamp, end_date=dstamp)
                     if len(early) == 0:
                         message = "break-while-loop"
                         raise ValueError("market closed!")
 
-                    ret_dict = {}
                     tstamp_et = now_in_new_york()
                     tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
                     market_open,market_close = get_market_open_close(dstamp,no_tzinfo=False)
 
                     timea = time.time()
                     query_list = [
-                        apostgres_execute(apool,EVENT_STATUS_QUERY,()),
-                        apostgres_execute(apool,GEX_NET_1MIN_QUERY,(dstamp,ticker,dstamp)),
+                        apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
@@ -198,13 +198,16 @@ async def ws_main_socket():
                     duration = timeb-timea
 
                     if gathered_res[0] is not None:
-                        df = pd.DataFrame([x for x in gathered_res[0]])
-                        ret_dict['status']=json.dumps({row.event_type:f'{row.id_count} {row.tstamp}' for n,row in df.iterrows()})
-
-                    if gathered_res[1] is not None: 
-                        df = pd.DataFrame([dict(x) for x in gathered_res[1]])
-                        ret_dict['duration_sec']=duration
-                        ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                        df = pd.DataFrame([dict(x) for x in gathered_res[0]])
+                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df = df.replace({np.nan: None})
+                        lst = [df[i].tolist() for i in ['tstamp','spx_close','es_close','vix_close','vix1d_close']]
+                        ret_dict['prices'] = lst
+                        ret_dict['spx_price'] = ret_dict['prices'][1][-1]
+                        ret_dict['es_price'] = ret_dict['prices'][2][-1]
+                        ret_dict['vix_price'] = ret_dict['prices'][3][-1]
+                        ret_dict['vix1d_price'] = ret_dict['prices'][4][-1]
+                    ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                 except:
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['status'] = 'traceback:'+traceback.format_exc()
@@ -213,14 +216,14 @@ async def ws_main_socket():
                 await websocket.send_json(ret_dict)
                 await asyncio.sleep(0.5)
 
-                if message is not None:
-                    break
+                # if message is not None:
+                #     app.logger.error(message)
+                #     break
 
     except asyncio.CancelledError:
-        app.logger.warning(traceback.format_exc())
+        app.logger.error(traceback.format_exc())
         app.logger.error('Client disconnected')
         raise
-
 
 ###############################
 ## OLD STUFF TO DELETE LATER
