@@ -157,12 +157,19 @@ async def gexbots3cols():
 async def black():
     return await render_template("black.html")
 
+@app.route("/legacy/home")
+@login_required
+async def legacy_home():
+    if not await current_user.is_authenticated:
+        return redirect(url_for("login"))
+    return await render_template("old-index-2024-Q4.html",listoflist=HOME_TICKER_LIST_OF_LIST)
+
 @app.route("/")
 @login_required
 async def home():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
-    return await render_template("index.html",listoflist=HOME_TICKER_LIST_OF_LIST)
+    return await render_template("index.html")
 
 @app.route("/eod-gex")
 @login_required
