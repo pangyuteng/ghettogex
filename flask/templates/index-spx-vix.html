@@ -3,36 +3,36 @@
 function makeChartLineV1() {
 	
 	const opts = {
-		title: "prices",
+		title: "",
 		width: 420,
 		height: 420,
 		series: [
 			{},
 			{ 
-				label: "SPX",
+				label: "spx",
 				scale: "scale0",
-				value: (u, v) => v == null ? null : v.toFixed(2)+"spx",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
 				stroke: "rgba(255,255,255,1)",
 				width: 2/devicePixelRatio,
 			},
 			{
-				label: "/ES",
+				label: "/es",
 				scale: "scale0",
-				value: (u, v) => v == null ? null : v.toFixed(2)+"ex",
-				stroke: "rgba(100,255,100,1)",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				stroke: "rgba(100,100,100,1)",
 				width: 2/devicePixelRatio,
 			},
 			{
-				label: "VIX",
+				label: "vix",
 				scale: "scale1",
-				value: (u, v) => v == null ? null : v.toFixed(2) + "VIX",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
 				width: 2/devicePixelRatio,
 				stroke: "rgba(255,0,0,1)",
 			},
 			{
-				label: "VIX1D",
+				label: "vix1d",
 				scale: "scale1",
-				value: (u, v) => v == null ? null : v.toFixed(2) + "VIX1D",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
 				width: 2/devicePixelRatio,
 				stroke: "rgba(255,165,0,1)",
 			},

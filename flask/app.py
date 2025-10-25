@@ -214,7 +214,7 @@ async def ws_main_socket():
                     app.logger.error(traceback.format_exc())
 
                 await websocket.send_json(ret_dict)
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1)
 
                 # if message is not None:
                 #     app.logger.error(message)
