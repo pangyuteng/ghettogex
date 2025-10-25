@@ -76,6 +76,15 @@ async def get_events_df_from_scratch(aconn,ticker,utc_tstamp,max_utc_tstamp,futu
     where tstamp >= %s and tstamp < %s and ticker = %s and expiration = %s
     """
     query_args = (min_utc_tstamp,max_utc_tstamp,ticker_alt,expiration)
+
+    query_str = """
+    select distinct event_symbol,ticker,expiration,contract_type,strike,'summary' as event_type,
+    0 as open_interest,sum(bid_volume)-sum(ask_volume) as true_oi
+    from candle
+    where ticker = %s and expiration = %s and tstamp::date < %s
+    group by event_type, event_symbol, ticker, strike, contract_type, expiration
+    """
+    query_args = (ticker_alt,expiration,expiration)
     os = cpostgres_execute(aconn,query_str,query_args)
 
     query_str = """
