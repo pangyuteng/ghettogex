@@ -181,8 +181,8 @@ function makeChartScatter() {
 	const opts = {
 		title: "Scatter Plot",
 		mode: 2,
-		width: 1920,
-		height: 600,
+		width: 420,
+		height: 420,
 		legend: {
 			live: false,
 		},
@@ -214,33 +214,74 @@ function makeChartScatter() {
 			},
 		},
 		series: [
+			{},
 			{
-			},
-			// 500,250,100,50,25,10
-			{
-				stroke: "red",
-				fill: "rgba(255,0,0,0.1)",
+				stroke: "rgba(255,0,0,0.5)",
+				fill: "rgba(255,0,0,0.5)",
 				paths: drawPoints,
 			},
 			{
-				stroke: "green",
-				fill: "rgba(0,255,0,0.1)",
+				stroke: "rgba(255,10,10,0.5)",
+				fill: "rgba(255,10,10,0.5)",
 				paths: drawPoints,
 			},
 			{
-				stroke: "blue",
-				fill: "rgba(0,0,255,0.1)",
+				stroke: "rgba(255,50,50,0.5)",
+				fill: "rgba(255,50,50,0.5)",
 				paths: drawPoints,
 			},
 			{
-				stroke: "magenta",
-				fill: "rgba(0,0,255,0.1)",
+				stroke: "rgba(255,100,100,0.5)",
+				fill: "rgba(255,100,100,0.5)",
+				paths: drawPoints,
+			},
+			{
+				stroke: "rgba(255,150,150,0.5)",
+				fill: "rgba(255,150,150,0.5)",
+				paths: drawPoints,
+			},
+			{
+				stroke: "rgba(255,200,200,0.5)",
+				fill: "rgba(255,200,200,0.5)",
+				paths: drawPoints,
+			},
+			{
+				stroke:  "rgba(200,255,200,0.5)",
+				fill: "rgba(200,255,200,0.5)",
+				paths: drawPoints,
+			},
+			{
+				stroke: "rgba(150,255,150,0.5)",
+				fill: "rgba(150,255,150,0.5)",
+				paths: drawPoints,
+			},
+			{
+				stroke: "rgba(100,255,100,0.5)",
+				fill: "rgba(100,255,100,0.5)",
+				paths: drawPoints,
+			},
+			{
+				stroke: "rgba(50,255,50,0.5)",
+				fill: "rgba(50,255,50,0.5)",
+				paths: drawPoints,
+			},
+			{
+				stroke: "rgba(10,255,10,0.5)",
+				fill: "rgba(10,255,10,0.5)",
+				paths: drawPoints,
+			},
+			{
+				stroke: "rgba(0,255,0,0.5)",
+				fill: "rgba(0,255,0,0.5)",
 				paths: drawPoints,
 			},
 		],
 	};
-
-	let ogdata = [[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]]] ;
+	// first element has to be empty, didt not investigate why, guessing uplot architecture constraint.
+	let ogdata = [ [],
+		[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],
+		[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],
+	] ;
 	return new uPlot(opts, ogdata, document.getElementById("myOrderImbalance"));
 }
 
@@ -250,14 +291,6 @@ let mychartScatter = makeChartScatter();
 function updateChartOrderImbalance(data){
 	mychartScatter.setData(data);
 }
-
-
-/*
-			let data = filledArr(series, v => [
-				filledArr(points, i => randInt(0,500)),
-				filledArr(points, i => randInt(0,500)),
-			]);
-*/
 
 
 </script>

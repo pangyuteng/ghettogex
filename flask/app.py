@@ -67,6 +67,7 @@ from utils.pg_queries import (
     LATEST_ONE_MIN_GEX_STRIKE_QUERY,
     GEX_NET_1MIN_QUERY,
     CANDLE_1MIN_QUERY,
+    ORDER_IMBALANCE_QUERY,
 )
 et_tz = "America/New_york"
 
@@ -195,17 +196,22 @@ async def ws_main_socket():
 
                     tstamp_utc = market_close
                     ticker = 'SPX'
+                    ticker_alt = 'SPXW'
 
                     timea = time.time()
                     query_list = [
                         apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp)),
                         apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
+                        apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
 
                     timeb = time.time()
                     duration_time = timeb-timea
+
+                    spot_max_lim = np.inf
+                    spot_min_lim = 0
 
                     if gathered_res[0] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[0]])
@@ -217,6 +223,8 @@ async def ws_main_socket():
                         ret_dict['vix_price'] = ret_dict['prices'][2][-1]
                         ret_dict['vix1d_price'] = ret_dict['prices'][3][-1]
                         ret_dict['spx_price'] = ret_dict['prices'][4][-1]
+                        spot_max_lim = np.max(ret_dict['prices'][4])+50
+                        spot_min_lim = np.min(ret_dict['prices'][4])-50
                         data_tstamp = datetime.datetime.fromtimestamp(df.tstamp.iloc[-1])
                         ret_dict['data_tstamp'] = data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -228,8 +236,6 @@ async def ws_main_socket():
 
                         df['pos_gex'] = df.state_gex.where(df.state_gex>0)
                         df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
-                        df['pos_volume_gex'] = df.volume_gex.where(df.volume_gex>0)
-                        df['neg_volume_gex'] = df.volume_gex.where(df.volume_gex<=0)
                         df = df.replace({np.nan: None})
 
                         lgs = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
@@ -239,12 +245,35 @@ async def ws_main_socket():
                         ret_dict['lgs'] = lgs
                         ret_dict['major_call'] = major_call_strike
                         ret_dict['major_put'] = major_put_strike
-                        hoho = []
-                        for _ in range(5):
-                            item = np.random.rand(2,100).tolist()
-                            item.append([])
-                            hoho.append(item)
-                        ret_dict['order_imbalance'] = hoho
+
+                    if gathered_res[2] is not None:
+                        df = pd.DataFrame([dict(x) for x in gathered_res[2]])
+                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)]
+                        df = df.dropna()
+                        # 500,250,100,50,25,10
+                        filter_list = [
+                            df.order_imbalance<-500,
+                            (df.order_imbalance>=-500)&(df.order_imbalance<-250),
+                            (df.order_imbalance>=-250)&(df.order_imbalance<-100),
+                            (df.order_imbalance>=-100)&(df.order_imbalance<-50),
+                            (df.order_imbalance>=-50)&(df.order_imbalance<-25),
+                            (df.order_imbalance>=-25)&(df.order_imbalance<0),
+                            (df.order_imbalance>0)&(df.order_imbalance<25),
+                            (df.order_imbalance>=25)&(df.order_imbalance<50),
+                            (df.order_imbalance>=50)&(df.order_imbalance<100),
+                            (df.order_imbalance>=100)&(df.order_imbalance<250),
+                            (df.order_imbalance>=250)&(df.order_imbalance<500),
+                            df.order_imbalance>=500,
+                        ]
+                        order_imbalance_list = [[],]
+                        for row_filter in filter_list:
+                            row_tstamp = df.tstamp[row_filter].to_list()
+                            row_strike = df.strike[row_filter].to_list()
+                            item = [row_tstamp,row_strike,[]]
+                            order_imbalance_list.append(item)
+
+                        ret_dict['order_imbalance'] = order_imbalance_list
 
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"

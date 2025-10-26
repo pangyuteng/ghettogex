@@ -21,6 +21,10 @@ from gex_strike where tstamp > now() - interval '4 second'
 )
 """
 
+ORDER_IMBALANCE_QUERY = """
+select * from order_imbalance where tstamp::date = %s and ticker = %s
+"""
+
 CANDLE_1MIN_QUERY = """
 WITH spx_1min AS (select tstamp,close as spx_close from candle_1min where tstamp::date = %s and event_symbol = 'SPX' and close != 0),
 es_1min AS (select tstamp,close as es_close from candle_1min where tstamp::date = %s and event_symbol like '/ES%%' and close != 0),
