@@ -85,6 +85,7 @@ app = Quart(__name__,
 )
 app.config["QUART_AUTH_MODE"]="cookie"
 app.config["QUART_AUTH_COOKIE_SECURE"]=False
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = "dLxWOjuwlk2z0n2I4NgxaQ" # import secrets ; secrets.token_urlsafe(16)
 auth_manager = QuartAuth(app)
 
@@ -223,14 +224,15 @@ async def ws_main_socket():
                         ret_dict['vix_price'] = ret_dict['prices'][2][-1]
                         ret_dict['vix1d_price'] = ret_dict['prices'][3][-1]
                         ret_dict['spx_price'] = ret_dict['prices'][4][-1]
-                        spot_max_lim = np.max(ret_dict['prices'][4])+50
-                        spot_min_lim = np.min(ret_dict['prices'][4])-50
+                        spot_max_lim = np.max(ret_dict['prices'][4])+100
+                        spot_min_lim = np.min(ret_dict['prices'][4])-100
                         data_tstamp = datetime.datetime.fromtimestamp(df.tstamp.iloc[-1])
                         ret_dict['data_tstamp'] = data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
 
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)]
                         df.state_gex = df.state_gex/1e9
                         df.volume_gex = df.volume_gex/1e9
 
@@ -253,27 +255,33 @@ async def ws_main_socket():
                         df = df.dropna()
                         # 500,250,100,50,25,10
                         filter_list = [
-                            df.order_imbalance<-500,
-                            (df.order_imbalance>=-500)&(df.order_imbalance<-250),
-                            (df.order_imbalance>=-250)&(df.order_imbalance<-100),
+                            df.order_imbalance<-200,
+                            (df.order_imbalance>=-200)&(df.order_imbalance<-100),
                             (df.order_imbalance>=-100)&(df.order_imbalance<-50),
                             (df.order_imbalance>=-50)&(df.order_imbalance<-25),
-                            (df.order_imbalance>=-25)&(df.order_imbalance<0),
-                            (df.order_imbalance>0)&(df.order_imbalance<25),
+                            (df.order_imbalance>=-25)&(df.order_imbalance<-10),
+                            (df.order_imbalance>=-10)&(df.order_imbalance<0),
+                            (df.order_imbalance>=0)&(df.order_imbalance<10),
+                            (df.order_imbalance>=10)&(df.order_imbalance<25),
                             (df.order_imbalance>=25)&(df.order_imbalance<50),
                             (df.order_imbalance>=50)&(df.order_imbalance<100),
-                            (df.order_imbalance>=100)&(df.order_imbalance<250),
-                            (df.order_imbalance>=250)&(df.order_imbalance<500),
-                            df.order_imbalance>=500,
+                            (df.order_imbalance>=100)&(df.order_imbalance<200),
+                            df.order_imbalance>=200,
                         ]
-                        order_imbalance_list = [[],]
+                        call_order_imbalance_list = [[],]
+                        put_order_imbalance_list = [[],]
                         for row_filter in filter_list:
-                            row_tstamp = df.tstamp[row_filter].to_list()
-                            row_strike = df.strike[row_filter].to_list()
-                            item = [row_tstamp,row_strike,[]]
-                            order_imbalance_list.append(item)
+                            row_tstamp = df.tstamp[row_filter&(df.contract_type=="C")].to_list()
+                            row_strike = df.strike[row_filter&(df.contract_type=="C")].to_list()
+                            call_item = [row_tstamp,row_strike,[]]
+                            call_order_imbalance_list.append(call_item)
+                            row_tstamp = df.tstamp[row_filter&(df.contract_type=="P")].to_list()
+                            row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
+                            put_item = [row_tstamp,row_strike,[]]
+                            put_order_imbalance_list.append(put_item)
 
-                        ret_dict['order_imbalance'] = order_imbalance_list
+                        ret_dict['call_order_imbalance'] = call_order_imbalance_list
+                        ret_dict['put_order_imbalance'] = put_order_imbalance_list
 
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"

@@ -20,6 +20,7 @@
         vix1dSpan.textContent = newdata.vix1d_price;
         updateChartPrices(newdata.prices);
         updateChartGex(newdata);
-        updateChartOrderImbalance(newdata.order_imbalance);
+        updateChartCallOrderImbalance(newdata.call_order_imbalance);
+        updateChartPutOrderImbalance(newdata.put_order_imbalance);
     }
 </script>
