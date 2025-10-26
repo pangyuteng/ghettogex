@@ -2,7 +2,7 @@
 <script>
 
 
-function makeChartScatter(elementName) {
+function makeChartScatter(mytitle,elementName) {
 
 	const drawPoints = (u, seriesIdx, idx0, idx1) => {
 		const size = 5 * pxRatio;
@@ -69,7 +69,7 @@ function makeChartScatter(elementName) {
 	window.addEventListener('dppxchange', setPxRatio);
 
 	const opts = {
-		title: "order-imbalance",
+		title: mytitle,
 		mode: 2,
 		width: 420,
 		height: 420,
@@ -207,8 +207,8 @@ function makeChartScatter(elementName) {
 }
 
 
-let mychartCallScatter = makeChartScatter("myCallOrderImbalance");
-let mychartPutScatter = makeChartScatter("myPutOrderImbalance");
+let mychartCallScatter = makeChartScatter("myCallOrderImbalance","call-order-imbalance");
+let mychartPutScatter = makeChartScatter("myPutOrderImbalance","put-order-imbalance");
 
 function updateChartCallOrderImbalance(data){
 	mychartCallScatter.setData(data);
