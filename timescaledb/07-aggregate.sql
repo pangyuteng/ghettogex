@@ -78,10 +78,10 @@ ALTER MATERIALIZED VIEW candle_1min set (timescaledb.materialized_only = false);
 
 
 CREATE MATERIALIZED VIEW order_imbalance WITH (timescaledb.continuous) AS
-SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,
+SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 sum(ask_volume)-sum(bid_volume) as order_imbalance
 FROM candle where ticker in ('SPXW')
-GROUP BY time_bucket('5m', tstamp), event_symbol;
+GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('order_imbalance',
   start_offset => NULL,
