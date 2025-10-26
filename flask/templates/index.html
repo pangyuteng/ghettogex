@@ -38,10 +38,11 @@ server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; co
 {% include 'index-spx-vix.html' %}
 {% include 'index-orderimbalance.html' %}
 {% include 'index-ws.html' %}
-# ES candle volume?<br>
-# show candle volume gex <br>
-# show candle volume order imbalance <br>
 
++ candle-volume-gex: is a guesstimate on true gex <br>
++ order-imbalance: sum of candle bid ask volume every 5min, more selling (red), more buying (green)<br>
++ data source from tastytrade/dxlink api<br>
++ this is a backup option, i use @optionsdepth and @gexbot subscriptions as primary gex <br>
 {% endif %}
 
 </body>

@@ -1,7 +1,7 @@
 <script>
 
 function makeChartPrices() {
-	
+	let isYRangeFixed = false;
 	const opts = {
 		title: "prices",
 		width: 420,
@@ -68,9 +68,9 @@ function makeChartPrices() {
 
 let mychartPrices = makeChartPrices();
 
-function updateChartPrices(data){
+function updateChartPrices(data,minval,maxval){
+	mychartPrices.setScale('scale0', {minval, maxval});
 	mychartPrices.setData(data);
 }
-
 
 </script>

@@ -279,10 +279,15 @@ async def ws_main_socket():
                             row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
                             put_item = [row_tstamp,row_strike,[]]
                             put_order_imbalance_list.append(put_item)
+                        # add spx price
+                        lst = ret_dict['prices']
+                        call_order_imbalance_list.append([ lst[0],lst[-1],[] ])
+                        put_order_imbalance_list.append([ lst[0],lst[-1],[] ])
 
                         ret_dict['call_order_imbalance'] = call_order_imbalance_list
                         ret_dict['put_order_imbalance'] = put_order_imbalance_list
-
+                    ret_dict['spot_min_lim'] = spot_min_lim
+                    ret_dict['spot_max_lim'] = spot_max_lim
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"
                 except:
