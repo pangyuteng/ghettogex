@@ -203,6 +203,7 @@ async def ws_main_socket():
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
+
                     timeb = time.time()
                     duration_time = timeb-timea
 
@@ -238,16 +239,12 @@ async def ws_main_socket():
                         ret_dict['lgs'] = lgs
                         ret_dict['major_call'] = major_call_strike
                         ret_dict['major_put'] = major_put_strike
-                            
-                        #lgs_volume = [df[i].tolist() for i in ['strike','pos_volume_gex','neg_volume_gex']]
-                        #major_call_strike_volume = df["strike"].iloc[df.pos_volume_gex.argmax()]
-                        #major_put_strike_volume = df["strike"].iloc[df.neg_volume_gex.argmin()]
-
-                        #ret_dict['lgs_volume'] = lgs_volume
-                        #ret_dict['major_call_volume'] = major_call_strike_volume
-                        #ret_dict['major_put_volume'] = major_put_strike_volume
-                        
-                        #app.logger.error(f"{df}")
+                        hoho = []
+                        for _ in range(5):
+                            item = np.random.rand(2,100).tolist()
+                            item.append([])
+                            hoho.append(item)
+                        ret_dict['order_imbalance'] = hoho
 
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"

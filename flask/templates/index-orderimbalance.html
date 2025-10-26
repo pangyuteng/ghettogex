@@ -1,0 +1,263 @@
+
+<script>
+
+
+
+
+function makeChartScatter() {
+
+	const drawPoints = (u, seriesIdx, idx0, idx1) => {
+		const size = 5 * pxRatio;
+
+		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+			let d = u.data[seriesIdx];
+
+			u.ctx.fillStyle = series.stroke();
+
+			let deg360 = 2 * Math.PI;
+
+
+			let p = new Path2D();
+
+			for (let i = 0; i < d[0].length; i++) {
+				let xVal = d[0][i];
+				let yVal = d[1][i];
+
+				if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
+					let cx = valToPosX(xVal, scaleX, xDim, xOff);
+					let cy = valToPosY(yVal, scaleY, yDim, yOff);
+
+					p.moveTo(cx + size/2, cy);
+					arc(p, cx, cy, size/2, 0, deg360);
+
+				}
+			}
+
+			console.timeEnd("points");
+
+			u.ctx.fill(p);
+		});
+
+		return null;
+	};
+
+	const drawPoints2 = (u, seriesIdx, idx0, idx1) => {
+		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+			let d = u.data[seriesIdx];
+
+			u.ctx.fillStyle = series.fill();
+
+			let deg360 = 2 * Math.PI;
+
+			console.time("points");
+
+			let p = new Path2D();
+
+			let strokeWidth = 1;
+
+			for (let i = 0; i < d[0].length; i++) {
+				let cx = valToPosX(d[0][i], scaleX, xDim, xOff);
+				let cy = valToPosY(d[1][i], scaleY, yDim, yOff);
+
+				let size = d[2][i] * pxRatio;
+
+				p.moveTo(cx + size, cy);
+				arc(p, cx, cy, size, 0, deg360);
+				qt.add({
+					x: cx - size - strokeWidth/2 - u.bbox.left,
+					y: cy - size - strokeWidth/2 - u.bbox.top,
+					w: size * 2 + strokeWidth,
+					h: size * 2 + strokeWidth,
+					sidx: seriesIdx,
+					didx: i
+				});
+			}
+
+			console.timeEnd("points");
+
+			u.ctx.fill(p);
+
+			u.ctx.lineWidth = strokeWidth;
+			u.ctx.strokeStyle = series.stroke();
+			u.ctx.stroke(p);
+		});
+
+		return null;
+	};
+
+	// shape?
+	const makeDrawPoints3 = (opts) => {
+		let {/*size,*/ disp, each = () => {}} = opts;
+
+		return (u, seriesIdx, idx0, idx1) => {
+			uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+				let d = u.data[seriesIdx];
+
+				let strokeWidth = 1;
+
+				u.ctx.save();
+
+				u.ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
+				u.ctx.clip();
+
+				u.ctx.fillStyle = series.fill();
+				u.ctx.strokeStyle = series.stroke();
+				u.ctx.lineWidth = strokeWidth;
+
+				let deg360 = 2 * Math.PI;
+
+				console.time("points");
+
+				// compute bubble dims
+				let sizes = disp.size.values(u, seriesIdx, idx0, idx1);
+
+				let filtLft = u.posToVal(-maxSize / 2, scaleX.key);
+				let filtRgt = u.posToVal(u.bbox.width / pxRatio + maxSize / 2, scaleX.key);
+				let filtBtm = u.posToVal(u.bbox.height / pxRatio + maxSize / 2, scaleY.key);
+				let filtTop = u.posToVal(-maxSize / 2, scaleY.key);
+
+				for (let i = 0; i < d[0].length; i++) {
+					let xVal = d[0][i];
+					let yVal = d[1][i];
+					let size = sizes[i] * pxRatio;
+
+					if (xVal >= filtLft && xVal <= filtRgt && yVal >= filtBtm && yVal <= filtTop) {
+						let cx = valToPosX(xVal, scaleX, xDim, xOff);
+						let cy = valToPosY(yVal, scaleY, yDim, yOff);
+
+						u.ctx.moveTo(cx + size/2, cy);
+						u.ctx.beginPath();
+						u.ctx.arc(cx, cy, size/2, 0, deg360);
+						u.ctx.fill();
+						u.ctx.stroke();
+
+						each(u, seriesIdx, i,
+							cx - size/2 - strokeWidth/2,
+							cy - size/2 - strokeWidth/2,
+							size + strokeWidth,
+							size + strokeWidth
+						);
+					}
+				}
+
+				console.timeEnd("points");
+
+				u.ctx.restore();
+			});
+
+			return null;
+		};
+	};
+
+	// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/isPointInPath
+	let qt;
+
+	let pxRatio;
+
+	function setPxRatio() {
+		pxRatio = uPlot.pxRatio;
+	}
+
+	function guardedRange(u, min, max) {
+		if (max == min) {
+			if (min == null) {
+				min = 0;
+				max = 100;
+			}
+			else {
+				let delta = Math.abs(max) || 100;
+				max += delta;
+				min -= delta;
+			}
+		}
+
+		return [min, max];
+	}
+
+	setPxRatio();
+
+	window.addEventListener('dppxchange', setPxRatio);
+
+	const opts = {
+		title: "Scatter Plot",
+		mode: 2,
+		width: 1920,
+		height: 600,
+		legend: {
+			live: false,
+		},
+		hooks: {
+			drawClear: [
+				u => {
+
+					// force-clear the path cache to cause drawBars() to rebuild new quadtree
+					u.series.forEach((s, i) => {
+						if (i > 0)
+							s._paths = null;
+					});
+				},
+			],
+		},
+		scales: {
+			x: {
+				time: false,
+			//	auto: false,
+			//	range: [0, 500],
+				// remove any scale padding, use raw data limits
+				range: guardedRange,
+			},
+			y: {
+			//	auto: false,
+			//	range: [0, 500],
+				// remove any scale padding, use raw data limits
+				range: guardedRange,
+			},
+		},
+		series: [
+			{
+			},
+			// 500,250,100,50,25,10
+			{
+				stroke: "red",
+				fill: "rgba(255,0,0,0.1)",
+				paths: drawPoints,
+			},
+			{
+				stroke: "green",
+				fill: "rgba(0,255,0,0.1)",
+				paths: drawPoints,
+			},
+			{
+				stroke: "blue",
+				fill: "rgba(0,0,255,0.1)",
+				paths: drawPoints,
+			},
+			{
+				stroke: "magenta",
+				fill: "rgba(0,0,255,0.1)",
+				paths: drawPoints,
+			},
+		],
+	};
+
+	let ogdata = [[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]]] ;
+	return new uPlot(opts, ogdata, document.getElementById("myOrderImbalance"));
+}
+
+
+let mychartScatter = makeChartScatter();
+
+function updateChartOrderImbalance(data){
+	mychartScatter.setData(data);
+}
+
+
+/*
+			let data = filledArr(series, v => [
+				filledArr(points, i => randInt(0,500)),
+				filledArr(points, i => randInt(0,500)),
+			]);
+*/
+
+
+</script>

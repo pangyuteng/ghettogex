@@ -25,15 +25,17 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
 , vix1d: <span id="vix1dSpan" style="font-size: 20px !important; color: #ff8800;"></span>
 , spx: <span id="spxpriceSpan" style="font-size: 20px !important; color: #ffffff;"></span>
 <div class="box">
-    <div class="one" id="mySPXVIX"></div>
     <div class="one" id="myGexStrike"></div>
+    <div class="one" id="mySPXVIX"></div>
+    <div class="one" id="myOrderImbalance"></div>
 </div>
 <br>
 server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 , query_time: <span id="queryTimeSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <br>
-{% include 'index-spx-vix.html' %}
 {% include 'index-gex.html' %}
+{% include 'index-spx-vix.html' %}
+{% include 'index-orderimbalance.html' %}
 {% include 'index-ws.html' %}
 # ES candle volume?<br>
 # show candle volume gex <br>

@@ -1,6 +1,6 @@
 <script>
 
-function makeChartLineV1() {
+function makeChartPrices() {
 	
 	const opts = {
 		title: "prices",
@@ -66,10 +66,10 @@ function makeChartLineV1() {
 	return new uPlot(opts, [], document.getElementById("mySPXVIX"));
 }
 
-let mychartLineV1 = makeChartLineV1();
+let mychartPrices = makeChartPrices();
 
-function updateSPXVIXChart(data){
-	mychartLineV1.setData(data);
+function updateChartPrices(data){
+	mychartPrices.setData(data);
 }
 
 

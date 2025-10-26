@@ -18,7 +18,8 @@
         espriceSpan.textContent = newdata.es_price;
         vixSpan.textContent = newdata.vix_price;
         vix1dSpan.textContent = newdata.vix1d_price;
-        updateSPXVIXChart(newdata.prices);
+        updateChartPrices(newdata.prices);
         updateChartGex(newdata);
+        updateChartOrderImbalance(newdata.order_imbalance);
     }
 </script>
