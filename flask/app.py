@@ -68,6 +68,7 @@ from utils.pg_queries import (
     GEX_NET_1MIN_QUERY,
     CANDLE_1MIN_QUERY,
     ORDER_IMBALANCE_QUERY,
+    CANDLE_QC_QUERY,
 )
 et_tz = "America/New_york"
 
@@ -177,7 +178,7 @@ async def ws_main_socket():
         message = None
         ret_dict = {}
         dstamp = websocket.args.get("dstamp")
-        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
             while True:
                 try:
 
@@ -204,6 +205,7 @@ async def ws_main_socket():
                         apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp)),
                         apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
+                        apostgres_execute(apool,CANDLE_QC_QUERY,(dstamp,ticker_alt)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
@@ -226,8 +228,6 @@ async def ws_main_socket():
                         ret_dict['vix1d_price'] = df.vix1d_close.iloc[-1] #ret_dict['prices'][4][-1]
                         spot_max_lim = np.max(ret_dict['prices'][3])+100
                         spot_min_lim = np.min(ret_dict['prices'][3])-100
-                        data_tstamp = datetime.datetime.fromtimestamp(df.tstamp.iloc[-1])
-                        ret_dict['data_tstamp'] = data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
 
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
@@ -286,6 +286,16 @@ async def ws_main_socket():
 
                         ret_dict['call_order_imbalance'] = call_order_imbalance_list
                         ret_dict['put_order_imbalance'] = put_order_imbalance_list
+
+                    if gathered_res[3] is not None:
+                        df = pd.DataFrame([dict(x) for x in gathered_res[3]])
+                        latest_data_tstamp = df.tstamp.iloc[-1]
+                        latest_data_tstamp_str = latest_data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
+                        qc_comment = "***STALE TSTAMP!***" if (tstamp_utc.replace(tzinfo=None)-latest_data_tstamp).total_seconds() > 10 else ""
+                        ret_dict['data_tstamp'] = latest_data_tstamp_str
+                        ret_dict['qc_comment'] = qc_comment
+
+
                     ret_dict['spot_min_lim'] = spot_min_lim
                     ret_dict['spot_max_lim'] = spot_max_lim
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -296,6 +306,7 @@ async def ws_main_socket():
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['status'] = 'traceback:'+traceback.format_exc()
                     app.logger.error(traceback.format_exc())
+
 
                 await websocket.send_json(ret_dict)
                 await asyncio.sleep(1)

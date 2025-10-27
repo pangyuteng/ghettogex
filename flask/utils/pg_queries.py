@@ -21,6 +21,12 @@ from gex_strike where tstamp > now() - interval '4 second'
 )
 """
 
+CANDLE_QC_QUERY = """
+SELECT DISTINCT ticker, max(tstamp) as tstamp FROM candle 
+WHERE expiration = %s AND ticker = %s AND tstamp > now() - interval '1 minute'
+GROUP BY ticker
+"""
+
 ORDER_IMBALANCE_QUERY = """
 select * from order_imbalance where tstamp::date = %s and ticker = %s
 """

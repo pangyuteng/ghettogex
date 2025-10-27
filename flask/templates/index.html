@@ -19,6 +19,7 @@
 market closed!
 {% else %}
 data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
+<span id="dataQcSpan" style="font-size: 18px !important; color: #ff0000;"></span>
 <br>
 /es: <span id="espriceSpan" style="font-size: 20px !important; color: #8f8f8f;"></span>
 , vix: <span id="vixSpan" style="font-size: 20px !important; color: #ff0000;"></span>
@@ -44,7 +45,6 @@ server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; co
 + call and put order imbalance are sum of candle bid and ask volume every 5min, more selling (red), more buying (green) {{ order_imbalance_range_str }}<br>
 + ** disclaimer: this is my pet project, use this at your own risk **.<br>
 {% endif %}
-
 </body>
 </html>
 
