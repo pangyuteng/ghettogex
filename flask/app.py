@@ -194,8 +194,8 @@ async def ws_main_socket():
                         message = "break-while-loop"
                     if tstamp_utc > market_close:
                         message = "break-while-loop"
+                        tstamp_utc = market_close
 
-                    tstamp_utc = market_close
                     ticker = 'SPX'
                     ticker_alt = 'SPXW'
 
