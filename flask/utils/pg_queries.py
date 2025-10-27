@@ -23,7 +23,7 @@ from gex_strike where tstamp > now() - interval '4 second'
 
 CANDLE_QC_QUERY = """
 SELECT DISTINCT ticker, max(tstamp) as tstamp FROM candle 
-WHERE expiration = %s AND ticker = %s AND tstamp > now() - interval '1 minute'
+WHERE expiration = %s AND ticker = %s AND tstamp > %s - interval '1 minute'
 GROUP BY ticker
 """
 
