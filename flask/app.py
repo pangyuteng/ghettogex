@@ -223,7 +223,7 @@ async def ws_main_socket():
                         ret_dict['es_price'] = ret_dict['prices'][1][-1]
                         ret_dict['vix_price'] = ret_dict['prices'][2][-1]
                         ret_dict['spx_price'] = ret_dict['prices'][3][-1]
-                        ret_dict['vix1d_price'] = None #ret_dict['prices'][4][-1]
+                        ret_dict['vix1d_price'] = df.vix1d_close.iloc[-1] #ret_dict['prices'][4][-1]
                         spot_max_lim = np.max(ret_dict['prices'][3])+100
                         spot_min_lim = np.min(ret_dict['prices'][3])-100
                         data_tstamp = datetime.datetime.fromtimestamp(df.tstamp.iloc[-1])
