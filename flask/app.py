@@ -218,14 +218,14 @@ async def ws_main_socket():
                         df = pd.DataFrame([dict(x) for x in gathered_res[0]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df = df.replace({np.nan: None})
-                        lst = [df[i].tolist() for i in ['tstamp','es_close','vix_close','vix1d_close','spx_close',]]
+                        lst = [df[i].tolist() for i in ['tstamp','es_close','vix_close','spx_close',]] # ,'vix1d_close'
                         ret_dict['prices'] = lst
                         ret_dict['es_price'] = ret_dict['prices'][1][-1]
                         ret_dict['vix_price'] = ret_dict['prices'][2][-1]
-                        ret_dict['vix1d_price'] = ret_dict['prices'][3][-1]
-                        ret_dict['spx_price'] = ret_dict['prices'][4][-1]
-                        spot_max_lim = np.max(ret_dict['prices'][4])+100
-                        spot_min_lim = np.min(ret_dict['prices'][4])-100
+                        ret_dict['spx_price'] = ret_dict['prices'][3][-1]
+                        ret_dict['vix1d_price'] = None #ret_dict['prices'][4][-1]
+                        spot_max_lim = np.max(ret_dict['prices'][3])+100
+                        spot_min_lim = np.min(ret_dict['prices'][3])-100
                         data_tstamp = datetime.datetime.fromtimestamp(df.tstamp.iloc[-1])
                         ret_dict['data_tstamp'] = data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -253,7 +253,7 @@ async def ws_main_socket():
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)]
                         df = df.dropna()
-                        # 500,250,100,50,25,10
+                        # 200,100,50,25,10,0
                         filter_list = [
                             df.order_imbalance<-200,
                             (df.order_imbalance>=-200)&(df.order_imbalance<-100),
