@@ -247,6 +247,7 @@ async def ws_main_socket():
                         ret_dict['lgs'] = lgs
                         ret_dict['major_call'] = major_call_strike
                         ret_dict['major_put'] = major_put_strike
+                        ret_dict['spot_price'] = ret_dict['spx_price']
 
                     if gathered_res[2] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[2]])
