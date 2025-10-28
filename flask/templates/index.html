@@ -15,9 +15,7 @@
 <body>
 
 
-{% if nyse_schedule | length  == 0 %}
-market closed!
-{% else %}
+{% if load_data %}
 data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <span id="dataQcSpan" style="font-size: 18px !important; color: #ff0000;"></span>
 <br>
@@ -43,6 +41,8 @@ server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; co
 + ** disclaimer: for educational and entertainment purposes only, content provided as is, consume it at your own risk, system is very unstable! **.<br>
 + gex is a guesstimate using 0DTE SPXW candle bid ask volume akin @gexbot classic (not as accurate as @optionsdepth @spotgamma) <br>
 + call and put order imbalance are sum of candle bid and ask volume every 5min, more selling (red), more buying (green) {{ order_imbalance_range_str }}<br>
+{% else %}
+{{ market_status }}
 {% endif %}
 </body>
 </html>

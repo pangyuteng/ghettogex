@@ -163,13 +163,25 @@ async def home():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
     dstamp = request.args.get("dstamp",None)
+    market_status = None
+    load_data = True
     if dstamp is None:
         tstamp_et = now_in_new_york()
+        tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
         dstamp = tstamp_et.strftime("%Y-%m-%d")
         nyse_schedule = nyse.schedule(start_date=dstamp, end_date=dstamp)
+        market_open,market_close = get_market_open_close(dstamp,no_tzinfo=False)
+        if tstamp_utc < market_open:
+            market_status = "market not open yet today. please reload page once market opens."
+            load_data = False
+        elif tstamp_utc > market_close:
+            market_status = "market closed already today."
     else:
         nyse_schedule = nyse.schedule(start_date=dstamp, end_date=dstamp)
-    return await render_template("index.html",nyse_schedule=nyse_schedule,dstamp=dstamp)
+        if len(nyse_schedule) == 0:
+            market_status = "market is closed for specified day!"
+            load_data = False
+    return await render_template("index.html",dstamp=dstamp,load_data=load_data,market_status=market_status)
 
 @app.websocket('/ws-main-socket') # name so bad
 @login_required
