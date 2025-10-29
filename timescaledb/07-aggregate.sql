@@ -91,3 +91,18 @@ SELECT add_continuous_aggregate_policy('order_imbalance',
 CALL refresh_continuous_aggregate('order_imbalance', NULL, NULL);
 ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.materialized_only = false);
 
+CREATE MATERIALIZED VIEW quote_1m WITH (timescaledb.continuous) AS
+SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+last(bid_price,tstamp) as last_bid_price,last(ask_price,tstamp) as last_ask_price
+FROM quote where ticker in ('SPXW','NDXW') and expiration = now()::date
+GROUP BY time_bucket('1m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
+
+SELECT add_continuous_aggregate_policy('quote_1m',
+  start_offset => NULL,
+  end_offset => INTERVAL '1 min',
+  schedule_interval => INTERVAL '1 min');
+
+CALL refresh_continuous_aggregate('quote_1m', NULL, NULL);
+ALTER MATERIALIZED VIEW quote_1m set (timescaledb.materialized_only = false);
+
+
