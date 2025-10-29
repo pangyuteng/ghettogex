@@ -149,7 +149,9 @@ CREATE TABLE IF NOT EXISTS quote (
   tsdb.orderby='tstamp DESC'
 );
 
-CALL add_columnstore_policy('quote', after => INTERVAL '1d');
+-- CALL remove_columnstore_policy('quote');
+CALL add_columnstore_policy('quote', after => INTERVAL '2 hours', schedule_interval => INTERVAL '1 hour');
+SELECT add_retention_policy('quote', INTERVAL '7 days');
 
 CREATE TABLE IF NOT EXISTS summary (
     

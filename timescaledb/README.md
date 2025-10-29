@@ -24,6 +24,8 @@ show shared_buffers;
 
 ```
 
++ 2025-10-29, query performance is slow to table `quote`, helpful link: https://blog.cloudflare.com/timescaledb-art
+
 + switched to timescaledb, prior postgres files are stashed in `timescaledb/postgres`
 
 https://github.com/timescale/timescaledb
