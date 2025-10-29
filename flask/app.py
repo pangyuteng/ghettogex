@@ -197,7 +197,7 @@ async def ws_main_socket():
                     early = nyse.schedule(start_date=dstamp, end_date=dstamp)
                     if len(early) == 0:
                         message = "break-while-loop"
-                        raise ValueError("market closed!")
+                        raise ValueError(f"market not open! {dstamp}")
 
                     tstamp_et = now_in_new_york()
                     tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
@@ -324,9 +324,9 @@ async def ws_main_socket():
                 await websocket.send_json(ret_dict)
                 await asyncio.sleep(1)
 
-                # if message is not None:
-                #     app.logger.error(message)
-                #     break
+                if message is not None:
+                    app.logger.error(message)
+                    break
 
     except asyncio.CancelledError:
         app.logger.error(traceback.format_exc())
