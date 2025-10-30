@@ -19,6 +19,12 @@ show shared_buffers;
 
 
 
+# postgres old stuff
+
++ postgres files are deleted can be found in 
+
+
+
 # OLD NOTES, playing with longhorn`
 
 

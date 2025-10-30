@@ -133,6 +133,11 @@ async def logout():
 async def redirect_to_login(*_):
     return redirect(url_for("login"))
 
+@app.route("/about")
+@login_required
+async def about():
+    return await render_template("about.html")
+
 @app.route("/links")
 @login_required
 async def links():

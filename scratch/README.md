@@ -1,4 +1,58 @@
 
+
+############### rsearch todos #######################
++ [ ] investigate GEX Regime classification and future 1min,5min,10min,30min probability.
+      use SqueezeMetrics paper
+        
+        https://www.wrighters.io/options-to-run-pandas-dataframe-apply-in-parallel/
+        
+        `scratch/gex-classify-dev.ipynb`
+        
+        awesome https://github.com/nalepae/pandarallel
+        https://stackoverflow.com/questions/26784164/pandas-multiprocessing-apply
+        https://stackoverflow.com/questions/45545110/make-pandas-dataframe-apply-use-all-cores
+        https://stackoverflow.com/search?q=pandas+apply+parallel
+
++ [ ] how to assess/confirm trend and resistance?
+      dex increase, gex increase.
+
++ [ nah, but nice project ] DL for IV computation... and then... DL for trend and resistance...???
+https://developer.nvidia.com/blog/accelerating-python-for-exotic-option-pricing/
+0 DTE Pricing
+https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4503344
+https://quant.stackexchange.com/questions/77299/0dte-volatility-and-greeks
+
+
+############### abandoned todos #######################
+
+
++ [nah] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
+
++ [nah] ideally you want to monitor OI (ask and bid seperately)
+      each contract, if `summary OI` is 0, then start tracking candle bid ask volumes and/or timeandsale.
+
++ [nah] plot volatility, gex, surface as contour plot - optiondepth style
+https://quant.stackexchange.com/questions/68164/mixed-greeks-in-python-how-plot-the-following
+NAH see plotly gex surface plot
+
+
++ [nah] play sound during events.
+    + [ ] flash crash
+    
+    echo $'\a'
+    https://askubuntu.com/a/673759/231735
+    https://stackoverflow.com/questions/9419263/how-to-play-audio
+
+    + [ ] ideal setup for long
+    + [ ] gex png and proposed direction, support/major levels.
+
+
++ [nah] compute next expiration gex_net,gex_strike seperately.
+      or add cron task to get true_oi and open_interest
+
+############## main todos #######################
+
+
 + [x] main page to show SPX, VIX and SPX gex
 
 + [x] cleanup shit, moved scratch code to below
@@ -383,6 +437,9 @@ docker run -it -u $(id -u):$(id -g) \
     
     above IV is more right, but still wrong, given 0DTE IV is mostly kept as industry (open/secret) sauce
 
+
+    + [x] added quote_1min materializsed view for SPXW
+
 + [x] with pyvolib you can compute contract theo-price, and greeks with spot-volatility.
       also TESTING using theo-price to determine aggressor side, see `iv-compute-postgres.ipynb` for investigation.
 
@@ -399,7 +456,11 @@ docker run -it -u $(id -u):$(id -g) \
     https://github.com/mkleehammer/pyodbc/issues/120#issuecomment-223331595
     https://www.tigerdata.com/blog/13-tips-to-improve-postgresql-insert-performance
     
+
 + [nah] (for speed) make event_agg as hypertable and gex_strike and gex_net as materialize views.
+
+
++ for performance speed ups
 
 + issue `LIKELY quote event does not match up with timesandscale`
   likely is due to postgres insert being too slow.
@@ -465,6 +526,7 @@ docker run -it -u $(id -u):$(id -g) \
 
 + [x] optimize db insert in Liveprices
 
+
     + added postgres statement with queue and flusher logic
     https://github.com/pangyuteng/ghettogex.aigonewrong.com/compare/28269f148d0116040ae99f1433720411c934d9cd...ca97250a26320fbd7b10b7848286552dd5404c6e
     
@@ -472,130 +534,51 @@ docker run -it -u $(id -u):$(id -g) \
     https://github.com/pangyuteng/ghettogex.aigonewrong.com/compare/0451835ec81a6f515acea6f12603ec3b397c26e2...e216efb22b34ad3eb343cebe043ece716f45c2aa
 
 
-+ [ ] get timeandsale from schwab-py or mock timeandsale from candle volume?
+    *** above  performance boost due to postgres copy ***
 
-```
-select foo.event_symbol,
-volume,ask_volume,bid_volume,vwap,( (ask_price+bid_price)/2 ) as mid_price, ask_price,bid_price,spread,open,high,low,close 
-from 
-(select 'candle' as event_type,event_symbol,open,high,low,close,vwap,volume,ask_volume,bid_volume,time,tstamp,ticker,expiration,contract_type,strike, 
-date_trunc('second', to_timestamp(time/1000)) as event_tstamp, tstamp
-from candle
-where ticker = 'SPXW' --event_symbol = '.SPXW251003P6700' 
-and tstamp > '2025-10-03 16:00:00'
-and tstamp < '2025-10-03 16:00:10' 
-) as foo, (
-select event_symbol,bid_price,ask_price,ask_price-bid_price as spread,date_trunc('second', tstamp) as event_tstamp 
-from quote 
-where ticker = 'SPXW'  -- event_symbol = '.SPXW251003P6700' 
-and tstamp > '2025-10-03 16:00:00'
-and tstamp < '2025-10-03 16:00:10' 
-) as bar
-where foo.event_symbol = bar.event_symbol 
-and foo.event_tstamp = bar.event_tstamp
-
-```
-+ [ ]order-imbalance
++ [x] order-imbalance
 
   tracking by every minute, 10 minute
   or every second, but using data for whole day, maybe this is the impl for "gex-bot state gamma".
 
 
-+ [ ] make optiondepth chart
++ [work-in-progress...] make optiondepth chart
       https://x.com/aigonewrong/status/1945939514930942004
       https://x.com/phlegminglib/status/1948918214894797063
 
-```
-step through time
-  for each strike
-    assume same oi, volatility
-    set spot-price to strike
-    compute gamma
-```
+    ```
+    step through time
+    for each strike
+        assume same oi, volatility
+        set spot-price to strike
+        compute gamma
+    ```
+    see ghettogex/scratch/optionsdepth.ipynb
 
-<img width="2048" height="1152" alt="image" src="https://github.com/user-attachments/assets/463d1f64-7a9b-445a-98a9-22110e555d46" />
-<img width="2048" height="1152" alt="image" src="https://github.com/user-attachments/assets/c9a920e5-05f0-4518-a264-a196b37f72cf" />
-
-
-+ [ ] compute next expiration gex_net,gex_strike seperately.
-      or add cron task to get true_oi and open_interest
-
-+ [ ] investigate GEX Regime classification and future 1min,5min,10min,30min probability.
-      use SqueezeMetrics paper
-        
-        https://www.wrighters.io/options-to-run-pandas-dataframe-apply-in-parallel/
-        
-        `scratch/gex-classify-dev.ipynb`
-        
-        awesome https://github.com/nalepae/pandarallel
-        https://stackoverflow.com/questions/26784164/pandas-multiprocessing-apply
-        https://stackoverflow.com/questions/45545110/make-pandas-dataframe-apply-use-all-cores
-        https://stackoverflow.com/search?q=pandas+apply+parallel
-
-+ [ ] how to assess/confirm trend and resistance?
-      dex increase, gex increase.
-
-+ [ ] DL for IV computation... and then... DL for trend and resistance...???
-https://developer.nvidia.com/blog/accelerating-python-for-exotic-option-pricing/
-0 DTE Pricing
-https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4503344
-https://quant.stackexchange.com/questions/77299/0dte-volatility-and-greeks
+    <img width="2048" height="1152" alt="image" src="https://github.com/user-attachments/assets/463d1f64-7a9b-445a-98a9-22110e555d46" />
+    <img width="2048" height="1152" alt="image" src="https://github.com/user-attachments/assets/c9a920e5-05f0-4518-a264-a196b37f72cf" />
 
 
-+ [ ] play sound during events.
-    + [ ] flash crash
-    
-    echo $'\a'
-    https://askubuntu.com/a/673759/231735
-    https://stackoverflow.com/questions/9419263/how-to-play-audio
 
-    + [ ] ideal setup for long
-    + [ ] gex png and proposed direction, support/major levels.
++ [ ] get timeandsale from schwab-py or mock timeandsale from candle volume?
 
-+ [ ] ?automate daily download from UW, and parse data to put to postgres??? for EOD-DDOI
 
-+ [ ] ideally you want to monitor OI (ask and bid seperately)
-      each contract, if `summary OI` is 0, then start tracking candle bid ask volumes and/or timeandsale.
++ frontend todos TODOS contingent on 0.2sec max query time
 
-+ [ ] plot volatility, gex, surface as contour plot - optiondepth style
-https://quant.stackexchange.com/questions/68164/mixed-greeks-in-python-how-plot-the-following
+    + [ ] price plot - add latest 60sec duration price plot.
+    + [ ] gex plot - add toggle to switch between "same day only candles" vs "10-day candles" gex.
+    + [ ] order imbalance - add additional same day order imablance or convexity plot - akin gexbot convexity?
 
---
-+ [ ] sideswap/aqua btc to L BTC and back to btc than coldstorage.
-+ [ ] setup tor for exporsed btc node port
-
-open interest folder structure (THIS TURNED OUT TO BE A NIGHTMARE, DONT SAVE SMALL FILES SYNC, IO BOTTLENECK!)
-
-oi/$TICKER/YYYY-MM-DD/YYYY-MM-DD-HH-MM-SS.csv
-gex/$TICKER/YYYY-MM-DD/YYYY-MM-DD-HH-MM-SS.csv
-
-```
 
 
 
-# logic to 
+--
 
-select * from quote where event_symbol = '.SPXW250530C5900'
-order by tstamp
 
-select * from summary where event_symbol = '.SPXW250530C5900'
-order by tstamp
 
-select * from summary where event_symbol = '.SPXW250602C6200'
-order by tstamp
-
-select * from timeandsale where event_symbol = '.SPXW250523C5890'
-order by tstamp
-
-select * from candle where event_symbol = '.SPXW250602C7000'
-order by tstamp
-
-select * from quote where event_symbol = '.SPXW250602C7000'
-order by tstamp
 
 
 ```
-
 
 docker run -it  \
 -e CACHE_FOLDER="/mnt/hd1/data/fi"  \
