@@ -23,7 +23,7 @@ show shared_buffers;
 
 + postgres files are deleted, commit b85bd02a43372c52cbc869aaa90b97efe7ffa34b
 
-
++ timescale pvc testing file deleted: ae840f1365c5ca5cc892a17af558a266f4e707ac
 
 # OLD NOTES, playing with longhorn`
 
