@@ -114,6 +114,7 @@ function updateChartGex(data){
 	lines1[2] = [data.major_call,'green'];
 	lines1[3] = [data.major_put,'red'];
 	lines1[4] = [data.spot_price,'white'];
+	//mychartH1.setScale('y', {min: data.spot_min_lim, max: data.spot_max_lim});
 	mychartH1.setData(data.lgs);
 }
 

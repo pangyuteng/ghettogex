@@ -266,7 +266,7 @@ async def ws_main_socket():
                     if gathered_res[2] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[2]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)]
+                        df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
                         df = df.dropna()
                         # 200,100,50,25,10,0
                         filter_list = [
