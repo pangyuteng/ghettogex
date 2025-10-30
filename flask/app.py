@@ -324,7 +324,7 @@ async def ws_main_socket():
 
                         expected_move = ( \
                             0.6*cdf.at[0,'mid_price']+0.3*cdf.at[1,'mid_price']*0.1*cdf.at[2,'mid_price'] + \
-                            0.6*pdf.at[2,'mid_price']+0.3*pdf.at[1,'mid_price']*0.1*pdf.at[0,'mid_price'] ) / 2.0
+                            0.6*pdf.at[2,'mid_price']+0.3*pdf.at[1,'mid_price']*0.1*pdf.at[0,'mid_price'] )
                         ret_dict['plus_expected_move'] = spot_price+expected_move
                         ret_dict['minus_expected_move'] = spot_price-expected_move
 
