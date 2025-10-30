@@ -69,6 +69,7 @@ from utils.pg_queries import (
     CANDLE_1MIN_QUERY,
     ORDER_IMBALANCE_QUERY,
     CANDLE_QC_QUERY,
+    QUOTE_1MIN_QUERY,
 )
 et_tz = "America/New_york"
 
@@ -218,6 +219,7 @@ async def ws_main_socket():
                         apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(dstamp,ticker_alt,tstamp_utc)),
+                        apostgres_execute(apool,QUOTE_1MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
@@ -232,14 +234,14 @@ async def ws_main_socket():
                         df = pd.DataFrame([dict(x) for x in gathered_res[0]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df = df.replace({np.nan: None})
-                        lst = [df[i].tolist() for i in ['tstamp','es_close','vix_close','spx_close',]] # ,'vix1d_close'
+                        lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]] # ,'es_close','vix1d_close'
                         ret_dict['prices'] = lst
-                        ret_dict['es_price'] = ret_dict['prices'][1][-1]
-                        ret_dict['vix_price'] = ret_dict['prices'][2][-1]
-                        ret_dict['spx_price'] = ret_dict['prices'][3][-1]
-                        ret_dict['vix1d_price'] = df.vix1d_close.iloc[-1] #ret_dict['prices'][4][-1]
-                        spot_max_lim = np.max(ret_dict['prices'][3])+100
-                        spot_min_lim = np.min(ret_dict['prices'][3])-100
+                        ret_dict['es_price'] = df.es_close.iloc[-1]
+                        ret_dict['vix_price'] = df.vix_close.iloc[-1]
+                        ret_dict['spx_price'] = df.spx_close.iloc[-1]
+                        ret_dict['vix1d_price'] = df.vix1d_close.iloc[-1]
+                        spot_max_lim = np.max(ret_dict['prices'][2])+100
+                        spot_min_lim = np.min(ret_dict['prices'][2])-100
 
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
@@ -308,6 +310,17 @@ async def ws_main_socket():
                         ret_dict['data_tstamp'] = latest_data_tstamp_str
                         ret_dict['qc_comment'] = qc_comment
 
+                    if gathered_res[4] is not None:
+                        df = pd.DataFrame([dict(x) for x in gathered_res[4]])
+                        spot_price = ret_dict['spot_price']
+                        df['mid_price'] = (df.last_bid_price+df.last_ask_price)/2.0
+                        cdf = df[(df.contract_type=="C")&(df.strike>=spot_price)].reset_index().iloc[:3].reset_index()
+                        pdf = df[(df.contract_type=="P")&(df.strike<=spot_price)].reset_index().iloc[-3:].reset_index()
+
+                        call_expected_move = 0.6*cdf.at[0,'mid_price']+0.3*cdf.at[1,'mid_price']*0.1*cdf.at[2,'mid_price']
+                        put_expected_move = 0.6*pdf.at[2,'mid_price']+0.3*pdf.at[1,'mid_price']*0.1*pdf.at[0,'mid_price']
+                        ret_dict['call_expected_move'] = spot_price+call_expected_move
+                        ret_dict['put_expected_move'] = spot_price+put_expected_move
 
                     ret_dict['spot_min_lim'] = spot_min_lim
                     ret_dict['spot_max_lim'] = spot_max_lim

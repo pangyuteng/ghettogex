@@ -7,14 +7,14 @@ function makeChartPrices() {
 		width: 420,
 		height: 420,
 		series: [
-			{},
+			{},/*
 			{ 
 				label: "/es",
 				scale: "scale0",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
 				stroke: "rgba(100,100,100,1)",
 				width: 2/devicePixelRatio,
-			},
+			},*/
 			{
 				label: "vix",
 				scale: "scale1",
@@ -69,7 +69,7 @@ function makeChartPrices() {
 let mychartPrices = makeChartPrices();
 
 function updateChartPrices(data,minval,maxval){
-	//mychartPrices.setScale('scale0', {minval, maxval});
+	mychartPrices.setScale('scale0', {minval, maxval});
 	mychartPrices.setData(data);
 }
 
