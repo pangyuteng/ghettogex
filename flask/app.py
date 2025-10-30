@@ -325,7 +325,7 @@ async def ws_main_socket():
                         call_expected_move = 0.6*cdf.at[0,'mid_price']+0.3*cdf.at[1,'mid_price']*0.1*cdf.at[2,'mid_price']
                         put_expected_move = 0.6*pdf.at[2,'mid_price']+0.3*pdf.at[1,'mid_price']*0.1*pdf.at[0,'mid_price']
                         ret_dict['call_expected_move'] = spot_price+call_expected_move
-                        ret_dict['put_expected_move'] = spot_price+put_expected_move
+                        ret_dict['put_expected_move'] = spot_price-put_expected_move
 
                     ret_dict['spot_min_lim'] = spot_min_lim
                     ret_dict['spot_max_lim'] = spot_max_lim
