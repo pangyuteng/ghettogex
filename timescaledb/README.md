@@ -21,7 +21,7 @@ show shared_buffers;
 
 # postgres old stuff
 
-+ postgres files are deleted can be found in 
++ postgres files are deleted, commit b85bd02a43372c52cbc869aaa90b97efe7ffa34b
 
 
 
