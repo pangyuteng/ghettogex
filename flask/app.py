@@ -333,7 +333,7 @@ async def ws_main_socket():
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"
                 except:
-                    ret_dict['qc_comment'] = "sum ting wong wi tu lo!"
+                    ret_dict['qc_comment'] = "UNEXPECTED ERROR!!!FFFFF"
                     ret_dict['duration_time'] = None
                     ret_dict['data_tstamp'] = None
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
