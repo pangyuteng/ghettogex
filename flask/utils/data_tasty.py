@@ -527,7 +527,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
         logger.info("finally...")
 
     logger.info("attempt to exit!!")
-    sys.exit(0)
+    # sys.exit(0) # unable to shutdown stream celery worker, maybe sys.exit is the culprit?!?
 
 if __name__ == "__main__":
     log_level = logging.INFO #  logging.DEBUG # 
