@@ -251,7 +251,7 @@ async def ws_main_socket():
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)]
+                        df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
                         df.state_gex = df.state_gex/1e9
                         df.volume_gex = df.volume_gex/1e9
 
@@ -333,6 +333,7 @@ async def ws_main_socket():
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"
                 except:
+                    ret_dict['qc_comment'] = "sum ting wong wi tu lo!"
                     ret_dict['duration_time'] = None
                     ret_dict['data_tstamp'] = None
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
