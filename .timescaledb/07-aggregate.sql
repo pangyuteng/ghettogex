@@ -109,3 +109,43 @@ CALL refresh_continuous_aggregate('quote_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW quote_1min set (timescaledb.materialized_only = false);
 
 
+
+--
+
+CREATE MATERIALIZED VIEW order_imbalance_1day WITH (timescaledb.continuous) AS
+SELECT time_bucket('1day', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+sum(order_imbalance) as order_imbalance
+FROM order_imbalance where ticker in ('SPXW','NDXW') and expiration = now()::date
+GROUP BY time_bucket('1day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
+
+SELECT add_continuous_aggregate_policy('order_imbalance_1day',
+  start_offset => NULL,
+  end_offset => INTERVAL '1 day',
+  schedule_interval => INTERVAL '1 day');
+
+CALL refresh_continuous_aggregate('order_imbalance_1day', NULL, NULL);
+ALTER MATERIALIZED VIEW order_imbalance_1day set (timescaledb.materialized_only = false);
+
+-- 
+
+CREATE MATERIALIZED VIEW greeks_1day WITH (timescaledb.continuous) AS
+SELECT time_bucket('1day', tstamp) as tstamp, event_symbol, ticker, expiration, contract_type, strike,
+last(price,tstamp) as price,
+last(volatility,tstamp) as volatility,	
+last(delta,tstamp) as delta,
+last(gamma,tstamp) as gamma,
+last(theta,tstamp) as theta,
+last(rho,tstamp) as rho,
+last(vega,tstamp) as vega
+FROM greeks where ticker in ('SPXW','NDXW') and expiration = now()::date
+GROUP BY time_bucket('1day', tstamp), event_symbol, ticker, expiration, contract_type, strike;
+
+SELECT add_continuous_aggregate_policy('greeks_1day',
+  start_offset => NULL,
+  end_offset => INTERVAL '1 day',
+  schedule_interval => INTERVAL '1 day');
+
+CALL refresh_continuous_aggregate('greeks_1day', NULL, NULL);
+ALTER MATERIALIZED VIEW greeks_1day set (timescaledb.materialized_only = false);
+
+--
