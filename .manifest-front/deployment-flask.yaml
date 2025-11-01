@@ -39,13 +39,7 @@ spec:
         volumeMounts:
         - name: sm-volume
           mountPath: /mnt/sm-data
-        # - name: nfs-volume
-        #   mountPath: /mnt/hd1/data
       volumes:
       - name: sm-volume
         persistentVolumeClaim:
           claimName: sm-longhorn-pvc
-      # - name: nfs-volume
-      #   nfs:
-      #     server: 192.168.68.141
-      #     path: /mnt/hd1/data
