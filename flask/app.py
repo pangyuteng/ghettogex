@@ -186,19 +186,19 @@ async def home():
                 market_open,market_close = None, None
 
             if len(nyse_schedule) == 0:
-                market_status = "market is closed for specified day!"
+                market_status = f"market is closed for specified day! {dstamp}"
                 load_data = False
             elif tstamp_utc < market_open:
-                market_status = "market not open yet today. please reload page once market opens."
+                market_status = f"market not open yet today. please reload page once market opens. {dstamp}"
                 load_data = False
             elif tstamp_utc > market_close:
-                market_status = "market closed already today."
+                market_status = f"market closed already today. {dstamp}"
         else:
 
             nyse_schedule = nyse.schedule(start_date=dstamp, end_date=dstamp)
 
             if len(nyse_schedule) == 0:
-                market_status = "market is closed for specified day!"
+                market_status = f"market is closed for specified day! {dstamp}"
                 load_data = False
     except:
         app.logger.error(traceback.format_exc())
