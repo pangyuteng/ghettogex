@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: gg
+  name: db-longhorn-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-gg
+  resources:
+    requests:
+      storage: 1200Gi

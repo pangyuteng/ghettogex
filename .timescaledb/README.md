@@ -1,5 +1,9 @@
 
-+ in proxmox tweaked host6 ram cpu
+
+
+
++ in proxmox tweaked host6 ram cpu to higher spec (8 core, 32GB)
+
 
 kubectl label nodes host6 disktype=ssd
 

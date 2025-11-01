@@ -53,7 +53,12 @@ spec:
         volumeMounts:
         - name: task-pv-storage
           mountPath: /var/lib/postgresql/data
+        - name: lg-storage
+          mountPath: /timescale-data
       volumes:
         - name: task-pv-storage
           persistentVolumeClaim:
             claimName: task-pv-claim
+        - name: lg-storage
+          persistentVolumeClaim:
+            claimName: db-longhorn-pvc
