@@ -23,7 +23,7 @@ spec:
         args: ["beat.sh"]
         env:
         - name: CACHE_FOLDER
-          value: /mnt/hd1/data/fi
+          value: /mnt/sm-data/fi
         - name: AMQP_URI
           value: amqp://rabbitmq:5672
         - name: REDIS_URI
@@ -33,10 +33,9 @@ spec:
         - name: C_FORCE_ROOT
           value: "true"
         volumeMounts:
-        - name: nfs-volume
-          mountPath: /mnt/hd1/data
+        - name: sm-volume
+          mountPath: /mnt/sm-data
       volumes:
-      - name: nfs-volume
-        nfs:
-          server: 192.168.68.141
-          path: /mnt/hd1/data
+      - name: sm-volume
+        persistentVolumeClaim:
+          claimName: sm-longhorn-pvc

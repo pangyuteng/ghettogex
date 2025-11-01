@@ -13,6 +13,12 @@
 
 + install longhorn: https://longhorn.io/docs/1.8.1/deploy/install/install-with-helm
 
+    + test out longhorn, remember to create default storageclass
+
+        + https://longhorn.io/docs/1.10.0/nodes-and-volumes/volumes/create-volumes
+
+        + `kubectl create -f https://raw.githubusercontent.com/longhorn/longhorn/v1.10.0/examples/storageclass.yaml`
+
     + via longhorn web gui
 
         + setup 1 longhorn node with 1 volume using the large ssd.
@@ -23,4 +29,4 @@
 
     + create storageclass.
 
-        `kubectl apply -f storageclass.yaml`
+        `kubectl apply -f db-storageclass.yaml`
