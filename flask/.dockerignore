@@ -1,5 +1,2 @@
-.git
-.github
-.manifest
 .env
-tmp
+__pycache__

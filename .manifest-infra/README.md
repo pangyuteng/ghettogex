@@ -27,6 +27,6 @@
 
         + for volume, add tag: `ssd`
 
-    + create custom storageclass with only 1 replica (no backups!).
+    + create custom longhorn storageclass with only 1 replica (no backups!).
 
         `kubectl apply -f db-storageclass.yaml`
