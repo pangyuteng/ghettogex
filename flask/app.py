@@ -183,12 +183,12 @@ async def home():
             try:
                 market_open,market_close = get_market_open_close(dstamp,no_tzinfo=False)
             except:
-                market_open = None
+                market_open,market_close = None, None
 
-            if market_open is None:
+            if len(nyse_schedule) == 0:
                 market_status = "market is closed for specified day!"
-
-            if tstamp_utc < market_open:
+                load_data = False
+            elif tstamp_utc < market_open:
                 market_status = "market not open yet today. please reload page once market opens."
                 load_data = False
             elif tstamp_utc > market_close:
@@ -201,6 +201,7 @@ async def home():
                 market_status = "market is closed for specified day!"
                 load_data = False
     except:
+        app.logger.error(traceback.format_exc())
         market_status = "unexepcted error!"
         load_data = False
     return await render_template("index.html",dstamp=dstamp,load_data=load_data,market_status=market_status)
@@ -349,7 +350,7 @@ async def ws_main_socket():
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"
                 except:
-                    ret_dict['qc_comment'] = "UNEXPECTED ERROR!!!FFFFF"
+                    ret_dict['qc_comment'] = "unexpected error!!! ffff likely missing data, services down!"
                     ret_dict['duration_time'] = None
                     ret_dict['data_tstamp'] = None
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
