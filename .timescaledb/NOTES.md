@@ -1,6 +1,9 @@
 
 
 
+---
+
+# old notes!!!
 
 + in proxmox tweaked host6 ram cpu to higher spec (8 core, 32GB)
 
