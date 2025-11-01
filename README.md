@@ -9,7 +9,7 @@ Below are my deployment notes. for devops folks likely okay to follow. for non-d
 
 + docker building in `.timescaledb/build_and_push.sh`, `flask/build_and_push.sh`.
 
-+ volume and database setup notes see `.manifest-volume`, `.timescaledb`.
++ volume and database setup notes see `.manifest-volume/README.md`, `.timescaledb/README.md`.
 
 + services setup notes see `.manifest-back/README.md`, `.manifest-front/README.md`.
 

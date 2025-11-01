@@ -1,7 +1,9 @@
 
 ```
 
-kubectl apply -f .manifest-volume/lg-volume.yaml
+cd ..
+
+kubectl apply -f .manifest-volume
 
 kubectl get persistentvolumeclaim -n gg
 
