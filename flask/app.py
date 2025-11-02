@@ -70,6 +70,7 @@ from utils.pg_queries import (
     ORDER_IMBALANCE_QUERY,
     CANDLE_QC_QUERY,
     QUOTE_1MIN_QUERY,
+    CONVEXITY_QUERY,
 )
 et_tz = "America/New_york"
 
@@ -242,6 +243,7 @@ async def ws_main_socket():
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(dstamp,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,QUOTE_1MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
+                        apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
@@ -267,6 +269,8 @@ async def ws_main_socket():
 
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
+                        if len(df) == 0:
+                            raise LookupError("null gex query!")
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
                         df.state_gex = df.state_gex/1e9
@@ -276,11 +280,11 @@ async def ws_main_socket():
                         df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
                         df = df.replace({np.nan: None})
 
-                        lgs = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
+                        gex_list = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
                         major_call_strike = df["strike"].iloc[df.call_gex.argmax()]
                         major_put_strike = df["strike"].iloc[df.put_gex.argmin()]
 
-                        ret_dict['lgs'] = lgs
+                        ret_dict['gex_list'] = gex_list
                         ret_dict['major_call'] = major_call_strike
                         ret_dict['major_put'] = major_put_strike
                         ret_dict['spot_price'] = ret_dict['spx_price']
@@ -344,6 +348,22 @@ async def ws_main_socket():
                             0.6*pdf.at[2,'mid_price']+0.3*pdf.at[1,'mid_price']*0.1*pdf.at[0,'mid_price'] )
                         ret_dict['plus_expected_move'] = spot_price+expected_move
                         ret_dict['minus_expected_move'] = spot_price-expected_move
+
+                    if gathered_res[5] is not None:
+                        df = pd.DataFrame([dict(x) for x in gathered_res[5]])
+                        df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
+                        df['convexity'] = df.gamma*df.order_imbalance
+                        df['pos_convexity'] = df.convexity.where(df.convexity>0)
+                        df['neg_convexity'] = df.convexity.where(df.convexity<=0)
+                        df = df.replace({np.nan: None})
+
+                        convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
+                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax()]
+                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin()]
+
+                        ret_dict['convexity_list'] = convexity_list# asdf
+                        ret_dict['major_pos_convexity'] = major_pos_convexity
+                        ret_dict['major_neg_convexity'] = major_neg_convexity
 
                     ret_dict['spot_min_lim'] = spot_min_lim
                     ret_dict['spot_max_lim'] = spot_max_lim

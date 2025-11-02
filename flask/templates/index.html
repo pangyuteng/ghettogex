@@ -26,6 +26,7 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
 <div class="box">
     <div class="one" id="mySPXVIX"></div>
     <div class="one" id="myGexStrike"></div>
+    <div class="one" id="myConvexity"></div>
     <div class="one" id="myCallOrderImbalance"></div>
     <div class="one" id="myPutOrderImbalance"></div>
 </div>
@@ -33,10 +34,11 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
 server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 , query_time: <span id="queryTimeSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <br>
-{% include 'index-gex.html' %}
 {% include 'index-spx-vix.html' %}
 {% include 'index-orderimbalance.html' %}
 {% include 'index-ws.html' %}
+{% include 'index-gex.html' %}
+{% include 'index-convexity.html' %}
 
 *** DISCLAIMER: For educational and entertainment purposes only. Content provided as is, use at your own risk. <br>
 System is very unstable, beware of missing data, data for sure inaccurate with much assumptions made! For more info <a href="/about">click here</a>.***<br>

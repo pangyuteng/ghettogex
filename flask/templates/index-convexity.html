@@ -1,7 +1,7 @@
 
 <script>
 
-function makeChartH1(opts) {
+function makeChartH2(opts) {
 	let bars = uPlot.paths.bars({align: 0, size: [1, 4], gap: 0});
 	opts = uPlot.assign({
 		scales: {
@@ -29,25 +29,25 @@ function makeChartH1(opts) {
 		series: [
 			{},
 			{
-				stroke: "green",
-				fill: "rgba(0,255,0,0.9)",
+				stroke: "cyan",
+				fill: "rgba(0,255,255,0.9)",
 				paths: bars,
 			},
 			{
-				stroke: "red",
-				fill: "rgba(255,0,0,0.9)",
+				stroke: "purple",
+				fill: "rgba(127,0,128,0.9)",
 				paths: bars,
 			},
 		],
 	}, opts);
 
-	return new uPlot(opts, [], document.getElementById("myGexStrike"));
+	return new uPlot(opts, [], document.getElementById("myConvexity"));
 }
 
-function linesPlugin1({lines1}) {
+function linesPlugin2({lines2}) {
 	function drawLines(u) {
   		const { ctx, bbox } = u;
-		lines1.forEach( item => {
+		lines2.forEach( item => {
 			xVal = item[0];
 			color = item[1];
 			let x4 = u.valToPos(xVal, 'x', true);
@@ -72,12 +72,12 @@ function linesPlugin1({lines1}) {
   };
 }
 
-const lines1 = [];
+const lines2 = [];
 
-let mychartH1 = makeChartH1({
+let mychartH2 = makeChartH2({
 	width: 420,
 	height: 420,
-	title: "gex",
+	title: "convexity",
 	scales: {
 		x: {
 			dir: 1,
@@ -89,7 +89,7 @@ let mychartH1 = makeChartH1({
 		}
 	},
 	plugins: [
-		linesPlugin1({lines1})
+		linesPlugin2({lines2})
 	],
 	axes: [
 		{
@@ -108,14 +108,13 @@ let mychartH1 = makeChartH1({
 });
 
 
-function updateChartGex(data){
-	lines1[0] = [data.plus_expected_move,'gray'];
-	lines1[1] = [data.minus_expected_move,'gray'];
-	lines1[2] = [data.major_call,'green'];
-	lines1[3] = [data.major_put,'red'];
-	lines1[4] = [data.spot_price,'white'];
-	//mychartH1.setScale('y', {min: data.spot_min_lim, max: data.spot_max_lim});
-	mychartH1.setData(data.gex_list);
+function updateChartConvexity(data){
+	lines2[0] = [data.plus_expected_move,'gray'];
+	lines2[1] = [data.minus_expected_move,'gray'];
+	lines2[2] = [data.major_pos_convexity,'cyan'];
+	lines2[3] = [data.major_neg_convexity,'purple'];
+	lines2[4] = [data.spot_price,'white'];
+	mychartH2.setData(data.convexity_list);
 }
 
 

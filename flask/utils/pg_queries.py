@@ -40,6 +40,21 @@ ORDER_IMBALANCE_QUERY = """
 select * from order_imbalance where tstamp::date = %s and ticker = %s
 """
 
+CONVEXITY_QUERY = """
+WITH o_1day AS (
+select distinct ticker,strike,sum(order_imbalance) as order_imbalance
+from order_imbalance_1day where ticker = %s and expiration = %s and tstamp::date = %s
+group by ticker,strike
+), g_1day AS (
+select distinct ticker,strike,last(gamma,tstamp) as gamma
+from greeks_1day where ticker = %s and expiration = %s and tstamp::date = %s
+group by ticker,strike
+)
+SELECT ticker,strike,gamma,order_imbalance from o_1day
+LEFT JOIN g_1day using (ticker,strike)
+ORDER BY strike
+"""
+
 CANDLE_1MIN_QUERY = """
 WITH spx_1min AS (select tstamp,close as spx_close from candle_1min where tstamp::date = %s and event_symbol = 'SPX' and close != 0),
 es_1min AS (select tstamp,close as es_close from candle_1min where tstamp::date = %s and event_symbol like '/ES%%' and close != 0),
