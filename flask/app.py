@@ -281,12 +281,12 @@ async def ws_main_socket():
                         df = df.replace({np.nan: None})
 
                         gex_list = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
-                        major_call_strike = df["strike"].iloc[df.call_gex.argmax()]
-                        major_put_strike = df["strike"].iloc[df.put_gex.argmin()]
+                        major_pos_gex_strike = df["strike"].iloc[df.state_gex.argmax()]
+                        major_neg_gex_strike = df["strike"].iloc[df.state_gex.argmin()]
 
                         ret_dict['gex_list'] = gex_list
-                        ret_dict['major_call'] = major_call_strike
-                        ret_dict['major_put'] = major_put_strike
+                        ret_dict['major_pos_gex_strike'] = major_pos_gex_strike
+                        ret_dict['major_neg_gex_strike'] = major_neg_gex_strike
                         ret_dict['spot_price'] = ret_dict['spx_price']
 
                     if gathered_res[2] is not None:
