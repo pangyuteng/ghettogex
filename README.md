@@ -1,7 +1,27 @@
 
 # hola ghettogex
 
-Below are my deployment notes. For devops folks these are shitty notes, likely okay to follow. For non-devops folks, these will look like garbage.
+## deployment
+
+#### via docker compose
+
++ build containers
+
+```
+docker compose build
+```
+
++ make `.env` file, see `.envSAMPLE` for content
+
++ spin up all services with `.env` file
+
+```
+docker compose --env-file .env up -d
+```
+
+#### via kube
+
+For devops folks these are shitty notes, likely okay to follow. For non-devops folks, these will look like garbage.
 
 + compute resource setup notes see `.manifest-infra/README.md`
 

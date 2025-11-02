@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS gex_strike (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('gex_strike');
 CALL add_columnstore_policy('gex_strike', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS gex_net (
@@ -63,6 +64,7 @@ CREATE TABLE IF NOT EXISTS gex_net (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('gex_net');
 CALL add_columnstore_policy('gex_net', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS event_agg (
@@ -98,6 +100,7 @@ CREATE TABLE IF NOT EXISTS event_agg (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('event_agg');
 CALL add_columnstore_policy('event_agg', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS settings (

@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS candle (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('candle');
 CALL add_columnstore_policy('candle', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS event (
@@ -52,6 +53,7 @@ CREATE TABLE IF NOT EXISTS event (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('event');
 CALL add_columnstore_policy('event', after => INTERVAL '1d');
 
 
@@ -83,6 +85,7 @@ CREATE TABLE IF NOT EXISTS greeks (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('greeks');
 CALL add_columnstore_policy('greeks', after => INTERVAL '1d');
 
 
@@ -120,6 +123,7 @@ CREATE TABLE IF NOT EXISTS profile (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('profile');
 CALL add_columnstore_policy('profile', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS quote (
@@ -149,9 +153,10 @@ CREATE TABLE IF NOT EXISTS quote (
   tsdb.orderby='tstamp DESC'
 );
 
--- CALL remove_columnstore_policy('quote');
+CALL remove_columnstore_policy('quote');
 CALL add_columnstore_policy('quote', after => INTERVAL '2 hours', schedule_interval => INTERVAL '1 hour');
-SELECT add_retention_policy('quote', INTERVAL '7 days');
+-- SELECT remove_retention_policy('quote');
+-- SELECT add_retention_policy('quote', INTERVAL '7 days');
 
 CREATE TABLE IF NOT EXISTS summary (
     
@@ -181,6 +186,7 @@ CREATE TABLE IF NOT EXISTS summary (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('summary');
 CALL add_columnstore_policy('summary', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS theoprice (
@@ -210,6 +216,7 @@ CREATE TABLE IF NOT EXISTS theoprice (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('theoprice');
 CALL add_columnstore_policy('theoprice', after => INTERVAL '1d');
 
 
@@ -249,6 +256,7 @@ CREATE TABLE IF NOT EXISTS timeandsale (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('timeandsale');
 CALL add_columnstore_policy('timeandsale', after => INTERVAL '1d');
 
 
@@ -281,6 +289,7 @@ CREATE TABLE IF NOT EXISTS trade (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('trade');
 CALL add_columnstore_policy('trade', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS underlying (
@@ -311,6 +320,7 @@ CREATE TABLE IF NOT EXISTS underlying (
   tsdb.orderby='tstamp DESC'
 );
 
+CALL remove_columnstore_policy('underlying');
 CALL add_columnstore_policy('underlying', after => INTERVAL '1d');
 
 
