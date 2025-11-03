@@ -120,7 +120,7 @@ class ManageSubscription(luigi.Task):
             else:
                 break
 
-@celery_app.taskq
+@celery_app.task
 def trigger_subscription(*args,**kwargs):
     ticker = args[0]
     expirations_str = args[1]
