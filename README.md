@@ -1,9 +1,9 @@
 
 # hola ghettogex
 
-## refer to below to obtain tastytrade OAuth secret and refesh token
+## obtain tastytrade OAuth client secret and refesh token
 
-see https://tastyworks-api.readthedocs.io/en/latest/sessions.html#creating-an-oauth-application
++ refer to instructions here: https://tastyworks-api.readthedocs.io/en/latest/sessions.html#creating-an-oauth-application
 
 ## deployment
 

@@ -19,4 +19,6 @@ kubectl apply -f cloudflare-token.yaml
 
 + create cloudflared
 
+```
 kubectl create -f cloudflared-deployment.yml
+```
