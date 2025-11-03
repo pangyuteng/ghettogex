@@ -111,6 +111,12 @@ class ManageSubscription(luigi.Task):
                     chunk_list = [','.join(x) for x in chunks(expiration_list, 3)]
                     for n,expirations_str in enumerate(chunk_list):
                         trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
+
+                        # for non-SPX, for example: NDX, get 3 expirations
+                        if n == 0 and ticker != "SPX":
+                            break
+
+                        # for SPX, get 12 expirations
                         if n > 3:
                             break
 
