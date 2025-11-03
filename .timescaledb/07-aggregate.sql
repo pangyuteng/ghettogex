@@ -68,7 +68,7 @@ GROUP BY time_bucket('1m', tstamp), event_symbol;
 
 SELECT add_continuous_aggregate_policy('candle_1min',
   start_offset => NULL,
-  end_offset => NULL,
+  end_offset => '1 min',
   schedule_interval => INTERVAL '1 min');
 
 CALL refresh_continuous_aggregate('candle_1min', NULL, NULL);
@@ -88,7 +88,7 @@ GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_typ
 
 SELECT add_continuous_aggregate_policy('order_imbalance',
   start_offset => NULL,
-  end_offset => NULL,
+  end_offset => '5 min',
   schedule_interval => INTERVAL '5 min');
 
 CALL refresh_continuous_aggregate('order_imbalance', NULL, NULL);
@@ -105,7 +105,7 @@ GROUP BY time_bucket('1m', tstamp), event_symbol, ticker,expiration,contract_typ
 
 SELECT add_continuous_aggregate_policy('quote_1min',
   start_offset => NULL,
-  end_offset => NULL,
+  end_offset => '1 min',
   schedule_interval => INTERVAL '1 min');
 
 CALL refresh_continuous_aggregate('quote_1min', NULL, NULL);
