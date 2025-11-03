@@ -288,26 +288,32 @@ async def ws_main_socket():
                         spot_min_lim = np.min(ret_dict['prices'][2])-100
 
                     if gathered_res[1] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[1]])
-                        if len(df) == 0:
-                            raise LookupError("null gex query!")
-                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
-                        df.state_gex = df.state_gex/1e9
-                        df.volume_gex = df.volume_gex/1e9
-
-                        df['pos_gex'] = df.state_gex.where(df.state_gex>0)
-                        df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
-                        df = df.replace({np.nan: None})
-
-                        gex_list = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
-                        major_pos_gex_strike = df["strike"].iloc[df.state_gex.argmax()]
-                        major_neg_gex_strike = df["strike"].iloc[df.state_gex.argmin()]
-
-                        ret_dict['gex_list'] = gex_list
-                        ret_dict['major_pos_gex_strike'] = major_pos_gex_strike
-                        ret_dict['major_neg_gex_strike'] = major_neg_gex_strike
                         ret_dict['spot_price'] = ret_dict['spx_price']
+                        df = pd.DataFrame([dict(x) for x in gathered_res[1]])
+                        try:
+                            if len(df) == 0:
+                                raise LookupError("null gex query!")
+                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                            df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
+                            df.state_gex = df.state_gex/1e9
+                            df.volume_gex = df.volume_gex/1e9
+
+                            df['pos_gex'] = df.state_gex.where(df.state_gex>0)
+                            df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
+                            df = df.replace({np.nan: None})
+
+                            gex_list = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
+                            major_pos_gex_strike = df["strike"].iloc[df.state_gex.argmax()]
+                            major_neg_gex_strike = df["strike"].iloc[df.state_gex.argmin()]
+
+                            ret_dict['gex_list'] = gex_list
+                            ret_dict['major_pos_gex_strike'] = major_pos_gex_strike
+                            ret_dict['major_neg_gex_strike'] = major_neg_gex_strike
+                        except:
+                            ret_dict['gex_list'] = [[],[],[]]
+                            ret_dict['major_pos_gex_strike'] = None
+                            ret_dict['major_neg_gex_strike'] = None
+                            app.logger.error(traceback.format_exc())
 
                     if gathered_res[2] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[2]])
