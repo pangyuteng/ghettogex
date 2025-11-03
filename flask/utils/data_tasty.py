@@ -31,10 +31,11 @@ from tastytrade.instruments import get_option_chain, get_future_option_chain
 from tastytrade.dxfeed import (
     Candle, Greeks, Profile, Quote, Summary, TheoPrice, TimeAndSale, Trade, Underlying, 
 )
-from tastytrade.instruments import Equity, Option, Future, FutureOption, OptionType
+from tastytrade.instruments import Equity, Option, Future, FutureOption, OptionType, InstrumentType
 from tastytrade.session import OAuthSession
 from tastytrade.streamer import EventType
 from tastytrade.utils import today_in_new_york
+from tastytrade.market_data import a_get_market_data
 
 from .misc import (
     now_in_new_york,
@@ -60,6 +61,10 @@ def get_session():
     refresh_token = os.environ.get('TASTYTRADE_REFRESH_TOKEN')
     session = OAuthSession(client_secret,refresh_token,is_test=is_test)
     return session
+
+async def a_get_equity_data(ticker):
+    session = get_session()
+    return await a_get_market_data(session,ticker,InstrumentType.EQUITY)
 
 def get_session_reuse(refresh_serialized=False):
     is_test = is_test_func()

@@ -72,6 +72,8 @@ from utils.pg_queries import (
     QUOTE_1MIN_QUERY,
     CONVEXITY_QUERY,
 )
+from utils.data_tasty import a_get_equity_data
+
 et_tz = "America/New_york"
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -163,6 +165,19 @@ async def gexbots3cols():
 @login_required
 async def black():
     return await render_template("black.html")
+
+# used only for testing tastytrade api token
+@app.route("/equity")
+@login_required
+async def get_equity():
+    try:
+        ticker = request.args.get("ticker",None)
+        if ticker is None:
+            raise ValueError("ticker can't be None!")
+        data = await a_get_equity_data(ticker)
+        return jsonify(dict(data))
+    except:
+        return jsonify(traceback.format_exc()),401
 
 @app.route("/")
 @login_required
