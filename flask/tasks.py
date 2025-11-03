@@ -108,16 +108,12 @@ class ManageSubscription(luigi.Task):
                     else:
                         expiration_list = mydict[ticker]
 
-                    chunk_list = [','.join(x) for x in chunks(expiration_list, 3)]
+                    chunk_list = [','.join(x) for x in chunks(expiration_list, 2)]
                     for n,expirations_str in enumerate(chunk_list):
                         trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
 
-                        # for non-SPX, for example: NDX, get 3 expirations
-                        if n == 0 and ticker != "SPX":
-                            break
-
-                        # for SPX, get 12 expirations
-                        if n > 3:
+                        # "n == 1": get just underlying and 3 expirations [`None,YYYY-mm-dd`,`YYYY-mm-dd,YYYY-mm-dd`]
+                        if n == 1:
                             break
 
             if is_market_open():
@@ -125,7 +121,7 @@ class ManageSubscription(luigi.Task):
             else:
                 break
 
-@celery_app.task
+@celery_app.taskq
 def trigger_subscription(*args,**kwargs):
     ticker = args[0]
     expirations_str = args[1]
