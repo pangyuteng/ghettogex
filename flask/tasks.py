@@ -108,12 +108,11 @@ class ManageSubscription(luigi.Task):
                     else:
                         expiration_list = mydict[ticker]
 
-                    chunk_list = [','.join(x) for x in chunks(expiration_list, 2)]
-                    for n,expirations_str in enumerate(chunk_list):
+                    #chunk_list = [','.join(x) for x in chunks(expiration_list, 2)]
+                    for n,expirations_str in enumerate(expiration_list):
                         trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
 
-                        # "n == 1": get just underlying and 3 expirations [`None,YYYY-mm-dd`,`YYYY-mm-dd,YYYY-mm-dd`]
-                        if n == 1:
+                        if n == 3:
                             break
 
             if is_market_open():
