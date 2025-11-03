@@ -72,7 +72,7 @@ from utils.pg_queries import (
     QUOTE_1MIN_QUERY,
     CONVEXITY_QUERY,
 )
-from utils.data_tasty import a_get_equity_data
+from utils.data_tasty import a_get_equity_data, a_get_equity_data_session_reuse
 
 et_tz = "America/New_york"
 
@@ -172,9 +172,14 @@ async def black():
 async def get_equity():
     try:
         ticker = request.args.get("ticker",None)
+        session_reuse = True if request.args.get("session_reuse","false") == "true" else False
+        
         if ticker is None:
             raise ValueError("ticker can't be None!")
-        data = await a_get_equity_data(ticker)
+        if session_reuse:
+            data = await a_get_equity_data_session_reuse(ticker)
+        else:
+            data = await a_get_equity_data(ticker)
         return jsonify(dict(data))
     except:
         return jsonify(traceback.format_exc()),401

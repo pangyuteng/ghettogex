@@ -1,6 +1,10 @@
 
 # hola ghettogex
 
+## refer to below to obtain tastytrade OAuth secret and refesh token
+
+see https://tastyworks-api.readthedocs.io/en/latest/sessions.html#creating-an-oauth-application
+
 ## deployment
 
 #### via docker compose

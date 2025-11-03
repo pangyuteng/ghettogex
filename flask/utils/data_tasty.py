@@ -32,7 +32,7 @@ from tastytrade.dxfeed import (
     Candle, Greeks, Profile, Quote, Summary, TheoPrice, TimeAndSale, Trade, Underlying, 
 )
 from tastytrade.instruments import Equity, Option, Future, FutureOption, OptionType, InstrumentType
-from tastytrade.session import OAuthSession
+from tastytrade.session import Session
 from tastytrade.streamer import EventType
 from tastytrade.utils import today_in_new_york
 from tastytrade.market_data import a_get_market_data
@@ -59,11 +59,15 @@ def get_session():
     is_test = is_test_func()
     client_secret = os.environ.get('TASTYTRADE_CLIENT_SECRET')
     refresh_token = os.environ.get('TASTYTRADE_REFRESH_TOKEN')
-    session = OAuthSession(client_secret,refresh_token,is_test=is_test)
+    session = Session(client_secret,refresh_token,is_test=is_test)
     return session
 
 async def a_get_equity_data(ticker):
     session = get_session()
+    return await a_get_market_data(session,ticker,InstrumentType.EQUITY)
+
+async def a_get_equity_data_session_reuse(ticker):
+    session = get_session_reuse()
     return await a_get_market_data(session,ticker,InstrumentType.EQUITY)
 
 def get_session_reuse(refresh_serialized=False):
@@ -92,9 +96,9 @@ def get_session_reuse(refresh_serialized=False):
             logger.debug("session found will use existing session")
 
     if serialized_session:
-        session = OAuthSession.deserialize(serialized_session)
+        session = Session.deserialize(serialized_session)
     else:
-        session = OAuthSession(client_secret,refresh_token,is_test=is_test)
+        session = Session(client_secret,refresh_token,is_test=is_test)
         serialized_session = session.serialize()
         
         query_str = """
@@ -320,7 +324,7 @@ class LivePrices:
     async def create(
         cls,
         myqueue: PgInsertQueue,
-        session: OAuthSession,
+        session: Session,
         ticker: str,
         streamer_symbols: list,
         expiration: None,

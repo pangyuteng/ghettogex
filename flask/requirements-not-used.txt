@@ -1,2 +1,0 @@
-quantlib==1.38
-pysabr==0.4.1
