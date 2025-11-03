@@ -166,7 +166,7 @@ async def gexbots3cols():
 async def black():
     return await render_template("black.html")
 
-# used only for testing tastytrade api token
+# used only for testing  tastytrade api token - only for docker compose with .env file specified
 @app.route("/equity")
 @login_required
 async def get_equity():
