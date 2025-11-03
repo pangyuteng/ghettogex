@@ -3,19 +3,25 @@
 <head>
 
     <meta charset="utf-8">
-    <title>sec-gex</title>
+    <title>ghettogex</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" href="/static/uPlot.min.css">
     <script src="/static/uPlot.iife.min.js"></script>
     {% include 'index-uplot-style.html' %}
-
+    <style>
+    .myText {
+        font: sans-serif;
+        font-size: 14px;
+    }
+    </style>
 </head>
 
 <body>
 
 
 {% if load_data %}
+
 data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <span id="dataQcSpan" style="font-size: 18px !important; color: #ff0000;"></span>
 <br>
@@ -23,6 +29,7 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
 , vix: <span id="vixSpan" style="font-size: 20px !important; color: #ff0000;"></span>
 , vix1d: <span id="vix1dSpan" style="font-size: 20px !important; color: #ff8800;"></span>
 , spx: <span id="spxpriceSpan" style="font-size: 20px !important; color: #ffffff;"></span>
+
 <div class="box">
     <div class="one" id="mySPXVIX"></div>
     <div class="one" id="myGexStrike"></div>
@@ -39,11 +46,14 @@ server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; co
 {% include 'index-ws.html' %}
 {% include 'index-gex.html' %}
 {% include 'index-convexity.html' %}
-
+<p class="myText">
 *** DISCLAIMER: For educational and entertainment purposes only. Content provided as is, use at your own risk. <br>
 System is very unstable, beware of missing data, data for sure inaccurate with much assumptions made! For more info <a href="/about">click here</a>.***<br>
+</p>
 {% else %}
+<p class="myText">
 {{ market_status }}
+</p>
 {% endif %}
 </body>
 </html>

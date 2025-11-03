@@ -350,24 +350,33 @@ async def ws_main_socket():
 
                     if gathered_res[3] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[3]])
-                        latest_data_tstamp = df.tstamp.iloc[-1]
-                        latest_data_tstamp_str = latest_data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
-                        qc_comment = "***STALE TSTAMP!***" if (tstamp_utc.replace(tzinfo=None)-latest_data_tstamp).total_seconds() > 10 else ""
-                        ret_dict['data_tstamp'] = latest_data_tstamp_str
-                        ret_dict['qc_comment'] = qc_comment
+                        if len(df) > 0:
+                            latest_data_tstamp = df.tstamp.iloc[-1]
+                            latest_data_tstamp_str = latest_data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
+                            qc_comment = "***STALE TSTAMP!***" if (tstamp_utc.replace(tzinfo=None)-latest_data_tstamp).total_seconds() > 10 else ""
+                            ret_dict['qc_comment'] = qc_comment
+                            ret_dict['data_tstamp'] = latest_data_tstamp_str
+                        else:
+                            qc_comment = "***STALE TSTAMP!***"
+                            ret_dict['qc_comment'] = qc_comment
+                            ret_dict['data_tstamp'] = "null"
 
                     if gathered_res[4] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[4]])
-                        spot_price = ret_dict['spot_price']
-                        df['mid_price'] = (df.last_bid_price+df.last_ask_price)/2.0
-                        cdf = df[(df.contract_type=="C")&(df.strike>=spot_price)].reset_index().iloc[:3].reset_index()
-                        pdf = df[(df.contract_type=="P")&(df.strike<=spot_price)].reset_index().iloc[-3:].reset_index()
-
-                        expected_move = ( \
-                            0.6*cdf.at[0,'mid_price']+0.3*cdf.at[1,'mid_price']*0.1*cdf.at[2,'mid_price'] + \
-                            0.6*pdf.at[2,'mid_price']+0.3*pdf.at[1,'mid_price']*0.1*pdf.at[0,'mid_price'] )
-                        ret_dict['plus_expected_move'] = spot_price+expected_move
-                        ret_dict['minus_expected_move'] = spot_price-expected_move
+                        try:
+                            spot_price = ret_dict['spot_price']
+                            df['mid_price'] = (df.last_bid_price+df.last_ask_price)/2.0
+                            cdf = df[(df.contract_type=="C")&(df.strike>=spot_price)].reset_index().iloc[:3].reset_index()
+                            pdf = df[(df.contract_type=="P")&(df.strike<=spot_price)].reset_index().iloc[-3:].reset_index()
+                            expected_move = ( \
+                                0.6*cdf.at[0,'mid_price']+0.3*cdf.at[1,'mid_price']*0.1*cdf.at[2,'mid_price'] + \
+                                0.6*pdf.at[2,'mid_price']+0.3*pdf.at[1,'mid_price']*0.1*pdf.at[0,'mid_price'] )
+                            ret_dict['plus_expected_move'] = spot_price+expected_move
+                            ret_dict['minus_expected_move'] = spot_price-expected_move
+                        except:
+                            ret_dict['plus_expected_move'] = None
+                            ret_dict['minus_expected_move'] = None
+                            app.logger.error(traceback.format_exc())
 
                     if gathered_res[5] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[5]])
