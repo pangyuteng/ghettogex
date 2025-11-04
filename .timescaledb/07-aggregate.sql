@@ -49,13 +49,15 @@ SELECT time_bucket('1m', tstamp) as tstamp, ticker,
   avg(put_cex) as put_cex
 FROM gex_net 
 GROUP BY time_bucket('1m', tstamp), ticker;
+
 SELECT add_continuous_aggregate_policy('gex_net_1min',
   start_offset => INTERVAL '1 month',
   end_offset => INTERVAL '1 min',
   schedule_interval => INTERVAL '1 min');
 
 CALL refresh_continuous_aggregate('gex_net_1min', NULL, NULL);
-
+ALTER MATERIALIZED VIEW gex_net_1min set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW gex_net_1min set (timescaledb.enable_columnstore = true);
 
 -- DROP MATERIALIZED VIEW gex_net_1min;
 -- SELECT remove_continuous_aggregate_policy('gex_net_1min');
