@@ -691,6 +691,7 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     df = pd.DataFrame([dict(x) for x in fetched])
     df['gamma_sign'] = df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     df['true_oi'] = df.order_imbalance
+    # NOTE: we are using dxlink gamma which is lagged by 1 min!!!
     df['state_gex'] = df.gamma * df.true_oi * df.spot_price * df.spot_price * df.gamma_sign
     df['tstamp'] = utc_tstamp.replace(tzinfo=None) # postgres tsamp have no tzinfo
     df['ticker'] = ticker
