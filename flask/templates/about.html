@@ -22,16 +22,18 @@
 <br>
 
 <br>
-# gex plot<br><br>
 
-+ gex is a guesstimate using 0DTE SPXW candle bid ask volume akin @gexbot classic from the current and past 10 days (not as accurate as @optionsdepth @spotgamma) <br>
-
-+ horizontal dashed lines: spot: white, expected moves: gray, major positive gex strike: green, major negative gex strike: red.<br>
-
-<br>
 # order imbalance plots<br><br>
 
 + call and put order imbalance are sum of 0DTE SPXW candle bid and ask volume every 5min, more selling (red), more buying (green) {{ order_imbalance_range_str }}<br>
+
+# gex plot<br><br>
+
++ gex is a guesstimate using 0DTE SPXW order imbalance akin @gexbot classic from only the current day (not as accurate as @optionsdepth @spotgamma) <br>
+
+(TODO: ideally i want to sum the order imbalance for the past few days to get a guesstimate of dealer directional open interest)<br>
+
++ horizontal dashed lines: spot: white, expected moves: gray, major positive gex strike: green, major negative gex strike: red.<br>
 
 <br>
 # convexity plot<br><br>
@@ -39,6 +41,9 @@
 + 0DTE SPXW order imbalance of the entire day multiplied by current gamma, no put or call distinction. see gexbot document for more info.<br>
 
 + horizontal dashed lines: major positive convexity: cyan, major nevative convexity: purple.
+
+
+<br>
 
 </body>
 </html>

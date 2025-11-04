@@ -55,6 +55,26 @@ LEFT JOIN g_1day using (ticker,strike)
 ORDER BY strike
 """
 
+ORDER_IMBALANCE_GEX_QUERY = """
+WITH oi AS (
+SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike, 
+last(order_imbalance,tstamp) as order_imbalance
+FROM order_imbalance_1day WHERE ticker = %s and expiration = %s and tstamp::date = %s
+group by event_symbol,ticker,expiration,contract_type,strike
+), grk as (
+SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike,
+last(gamma,tstamp) as gamma
+FROM greeks_1day WHERE ticker = %s and expiration = %s and tstamp::date = %s
+group by event_symbol,ticker,expiration,contract_type,strike
+), candle AS (
+SELECT DISTINCT last(close,tstamp) as spot_price
+FROM candle_1min WHERE event_symbol = %s and tstamp::date = %s
+) 
+SELECT * FROM oi 
+left join grk using (event_symbol,ticker,expiration,contract_type,strike)
+FULL JOIN candle ON true
+"""
+
 CANDLE_1MIN_QUERY = """
 WITH spx_1min AS (select tstamp,close as spx_close from candle_1min where tstamp::date = %s and event_symbol = 'SPX' and close != 0),
 es_1min AS (select tstamp,close as es_close from candle_1min where tstamp::date = %s and event_symbol like '/ES%%' and close != 0),

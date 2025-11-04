@@ -71,6 +71,7 @@ from utils.pg_queries import (
     CANDLE_QC_QUERY,
     QUOTE_1MIN_QUERY,
     CONVEXITY_QUERY,
+    ORDER_IMBALANCE_GEX_QUERY,
 )
 from utils.data_tasty import a_get_equity_data, a_get_equity_data_session_reuse
 
@@ -259,7 +260,7 @@ async def ws_main_socket():
                     timea = time.time()
                     query_list = [
                         apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp)),
-                        apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
+                        apostgres_execute(apool,ORDER_IMBALANCE_GEX_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp,ticker,dstamp)),
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(dstamp,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,QUOTE_1MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
@@ -283,21 +284,21 @@ async def ws_main_socket():
                         ret_dict['es_price'] = df.es_close.iloc[-1]
                         ret_dict['vix_price'] = df.vix_close.iloc[-1]
                         ret_dict['spx_price'] = df.spx_close.iloc[-1]
+                        ret_dict['spot_price'] = ret_dict['spx_price']
                         ret_dict['vix1d_price'] = df.vix1d_close.iloc[-1]
                         spot_max_lim = np.max(ret_dict['prices'][2])+100
                         spot_min_lim = np.min(ret_dict['prices'][2])-100
 
                     if gathered_res[1] is not None:
-                        ret_dict['spot_price'] = ret_dict['spx_price']
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
                         try:
                             if len(df) == 0:
                                 raise LookupError("null gex query!")
-                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                            df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
-                            df.state_gex = df.state_gex/1e9
-                            df.volume_gex = df.volume_gex/1e9
 
+                            df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
+                            df['gamma_sign'] = df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
+                            df['state_gex'] = df.gamma * df.order_imbalance * df.spot_price * df.spot_price * df.gamma_sign
+                            df.state_gex = df.state_gex/1e9
                             df['pos_gex'] = df.state_gex.where(df.state_gex>0)
                             df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
                             df = df.replace({np.nan: None})
@@ -370,7 +371,7 @@ async def ws_main_socket():
                     if gathered_res[4] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[4]])
                         try:
-                            spot_price = ret_dict['spot_price']
+                            spot_price = ret_dict['spx_price']
                             df['mid_price'] = (df.last_bid_price+df.last_ask_price)/2.0
                             cdf = df[(df.contract_type=="C")&(df.strike>=spot_price)].reset_index().iloc[:3].reset_index()
                             pdf = df[(df.contract_type=="P")&(df.strike<=spot_price)].reset_index().iloc[-3:].reset_index()
