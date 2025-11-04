@@ -14,6 +14,7 @@ import pandas as pd
 from tqdm import tqdm
 import asyncio
 
+from .pg_queries import ORDER_IMBALANCE_GEX_QUERY
 from .postgres_utils import (
     cpostgres_execute, cpostgres_copy,
     psycopg_pool,postgres_uri,
@@ -406,14 +407,16 @@ def compute_gex_core(utc_tstamp,df,from_scratch,first_minute=False):
 
     return merged_df, qc_pass
 
-async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False):
+async def compute_gex_DEPRECATED(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False):
+    raise ValueError("DEPRECATED TOO FUCKING UNSTABLE")
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         #await apool.check() # <-- this is slow
         async with apool.connection() as aconn:
             #async with aconn.pipeline() as apipeline: # <-- using copy, dont use pipeline
-            return await _compute_gex(aconn,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgres,overwrite=overwrite)
+            return await _compute_gex_DEPRECATED(aconn,ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=persist_to_postgres,overwrite=overwrite)
 
-async def _compute_gex(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False):
+async def _compute_gex_DEPRECATED(aconn,ticker,et_tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False):
+    raise ValueError("DEPRECATED TOO FUCKING UNSTABLE")
     time_a = time.time()
 
     agg_df = None
@@ -653,6 +656,79 @@ def tryone(ticker,tstampstr):
     except:
         traceback.print_exc()
         sys.exit(1)
+
+async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True,overwrite=False):
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+        async with apool.connection() as aconn:
+            return await _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
+
+async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
+    time_c = time.time()
+    utc = pytz.timezone('UTC')
+    utc_tstamp = et_tstamp.astimezone(tz=utc)
+
+    if ticker == 'SPX':
+        ticker_alt = 'SPXW'
+    elif ticker == 'NDX':
+        ticker_alt = 'NDXP'
+    elif ticker == 'VIX':
+        ticker_alt = 'VIXW'
+    else:
+        ticker_alt = ticker
+
+    expiration = utc_tstamp.date()
+
+    query_args = (ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker,expiration)
+    fetched = await cpostgres_execute(aconn,ORDER_IMBALANCE_GEX_QUERY,query_args)
+    df = pd.DataFrame([dict(x) for x in fetched])
+
+    df['gamma_sign'] = df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
+    df['true_oi'] = df.order_imbalance
+    df['state_gex'] = df.gamma * df.true_oi * df.spot_price * df.spot_price * df.gamma_sign
+    df['tstamp'] = utc_tstamp.replace(tzinfo=None) # postgres tsamp have no tzinfo
+    df['ticker'] = ticker
+
+    query_dict = {}
+
+    table_cols = ['ticker','strike','tstamp','spot_price','state_gex','true_oi']
+
+    strike_ex_df = df[table_cols].copy()
+    strike_ex_df = strike_ex_df.groupby(['ticker','strike','tstamp']).agg(
+        spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
+        state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
+    ).reset_index()
+
+    gex_strike_query_str = """
+        COPY gex_strike (ticker,strike,tstamp,state_gex) FROM STDIN
+    """
+    async def insert_gex_strike(row):
+        query_args = [row.ticker,row.strike,row.tstamp,row.state_gex]
+        return query_args
+    query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in strike_ex_df.iterrows()))
+
+    table_cols = [
+        'ticker','tstamp','spot_price','state_gex',
+    ]
+
+    net_gex_df = strike_ex_df[table_cols].copy()
+    net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
+        spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
+        state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
+    ).reset_index()
+
+    gex_net_query_str = """
+        COPY gex_net (ticker,tstamp,state_gex,spot_price) FROM STDIN
+    """
+    async def insert_gex_net(row):
+        query_args = [row.ticker,row.tstamp,row.state_gex,row.spot_price]
+        return query_args
+
+    query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
+
+    await cpostgres_copy(aconn,query_dict)
+
+    time_e = time.time()
+    logger.info(f'postgres_execute_many {time_e-time_c}')
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
