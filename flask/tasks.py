@@ -65,6 +65,7 @@ class Subscription(luigi.Task):
 
         tastytrade.logger.setLevel(logging.INFO)
         asyncio.run(background_subscribe(self.ticker,self.expirations_str,save_to_postres=True))
+        logger.info("background_subscribe exit success!")
 
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
