@@ -73,6 +73,7 @@ SELECT add_continuous_aggregate_policy('candle_1min',
 
 CALL refresh_continuous_aggregate('candle_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW candle_1min set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW candle_1min set (timescaledb.enable_columnstore = true);
 
 
 -- DROP MATERIALIZED VIEW candle_1min;
@@ -93,6 +94,7 @@ SELECT add_continuous_aggregate_policy('order_imbalance',
 
 CALL refresh_continuous_aggregate('order_imbalance', NULL, NULL);
 ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.enable_columnstore = true);
 
 -- DROP MATERIALIZED VIEW quote_1min
 -- SELECT remove_continuous_aggregate_policy('order_imbalance');
@@ -110,7 +112,7 @@ SELECT add_continuous_aggregate_policy('quote_1min',
 
 CALL refresh_continuous_aggregate('quote_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW quote_1min set (timescaledb.materialized_only = false);
-
+ALTER MATERIALIZED VIEW quote_1min set (timescaledb.enable_columnstore = true);
 -- DROP MATERIALIZED VIEW quote_1min
 -- SELECT remove_continuous_aggregate_policy('quote_1min');
 
@@ -129,7 +131,7 @@ SELECT add_continuous_aggregate_policy('order_imbalance_1day',
 
 CALL refresh_continuous_aggregate('order_imbalance_1day', NULL, NULL);
 ALTER MATERIALIZED VIEW order_imbalance_1day set (timescaledb.materialized_only = false);
-
+ALTER MATERIALIZED VIEW order_imbalance_1day set (timescaledb.enable_columnstore = true);
 -- DROP MATERIALIZED VIEW order_imbalance_1day
 -- SELECT remove_continuous_aggregate_policy('order_imbalance_1day');
 
@@ -154,7 +156,7 @@ SELECT add_continuous_aggregate_policy('greeks_1day',
 
 CALL refresh_continuous_aggregate('greeks_1day', NULL, NULL);
 ALTER MATERIALIZED VIEW greeks_1day set (timescaledb.materialized_only = false);
-
+ALTER MATERIALIZED VIEW greeks_1day set (timescaledb.enable_columnstore = true);
 -- DROP MATERIALIZED VIEW greeks_1day
 -- SELECT remove_continuous_aggregate_policy('greeks_1day');
 
