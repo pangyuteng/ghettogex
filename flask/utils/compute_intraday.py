@@ -662,6 +662,14 @@ async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=Tru
         async with apool.connection() as aconn:
             return await _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
 
+#
+# NOTE: TODO: 
+# if below usage of ORDER_IMBALANCE_GEX_QUERY works out, system stable,
+# then we can add volume_gex (which will sum up past few days of candle volume, and state_gex )
+# or we replace this shit with postgres materialize view / timescaledb continous aggregate 
+# or switch to clickhouse / kafka whatever the fuck those are.
+#
+
 async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     time_c = time.time()
     utc = pytz.timezone('UTC')
@@ -681,7 +689,6 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     query_args = (ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker,expiration)
     fetched = await cpostgres_execute(aconn,ORDER_IMBALANCE_GEX_QUERY,query_args)
     df = pd.DataFrame([dict(x) for x in fetched])
-
     df['gamma_sign'] = df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     df['true_oi'] = df.order_imbalance
     df['state_gex'] = df.gamma * df.true_oi * df.spot_price * df.spot_price * df.gamma_sign

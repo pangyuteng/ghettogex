@@ -170,6 +170,8 @@ class GexTarget(luigi.Target):
         else:
             return False
 
+# NOTE: do we really need a backfill for this? why can't we compute gex via continous aggregate?
+# time to investigate and switch to Clickhouse? Kafka???
 class ComputeSpotGex(luigi.Task):
     ticker = luigi.parameter.Parameter()
     et_tstamp = luigi.parameter.DateSecondParameter()
@@ -190,7 +192,7 @@ def trigger_gex_cache(*args,**kwargs):
     query_args = ()
     utc_tstamp = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
     eastern = pytz.timezone('US/Eastern')
-    et_tstamp = utc_tstamp.astimezone(tz=eastern)-datetime.timedelta(seconds=1)
+    et_tstamp = utc_tstamp.astimezone(tz=eastern)
     if is_market_open() is False:
         pass
     else:

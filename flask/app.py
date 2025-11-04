@@ -260,7 +260,7 @@ async def ws_main_socket():
                     timea = time.time()
                     query_list = [
                         apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp)),
-                        apostgres_execute(apool,ORDER_IMBALANCE_GEX_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp,ticker,dstamp)),
+                        apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(dstamp,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,QUOTE_1MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
@@ -296,8 +296,6 @@ async def ws_main_socket():
                                 raise LookupError("null gex query!")
 
                             df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
-                            df['gamma_sign'] = df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
-                            df['state_gex'] = df.gamma * df.order_imbalance * df.spot_price * df.spot_price * df.gamma_sign
                             df.state_gex = df.state_gex/1e9
                             df['pos_gex'] = df.state_gex.where(df.state_gex>0)
                             df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
