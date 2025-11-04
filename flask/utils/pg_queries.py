@@ -22,9 +22,15 @@ from gex_strike where tstamp > now() - interval '4 second'
 """
 
 CANDLE_QC_QUERY = """
+(
+SELECT DISTINCT event_symbol, max(tstamp) as tstamp FROM candle 
+WHERE event_symbol = %s AND tstamp > %s - interval '10 minute'
+GROUP BY event_symbol
+) union all (
 SELECT DISTINCT ticker, max(tstamp) as tstamp FROM candle 
-WHERE expiration = %s AND ticker = %s AND tstamp > %s - interval '1 minute'
+WHERE ticker = %s AND tstamp > %s - interval '10 minute' AND expiration = %s
 GROUP BY ticker
+)
 """
 
 QUOTE_5MIN_QUERY = """
@@ -90,6 +96,13 @@ ORDER BY tstamp
 
 LATEST_GEX_STRIKE_QUERY = """
 WITH last_tstamp AS (select tstamp from gex_net where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp desc limit 1),
+last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike)
+SELECT * FROM last_tstamp
+LEFT JOIN last_gex_strike using (tstamp)
+"""
+
+"""
+WITH last_tstamp AS (select tstamp from gex_net where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp desc limit 1),
 last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike),
 last_price AS (select close from candle where tstamp <= %s and tstamp >= %s - interval '1 minute' and event_symbol = %s order by tstamp desc limit 1)
 SELECT * FROM last_tstamp
@@ -97,6 +110,8 @@ LEFT JOIN last_gex_strike using (tstamp)
 WHERE strike < (select close*1.02 from last_price)
 AND strike > (select close*0.98 from last_price)
 """
+
+
 
 LATEST_ONE_MIN_GEX_STRIKE_QUERY = """
 

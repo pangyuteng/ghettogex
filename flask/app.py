@@ -35,7 +35,15 @@ from quart_auth import (
     Unauthorized,
 )
 
-from utils.misc import check_password, CACHE_FOLDER, get_market_open_close, nyse
+from utils.misc import (
+    CACHE_FOLDER,
+    check_password,
+    get_market_open_close,
+    nyse,
+    is_market_open,
+    now_in_new_york,
+)
+
 from utils.data_cache import (
     BTC_TICKER,
     CBOEX_TICKER_LIST,
@@ -47,8 +55,6 @@ from utils.data_cache import (
     USMARKET_TICKER_LIST,
     HOME_TICKER_LIST_OF_LIST,
     get_cache_latest,
-    is_market_open,
-    now_in_new_york,
 )
 
 from utils.compute import (
@@ -197,13 +203,13 @@ async def home():
         if dstamp is None:
             
             tstamp_et = now_in_new_york()
-            tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
+            tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC')).replace(tzinfo=None)
             dstamp = tstamp_et.strftime("%Y-%m-%d")
 
             nyse_schedule = nyse.schedule(start_date=dstamp, end_date=dstamp)
 
             try:
-                market_open,market_close = get_market_open_close(dstamp,no_tzinfo=False)
+                market_open,market_close = get_market_open_close(dstamp,no_tzinfo=True)
             except:
                 market_open,market_close = None, None
 
@@ -245,8 +251,8 @@ async def ws_main_socket():
                         raise ValueError(f"market not open! {dstamp}")
 
                     tstamp_et = now_in_new_york()
-                    tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC'))
-                    market_open,market_close = get_market_open_close(dstamp,no_tzinfo=False)
+                    tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC')).replace(tzinfo=None)
+                    market_open,market_close = get_market_open_close(dstamp,no_tzinfo=True)
 
                     if tstamp_utc < market_open:
                         message = "break-while-loop"
@@ -256,13 +262,14 @@ async def ws_main_socket():
 
                     ticker = 'SPX'
                     ticker_alt = 'SPXW'
-
+                    
+                    app.logger.error(f"{tstamp_utc},{ticker}")
                     timea = time.time()
                     query_list = [
                         apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp)),
-                        apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
+                        apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
-                        apostgres_execute(apool,CANDLE_QC_QUERY,(dstamp,ticker_alt,tstamp_utc)),
+                        apostgres_execute(apool,CANDLE_QC_QUERY,(ticker,tstamp_utc,ticker_alt,tstamp_utc,dstamp)),
                         apostgres_execute(apool,QUOTE_5MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
                     ]
@@ -356,7 +363,7 @@ async def ws_main_socket():
                     if gathered_res[3] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[3]])
                         if len(df) > 0:
-                            latest_data_tstamp = df.tstamp.iloc[-1]
+                            latest_data_tstamp = df.tstamp.min()
                             latest_data_tstamp_str = latest_data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
                             qc_comment = "***STALE TSTAMP!***" if (tstamp_utc.replace(tzinfo=None)-latest_data_tstamp).total_seconds() > 10 else ""
                             ret_dict['qc_comment'] = qc_comment
@@ -1142,7 +1149,7 @@ async def ws_ex_query():
                         query_list = [
                             apostgres_execute(apool,EVENT_STATUS_QUERY,()),
                             apostgres_execute(apool,LATEST_DAY_GEX_NET_QUERY,(dstamp_utc,tstamp_utc,ticker,dstamp_utc,tstamp_utc)),
-                            apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
+                            apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                             apostgres_execute(apool,GEX_NET_1MIN_QUERY,(dstamp_utc,ticker,dstamp_utc)),
                         ]
 
