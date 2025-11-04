@@ -45,12 +45,6 @@ beat_schedule = {
        'options': {'queue': 'default'},
        'args': [],
    },
-   'trigger_cache_cboe': {
-       'task': 'tasks.trigger_cache_cboe',
-       'schedule': crontab(minute=1,hour=0,day_of_week='tue,wed,thu,fri,sat'), # midnight UTC, 7pm ET
-       'options': {'queue': 'default'},
-       'args': [],
-   },
    'trigger_shutdown': {
        'task': 'tasks.trigger_shutdown',
        'schedule': crontab(minute=5, hour=20), # can't figure out why streamer unable to exit - so shutdown after market close
@@ -58,3 +52,13 @@ beat_schedule = {
        'args': [],
    },
 }
+
+# trigger_cache_cboe disabled !!
+""" 
+   'trigger_cache_cboe': {
+       'task': 'tasks.trigger_cache_cboe',
+       'schedule': crontab(minute=1,hour=0,day_of_week='tue,wed,thu,fri,sat'), # midnight UTC, 7pm ET
+       'options': {'queue': 'default'},
+       'args': [],
+   },
+"""
