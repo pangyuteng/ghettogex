@@ -11,4 +11,4 @@ SELECT add_retention_policy('event_agg', INTERVAL '100 days');
 
 SELECT add_retention_policy('candle_1min', INTERVAL '100 days');
 SELECT add_retention_policy('order_imbalance', INTERVAL '100 days');
-SELECT add_retention_policy('quote_1min', INTERVAL '100 days');
+SELECT add_retention_policy('', INTERVAL '100 days');

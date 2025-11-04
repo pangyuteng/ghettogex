@@ -27,10 +27,10 @@ WHERE expiration = %s AND ticker = %s AND tstamp > %s - interval '1 minute'
 GROUP BY ticker
 """
 
-QUOTE_1MIN_QUERY = """
+QUOTE_5MIN_QUERY = """
 SELECT DISTINCT event_symbol,strike,contract_type,
 last(last_bid_price,tstamp) as last_bid_price,last(last_ask_price,tstamp) as last_ask_price 
-FROM quote_1min
+FROM quote_5min
 WHERE expiration = %s AND ticker = %s AND tstamp > %s - interval '1 minute'
 GROUP BY event_symbol,strike,contract_type
 ORDER BY contract_type,strike

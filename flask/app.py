@@ -69,7 +69,7 @@ from utils.pg_queries import (
     CANDLE_1MIN_QUERY,
     ORDER_IMBALANCE_QUERY,
     CANDLE_QC_QUERY,
-    QUOTE_1MIN_QUERY,
+    QUOTE_5MIN_QUERY,
     CONVEXITY_QUERY,
     ORDER_IMBALANCE_GEX_QUERY,
 )
@@ -263,7 +263,7 @@ async def ws_main_socket():
                         apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(dstamp,ticker_alt,tstamp_utc)),
-                        apostgres_execute(apool,QUOTE_1MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
+                        apostgres_execute(apool,QUOTE_5MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
                     ]
 
