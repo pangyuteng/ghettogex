@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS candle (
 );
 
 CALL remove_columnstore_policy('candle');
-CALL add_columnstore_policy('candle', after => INTERVAL '1d');
+CALL add_columnstore_policy('candle', after => INTERVAL '2 hours', schedule_interval => INTERVAL '1 hour');
+
 
 CREATE TABLE IF NOT EXISTS event (
     
