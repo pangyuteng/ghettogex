@@ -20,6 +20,11 @@ spec:
         image: docker.io/pangyuteng/private:fi-flask-edge
         imagePullPolicy: Always
         env:
+        - name: EXPECTED_HASH
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: EXPECTED_HASH
         - name: CACHE_FOLDER
           value: /mnt/sm-data/fi
         - name: AMQP_URI
