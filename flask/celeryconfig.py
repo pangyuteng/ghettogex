@@ -47,7 +47,7 @@ beat_schedule = {
    },
    'trigger_shutdown': {
        'task': 'tasks.trigger_shutdown',
-       'schedule': crontab(minute=5, hour=20), # can't figure out why streamer unable to exit - so shutdown after market close
+       'schedule': crontab(minute=5, hour=21), # can't figure out why streamer unable to exit, shutdown after market close. streamer still can't exit!!
        'options': {'queue': 'default'},
        'args': [],
    },
