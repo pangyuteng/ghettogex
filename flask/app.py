@@ -301,9 +301,8 @@ async def ws_main_socket():
                         ret_dict['spot_min_lim'] = spot_min_lim
                         ret_dict['spot_max_lim'] = spot_max_lim
                         
-                        ndx_max_lim = df.ndx_close.max()*1.02
-                        ndx_min_lim = df.ndx_close.min()*0.98
-
+                        ndx_max_lim = df.ndx_close.max()*1.01
+                        ndx_min_lim = df.ndx_close.min()*0.99
 
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
