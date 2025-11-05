@@ -1,7 +1,7 @@
 
 <script>
 
-function makeChartH2(opts) {
+function makeChartH3(opts) {
 	let bars = uPlot.paths.bars({align: 0, size: [1, 4], gap: 0});
 	opts = uPlot.assign({
 		scales: {
@@ -41,13 +41,13 @@ function makeChartH2(opts) {
 		],
 	}, opts);
 
-	return new uPlot(opts, [], document.getElementById("myConvexity"));
+	return new uPlot(opts, [], document.getElementById("myNdxConvexity"));
 }
 
-function linesPlugin2({lines2}) {
+function linesPlugin3({lines3}) {
 	function drawLines(u) {
-  		const { ctx, bbox } = u;
-		lines2.forEach( item => {
+		  const { ctx, bbox } = u;
+		lines3.forEach( item => {
 			xVal = item[0];
 			color = item[1];
 			let x4 = u.valToPos(xVal, 'x', true);
@@ -66,18 +66,18 @@ function linesPlugin2({lines2}) {
 	}
 
   return {
-    hooks: {
-      draw: drawLines,
-    }
+	hooks: {
+	  draw: drawLines,
+	}
   };
 }
 
-const lines2 = [];
+const lines3 = [];
 
-let mychartH2 = makeChartH2({
+let mychartH3 = makeChartH3({
 	width: 420,
 	height: 420,
-	title: "convexity",
+	title: "ndx-convexity",
 	scales: {
 		x: {
 			dir: 1,
@@ -89,7 +89,7 @@ let mychartH2 = makeChartH2({
 		}
 	},
 	plugins: [
-		linesPlugin2({lines2})
+		linesPlugin3({lines3})
 	],
 	axes: [
 		{
@@ -108,13 +108,9 @@ let mychartH2 = makeChartH2({
 });
 
 
-function updateChartConvexity(data){
-	lines2[0] = [data.plus_expected_move,'gray'];
-	lines2[1] = [data.minus_expected_move,'gray'];
-	lines2[2] = [data.major_pos_convexity,'cyan'];
-	lines2[3] = [data.major_neg_convexity,'purple'];
-	lines2[4] = [data.spx_price,'white'];
-	mychartH2.setData(data.convexity_list);
+function updateChartConvexityNDX(data){
+	lines3[0] = [data.ndx_price,'white'];
+	mychartH3.setData(data.ndx_convexity_list);
 }
 
 

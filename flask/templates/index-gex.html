@@ -113,7 +113,7 @@ function updateChartGex(data){
 	lines1[1] = [data.minus_expected_move,'gray'];
 	lines1[2] = [data.major_pos_gex_strike,'green'];
 	lines1[3] = [data.major_neg_gex_strike,'red'];
-	lines1[4] = [data.spot_price,'white'];
+	lines1[4] = [data.spx_price,'white'];
 	//mychartH1.setScale('y', {min: data.spot_min_lim, max: data.spot_max_lim});
 	mychartH1.setData(data.gex_list);
 }

@@ -262,16 +262,17 @@ async def ws_main_socket():
 
                     ticker = 'SPX'
                     ticker_alt = 'SPXW'
-                    
-                    app.logger.error(f"{tstamp_utc},{ticker}")
+                    ndx_ticker_alt = 'NDXP'
+
                     timea = time.time()
                     query_list = [
-                        apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp)),
+                        apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp,dstamp)),
                         apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(ticker,tstamp_utc,ticker_alt,tstamp_utc,dstamp)),
                         apostgres_execute(apool,QUOTE_5MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
+                        apostgres_execute(apool,CONVEXITY_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
@@ -286,15 +287,23 @@ async def ws_main_socket():
                         df = pd.DataFrame([dict(x) for x in gathered_res[0]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df = df.replace({np.nan: None})
-                        lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]] # ,'es_close','vix1d_close'
+                        lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]]
                         ret_dict['prices'] = lst
                         ret_dict['es_price'] = df.es_close.iloc[-1]
                         ret_dict['vix_price'] = df.vix_close.iloc[-1]
                         ret_dict['spx_price'] = df.spx_close.iloc[-1]
-                        ret_dict['spot_price'] = ret_dict['spx_price']
+                        ret_dict['ndx_price'] = df.ndx_close.iloc[-1]
                         ret_dict['vix1d_price'] = df.vix1d_close.iloc[-1]
-                        spot_max_lim = np.max(ret_dict['prices'][2])+100
-                        spot_min_lim = np.min(ret_dict['prices'][2])-100
+
+                        spot_max_lim = df.spx_close.max()+100
+                        spot_min_lim = df.spx_close.min()-100
+
+                        ret_dict['spot_min_lim'] = spot_min_lim
+                        ret_dict['spot_max_lim'] = spot_max_lim
+                        
+                        ndx_max_lim = df.ndx_close.max()*1.02
+                        ndx_min_lim = df.ndx_close.min()*0.98
+
 
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
@@ -376,6 +385,8 @@ async def ws_main_socket():
                     if gathered_res[4] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[4]])
                         try:
+                            if len(df) == 0:
+                                raise LookupError("null quote query!")
                             spot_price = ret_dict['spx_price']
                             df['mid_price'] = (df.last_bid_price+df.last_ask_price)/2.0
                             cdf = df[(df.contract_type=="C")&(df.strike>=spot_price)].reset_index().iloc[:3].reset_index()
@@ -406,8 +417,24 @@ async def ws_main_socket():
                         ret_dict['major_pos_convexity'] = major_pos_convexity
                         ret_dict['major_neg_convexity'] = major_neg_convexity
 
-                    ret_dict['spot_min_lim'] = spot_min_lim
-                    ret_dict['spot_max_lim'] = spot_max_lim
+                    if gathered_res[6] is not None:
+                        df = pd.DataFrame([dict(x) for x in gathered_res[6]])
+                        df = df[(df.strike>ndx_min_lim) & (df.strike<ndx_max_lim)].reset_index()
+                        df['convexity'] = df.gamma*df.order_imbalance
+                        df['pos_convexity'] = df.convexity.where(df.convexity>0)
+                        df['neg_convexity'] = df.convexity.where(df.convexity<=0)
+                        df = df.replace({np.nan: None})
+
+                        convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
+                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax()]
+                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin()]
+
+                        ret_dict['ndx_convexity_list'] = convexity_list# asdf
+                        ret_dict['ndx_major_pos_convexity'] = major_pos_convexity
+                        ret_dict['ndx_major_neg_convexity'] = major_neg_convexity
+
+
+
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"
                 except:
