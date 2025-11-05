@@ -16,14 +16,16 @@ docker compose build
 ```
 
 + make `.env` file, see `.envSAMPLE` for content
+    
+    + you should have `TASTYTRADE_CLIENT_SECRET` and `TASTYTRADE_REFRESH_TOKEN` after follwing above step.
 
-    + use below to create password hash in python via bcrypt.
+    + `EXPECTED_HASH` is the hashed password to the website, use below to create password hash in python via bcrypt:
 
     ```
     bcrypt.hashpw("thisisyourpassword".encode('utf-8'), bcrypt.gensalt())
     ```
 
-+ spin up all services with `.env` file
++ spin up all services, remember to specify the `.env` filepath.
 
 ```
 docker compose --env-file .env up -d
