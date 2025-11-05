@@ -17,6 +17,12 @@ docker compose build
 
 + make `.env` file, see `.envSAMPLE` for content
 
+    + use below to create password hash in python via bcrypt.
+
+    ```
+    bcrypt.hashpw("thisisyourpassword".encode('utf-8'), bcrypt.gensalt())
+    ```
+
 + spin up all services with `.env` file
 
 ```
