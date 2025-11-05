@@ -285,6 +285,7 @@ async def ws_main_socket():
                     if gathered_res[0] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[0]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df.ndx_close = df.ndx_close.round(decimals=2)
                         df = df.replace({np.nan: None})
                         lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]]
                         ret_dict['prices'] = lst
@@ -292,6 +293,7 @@ async def ws_main_socket():
                         ret_dict['vix_price'] = df.vix_close.iloc[-1]
                         ret_dict['spx_price'] = df.spx_close.iloc[-1]
                         ret_dict['ndx_price'] = df.ndx_close.iloc[-1]
+                        
                         ret_dict['vix1d_price'] = df.vix1d_close.iloc[-1]
 
                         spot_max_lim = df.spx_close.max()+100

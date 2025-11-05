@@ -83,7 +83,7 @@ FULL JOIN candle ON true
 
 CANDLE_1MIN_QUERY = """
 WITH spx_1min AS (select tstamp,close as spx_close from candle_1min where tstamp::date = %s and event_symbol = 'SPX' and close != 0),
-ndx_1min AS (select tstamp,TRUNC(close,2) as ndx_close from candle_1min where tstamp::date = %s and event_symbol like 'NDX' and close != 0),
+ndx_1min AS (select tstamp,close as ndx_close from candle_1min where tstamp::date = %s and event_symbol like 'NDX' and close != 0),
 es_1min AS (select tstamp,close as es_close from candle_1min where tstamp::date = %s and event_symbol like '/ES%%' and close != 0),
 vix_1min AS (select tstamp,close as vix_close from candle_1min where tstamp::date = %s and event_symbol = 'VIX' and close != 0),
 vix1d_1min AS (select tstamp,close as vix1d_close from candle_1min where tstamp::date = %s and event_symbol = 'VIX1D' and close != 0)
