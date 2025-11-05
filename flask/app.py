@@ -37,6 +37,7 @@ from quart_auth import (
 
 from utils.misc import (
     CACHE_FOLDER,
+    EXPECTED_HASH,
     check_password,
     get_market_open_close,
     nyse,
@@ -104,8 +105,6 @@ auth_manager = QuartAuth(app)
 @app.route("/ping")
 async def ping():
     return jsonify("pong")
-
-EXPECTED_HASH = "$2b$12$71jzw8XNFRReslIM4pwvN.mL6yBis77B2VA/p6kfpAwR3jPAaKR4S"
 
 @app.route("/login",methods=["GET","POST"])
 async def login():

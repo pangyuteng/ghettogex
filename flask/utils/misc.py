@@ -64,3 +64,5 @@ def get_hashed_password(plain_text_password):
 def check_password(plain_text_password, hashed_password_str):
     # Check hashed password. Using bcrypt, the salt is saved into the hash itself
     return bcrypt.checkpw(plain_text_password.encode('utf-8'), hashed_password_str.encode('utf-8'))
+
+EXPECTED_HASH = "$2b$12$71jzw8XNFRReslIM4pwvN.mL6yBis77B2VA/p6kfpAwR3jPAaKR4S"
