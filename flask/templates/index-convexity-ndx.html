@@ -110,6 +110,8 @@ let mychartH3 = makeChartH3({
 
 function updateChartConvexityNDX(data){
 	lines3[0] = [data.ndx_price,'white'];
+	lines2[1] = [data.ndx_major_pos_convexity,'cyan'];
+	lines2[2] = [data.ndx_major_neg_convexity,'purple'];
 	mychartH3.setData(data.ndx_convexity_list);
 }
 
