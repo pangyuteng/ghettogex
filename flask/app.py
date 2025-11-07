@@ -290,20 +290,34 @@ async def ws_main_socket():
                         lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]]
                         ret_dict['prices'] = lst
                         ret_dict['es_price'] = df.es_close.iloc[-1]
-                        ret_dict['vix_price'] = df.vix_close.iloc[-1]
+                        vix_price = df.vix_close.iloc[-1]
+                        ret_dict['vix_price'] = vix_price
                         ret_dict['spx_price'] = df.spx_close.iloc[-1]
                         ret_dict['ndx_price'] = df.ndx_close.iloc[-1]
                         
                         ret_dict['vix1d_price'] = df.vix1d_close.iloc[-1]
 
-                        spot_max_lim = df.spx_close.max()+100
-                        spot_min_lim = df.spx_close.min()-100
+                        if vix_price > 50: # vary lim by last vix price
+                            plus_prct = 1.3
+                            minus_prct = 0.7
+                        elif vix_price > 30:
+                            plus_prct = 1.1
+                            minus_prct = 0.9
+                        elif vix_price > 15:
+                            plus_prct = 1.03
+                            minus_prct = 0.97
+                        else:
+                            plus_prct = 1.01
+                            minus_prct = 0.99
+
+                        spot_max_lim = df.spx_close.max()*plus_prct # +100
+                        spot_min_lim = df.spx_close.min()*minus_prct # -100
 
                         ret_dict['spot_min_lim'] = spot_min_lim
                         ret_dict['spot_max_lim'] = spot_max_lim
                         
-                        ndx_max_lim = df.ndx_close.max()*1.01
-                        ndx_min_lim = df.ndx_close.min()*0.99
+                        ndx_max_lim = df.ndx_close.max()*plus_prct
+                        ndx_min_lim = df.ndx_close.min()*minus_prct
 
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
