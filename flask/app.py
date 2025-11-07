@@ -145,7 +145,8 @@ async def redirect_to_login(*_):
 @app.route("/about")
 @login_required
 async def about():
-    return await render_template("about.html")
+    order_imbalance_bin_str = "[0,10,25,50,100,200]"
+    return await render_template("about.html",order_imbalance_bin_str=order_imbalance_bin_str)
 
 @app.route("/links")
 @login_required
@@ -349,7 +350,7 @@ async def ws_main_socket():
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
                         df = df.dropna()
-                        # 200,100,50,25,10,0
+                        # NOTE: remember to update order_imbalance_bin_str
                         filter_list = [
                             df.order_imbalance<-200,
                             (df.order_imbalance>=-200)&(df.order_imbalance<-100),
