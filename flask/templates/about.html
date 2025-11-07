@@ -23,25 +23,39 @@
 
 <br>
 
-# order imbalance plots<br><br>
+<br># order imbalance plots<br><br>
 
 + call and put order imbalance are sum of 0DTE SPXW candle bid and ask volume every 5min, more selling (red), more buying (green) {{ order_imbalance_range_str }}<br>
 
-# gex plot<br><br>
+<br># gex plot<br><br>
 
 + gex is a guesstimate using 0DTE SPXW order imbalance akin @gexbot classic from only the current day (not as accurate as @optionsdepth @spotgamma) <br>
 
-(TODO: ideally i want to sum the order imbalance for the past few days to get a guesstimate of dealer directional open interest)<br>
-
 + horizontal dashed lines: spot: white, expected moves: gray, major positive gex strike: green, major negative gex strike: red.<br>
 
-<br>
-# convexity plot<br><br>
+<br># convexity plot<br><br>
 
 + 0DTE SPXW order imbalance of the entire day multiplied by current gamma, no put or call distinction. see gexbot document for more info.<br>
 
 + horizontal dashed lines: major positive convexity: cyan, major nevative convexity: purple.
 
+
+<br># * additional notes<br><br>
+
++ candle volume cannot accurately determine deal directional open interest (DDOI), gex and convexity is pure garbage.<br>
+
+<br># TODOS<br><br>
+
++ compute near real-time volatility with quote event.
+
++ see if we can get timeandsale event from schwab-py.
+
++ tweak timeandsale or candle volume to create `ddoi` table.
+
++ gather guesstimated DDOI everyday to obtain dealr position akin Optionsdepth.<br>
+
+
+<br>
 
 <br>
 

@@ -374,7 +374,7 @@ async def ws_main_socket():
                         if len(df) > 0:
                             latest_data_tstamp = df.tstamp.min()
                             latest_data_tstamp_str = latest_data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
-                            qc_comment = "***STALE TSTAMP!***" if (tstamp_utc.replace(tzinfo=None)-latest_data_tstamp).total_seconds() > 10 else ""
+                            qc_comment = "***STALE TSTAMP!***" if (tstamp_utc.replace(tzinfo=None)-latest_data_tstamp).total_seconds() > 60 else ""
                             ret_dict['qc_comment'] = qc_comment
                             ret_dict['data_tstamp'] = latest_data_tstamp_str
                         else:
@@ -410,7 +410,7 @@ async def ws_main_socket():
                         df = df.replace({np.nan: None})
 
                         convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
-                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax()]
+                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax()] # consider moving this up prior filter like ndx
                         major_neg_convexity = df["strike"].iloc[df.convexity.argmin()]
 
                         ret_dict['convexity_list'] = convexity_list# asdf
@@ -419,6 +419,11 @@ async def ws_main_socket():
 
                     if gathered_res[6] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[6]])
+                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax()]
+                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin()]
+                        ndx_max_lim = np.max([ndx_max_lim,major_pos_convexity+500,major_neg_convexity+500])
+                        ndx_min_lim = np.min([ndx_min_lim,major_pos_convexity-500,major_neg_convexity-500])
+
                         df = df[(df.strike>ndx_min_lim) & (df.strike<ndx_max_lim)].reset_index()
                         df['convexity'] = df.gamma*df.order_imbalance
                         df['pos_convexity'] = df.convexity.where(df.convexity>0)
@@ -426,8 +431,6 @@ async def ws_main_socket():
                         df = df.replace({np.nan: None})
 
                         convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
-                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax()]
-                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin()]
 
                         ret_dict['ndx_convexity_list'] = convexity_list# asdf
                         ret_dict['ndx_major_pos_convexity'] = major_pos_convexity
