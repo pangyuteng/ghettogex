@@ -23,13 +23,17 @@
 
 <br>
 
+<br># * disclaimer<br><br>
+
++ candle volume cannot accurately determine dealer directional open interest (DDOI), thus one can argue gex is pretty much garbage.<br>
+
 <br># order imbalance plots<br><br>
 
 + call and put order imbalance are sum of 0DTE SPXW candle bid and ask volume every 5min, more selling (red), more buying (green) {{ order_imbalance_range_str }}<br>
 
 <br># gex plot<br><br>
 
-+ gex is a guesstimate using 0DTE SPXW order imbalance akin @gexbot classic from only the current day (not as accurate as @optionsdepth @spotgamma) <br>
++ gex is a guesstimate using 0DTE SPXW order imbalance from only the current day (akin @gexbot classic, or unusualwhales spot gex volume - not as accurate as @optionsdepth @spotgamma) <br>
 
 + horizontal dashed lines: spot: white, expected moves: gray, major positive gex strike: green, major negative gex strike: red.<br>
 
@@ -38,11 +42,6 @@
 + 0DTE SPXW order imbalance of the entire day multiplied by current gamma, no put or call distinction. see gexbot document for more info.<br>
 
 + horizontal dashed lines: major positive convexity: cyan, major nevative convexity: purple.<br>
-
-
-<br># * additional notes<br><br>
-
-+ candle volume cannot accurately determine dealer directional open interest (DDOI), thus one can argute gex and convexity is pure (or partially?) garbage.<br>
 
 
 <br>
