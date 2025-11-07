@@ -23,15 +23,15 @@ from gex_strike where tstamp > now() - interval '4 second'
 
 CANDLE_QC_QUERY = """
 (
-SELECT DISTINCT event_symbol, max(tstamp) as tstamp FROM candle 
+SELECT DISTINCT event_symbol as ticker, null::date as expiration ,max(tstamp) as tstamp FROM candle 
 WHERE event_symbol = %s AND tstamp > %s - interval '10 minute'
 GROUP BY event_symbol
 ) union all (
-SELECT DISTINCT ticker, max(tstamp) as tstamp FROM candle 
-WHERE ticker = %s AND tstamp > %s - interval '10 minute' AND expiration = %s
-GROUP BY ticker
-)
-"""
+SELECT DISTINCT ticker, expiration, max(tstamp) as tstamp FROM candle 
+WHERE ticker = %s AND tstamp > %s - interval '10 minute' 
+GROUP BY ticker, expiration
+) 
+""" # -- AND expiration = %s
 
 QUOTE_5MIN_QUERY = """
 SELECT DISTINCT event_symbol,strike,contract_type,
