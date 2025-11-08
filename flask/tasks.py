@@ -22,7 +22,6 @@ from utils.postgres_utils import postgres_execute, vaccum_full_analyze
 from utils.data_tasty import background_subscribe, get_session_reuse
 from utils.misc import is_market_open, now_in_new_york, timedelta_from_market_open
 from utils.compute_intraday import compute_gex
-from utils.data_cache import cache_cboe
 
 import tastytrade
 
@@ -142,10 +141,6 @@ def manage_subscriptions(*args,**kwargs):
 @celery_app.task
 def trigger_vaccum_full(*args,**kwargs):
     vaccum_full_analyze()
-
-@celery_app.task
-def trigger_cache_cboe(*args,**kwargs):
-    cache_cboe()
 
 @celery_app.task
 def trigger_shutdown(*args,**kwargs):
