@@ -1,3 +1,6 @@
+#
+# `2fc441a` https://github.com/aaguiar10/gflows/blob/main/modules/calc.py
+# 
 import pandas as pd
 import exchange_calendars as xcals
 import numpy as np

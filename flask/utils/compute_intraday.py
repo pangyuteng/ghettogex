@@ -720,7 +720,7 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     net_gex_df = strike_ex_df[table_cols].copy()
     net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
         spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
-        state_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
+        volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
         state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
     ).reset_index()
 
