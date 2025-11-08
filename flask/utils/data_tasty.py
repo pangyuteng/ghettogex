@@ -493,7 +493,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
                 continue
             options_list = [o for o in chain[expiration]]
             streamer_symbols = [o.streamer_symbol for o in options_list]
-            print(streamer_symbols)
+
             live_prices = await LivePrices.create(myqueue,session,ticker,streamer_symbols,expiration=expiration,save_to_postres=save_to_postres)
             live_prices_list.append(live_prices)
 
