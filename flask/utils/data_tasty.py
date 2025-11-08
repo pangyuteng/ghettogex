@@ -475,6 +475,8 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
         myqueue = await PgInsertQueue.create()
         event_type_list = ['candle_underlying','quote_underlying','candle','quote','greeks','summary','timeandsale']
         flusher_task_list = [asyncio.create_task(flusher(myqueue,event_type)) for event_type in event_type_list]
+        asyncio.gather(*flusher_task_list)
+
         # underlying
         if "None" in expiration_list:
             if ticker == "VIX1D":
@@ -517,7 +519,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
                     try:
                         await flusher_task
                     except asyncio.CancelledError:
-                        pass
+                        logger.info(f"cancel done.{flusher_task}")
 
                 logger.info("pool close...")
                 raise MarketCloseException("market closed!")
