@@ -15,6 +15,7 @@ import matplotlib.dates as mdates
 import base64
 
 from jinja2 import Environment, FileSystemLoader
+
 from quart import (
     Quart,
     websocket,
@@ -25,6 +26,7 @@ from quart import (
     redirect,
     url_for,
 )
+
 from quart_auth import (
     QuartAuth,
     AuthUser,
@@ -52,18 +54,14 @@ from utils.postgres_utils import (
 )
 
 from utils.pg_queries import (
-    EVENT_STATUS_QUERY,
     LATEST_GEX_STRIKE_QUERY,
-    LATEST_DAY_GEX_NET_QUERY,
-    LATEST_ONE_MIN_GEX_STRIKE_QUERY,
-    GEX_NET_1MIN_QUERY,
     CANDLE_1MIN_QUERY,
     ORDER_IMBALANCE_QUERY,
     CANDLE_QC_QUERY,
     QUOTE_5MIN_QUERY,
     CONVEXITY_QUERY,
-    ORDER_IMBALANCE_GEX_QUERY,
 )
+
 from utils.data_tasty import (
     a_get_equity_data, 
     a_get_equity_data_session_reuse
