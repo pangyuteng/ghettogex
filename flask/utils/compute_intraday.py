@@ -697,43 +697,46 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     df['true_oi'] = -1 * df.order_imbalance
 
     # NOTE: we are using dxlink gamma which is lagged by 1 min!!!
-    df['state_gex'] = df.gamma * df.true_oi * df.spot_price * df.spot_price * df.gamma_sign
+    df['volume_gex'] = df.gamma * df.true_oi * df.spot_price * df.spot_price * df.gamma_sign
+    df['state_gex'] = df.volume_gex
     df['tstamp'] = utc_tstamp.replace(tzinfo=None) # postgres tsamp have no tzinfo
     df['ticker'] = ticker
 
     query_dict = {}
 
-    table_cols = ['ticker','strike','tstamp','spot_price','state_gex','true_oi']
+    table_cols = ['ticker','strike','tstamp','spot_price','volume_gex','state_gex','true_oi']
 
     strike_ex_df = df[table_cols].copy()
     strike_ex_df = strike_ex_df.groupby(['ticker','strike','tstamp']).agg(
         spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
+        volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
         state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
     ).reset_index()
 
     gex_strike_query_str = """
-        COPY gex_strike (ticker,strike,tstamp,state_gex) FROM STDIN
+        COPY gex_strike (ticker,strike,tstamp,volume_gex,state_gex) FROM STDIN
     """
     async def insert_gex_strike(row):
-        query_args = [row.ticker,row.strike,row.tstamp,row.state_gex]
+        query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex]
         return query_args
     query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in strike_ex_df.iterrows()))
 
     table_cols = [
-        'ticker','tstamp','spot_price','state_gex',
+        'ticker','tstamp','spot_price','volume_gex','state_gex',
     ]
 
     net_gex_df = strike_ex_df[table_cols].copy()
     net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
         spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
+        state_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
         state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
     ).reset_index()
 
     gex_net_query_str = """
-        COPY gex_net (ticker,tstamp,state_gex,spot_price) FROM STDIN
+        COPY gex_net (ticker,tstamp,volume_gex,state_gex,spot_price) FROM STDIN
     """
     async def insert_gex_net(row):
-        query_args = [row.ticker,row.tstamp,row.state_gex,row.spot_price]
+        query_args = [row.ticker,row.tstamp,row.volume_gex,row.state_gex,row.spot_price]
         return query_args
 
     query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
