@@ -52,13 +52,3 @@ beat_schedule = {
        'args': [],
    },
 }
-
-# trigger_cache_cboe disabled !!
-""" 
-   'trigger_cache_cboe': {
-       'task': 'tasks.trigger_cache_cboe',
-       'schedule': crontab(minute=1,hour=0,day_of_week='tue,wed,thu,fri,sat'), # midnight UTC, 7pm ET
-       'options': {'queue': 'default'},
-       'args': [],
-   },
-"""
