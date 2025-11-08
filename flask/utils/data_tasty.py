@@ -3,6 +3,7 @@ import logging
 logger = logging.getLogger(__file__)
 import warnings
 import os
+import signal
 import re
 import sys
 import uuid
@@ -541,7 +542,8 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
         logger.info("finally...")
 
     logger.info("attempt to exit!!")
-    # sys.exit(0) # unable to shutdown stream celery worker, maybe sys.exit is the culprit?!?
+    # unable to exit gracefully, just use kill lol.
+    os.kill(os.getpid(), signal.SIGTERM)
 
 if __name__ == "__main__":
     log_level = logging.INFO #  logging.DEBUG # 
