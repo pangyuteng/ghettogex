@@ -31,13 +31,20 @@ select distinct ticker,strike,sum(order_imbalance) as order_imbalance
 from order_imbalance_1day where ticker = %s and expiration = %s and tstamp::date = %s
 group by ticker,strike
 ), g_1day AS (
-select distinct ticker,strike,last(gamma,tstamp) as gamma
+select distinct ticker,strike,last(gamma,tstamp) as gamma,last(volatility,tstamp) as volatility
 from greeks_1day where ticker = %s and expiration = %s and tstamp::date = %s
 group by ticker,strike
 )
-SELECT ticker,strike,gamma,order_imbalance from o_1day
+SELECT ticker,strike,gamma,volatility,order_imbalance from o_1day
 LEFT JOIN g_1day using (ticker,strike)
 ORDER BY strike
+"""
+
+GREEKS_QUERY = """
+select distinct event_symbol,ticker,expiration,strike,contract_type,last(gamma,tstamp) as gamma,last(volatility,tstamp) as volatility
+from greeks_1day where ticker = %s and expiration = %s and tstamp::date = %s
+group by event_symbol,ticker,expiration,strike,contract_type
+ORDER BY contract_type,strike
 """
 
 ORDER_IMBALANCE_GEX_QUERY = """

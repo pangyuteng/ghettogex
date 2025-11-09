@@ -60,6 +60,7 @@ from utils.pg_queries import (
     CANDLE_QC_QUERY,
     QUOTE_5MIN_QUERY,
     CONVEXITY_QUERY,
+    GREEKS_QUERY,
 )
 
 from utils.data_tasty import (
@@ -247,6 +248,7 @@ async def ws_main_socket():
                         apostgres_execute(apool,CANDLE_QC_QUERY,(ticker,tstamp_utc,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,QUOTE_5MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
+                        apostgres_execute(apool,GREEKS_QUERY,(ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,CONVEXITY_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
                     ]
 
@@ -409,6 +411,16 @@ async def ws_main_socket():
 
                     if gathered_res[6] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[6]])
+                        df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
+
+                        df.volatility = df.volatility*100
+                        cdf = df[df.contract_type=='C']
+                        pdf = df[df.contract_type=='P']
+                        volatility_list = [cdf.strike.tolist(),cdf.volatility.tolist(),pdf.volatility.tolist()]
+                        ret_dict['volatility_list'] = volatility_list
+
+                    if gathered_res[7] is not None:
+                        df = pd.DataFrame([dict(x) for x in gathered_res[7]])
                         df['convexity'] = df.gamma*df.order_imbalance
                         major_pos_convexity = df["strike"].iloc[df.convexity.argmax()]
                         major_neg_convexity = df["strike"].iloc[df.convexity.argmin()]

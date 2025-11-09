@@ -738,43 +738,6 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     time_e = time.time()
     logger.info(f'postgres_execute_many {time_e-time_c}')
 
-#
-# NOTE: TODO: 
-# if below usage of ORDER_IMBALANCE_GEX_QUERY works out, system stable,
-# then we can tweak gex, somehow get a better ddoi guesstimate?
-# but also maintain same day order imbalance gex -> which is super stable. let this be always `gex0`.`
-# or we replace this shit with postgres materialize view / timescaledb continous aggregate 
-# or switch to clickhouse / kafka whatever the fuck those are.
-#
-
-
-"""
-
-
-THOUGHTS: 
-
-+ scenario1 gex and associated params will have version columns
-
-    + call this gex0,gex1,gex2,gex3,oi0,oi1,oi2,oi3
-    + version 0: same day, market-maker order-imbalance, using gamma from dxlink
-    + version 1: many days, psuedo-ddoi
-
-+ scenario2 keep is simple stupid, have only one gex version, goal is ultimate truth -> ddoi gex.
-
-+ scenario3. have scenario2 KISS always constant - gexbot classic
-    and go crazy via experimental tasks that is isolated from gexbot classic to maintain system stability.
-
-+ additional data, for example convexity, can be persisted in tables: 
-    `event_agg`,`gex_strike`,`gex_net`...
-
-    + then you can mimic gexbot order for second-level near-live visuals.
-
-TODO:
-
-+ FOCUS ON GETTING TOWARDS ULTIMATE TRUTH - DDOI
-
-
-"""
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
