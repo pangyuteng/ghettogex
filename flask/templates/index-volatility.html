@@ -1,0 +1,61 @@
+<script>
+
+function makeChartVolatility() {
+	let isYRangeFixed = false;
+	const opts = {
+		title: "volatility",
+		width: 210,
+		height: 420,
+		scales: {
+			x: {
+				time: false,
+				dir: 1,
+				ori: 1,
+			},
+			y: {
+				dir: 1,
+				ori: 0,
+			}
+		},
+		series: [
+			{},
+			{
+				label: "call",//scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				stroke: "rgba(0,255,0,0.5)",
+				width: 2/devicePixelRatio,
+			},
+			{
+				label: "put", //scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				width: 2/devicePixelRatio,
+				stroke: "rgba(255,0,0,0.5)",
+			},
+		],
+		axes: [
+			{
+				side: 3,
+				stroke: "#666666",
+				tick: {stroke: "#666666",width:1},
+				grid: {stroke: "#666666",width:1},
+			},
+			{
+				side: 0, //scale: "scale1",
+				stroke: "#666666",
+				grid: {stroke: "#666666",width:1},
+				tick: {stroke: "#666666",width:1},
+			},
+		],
+	};
+	
+	return new uPlot(opts, [], document.getElementById("mySPXVolatility"));
+}
+
+let mychartVolatility = makeChartVolatility();
+
+function updateChartVolatility(data,minval,maxval){
+	//mychartVolatility.setScale('scale0', {min: minval, max: maxval});
+	mychartVolatility.setData(data);
+}
+
+</script>
