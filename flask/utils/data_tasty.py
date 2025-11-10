@@ -543,7 +543,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
 
     logger.info("attempt to exit!!")
     # unable to exit gracefully, just use kill lol.
-    os.kill(os.getpid(), signal.SIGTERM)
+    os.kill(os.getpid(), signal.SIGKILL)
 
 if __name__ == "__main__":
     log_level = logging.INFO #  logging.DEBUG # 
