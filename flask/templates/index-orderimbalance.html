@@ -211,12 +211,12 @@ let mychartCallScatter = makeChartScatter("myCallOrderImbalance","call-order-imb
 let mychartPutScatter = makeChartScatter("myPutOrderImbalance","put-order-imbalance");
 
 function updateChartCallOrderImbalance(data,minval,maxval){
-	mychartPrices.setScale('y', {min: minval, max: maxval});
+	mychartCallScatter.setScale('y', {min: minval, max: maxval});
 	mychartCallScatter.setData(data);
 	
 }
 function updateChartPutOrderImbalance(data,minval,maxval){
-	mychartPrices.setScale('y', {min: minval, max: maxval});
+	mychartPutScatter.setScale('y', {min: minval, max: maxval});
 	mychartPutScatter.setData(data);
 }
 
