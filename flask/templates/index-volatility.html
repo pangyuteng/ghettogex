@@ -1,7 +1,7 @@
 <script>
 
 function makeChartVolatility(opts) {
-	let points = uPlot.paths.points()
+	let points = uPlot.paths.points();
 	opts = uPlot.assign({
 		scales: {
 			x: {
@@ -19,7 +19,7 @@ function makeChartVolatility(opts) {
 			},
 			sync: {
 				key: 1,
-				scales: ["x", "y"],
+				scales: ["x"], //scales: ["x", "y"],
 			},
 			focus: {
 				prox: 30,
@@ -92,7 +92,7 @@ let mychartVolatility = makeChartVolatility({
 	],
 	axes: [
 		{
-			side: 3, // scale: "scaleY",
+			side: 3, // scale: "volatility",
 			stroke: "#666666",
 			tick: {stroke: "#666666",width:1},
 			grid: {stroke: "#666666",width:1},
