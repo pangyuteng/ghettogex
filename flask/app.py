@@ -405,7 +405,7 @@ async def ws_main_socket():
                         major_pos_convexity = df["strike"].iloc[df.convexity.argmax()] # consider moving this up prior filter like ndx
                         major_neg_convexity = df["strike"].iloc[df.convexity.argmin()]
 
-                        ret_dict['convexity_list'] = convexity_list# asdf
+                        ret_dict['convexity_list'] = convexity_list
                         ret_dict['major_pos_convexity'] = major_pos_convexity
                         ret_dict['major_neg_convexity'] = major_neg_convexity
 

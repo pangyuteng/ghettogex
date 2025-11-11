@@ -10,7 +10,7 @@
     let espriceSpan = document.getElementById("espriceSpan");
     let vixSpan = document.getElementById("vixSpan");
     let vix1dSpan = document.getElementById("vix1dSpan");
-    //let statusDiv = document.getElementById("statusDiv");
+
     ws.onmessage = function(event) {
         let newdata = JSON.parse(event.data);
         dataQcSpan.textContent = newdata.qc_comment;
@@ -23,12 +23,12 @@
         espriceSpan.textContent = newdata.es_price;
         vixSpan.textContent = newdata.vix_price;
         vix1dSpan.textContent = newdata.vix1d_price;
-        updateChartGex(newdata);
-        updateChartConvexity(newdata);
-        updateChartConvexityNDX(newdata);
         updateChartPrices(newdata.prices,newdata.spot_min_lim,newdata.spot_max_lim);
         updateChartCallOrderImbalance(newdata.call_order_imbalance,newdata.spot_min_lim,newdata.spot_max_lim);
         updateChartPutOrderImbalance(newdata.put_order_imbalance,newdata.spot_min_lim,newdata.spot_max_lim);
-        updateChartVolatility(newdata.volatility_list,newdata.spot_min_lim,newdata.spot_max_lim);
+        updateChartVolatility(newdata);
+        updateChartGex(newdata);
+        updateChartConvexity(newdata);
+        updateChartConvexityNDX(newdata);
     }
 </script>
