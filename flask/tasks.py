@@ -168,12 +168,7 @@ def trigger_gex_cache(*args,**kwargs):
                 continue
 
             logger.info(f"trigger_gex_cache {ticker}")
-            #asyncio.run(compute_gex(ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=True))
-
-            loop = asyncio.get_event_loop()
-            mytask = asyncio.create_task(compute_gex(ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=True))
-            loop.run_until_complete(mytask)
-            loop.close()
+            asyncio.run(compute_gex(ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=True))
 
 
 if __name__ == "__main__":
