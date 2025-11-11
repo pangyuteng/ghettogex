@@ -94,7 +94,7 @@ services:
         command: bash worker.sh stream
         deploy:
             mode: replicated
-            replicas: 4
+            replicas: 6
     flask:
         <<: *foobar
         ports:
