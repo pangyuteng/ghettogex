@@ -27,6 +27,8 @@
 
 + candle volume cannot accurately determine dealer directional open interest (DDOI), thus one can argue the derived gex is pretty much garbage. but hey, it's free garbage!<br>
 
++ volatilty and gamma only updated once per minute. dont feel like computing it by the second yet... given above bullet point.
+
 <br># order imbalance plots<br><br>
 
 + call and put order imbalance are sum of 0DTE SPXW candle bid and ask volume every 5min, more selling (red), more buying (green), bins: {{ order_imbalance_bin_str }}.<br>
@@ -41,7 +43,7 @@
 
 + 0DTE SPXW order imbalance of the entire day multiplied by current gamma, no put or call distinction. see gexbot document for more info.<br>
 
-+ horizontal dashed lines: major positive convexity: cyan, major nevative convexity: purple.<br>
++ horizontal dashed lines: major positive convexity: cyan, major negative convexity: purple.<br>
 
 
 <br>
