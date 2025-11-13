@@ -162,13 +162,12 @@ def trigger_gex_cache(*args,**kwargs):
         fetched = [dict(x) for x in fetched]
         for row in fetched:
             ticker = row['ticker']
-            from_scratch = row['from_scratch']
             is_compute_gex = row['compute_gex']
             if not is_compute_gex:
                 continue
 
             logger.info(f"trigger_gex_cache {ticker}")
-            asyncio.run(compute_gex(ticker,et_tstamp,from_scratch=from_scratch,persist_to_postgres=True))
+            asyncio.run(compute_gex(ticker,et_tstamp,persist_to_postgres=True))
 
 
 if __name__ == "__main__":
