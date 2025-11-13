@@ -83,10 +83,11 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
 
     """
         NOTE:
-        in postgres tables `order_imbalance` we have:
-        sum(ask_volume)-sum(bid_volume) as order_imbalance
-        and then we sum `order_imbalance` up in table `order_imbalance_1day`
-        ^^^^ note: order_imbalance is customer, thus we flip for market maker.
+        In postgres tables `order_imbalance` we have:
+        `sum(ask_volume)-sum(bid_volume) as order_imbalance`
+        and then we sum `order_imbalance` up in table `order_imbalance_1day`,
+        Since `order_imbalance` is customer perspective, 
+        for market maker `mm_order_imbalance` we flip it via *-1.
     """
 
     query_args = (ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker,expiration)
