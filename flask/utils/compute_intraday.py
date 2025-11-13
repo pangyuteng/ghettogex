@@ -81,25 +81,28 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
 
     expiration = utc_tstamp.date()
 
+    """
+        NOTE:
+        in postgres tables `order_imbalance` we have:
+        sum(ask_volume)-sum(bid_volume) as order_imbalance
+        and then we sum `order_imbalance` up in table `order_imbalance_1day`
+        ^^^^ note: order_imbalance is customer, thus we flip for market maker.
+    """
+
     query_args = (ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker,expiration)
     fetched = await cpostgres_execute(aconn,ORDER_IMBALANCE_GEX_QUERY,query_args)
     df = pd.DataFrame([dict(x) for x in fetched])
-    df['gamma_sign'] = df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
-    """
-        # sum(ask_volume)-sum(bid_volume) as order_imbalance
-        ^^^^ order_imbalance is customer, we flip for market-maker
-    """
-    df['true_oi'] = -1 * df.order_imbalance
-
+    df['mm_order_imbalance'] = -1 * df.order_imbalance
+    df['hedge_sign'] = df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
     # NOTE: we are using dxlink gamma which is lagged by 1 min!!!
-    df['volume_gex'] = df.gamma * df.true_oi * df.spot_price * df.spot_price * df.gamma_sign
+    df['volume_gex'] = df.gamma * df.mm_order_imbalance * df.spot_price * df.spot_price * df.hedge_sign
     df['state_gex'] = df.volume_gex
     df['tstamp'] = utc_tstamp.replace(tzinfo=None) # postgres tsamp have no tzinfo
     df['ticker'] = ticker
 
     query_dict = {}
 
-    table_cols = ['ticker','strike','tstamp','spot_price','volume_gex','state_gex','true_oi']
+    table_cols = ['ticker','strike','tstamp','spot_price','volume_gex','state_gex','mm_order_imbalance']
 
     strike_ex_df = df[table_cols].copy()
     strike_ex_df = strike_ex_df.groupby(['ticker','strike','tstamp']).agg(
