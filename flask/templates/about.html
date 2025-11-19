@@ -29,8 +29,6 @@
 
 + volatilty and gamma only updated once per minute. dont feel like computing it by the second yet... given above bullet point.<br>
 
-+ ** convexity for now switched to using order imbalance for the past 1 hr.<br>
-
 <br># order imbalance plots<br><br>
 
 + call and put order imbalance are sum of 0DTE SPXW candle bid and ask volume every 5min, more selling (red), more buying (green), bins: {{ order_imbalance_bin_str }}.<br>
@@ -47,9 +45,10 @@
 
 + horizontal dashed lines: major positive convexity: cyan, major negative convexity: purple.<br>
 
++ ** convexity for now switched to using order imbalance for the past 1 hr.<br>
+
 
 <br>
-
 <br>
 
 </body>
