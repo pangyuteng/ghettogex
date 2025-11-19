@@ -445,17 +445,6 @@ class MarketCloseException(Exception):
 async def background_subscribe(ticker,expirations_str,save_to_postres=True):
     try:
         expiration_list = expirations_str.split(",")
-
-        # why wait?
-        # when below was disabled, time_till_expire was erroring out.
-        # maybe disabling wait is the culprit, you need market to open then sub to get all the evetns???
-        # 
-        # while True:
-        #     if not is_market_open():
-        #         logger.info(f"market is closed! {ticker}")
-        #         await asyncio.sleep(0.1)
-        #     else:
-        #         break
         
         session = get_session_reuse()
         
