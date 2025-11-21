@@ -141,7 +141,11 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
 
     if persist_to_postgres:
-        await cpostgres_copy(aconn,query_dict)
+        try:
+            await cpostgres_copy(aconn,query_dict)
+        except:
+            logger.error(f"{query_dict}")
+            traceback.print_exc()
 
     time_e = time.time()
     logger.info(f'postgres_execute_many {time_e-time_c}')

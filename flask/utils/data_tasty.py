@@ -279,7 +279,11 @@ async def flusher(myqueue,flusher_key):
                     query_dict = {
                         copy_statement:insert_list
                     }
-                    await cpostgres_copy(aconn,query_dict)
+                    try:
+                        await cpostgres_copy(aconn,query_dict)
+                    except:
+                        logger.error(f"{query_dict}")
+                        traceback.print_exc()
 
                 # clear flush event if it was set
                 if myqueue.flush_event_dict[flusher_key].is_set():
