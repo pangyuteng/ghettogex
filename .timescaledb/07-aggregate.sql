@@ -1,31 +1,5 @@
 
 
-/*
-CREATE MATERIALIZED VIEW gex_net_1min WITH (timescaledb.continuous) AS
-SELECT time_bucket('1m', tstamp) as tstamp, ticker, 
-  last(spot_price,tstamp) as spot_price,
-  last(volume_gex,tstamp) as volume_gex,
-  last(state_gex,tstamp) as state_gex,
-  last(convexity,tstamp) as convexity,
-  last(dex,tstamp) as dex,
-  last(vex,tstamp) as vex,
-  last(cex,tstamp) as cex,
-  last(call_convexity,tstamp) as call_convexity,
-  last(call_oi,tstamp) as call_oi,
-  last(call_dex,tstamp) as call_dex,
-  last(call_gex,tstamp) as call_gex,
-  last(call_vex,tstamp) as call_vex,
-  last(call_cex,tstamp) as call_cex,
-  last(put_convexity,tstamp) as put_convexity,
-  last(put_oi,tstamp) as put_oi,
-  last(put_dex,tstamp) as put_dex,
-  last(put_gex,tstamp) as put_gex,
-  last(put_vex,tstamp) as put_vex,
-  last(put_cex,tstamp) as put_cex
-FROM gex_net 
-GROUP BY time_bucket('1m', tstamp), ticker;
-*/
-
 CREATE MATERIALIZED VIEW gex_net_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, ticker, 
   last(spot_price,tstamp) as spot_price,
@@ -63,11 +37,16 @@ ALTER MATERIALIZED VIEW gex_net_1min set (timescaledb.enable_columnstore = true)
 -- SELECT remove_continuous_aggregate_policy('gex_net_1min');
 
 CREATE MATERIALIZED VIEW candle_1min WITH (timescaledb.continuous) AS
-SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,
-last(close,tstamp) as close
-FROM candle where (event_symbol in ('SPX','NDX','VIX','VIX1D') or event_symbol like '/ES%' )
-GROUP BY time_bucket('1m', tstamp), event_symbol;
-
+SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+first(open,tstamp) as open,
+max(high) as high,
+min(low) as low,
+last(close,tstamp) as close,
+sum(ask_volume) as ask_volume,
+sum(bid_volume) as bid_volume,
+sum(ask_volume)-sum(bid_volume) as order_imbalance
+FROM candle 
+GROUP BY time_bucket('1m', tstamp), event_symbol,ticker,expiration,contract_type,strike
 SELECT add_continuous_aggregate_policy('candle_1min',
   start_offset => INTERVAL '1 month',
   end_offset => '1 min',
@@ -85,7 +64,7 @@ ALTER MATERIALIZED VIEW candle_1min set (timescaledb.enable_columnstore = true);
 
 CREATE MATERIALIZED VIEW order_imbalance WITH (timescaledb.continuous) AS
 SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-sum(ask_volume)-sum(bid_volume) as order_imbalance
+sum(order_imbalance) as order_imbalance
 FROM candle where ticker in ('SPXW','NDXP')
 GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
