@@ -1,6 +1,5 @@
 
 CREATE TABLE IF NOT EXISTS gex_strike (
-    gex_strike_id SERIAL,
     ticker text,
     tstamp TIMESTAMP,
     strike double precision,
@@ -34,7 +33,6 @@ CALL remove_columnstore_policy('gex_strike');
 CALL add_columnstore_policy('gex_strike', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS gex_net (
-    gex_net_id SERIAL,
     ticker text,
     tstamp TIMESTAMP,
     spot_price double precision,
@@ -68,7 +66,6 @@ CALL remove_columnstore_policy('gex_net');
 CALL add_columnstore_policy('gex_net', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS event_agg (
-    event_agg_id SERIAL,
     event_symbol text NOT NULL,
     tstamp TIMESTAMP,
     spot_price double precision,

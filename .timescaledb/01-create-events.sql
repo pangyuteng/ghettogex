@@ -1,9 +1,4 @@
-
--- candle_id SERIAL PRIMARY KEY,
-
 CREATE TABLE IF NOT EXISTS candle (
-    
-    candle_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     event_flags numeric,
@@ -38,8 +33,6 @@ CALL add_columnstore_policy('candle', after => INTERVAL '2 hours', schedule_inte
 
 
 CREATE TABLE IF NOT EXISTS event (
-    
-    event_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     ticker text,
@@ -59,8 +52,6 @@ CALL add_columnstore_policy('event', after => INTERVAL '1d');
 
 
 CREATE TABLE IF NOT EXISTS greeks (
-    
-    greeks_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     event_flags numeric,
@@ -91,8 +82,6 @@ CALL add_columnstore_policy('greeks', after => INTERVAL '1d');
 
 
 CREATE TABLE IF NOT EXISTS profile (
-    
-    profile_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     description text,
@@ -128,8 +117,6 @@ CALL remove_columnstore_policy('profile');
 CALL add_columnstore_policy('profile', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS quote (
-    
-    quote_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     sequence numeric,
@@ -160,8 +147,6 @@ CALL add_columnstore_policy('quote', after => INTERVAL '2 hours', schedule_inter
 -- SELECT add_retention_policy('quote', INTERVAL '7 days');
 
 CREATE TABLE IF NOT EXISTS summary (
-    
-    summary_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     day_id numeric,
@@ -191,8 +176,6 @@ CALL remove_columnstore_policy('summary');
 CALL add_columnstore_policy('summary', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS theoprice (
-    
-    theoprice_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     event_flags numeric,
@@ -222,8 +205,6 @@ CALL add_columnstore_policy('theoprice', after => INTERVAL '1d');
 
 
 CREATE TABLE IF NOT EXISTS timeandsale (
-    
-    timeandsale_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     event_flags numeric,
@@ -262,8 +243,6 @@ CALL add_columnstore_policy('timeandsale', after => INTERVAL '1d');
 
 
 CREATE TABLE IF NOT EXISTS trade (
-    
-    trade_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     time numeric,
@@ -294,8 +273,6 @@ CALL remove_columnstore_policy('trade');
 CALL add_columnstore_policy('trade', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS underlying (
-    
-    underlying_id SERIAL,
     event_symbol text NOT NULL,
     event_time numeric,
     event_flags numeric,
