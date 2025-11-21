@@ -22,3 +22,10 @@ spec:
         - containerPort: 8080
           name: web
           protocol: TCP
+        volumeMounts:
+        - name: lg-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: lg-storage
+          persistentVolumeClaim:
+            claimName: db-longhorn-pvc
