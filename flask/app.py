@@ -248,11 +248,11 @@ async def ws_main_socket():
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(ticker,tstamp_utc,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,QUOTE_5MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
-                        #apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
-                        apostgres_execute(apool,CONVEXITY_1HOUR_QUERY,(ticker_alt,dstamp,dstamp,tstamp_utc,tstamp_utc,ticker_alt,dstamp,dstamp)),
+                        apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
+                        #apostgres_execute(apool,CONVEXITY_1HOUR_QUERY,(ticker_alt,dstamp,dstamp,tstamp_utc,tstamp_utc,ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,GREEKS_QUERY,(ticker_alt,dstamp,dstamp)),
-                        #apostgres_execute(apool,CONVEXITY_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
-                        apostgres_execute(apool,CONVEXITY_1HOUR_QUERY,(ndx_ticker_alt,dstamp,dstamp,tstamp_utc,tstamp_utc,ndx_ticker_alt,dstamp,dstamp)),
+                        apostgres_execute(apool,CONVEXITY_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
+                        #apostgres_execute(apool,CONVEXITY_1HOUR_QUERY,(ndx_ticker_alt,dstamp,dstamp,tstamp_utc,tstamp_utc,ndx_ticker_alt,dstamp,dstamp)),
                     ]
                     app.logger.error(tstamp_utc)
                     gathered_res = await asyncio.gather(*query_list)
