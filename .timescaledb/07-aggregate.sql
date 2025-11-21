@@ -39,14 +39,15 @@ ALTER MATERIALIZED VIEW gex_net_1min set (timescaledb.enable_columnstore = true)
 CREATE MATERIALIZED VIEW candle_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 first(open,tstamp) as open,
+last(close,tstamp) as close,
 max(high) as high,
 min(low) as low,
-last(close,tstamp) as close,
 sum(ask_volume) as ask_volume,
 sum(bid_volume) as bid_volume,
 sum(ask_volume)-sum(bid_volume) as order_imbalance
 FROM candle 
-GROUP BY time_bucket('1m', tstamp), event_symbol,ticker,expiration,contract_type,strike
+GROUP BY time_bucket('1m', tstamp), event_symbol,ticker,expiration,contract_type,strike;
+
 SELECT add_continuous_aggregate_policy('candle_1min',
   start_offset => INTERVAL '1 month',
   end_offset => '1 min',
@@ -65,7 +66,7 @@ ALTER MATERIALIZED VIEW candle_1min set (timescaledb.enable_columnstore = true);
 CREATE MATERIALIZED VIEW order_imbalance WITH (timescaledb.continuous) AS
 SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 sum(order_imbalance) as order_imbalance
-FROM candle where ticker in ('SPXW','NDXP')
+FROM candle_1min where (ticker in ('SPXW','NDXP') or event_symbol like '/ES%' )
 GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('order_imbalance',
