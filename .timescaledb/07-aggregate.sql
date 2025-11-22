@@ -99,6 +99,29 @@ ALTER MATERIALIZED VIEW quote_1min set (timescaledb.enable_columnstore = true);
 -- DROP MATERIALIZED VIEW quote_1min
 -- SELECT remove_continuous_aggregate_policy('quote_1min');
 
+-- NOTE: below *_1day are meant to simplify query, maybe this is a bad idea, as it hides potential missing data
+
+--
+
+CREATE MATERIALIZED VIEW quote_1day WITH (timescaledb.continuous) AS
+SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+last(bid_price,tstamp) as last_bid_price,last(ask_price,tstamp) as last_ask_price
+FROM quote where ticker in ('SPXW','NDXP')
+GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
+
+SELECT add_continuous_aggregate_policy('quote_1day',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('quote_1day', NULL, NULL);
+ALTER MATERIALIZED VIEW quote_1day set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW quote_1day set (timescaledb.enable_columnstore = true);
+
+-- DROP MATERIALIZED VIEW quote_1day
+-- SELECT remove_continuous_aggregate_policy('quote_1day');
+
+
 --
 
 CREATE MATERIALIZED VIEW order_imbalance_1day WITH (timescaledb.continuous) AS
