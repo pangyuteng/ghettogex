@@ -26,7 +26,7 @@ GROUP BY time_bucket('1m', tstamp), ticker;
 
 SELECT add_continuous_aggregate_policy('gex_net_1min',
   start_offset => INTERVAL '1 month',
-  end_offset => INTERVAL NULL,
+  end_offset => NULL,
   schedule_interval => INTERVAL '1 sec');
 
 CALL refresh_continuous_aggregate('gex_net_1min', NULL, NULL);
@@ -110,7 +110,7 @@ GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_
 SELECT add_continuous_aggregate_policy('order_imbalance_1day',
   start_offset => INTERVAL '1 month',
   end_offset => NULL,
-  schedule_interval => INTERVAL '1 min');
+  schedule_interval => INTERVAL '1 sec');
 
 CALL refresh_continuous_aggregate('order_imbalance_1day', NULL, NULL);
 ALTER MATERIALIZED VIEW order_imbalance_1day set (timescaledb.materialized_only = false);
@@ -136,7 +136,7 @@ GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker, expiration, contrac
 SELECT add_continuous_aggregate_policy('greeks_1day',
   start_offset => INTERVAL '1 month',
   end_offset => NULL,
-  schedule_interval => INTERVAL '1 min');
+  schedule_interval => INTERVAL '1 sec');
 
 CALL refresh_continuous_aggregate('greeks_1day', NULL, NULL);
 ALTER MATERIALIZED VIEW greeks_1day set (timescaledb.materialized_only = false);
