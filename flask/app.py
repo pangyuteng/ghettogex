@@ -132,7 +132,7 @@ async def redirect_to_login(*_):
 @app.route("/about")
 @login_required
 async def about():
-    order_imbalance_bin_str = "[0,10,25,50,100,200]"
+    order_imbalance_bin_str = "[2000,1000,500,250,100,0]"
     return await render_template("about.html",order_imbalance_bin_str=order_imbalance_bin_str)
 
 @app.route("/links")
@@ -332,18 +332,18 @@ async def ws_main_socket():
                         df = df.dropna()
                         # NOTE: remember to update order_imbalance_bin_str
                         filter_list = [
-                            df.order_imbalance<-200,
-                            (df.order_imbalance>=-200)&(df.order_imbalance<-100),
-                            (df.order_imbalance>=-100)&(df.order_imbalance<-50),
-                            (df.order_imbalance>=-50)&(df.order_imbalance<-25),
-                            (df.order_imbalance>=-25)&(df.order_imbalance<-10),
-                            (df.order_imbalance>=-10)&(df.order_imbalance<0),
-                            (df.order_imbalance>=0)&(df.order_imbalance<10),
-                            (df.order_imbalance>=10)&(df.order_imbalance<25),
-                            (df.order_imbalance>=25)&(df.order_imbalance<50),
-                            (df.order_imbalance>=50)&(df.order_imbalance<100),
-                            (df.order_imbalance>=100)&(df.order_imbalance<200),
-                            df.order_imbalance>=200,
+                            df.order_imbalance<-2000,
+                            (df.order_imbalance>=-2000)&(df.order_imbalance<-1000),
+                            (df.order_imbalance>=-1000)&(df.order_imbalance<-500),
+                            (df.order_imbalance>=-500)&(df.order_imbalance<-250),
+                            (df.order_imbalance>=-250)&(df.order_imbalance<-100),
+                            (df.order_imbalance>=-100)&(df.order_imbalance<0),
+                            (df.order_imbalance>=0)&(df.order_imbalance<100),
+                            (df.order_imbalance>=100)&(df.order_imbalance<250),
+                            (df.order_imbalance>=250)&(df.order_imbalance<500),
+                            (df.order_imbalance>=500)&(df.order_imbalance<1000),
+                            (df.order_imbalance>=1000)&(df.order_imbalance<2000),
+                            df.order_imbalance>=2000,
                         ]
                         call_order_imbalance_list = [[],]
                         put_order_imbalance_list = [[],]
