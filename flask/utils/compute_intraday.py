@@ -28,7 +28,7 @@ from .iv_utils import (
     compute_exposure,
 )
 
-async def compute_og_gex(ticker,et_tstamp,persist_to_postgres=True):
+async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         async with apool.connection() as aconn:
             return await _compute_og_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
@@ -128,7 +128,7 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            out_df = asyncio.run(compute_og_gex(ticker,tstamp,persist_to_postgres=False))
+            out_df = asyncio.run(compute_gex(ticker,tstamp,persist_to_postgres=False))
             if out_df is not None:
                 logger.debug(f'volume_gex {out_df.volume_gex.sum()} state_gex {out_df.state_gex.sum()}')
         except KeyboardInterrupt:
@@ -140,9 +140,9 @@ def main(ticker,my_date):
 def tryone(ticker,tstampstr):
     tstamp = datetime.datetime.strptime(tstampstr,'%Y-%m-%d-%H-%M-%S')
     tstamp = pytz.timezone('US/Eastern').localize(tstamp)
-    print(ticker,tstamp)
+    logger.debug(f"{ticker} {tstamp}")
     try:
-        out_df = asyncio.run(compute_og_gex(ticker,tstamp,persist_to_postgres=False))
+        out_df = asyncio.run(compute_gex(ticker,tstamp,persist_to_postgres=False))
         if out_df is not None:
             logger.debug(out_df.head())
             logger.debug(f'volume_gex {out_df.volume_gex.sum()} state_gex {out_df.state_gex.sum()}')
