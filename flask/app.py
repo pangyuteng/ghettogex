@@ -307,14 +307,14 @@ async def ws_main_socket():
                                 raise LookupError("null gex query!")
 
                             df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
-                            df.state_gex = df.state_gex/1e9
-                            df['pos_gex'] = df.state_gex.where(df.state_gex>0)
-                            df['neg_gex'] = df.state_gex.where(df.state_gex<=0)
+                            df.volume_gex = df.volume_gex/1e9
+                            df['pos_gex'] = df.volume_gex.where(df.volume_gex>0)
+                            df['neg_gex'] = df.volume_gex.where(df.volume_gex<=0)
                             df = df.replace({np.nan: None})
 
                             gex_list = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
-                            major_pos_gex_strike = df["strike"].iloc[df.state_gex.argmax()]
-                            major_neg_gex_strike = df["strike"].iloc[df.state_gex.argmin()]
+                            major_pos_gex_strike = df["strike"].iloc[df.volume_gex.argmax()]
+                            major_neg_gex_strike = df["strike"].iloc[df.volume_gex.argmin()]
 
                             ret_dict['gex_list'] = gex_list
                             ret_dict['major_pos_gex_strike'] = major_pos_gex_strike

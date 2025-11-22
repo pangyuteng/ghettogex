@@ -107,7 +107,7 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
         return query_args
 
     query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
-
+    print(query_dict[gex_net_query_str])
     if persist_to_postgres:
         try:
             await cpostgres_copy(aconn,query_dict)
@@ -116,7 +116,7 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
             traceback.print_exc()
 
     time_e = time.time()
-    logger.info(f'postgres_execute_many {time_e-time_c}')
+    logger.info(f'_compute_gex done {time_e-time_c}')
 
 def main(ticker,my_date):
     tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
@@ -125,7 +125,7 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=True))
+            agg_df = asyncio.run(compute_gex(ticker,tstamp,persist_to_postgres=False))
             if agg_df is not None:
                 logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
         except KeyboardInterrupt:
@@ -139,7 +139,7 @@ def tryone(ticker,tstampstr):
     tstamp = pytz.timezone('US/Eastern').localize(tstamp)
     print(ticker,tstamp)
     try:
-        agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=False))
+        agg_df = asyncio.run(compute_gex(ticker,tstamp,persist_to_postgres=False))
         if agg_df is not None:
             logger.debug(agg_df.head())
             logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
@@ -166,8 +166,8 @@ if __name__ == "__main__":
 
 """
 
-python -m utils.compute_intraday SPX 2025-07-11
+python -m utils.compute_intraday SPX 2025-11-21
 
-python -m utils.compute_intraday SPX 2025-07-02-10-00-00
+python -m utils.compute_intraday SPX 2025-11-21-10-30-00
 
 """
