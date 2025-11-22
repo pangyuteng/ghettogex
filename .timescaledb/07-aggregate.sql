@@ -144,6 +144,27 @@ ALTER MATERIALIZED VIEW order_imbalance_1day set (timescaledb.enable_columnstore
 
 -- 
 
+CREATE MATERIALIZED VIEW greeksdx_1day WITH (timescaledb.continuous) AS
+SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol, ticker, expiration, contract_type, strike,
+last(price,tstamp) as price,
+last(volatility,tstamp) as volatility,	
+last(delta,tstamp) as delta,
+last(gamma,tstamp) as gamma
+FROM greeks where ticker in ('SPXW','NDXP')
+GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker, expiration, contract_type, strike;
+
+SELECT add_continuous_aggregate_policy('greeksdx_1day',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('greeksdx_1day', NULL, NULL);
+ALTER MATERIALIZED VIEW greeksdx_1day set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW greeksdx_1day set (timescaledb.enable_columnstore = true);
+
+-- DROP MATERIALIZED VIEW greeksdx_1day
+-- SELECT remove_continuous_aggregate_policy('greeksdx_1day');
+
 CREATE MATERIALIZED VIEW greeks_1day WITH (timescaledb.continuous) AS
 SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol, ticker, expiration, contract_type, strike,
 last(ask_price,tstamp) as ask_price,
