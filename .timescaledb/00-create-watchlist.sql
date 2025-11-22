@@ -14,3 +14,10 @@ CREATE TABLE IF NOT EXISTS session (
     session_id SERIAL PRIMARY KEY,
     serialized_session text
 );
+
+
+CREATE TABLE IF NOT EXISTS settings (
+    settings_id bool PRIMARY KEY DEFAULT true
+    , from_scratch bool
+    , CONSTRAINT settings_uni CHECK (settings_id)
+);

@@ -99,9 +99,3 @@ CREATE TABLE IF NOT EXISTS event_agg (
 
 CALL remove_columnstore_policy('event_agg');
 CALL add_columnstore_policy('event_agg', after => INTERVAL '1d');
-
-CREATE TABLE IF NOT EXISTS settings (
-    settings_id bool PRIMARY KEY DEFAULT true
-    , from_scratch bool
-    , CONSTRAINT settings_uni CHECK (settings_id)
-);
