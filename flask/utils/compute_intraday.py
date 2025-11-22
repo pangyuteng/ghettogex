@@ -32,7 +32,7 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         async with apool.connection() as aconn:
             try:
-                await _compute_og_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
+                return await _compute_og_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
             except:
                 logger.error(traceback.format_exc())
             try:
@@ -152,6 +152,7 @@ async def _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     df = pd.DataFrame([dict(x) for x in fetched])
 
     df['ticker'] = ticker
+    df['ticker_alt'] = ticker_alt
     df['tstamp'] = utc_tstamp.replace(tzinfo=None) # postgres tsamp have no tzinfo
     df['price'] = (df.ask_price+df.bid_price)/2
     df['mm_order_imbalance'] = -1 * df.order_imbalance # see above mm_order_imbalance note
@@ -159,7 +160,6 @@ async def _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     try:
 
         df['convexity'] = df.gamma*df.order_imbalance
-
         expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(df.expiration.unique())}
         df['time_till_exp'] = df.apply(lambda x: (expiration_mapper[x.expiration]-x.tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR, axis=1)
         epsilon = 1e-5
@@ -181,14 +181,15 @@ async def _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     # event_contract ####################################
 
     event_contract_query_str = """
-        COPY event_contract (event_symbol,ticker,strike,tstamp,mm_order_imbalance,ask_price,bid_price,volatility,delta,gamma,dex,gex,vex,cex,convexity) FROM STDIN
+        COPY event_contract (tstamp,event_symbol,ticker,expiration,contract_type,strike,mm_order_imbalance,ask_price,bid_price,volatility,delta,gamma,dex,gex,vex,cex,convexity) FROM STDIN
     """
     async def insert_event_contract(row):
         query_args = [
-            row.event_symbol,row.ticker,row.strike,row.tstamp,
+            row.tstamp,row.event_symbol,row.ticker_alt,row.expiration,row.contract_type,row.strike,
             row.mm_order_imbalance,row.ask_price,row.bid_price,
             row.volatility,row.delta,row.gamma,row.dex,row.gex,row.vex,row.cex,row.convexity]
         return query_args
+
     query_dict[event_contract_query_str] = await asyncio.gather(*(insert_event_contract(row) for n,row in df.iterrows()))
 
     # event_strike ####################################
@@ -202,13 +203,13 @@ async def _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
         cex=pd.NamedAgg(column="cex", aggfunc="sum"),
         convexity=pd.NamedAgg(column="convexity", aggfunc="sum"),
     ).reset_index()
-
     event_strike_query_str = """
         COPY event_strike (ticker,strike,tstamp,dex,gex,vex,cex,convexity) FROM STDIN
     """
     async def insert_event_strike(row):
         query_args = [row.ticker,row.strike,row.tstamp,row.dex,row.gex,row.vex,row.cex,row.convexity]
         return query_args
+
     query_dict[event_strike_query_str] = await asyncio.gather(*(insert_event_strike(row) for n,row in strike_df.iterrows()))
 
     # event_underlying ####################################
@@ -297,6 +298,6 @@ if __name__ == "__main__":
 
 python -m utils.compute_intraday SPX 2025-11-21
 
-python -m utils.compute_intraday SPX 2025-11-21-10-30-00
+python -m utils.compute_intraday SPX 2025-11-21-15-59-59
 
 """

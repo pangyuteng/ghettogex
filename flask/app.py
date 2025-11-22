@@ -60,7 +60,7 @@ from utils.pg_queries import (
     CANDLE_QC_QUERY,
     QUOTE_1MIN_QUERY,
     CONVEXITY_QUERY,
-    CONVEXITY_1HOUR_QUERY,
+    CONVEXITYDX_QUERY,
     GREEKS_QUERY,
 )
 
@@ -249,12 +249,10 @@ async def ws_main_socket():
                         apostgres_execute(apool,CANDLE_QC_QUERY,(ticker,tstamp_utc,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,QUOTE_1MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
-                        #apostgres_execute(apool,CONVEXITY_1HOUR_QUERY,(ticker_alt,dstamp,dstamp,tstamp_utc,tstamp_utc,ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,GREEKS_QUERY,(ticker_alt,dstamp,dstamp)),
-                        apostgres_execute(apool,CONVEXITY_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
-                        #apostgres_execute(apool,CONVEXITY_1HOUR_QUERY,(ndx_ticker_alt,dstamp,dstamp,tstamp_utc,tstamp_utc,ndx_ticker_alt,dstamp,dstamp)),
+                        apostgres_execute(apool,CONVEXITYDX_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
                     ]
-                    app.logger.error(tstamp_utc)
+
                     gathered_res = await asyncio.gather(*query_list)
 
                     timeb = time.time()
@@ -313,8 +311,8 @@ async def ws_main_socket():
                             df = df.replace({np.nan: None})
 
                             gex_list = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
-                            major_pos_gex_strike = df["strike"].iloc[df.volume_gex.argmax()]
-                            major_neg_gex_strike = df["strike"].iloc[df.volume_gex.argmin()]
+                            major_pos_gex_strike = df["strike"].iloc[df.volume_gex.argmax(skipna=True)]
+                            major_neg_gex_strike = df["strike"].iloc[df.volume_gex.argmin(skipna=True)]
 
                             ret_dict['gex_list'] = gex_list
                             ret_dict['major_pos_gex_strike'] = major_pos_gex_strike
@@ -406,11 +404,12 @@ async def ws_main_socket():
                         df['convexity'] = df.gamma*df.order_imbalance
                         df['pos_convexity'] = df.convexity.where(df.convexity>0)
                         df['neg_convexity'] = df.convexity.where(df.convexity<=0)
-                        df = df.replace({np.nan: None})
 
+                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)] # consider moving this up prior filter like ndx
+                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
+
+                        df = df.replace({np.nan: None})
                         convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
-                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax()] # consider moving this up prior filter like ndx
-                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin()]
 
                         ret_dict['convexity_list'] = convexity_list
                         ret_dict['major_pos_convexity'] = major_pos_convexity
@@ -421,6 +420,8 @@ async def ws_main_socket():
                         df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
 
                         df.volatility = df.volatility*100
+                        df = df.replace({np.nan: None})
+
                         cdf = df[df.contract_type=='C']
                         pdf = df[df.contract_type=='P']
                         volatility_list = [cdf.strike.tolist(),cdf.volatility.tolist(),pdf.volatility.tolist()]
@@ -429,8 +430,8 @@ async def ws_main_socket():
                     if gathered_res[7] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[7]])
                         df['convexity'] = df.gamma*df.order_imbalance
-                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax()]
-                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin()]
+                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
+                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
                         ndx_max_lim = np.max([ndx_max_lim,major_pos_convexity+500,major_neg_convexity+500])
                         ndx_min_lim = np.min([ndx_min_lim,major_pos_convexity-500,major_neg_convexity-500])
 
@@ -438,11 +439,11 @@ async def ws_main_socket():
                         
                         df['pos_convexity'] = df.convexity.where(df.convexity>0)
                         df['neg_convexity'] = df.convexity.where(df.convexity<=0)
-                        df = df.replace({np.nan: None})
 
+                        df = df.replace({np.nan: None})
                         convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
 
-                        ret_dict['ndx_convexity_list'] = convexity_list# asdf
+                        ret_dict['ndx_convexity_list'] = convexity_list
                         ret_dict['ndx_major_pos_convexity'] = major_pos_convexity
                         ret_dict['ndx_major_neg_convexity'] = major_neg_convexity
 
@@ -457,7 +458,6 @@ async def ws_main_socket():
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['status'] = 'traceback:'+traceback.format_exc()
                     app.logger.error(traceback.format_exc())
-
 
                 await websocket.send_json(ret_dict)
                 await asyncio.sleep(1)

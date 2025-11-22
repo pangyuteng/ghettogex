@@ -40,6 +40,21 @@ LEFT JOIN g_1day using (ticker,strike)
 ORDER BY strike
 """
 
+CONVEXITYDX_QUERY = """
+WITH o_1day AS (
+select distinct ticker,strike,sum(order_imbalance) as order_imbalance
+from order_imbalance_1day where ticker = %s and expiration = %s and tstamp::date = %s
+group by ticker,strike
+), g_1day AS (
+select distinct ticker,strike,last(gamma,tstamp) as gamma
+from greeksdx_1day where ticker = %s and expiration = %s and tstamp::date = %s
+group by ticker,strike
+)
+SELECT ticker,strike,gamma,order_imbalance from o_1day
+LEFT JOIN g_1day using (ticker,strike)
+ORDER BY strike
+"""
+
 CONVEXITY_1HOUR_QUERY = """
 WITH o_1hr AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
@@ -56,7 +71,6 @@ LEFT JOIN g_1day using (ticker,strike)
 ORDER BY strike
 """
 
-
 GREEKS_QUERY = """
 select distinct event_symbol,ticker,expiration,strike,contract_type,last(gamma,tstamp) as gamma,last(volatility,tstamp) as volatility
 from greeks_1day where ticker = %s and expiration = %s and tstamp::date = %s
@@ -64,7 +78,6 @@ group by event_symbol,ticker,expiration,strike,contract_type
 ORDER BY contract_type,strike
 """
 
-#quote_1day,greeks_1day,order_imbalance_1day ORDER_IMBALANCE_GEX_QUERY
 ORDER_IMBALANCE_GEX_QUERY = """
 WITH oi AS (
 SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike, 
