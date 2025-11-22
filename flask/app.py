@@ -408,7 +408,7 @@ async def ws_main_socket():
                         major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)] # consider moving this up prior filter like ndx
                         major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
 
-                        df = df.replace({np.nan: None})
+                        df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
                         convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
 
                         ret_dict['convexity_list'] = convexity_list
@@ -420,7 +420,7 @@ async def ws_main_socket():
                         df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
 
                         df.volatility = df.volatility*100
-                        df = df.replace({np.nan: None})
+                        df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
 
                         cdf = df[df.contract_type=='C']
                         pdf = df[df.contract_type=='P']
@@ -440,7 +440,7 @@ async def ws_main_socket():
                         df['pos_convexity'] = df.convexity.where(df.convexity>0)
                         df['neg_convexity'] = df.convexity.where(df.convexity<=0)
 
-                        df = df.replace({np.nan: None})
+                        df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
                         convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
 
                         ret_dict['ndx_convexity_list'] = convexity_list
