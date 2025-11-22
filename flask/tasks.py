@@ -21,7 +21,7 @@ from tastytrade.instruments import get_option_chain
 from utils.postgres_utils import postgres_execute, vaccum_full_analyze
 from utils.data_tasty import background_subscribe, get_session_reuse
 from utils.misc import is_market_open, now_in_new_york, timedelta_from_market_open
-from utils.compute_intraday import compute_gex
+from utils.compute_intraday import compute_og_gex
 
 import tastytrade
 
@@ -167,7 +167,7 @@ def trigger_gex_cache(*args,**kwargs):
                 continue
 
             logger.info(f"trigger_gex_cache {ticker}")
-            asyncio.run(compute_gex(ticker,et_tstamp,persist_to_postgres=True))
+            asyncio.run(compute_og_gex(ticker,et_tstamp,persist_to_postgres=True))
 
 
 if __name__ == "__main__":

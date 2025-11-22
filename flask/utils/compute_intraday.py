@@ -28,12 +28,12 @@ from .iv_utils import (
     compute_exposure,
 )
 
-async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
+async def compute_og_gex(ticker,et_tstamp,persist_to_postgres=True):
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         async with apool.connection() as aconn:
-            return await _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
+            return await _compute_og_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
 
-async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
+async def _compute_og_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     time_c = time.time()
     utc = pytz.timezone('UTC')
     utc_tstamp = et_tstamp.astimezone(tz=utc)
@@ -117,7 +117,8 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
             traceback.print_exc()
 
     time_e = time.time()
-    logger.info(f'_compute_gex done {time_e-time_c}')
+    logger.info(f'_compute_og_gex done {time_e-time_c}')
+
 
 def main(ticker,my_date):
     tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
@@ -126,7 +127,7 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            agg_df = asyncio.run(compute_gex(ticker,tstamp,persist_to_postgres=False))
+            agg_df = asyncio.run(compute_og_gex(ticker,tstamp,persist_to_postgres=False))
             if agg_df is not None:
                 logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
         except KeyboardInterrupt:
