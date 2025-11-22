@@ -26,8 +26,8 @@ GROUP BY time_bucket('1m', tstamp), ticker;
 
 SELECT add_continuous_aggregate_policy('gex_net_1min',
   start_offset => INTERVAL '1 month',
-  end_offset => INTERVAL '1 min',
-  schedule_interval => INTERVAL '1 min');
+  end_offset => INTERVAL NULL,
+  schedule_interval => INTERVAL '1 sec');
 
 CALL refresh_continuous_aggregate('gex_net_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW gex_net_1min set (timescaledb.materialized_only = false);
@@ -50,8 +50,8 @@ GROUP BY time_bucket('1m', tstamp), event_symbol,ticker,expiration,contract_type
 
 SELECT add_continuous_aggregate_policy('candle_1min',
   start_offset => INTERVAL '1 month',
-  end_offset => '1 min',
-  schedule_interval => INTERVAL '1 min');
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
 
 CALL refresh_continuous_aggregate('candle_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW candle_1min set (timescaledb.materialized_only = false);
@@ -71,8 +71,8 @@ GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_typ
 
 SELECT add_continuous_aggregate_policy('order_imbalance',
   start_offset => INTERVAL '1 month',
-  end_offset => '5 min',
-  schedule_interval => INTERVAL '5 min');
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
 
 CALL refresh_continuous_aggregate('order_imbalance', NULL, NULL);
 ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.materialized_only = false);
@@ -81,23 +81,23 @@ ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.enable_columnstore = tr
 -- DROP MATERIALIZED VIEW order_imbalance
 -- SELECT remove_continuous_aggregate_policy('order_imbalance');
 
-CREATE MATERIALIZED VIEW quote_5min WITH (timescaledb.continuous) AS
-SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+CREATE MATERIALIZED VIEW quote_1min WITH (timescaledb.continuous) AS
+SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 last(bid_price,tstamp) as last_bid_price,last(ask_price,tstamp) as last_ask_price
 FROM quote where ticker in ('SPXW','NDXP') 
-GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
+GROUP BY time_bucket('1m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
-SELECT add_continuous_aggregate_policy('quote_5min',
+SELECT add_continuous_aggregate_policy('quote_1min',
   start_offset => INTERVAL '1 month',
-  end_offset => '5 min',
-  schedule_interval => INTERVAL '5 min');
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
 
-CALL refresh_continuous_aggregate('quote_5min', NULL, NULL);
-ALTER MATERIALIZED VIEW quote_5min set (timescaledb.materialized_only = false);
-ALTER MATERIALIZED VIEW quote_5min set (timescaledb.enable_columnstore = true);
+CALL refresh_continuous_aggregate('quote_1min', NULL, NULL);
+ALTER MATERIALIZED VIEW quote_1min set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW quote_1min set (timescaledb.enable_columnstore = true);
 
--- DROP MATERIALIZED VIEW quote_5min
--- SELECT remove_continuous_aggregate_policy('quote_5min');
+-- DROP MATERIALIZED VIEW quote_1min
+-- SELECT remove_continuous_aggregate_policy('quote_1min');
 
 --
 

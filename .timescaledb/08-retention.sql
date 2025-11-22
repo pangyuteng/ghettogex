@@ -12,7 +12,7 @@ SELECT remove_retention_policy('event_agg');
 SELECT remove_retention_policy('gex_net_1min');
 SELECT remove_retention_policy('candle_1min');
 SELECT remove_retention_policy('order_imbalance');
-SELECT remove_retention_policy('quote_5min');
+SELECT remove_retention_policy('quote_1min');
 SELECT remove_retention_policy('order_imbalance_1day');
 SELECT remove_retention_policy('greeks_1day');
 
@@ -29,7 +29,7 @@ SELECT add_retention_policy('event_agg', INTERVAL '100 days');
 SELECT add_retention_policy('gex_net_1min', INTERVAL '100 days');
 SELECT add_retention_policy('candle_1min', INTERVAL '100 days');
 SELECT add_retention_policy('order_imbalance', INTERVAL '100 days');
-SELECT add_retention_policy('quote_5min', INTERVAL '100 days');
+SELECT add_retention_policy('quote_1min', INTERVAL '100 days');
 SELECT add_retention_policy('order_imbalance_1day', INTERVAL '100 days');
 SELECT add_retention_policy('greeks_1day', INTERVAL '100 days');
 
