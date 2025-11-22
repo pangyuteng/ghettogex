@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS watchlist (
     ticker text UNIQUE,
     compute_gex bool
 );
+
 INSERT INTO watchlist(ticker,compute_gex) VALUES('SPX',true);
 INSERT INTO watchlist(ticker,compute_gex) VALUES('NDX',false);
 INSERT INTO watchlist(ticker,compute_gex) VALUES('VIX',false);
@@ -14,7 +15,6 @@ CREATE TABLE IF NOT EXISTS session (
     session_id SERIAL PRIMARY KEY,
     serialized_session text
 );
-
 
 CREATE TABLE IF NOT EXISTS settings (
     settings_id bool PRIMARY KEY DEFAULT true
