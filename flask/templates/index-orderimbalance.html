@@ -234,8 +234,8 @@ function updateChartPutOrderImbalance(data,minval,maxval){
 	mychartPutScatter.setData(data);
 }
 
-let mychartCallScatterZoomin = makeChartScatter("myCallOrderImbalanceZoomIn","zoomedin",150,false);
-let mychartPutScatterZoomin = makeChartScatter("myPutOrderImbalanceZoomIn","zoomedin",150,false);
+let mychartCallScatterZoomin = makeChartScatter("myCallOrderImbalanceZoomIn","last-10min",120,false);
+let mychartPutScatterZoomin = makeChartScatter("myPutOrderImbalanceZoomIn","last-10min",120,false);
 
 function updateChartCallOrderImbalanceZoomIn(data,minval,maxval){
 	mychartCallScatterZoomin.setScale('y', {min: minval, max: maxval});
