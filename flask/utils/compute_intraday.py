@@ -28,38 +28,6 @@ from .iv_utils import (
     compute_exposure,
 )
 
-def main(ticker,my_date):
-    tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
-    for tstamp in tqdm(tstamp_list):
-        logger.debug(f'...')
-        if tstamp > now_in_new_york():
-            break
-        try:
-            agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=True))
-            if agg_df is not None:
-                logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
-        except KeyboardInterrupt:
-            sys.exit(1)
-        except:
-            traceback.print_exc()
-            sys.exit(1)
-
-def tryone(ticker,tstampstr):
-    tstamp = datetime.datetime.strptime(tstampstr,'%Y-%m-%d-%H-%M-%S')
-    tstamp = pytz.timezone('US/Eastern').localize(tstamp)
-    print(ticker,tstamp)
-    try:
-        agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=False))
-        if agg_df is not None:
-            logger.debug(agg_df.head())
-            logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
-
-    except KeyboardInterrupt:
-        sys.exit(1)
-    except:
-        traceback.print_exc()
-        sys.exit(1)
-
 async def compute_gex(ticker,et_tstamp,from_scratch=None,persist_to_postgres=True):
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         async with apool.connection() as aconn:
@@ -150,6 +118,37 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     time_e = time.time()
     logger.info(f'postgres_execute_many {time_e-time_c}')
 
+def main(ticker,my_date):
+    tstamp_list = pd.date_range(start=my_date+" 09:30:00",end=my_date+" 16:00:00",freq='s',tz=pytz.timezone('US/Eastern'))
+    for tstamp in tqdm(tstamp_list):
+        logger.debug(f'...')
+        if tstamp > now_in_new_york():
+            break
+        try:
+            agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=True,overwrite=True))
+            if agg_df is not None:
+                logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
+        except KeyboardInterrupt:
+            sys.exit(1)
+        except:
+            traceback.print_exc()
+            sys.exit(1)
+
+def tryone(ticker,tstampstr):
+    tstamp = datetime.datetime.strptime(tstampstr,'%Y-%m-%d-%H-%M-%S')
+    tstamp = pytz.timezone('US/Eastern').localize(tstamp)
+    print(ticker,tstamp)
+    try:
+        agg_df = asyncio.run(compute_gex(ticker,tstamp,from_scratch=None,persist_to_postgres=False))
+        if agg_df is not None:
+            logger.debug(agg_df.head())
+            logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
+
+    except KeyboardInterrupt:
+        sys.exit(1)
+    except:
+        traceback.print_exc()
+        sys.exit(1)
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
