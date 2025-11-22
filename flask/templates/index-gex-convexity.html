@@ -12,16 +12,16 @@ function makeChartGexDiff() {
 				label: "net_gex",
 				scale: "scale0",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
-				stroke: "rgba(10,150,10,1)",
-				width: 2,
+				stroke: "rgba(100,200,100,0.7)",
+				width: 5/devicePixelRatio
 			},
 			{
 				label: "diff(net_gex)",
 				scale: "scale1",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
 				paths: uPlot.paths.bars(),
-				fill: "rgba(10,150,10,0.7)",
-				width: 1/devicePixelRatio,
+				fill: "rgba(0,255,0,1)",
+				width: 5/devicePixelRatio,
 			},
 		],
 		axes: [
@@ -64,16 +64,16 @@ function makeChartConvexityDiff() {
 				label: "net_convexity",
 				scale: "scale0",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
-				stroke: "rgba(10,10,150,1)",
-				width: 2,
+				stroke: "rgba(100,100,200,0.7)",
+				width: 5/devicePixelRatio
 			},
 			{
 				label: "diff(net_convexity)",
 				scale: "scale1",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
 				paths: uPlot.paths.bars(),
-				fill: "rgba(10,10,150,0.7)",
-				width: 1/devicePixelRatio,
+				fill: "rgba(0,0,255,1)",
+				width: 5/devicePixelRatio
 			},
 		],
 		axes: [
