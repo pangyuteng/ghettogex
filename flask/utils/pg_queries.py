@@ -10,7 +10,7 @@ SELECT DISTINCT ticker, expiration, max(tstamp) as tstamp FROM candle
 WHERE ticker = %s AND tstamp > %s - interval '10 minute' 
 GROUP BY ticker, expiration
 ) 
-""" # -- AND expiration = %s
+"""
 
 QUOTE_1MIN_QUERY = """
 SELECT DISTINCT event_symbol,strike,contract_type,
@@ -132,4 +132,12 @@ WITH last_tstamp AS (select tstamp from gex_net where tstamp <= %s and tstamp >=
 last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike)
 SELECT * FROM last_tstamp
 LEFT JOIN last_gex_strike using (tstamp)
+"""
+
+GEX_CONVEXITY_QUERY = """
+WITH price_sec AS (select tstamp,close as spx_close from candle_1min where event_symbol = %s and close != 0 and tstamp > %s - interval '10 minute' and tstamp <= %s),
+event_sec AS (select tstamp,gex,convexity from event_underlying_1min where ticker = %s and tstamp > %s - interval '10 minute' and tstamp <= %s)
+SELECT * FROM price_sec
+LEFT JOIN event_sec using (tstamp)
+ORDER BY tstamp
 """

@@ -1,0 +1,65 @@
+<script>
+
+function makeChartPricesGexConvexity() {
+	let isYRangeFixed = false;
+	const opts = {
+		title: "net-diff last-10min",
+		width: 210,
+		height: 420,
+		series: [
+			{},
+			{
+				label: "gex",
+				scale: "scale0",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				paths: uPlot.paths.bars(),
+				stroke: "rgba(10,150,10,1)",
+				fill: "rgba(10,150,10,1)",
+				width: 1/devicePixelRatio,
+			},
+			{
+				label: "convexity",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				paths: uPlot.paths.bars(),
+				stroke: "rgba(10,10,150,1)",
+				fill: "rgba(10,10,150,1)",
+				width: 1/devicePixelRatio,
+			},
+		],
+		axes: [
+			{
+				side: 0,
+				stroke: "#666666",
+				tick: {stroke: "#666666",width:1},
+				grid: {stroke: "#666666",width:1},
+			},
+			{
+				side: 3,
+				scale: "scale0",
+				stroke: "#666666",
+				grid: {stroke: "#666666",width:1},
+				tick: {stroke: "#666666",width:1},
+			},
+			{
+				side: 1,
+				scale: "scale1",
+				values: (u, vals, space) => vals.map(v => v.toFixed(2) + ""),
+				stroke: "#666666",
+				grid: {show: false},
+				tick: {stroke: "#666666",width:1},
+			},
+		],
+	};
+	
+	return new uPlot(opts, [], document.getElementById("myGexConvexity"));
+}
+
+let mychartGexConvexity = makeChartPricesGexConvexity();
+
+function updateChartGexConvexity(data,minval,maxval){
+	//mychartGexConvexity.setScale('scale0', {min: minval, max: maxval});
+	mychartGexConvexity.setData(data);
+}
+
+</script>

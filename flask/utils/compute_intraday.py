@@ -32,7 +32,7 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         async with apool.connection() as aconn:
             try:
-                return await _compute_og_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
+                await _compute_og_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
             except:
                 logger.error(traceback.format_exc())
             try:
