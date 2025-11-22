@@ -483,8 +483,9 @@ async def ws_main_socket():
                             put_order_imbalance_list.append(put_item)
                         # add spx price for the past 10 min
                         lst = ret_dict['prices']
-                        call_order_imbalance_list.append([ lst[0][-10:],lst[-1][-10:],[] ])
-                        put_order_imbalance_list.append([ lst[0][-10:],lst[-1][-10:],[] ])
+                        offset = -30
+                        call_order_imbalance_list.append([ lst[0][offset:],lst[-1][offset:],[] ])
+                        put_order_imbalance_list.append([ lst[0][offset:],lst[-1][offset:],[] ])
 
                         ret_dict['call_order_imbalance_zoomin'] = call_order_imbalance_list
                         ret_dict['put_order_imbalance_zoomin'] = put_order_imbalance_list
@@ -492,13 +493,14 @@ async def ws_main_socket():
                     if gathered_res[9] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[9]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df.gex = df.gex.diff()
-                        df.convexity = df.convexity.diff()
+                        df['gex_diff'] = df.gex.diff()
+                        df['convexity_diff'] = df.convexity.diff()
                         df = df.replace({np.nan: None})
 
-                        lst = [df[i].tolist() for i in ['tstamp','gex','convexity']]
-                        app.logger.error(lst)
-                        ret_dict['gexconvexity'] = lst
+                        lst = [df[i].tolist() for i in ['tstamp','gex','gex_diff']]
+                        ret_dict['gexdiff'] = lst
+                        lst = [df[i].tolist() for i in ['tstamp','convexity','convexity_diff']]
+                        ret_dict['convexitydiff'] = lst
 
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"

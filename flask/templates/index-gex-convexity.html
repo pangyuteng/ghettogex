@@ -1,29 +1,26 @@
 <script>
 
-function makeChartPricesGexConvexity() {
+function makeChartGexDiff() {
 	let isYRangeFixed = false;
 	const opts = {
-		title: "diff(net(x)) last-10min",
+		title: "last-30min",
 		width: 210,
 		height: 420,
 		series: [
 			{},
 			{
-				label: "gex",
+				label: "net_gex",
 				scale: "scale0",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
-				paths: uPlot.paths.bars(),
 				stroke: "rgba(10,150,10,1)",
-				fill: "rgba(10,150,10,1)",
-				width: 1/devicePixelRatio,
+				width: 2,
 			},
 			{
-				label: "convexity",
+				label: "diff(net_gex)",
 				scale: "scale1",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
 				paths: uPlot.paths.bars(),
-				stroke: "rgba(10,10,150,1)",
-				fill: "rgba(10,10,150,1)",
+				fill: "rgba(10,150,10,0.7)",
 				width: 1/devicePixelRatio,
 			},
 		],
@@ -52,14 +49,67 @@ function makeChartPricesGexConvexity() {
 		],
 	};
 	
-	return new uPlot(opts, [], document.getElementById("myGexConvexity"));
+	return new uPlot(opts, [], document.getElementById("myGexDiff"));
 }
 
-let mychartGexConvexity = makeChartPricesGexConvexity();
-
-function updateChartGexConvexity(data,minval,maxval){
-	//mychartGexConvexity.setScale('scale0', {min: minval, max: maxval});
-	mychartGexConvexity.setData(data);
+function makeChartConvexityDiff() {
+	let isYRangeFixed = false;
+	const opts = {
+		title: "last-30min",
+		width: 210,
+		height: 420,
+		series: [
+			{},
+			{
+				label: "net_convexity",
+				scale: "scale0",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				stroke: "rgba(10,10,150,1)",
+				width: 2,
+			},
+			{
+				label: "diff(net_convexity)",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				paths: uPlot.paths.bars(),
+				fill: "rgba(10,10,150,0.7)",
+				width: 1/devicePixelRatio,
+			},
+		],
+		axes: [
+			{
+				side: 0,
+				stroke: "#666666",
+				tick: {stroke: "#666666",width:1},
+				grid: {stroke: "#666666",width:1},
+			},
+			{
+				side: 3,
+				scale: "scale0",
+				stroke: "#666666",
+				grid: {stroke: "#666666",width:1},
+				tick: {stroke: "#666666",width:1},
+			},
+			{
+				side: 1,
+				scale: "scale1",
+				values: (u, vals, space) => vals.map(v => v.toFixed(2) + ""),
+				stroke: "#666666",
+				grid: {show: false},
+				tick: {stroke: "#666666",width:1},
+			},
+		],
+	};
+	
+	return new uPlot(opts, [], document.getElementById("myConvexityDiff"));
 }
+let mychartGexDiff = makeChartGexDiff();
+let mychartConvexityDiff = makeChartConvexityDiff();
 
+function updateChartGexDiff(data){
+	mychartGexDiff.setData(data);
+}
+function updateChartConvexityDiff(data){
+	mychartConvexityDiff.setData(data);
+}
 </script>
