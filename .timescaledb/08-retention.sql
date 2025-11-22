@@ -7,7 +7,10 @@ SELECT remove_retention_policy('quote');
 
 SELECT remove_retention_policy('gex_strike');
 SELECT remove_retention_policy('gex_net');
-SELECT remove_retention_policy('event_agg');
+
+SELECT remove_retention_policy('event_contract');
+SELECT remove_retention_policy('event_strike');
+SELECT remove_retention_policy('event_underlying');
 
 SELECT remove_retention_policy('gex_net_1min');
 SELECT remove_retention_policy('candle_1min');
@@ -25,7 +28,10 @@ SELECT add_retention_policy('quote', INTERVAL '100 days');
 
 SELECT add_retention_policy('gex_strike', INTERVAL '100 days');
 SELECT add_retention_policy('gex_net', INTERVAL '100 days');
-SELECT add_retention_policy('event_agg', INTERVAL '100 days');
+
+SELECT add_retention_policy('event_contract', INTERVAL '100 days');
+SELECT add_retention_policy('event_strike', INTERVAL '100 days');
+SELECT add_retention_policy('event_underlying', INTERVAL '100 days');
 
 SELECT add_retention_policy('gex_net_1min', INTERVAL '100 days');
 SELECT add_retention_policy('candle_1min', INTERVAL '100 days');

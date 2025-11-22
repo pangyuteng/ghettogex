@@ -15,5 +15,7 @@ create index underlying_tstamp_ticker_index on underlying using brin (tstamp,tic
 
 create index gex_strike_tstamp_ticker_index on gex_strike using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 create index gex_net_tstamp_ticker_index on gex_net using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
-create index event_agg_tstamp_ticker_index on event_agg using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 
+create index event_contract_tstamp_ticker_index on event_contract using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+create index event_strike_tstamp_ticker_index on event_strike using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+create index event_underlying_tstamp_ticker_index on event_underlying using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);

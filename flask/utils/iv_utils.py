@@ -72,50 +72,51 @@ def compute_theo_price(df,spot_price,spot_volatility):
     theo_price = py_vollib.black_scholes_merton.black_scholes_merton(flag, S, K, t, r, sv, q, return_as='numpy')
     df['theo_price'] = theo_price
 
-# TODO:why bother using the args?, just use single df? or replace args as kwargs
-def compute_greeks(df,spot_price,spot_volatility):
+def compute_greeks(df):
 
-    # get price, remove deep ITM and way OTM
-    df['tmp_price'] = df['price'].copy()
-    idx1 = (df.strike<spot_price*0.98)|(df.strike>spot_price*1.02)
-    df.loc[idx1,'tmp_price']=np.nan
-    idx2 = (df.strike>1.01*spot_price)&(df.contract_type=='P')
-    df.loc[idx2,'tmp_price']=np.nan
-    idx3 = (df.strike<0.99*spot_price)&(df.contract_type=='C')
-    df.loc[idx3,'tmp_price']=np.nan
-
-    # pad by ~ 1 minute, bad hack to reduce gamma sensitivity to spot price at end
-    # maybe we don't need this...
-    timepad = np.float16(2E-6)
-    timepad = 0
+    if True:
+        # get price, remove deep ITM and way OTM to avoid py_vollib intrinsic extrinsic warnings
+        df['tmp_price'] = df['price'].copy()
+        idx1 = (df.strike<df.spot_price*0.98)|(df.strike>df.spot_price*1.02)
+        df.loc[idx1,'tmp_price']=np.nan
+        idx2 = (df.strike>1.01*df.spot_price)&(df.contract_type=='P')
+        df.loc[idx2,'tmp_price']=np.nan
+        idx3 = (df.strike<0.99*df.spot_price)&(df.contract_type=='C')
+        df.loc[idx3,'tmp_price']=np.nan
+        price = df.tmp_price.astype(np.float16)
+    else:
+        price = df.price.astype(np.float16)
 
     yield_10yr = 1e-5
     q = 0.0 # dividend_yield
-
-    price = df.tmp_price.astype(np.float16)
     flag = df.contract_type.apply(lambda x: 'c' if x == 'C' else 'p')
     S = df.spot_price.astype(np.float16)
     K = df.strike.astype(np.float16)
     t = df.time_till_exp.astype(np.float16)
     r = np.float64(yield_10yr)
-    sv = spot_volatility/100
+    sv = df.spot_volatility/100
 
-    bsm_iv = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q, return_as='numpy')
+    volatility = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q, return_as='numpy')
     gamma = py_vollib.black_scholes_merton.greeks.numerical.gamma(flag, S, K, t, r, sv, q, return_as='numpy')
     delta = py_vollib.black_scholes_merton.greeks.numerical.delta(flag, S, K, t, r, sv, q, return_as='numpy')
 
-    df['bsm_iv'] = bsm_iv
-    df['bsm_gamma'] = gamma
-    df['bsm_delta'] = delta
+    df['volatility'] = volatility
+    df['gamma'] = gamma
+    df['delta'] = delta
 
-    # clean up volatility
-    idx_remove = (df.bsm_iv<1e-1)|(df.strike<spot_price*0.98)|(df.strike>spot_price*1.02)
-    df.loc[idx_remove,'bsm_iv'] = np.nan
+    if False:
+        # clean up volatility
+        idx_remove = (df.bsm_iv<1e-1)|(df.strike<df.spot_price*0.98)|(df.strike>df.spot_price*1.02)
+        df.loc[idx_remove,'bsm_iv'] = np.nan
 
-def compute_exposure(df,spot_price,spot_volatility):
+def compute_exposure(df):
 
     yield_10yr = 1e-5
     dividend_yield = 0.0
+
+    spot_price = df.at[0,'spot_price']
+    spot_volatility = df.at[0,'spot_volatility']
+    print(spot_price,spot_volatility)
 
     np_spot_price = np.array([[spot_price]]).astype(np.float64)
     yield_10yr = np.float64(yield_10yr)
@@ -133,7 +134,7 @@ def compute_exposure(df,spot_price,spot_volatility):
         call_k = call_df.strike.to_numpy().astype(np.float64)
         call_v = call_df.volatility.to_numpy().astype(np.float64)
         call_t = call_df.time_till_exp.to_numpy().astype(np.float64)
-        call_oi = call_df.true_oi.to_numpy().astype(np.float64)
+        call_oi = call_df.open_interest.to_numpy().astype(np.float64)
 
         call_dp, call_cdf_dp, call_pdf_dp = calc_dp_cdf_pdf(
             np_spot_price,
@@ -157,7 +158,7 @@ def compute_exposure(df,spot_price,spot_volatility):
         put_k = put_df.strike.to_numpy().astype(np.float64)
         put_v = put_df.volatility.to_numpy().astype(np.float64)
         put_t = put_df.time_till_exp.to_numpy().astype(np.float64)
-        put_oi = put_df.true_oi.to_numpy().astype(np.float64)
+        put_oi = put_df.open_interest.to_numpy().astype(np.float64)
 
         put_dp, put_cdf_dp, put_pdf_dp = calc_dp_cdf_pdf(
             np_spot_price,

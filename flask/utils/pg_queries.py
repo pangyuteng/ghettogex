@@ -64,6 +64,7 @@ group by event_symbol,ticker,expiration,strike,contract_type
 ORDER BY contract_type,strike
 """
 
+#quote_1day,greeks_1day,order_imbalance_1day ORDER_IMBALANCE_GEX_QUERY
 ORDER_IMBALANCE_GEX_QUERY = """
 WITH oi AS (
 SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike, 
@@ -75,13 +76,23 @@ SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike,
 last(gamma,tstamp) as gamma
 FROM greeks_1day WHERE ticker = %s and expiration = %s and tstamp::date = %s
 group by event_symbol,ticker,expiration,contract_type,strike
+), qt as (
+SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike,
+last(last_bid_price,tstamp) as bid_price,last(last_ask_price,tstamp) as ask_price
+FROM quote_1day WHERE ticker = %s and expiration = %s and tstamp::date = %s
+group by event_symbol,ticker,expiration,contract_type,strike
 ), candle AS (
 SELECT DISTINCT last(close,tstamp) as spot_price
+FROM candle_1min WHERE event_symbol = %s and tstamp::date = %s
+), vix AS (
+SELECT DISTINCT last(close,tstamp) as spot_volatility
 FROM candle_1min WHERE event_symbol = %s and tstamp::date = %s
 ) 
 SELECT * FROM oi 
 left join grk using (event_symbol,ticker,expiration,contract_type,strike)
+left join qt using (event_symbol,ticker,expiration,contract_type,strike)
 FULL JOIN candle ON true
+FULL JOIN vix ON true
 """
 
 CANDLE_1MIN_QUERY = """

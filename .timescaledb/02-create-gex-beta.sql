@@ -2,17 +2,20 @@
 CREATE TABLE IF NOT EXISTS event_contract (
     event_symbol text NOT NULL,
     tstamp TIMESTAMP,
-    mid_price double precision,
+    ask_price double precision,
+    bid_price double precision,
     mm_order_imbalance double precision,
-    gex double precision,
-    dex double precision,
-    vex double precision,
     volatility double precision,
     delta double precision,
     gamma double precision,
     theta double precision,
     rho double precision,
     vega double precision,
+    gex double precision,
+    dex double precision,
+    vex double precision,
+    cex double precision,
+    convexity double precision,
     ticker text,
     expiration TIMESTAMP,
     contract_type text,
@@ -28,21 +31,16 @@ CREATE TABLE IF NOT EXISTS event_contract (
 CALL remove_columnstore_policy('event_contract');
 CALL add_columnstore_policy('event_contract', after => INTERVAL '1d');
 
-CREATE TABLE IF NOT EXISTS settings (
-    settings_id bool PRIMARY KEY DEFAULT true
-    , from_scratch bool
-    , CONSTRAINT settings_uni CHECK (settings_id)
-);
 
 CREATE TABLE IF NOT EXISTS event_strike (
     ticker text,
     tstamp TIMESTAMP,
     strike double precision,
     gex double precision,
-    convexity double precision,
     dex double precision,
     vex double precision,
     cex double precision,
+    convexity double precision,
     UNIQUE (ticker, tstamp, strike)
 ) WITH (
   tsdb.hypertable=true,
@@ -62,6 +60,7 @@ CREATE TABLE IF NOT EXISTS event_underlying (
     dex double precision,
     vex double precision,
     cex double precision,
+    convexity double precision,
     call_dex double precision,
     put_dex double precision,
     UNIQUE (ticker, tstamp)

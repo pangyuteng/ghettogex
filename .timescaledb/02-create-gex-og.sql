@@ -64,38 +64,3 @@ CREATE TABLE IF NOT EXISTS gex_net (
 
 CALL remove_columnstore_policy('gex_net');
 CALL add_columnstore_policy('gex_net', after => INTERVAL '1d');
-
-CREATE TABLE IF NOT EXISTS event_agg (
-    event_symbol text NOT NULL,
-    tstamp TIMESTAMP,
-    spot_price double precision,
-    open double precision,
-    high double precision,
-    low double precision,
-    close double precision,
-    volume double precision,
-    ask_volume double precision,
-    bid_volume double precision,
-    open_interest double precision,
-    true_oi double precision,
-    price double precision,
-    volatility double precision,
-    delta double precision,
-    gamma double precision,
-    theta double precision,
-    rho double precision,
-    vega double precision,
-    ticker text,
-    expiration TIMESTAMP,
-    contract_type text,
-    strike double precision,
-    UNIQUE (event_symbol, tstamp)
-) WITH (
-  tsdb.hypertable=true,
-  tsdb.partition_column='tstamp',
-  tsdb.segmentby='ticker',
-  tsdb.orderby='tstamp DESC'
-);
-
-CALL remove_columnstore_policy('event_agg');
-CALL add_columnstore_policy('event_agg', after => INTERVAL '1d');
