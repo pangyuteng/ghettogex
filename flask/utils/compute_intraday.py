@@ -118,6 +118,7 @@ async def _compute_og_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
 
     time_e = time.time()
     logger.info(f'_compute_og_gex done {time_e-time_c}')
+    return net_gex_df
 
 
 def main(ticker,my_date):
@@ -127,9 +128,9 @@ def main(ticker,my_date):
         if tstamp > now_in_new_york():
             break
         try:
-            agg_df = asyncio.run(compute_og_gex(ticker,tstamp,persist_to_postgres=False))
-            if agg_df is not None:
-                logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
+            out_df = asyncio.run(compute_og_gex(ticker,tstamp,persist_to_postgres=False))
+            if out_df is not None:
+                logger.debug(f'volume_gex {out_df.volume_gex.sum()} state_gex {out_df.state_gex.sum()}')
         except KeyboardInterrupt:
             sys.exit(1)
         except:
@@ -141,10 +142,10 @@ def tryone(ticker,tstampstr):
     tstamp = pytz.timezone('US/Eastern').localize(tstamp)
     print(ticker,tstamp)
     try:
-        agg_df = asyncio.run(compute_gex(ticker,tstamp,persist_to_postgres=False))
-        if agg_df is not None:
-            logger.debug(agg_df.head())
-            logger.debug(f'volume_gex {agg_df.volume_gex.sum()} state_gex {agg_df.state_gex.sum()}')
+        out_df = asyncio.run(compute_og_gex(ticker,tstamp,persist_to_postgres=False))
+        if out_df is not None:
+            logger.debug(out_df.head())
+            logger.debug(f'volume_gex {out_df.volume_gex.sum()} state_gex {out_df.state_gex.sum()}')
 
     except KeyboardInterrupt:
         sys.exit(1)
