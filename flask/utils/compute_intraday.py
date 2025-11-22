@@ -63,6 +63,12 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     df = pd.DataFrame([dict(x) for x in fetched])
     df['mm_order_imbalance'] = -1 * df.order_imbalance
     df['hedge_sign'] = df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
+
+    # gamma update
+    # gex_contract make tables?? volume_gex,state_gex,gamma,delta,....
+    # gex_strike
+    # get_underlying
+
     # NOTE: we are using dxlink gamma which is lagged by 1 min!!!
     df['volume_gex'] = df.gamma * df.mm_order_imbalance * df.spot_price * df.spot_price * df.hedge_sign
     df['state_gex'] = df.volume_gex
@@ -107,7 +113,7 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
         return query_args
 
     query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
-    print(query_dict[gex_net_query_str])
+
     if persist_to_postgres:
         try:
             await cpostgres_copy(aconn,query_dict)
