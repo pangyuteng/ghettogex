@@ -1,7 +1,5 @@
 
-??? 
-
-CREATE TABLE IF NOT EXISTS gex_contract (
+CREATE TABLE IF NOT EXISTS event_contract (
     event_symbol text NOT NULL,
     tstamp TIMESTAMP,
     mid_price double precision,
@@ -27,8 +25,8 @@ CREATE TABLE IF NOT EXISTS gex_contract (
   tsdb.orderby='tstamp DESC'
 );
 
-CALL remove_columnstore_policy('event_agg');
-CALL add_columnstore_policy('event_agg', after => INTERVAL '1d');
+CALL remove_columnstore_policy('event_contract');
+CALL add_columnstore_policy('event_contract', after => INTERVAL '1d');
 
 CREATE TABLE IF NOT EXISTS settings (
     settings_id bool PRIMARY KEY DEFAULT true
@@ -36,7 +34,7 @@ CREATE TABLE IF NOT EXISTS settings (
     , CONSTRAINT settings_uni CHECK (settings_id)
 );
 
-CREATE TABLE IF NOT EXISTS gex_strike (
+CREATE TABLE IF NOT EXISTS event_strike (
     ticker text,
     tstamp TIMESTAMP,
     strike double precision,
@@ -53,10 +51,10 @@ CREATE TABLE IF NOT EXISTS gex_strike (
   tsdb.orderby='tstamp DESC'
 );
 
-CALL remove_columnstore_policy('gex_strike');
-CALL add_columnstore_policy('gex_strike', after => INTERVAL '1d');
+CALL remove_columnstore_policy('event_strike');
+CALL add_columnstore_policy('event_strike', after => INTERVAL '1d');
 
-CREATE TABLE IF NOT EXISTS gex_net (
+CREATE TABLE IF NOT EXISTS event_underlying (
     ticker text,
     tstamp TIMESTAMP,
     spot_price double precision,
@@ -64,6 +62,8 @@ CREATE TABLE IF NOT EXISTS gex_net (
     dex double precision,
     vex double precision,
     cex double precision,
+    call_dex double precision,
+    put_dex double precision,
     UNIQUE (ticker, tstamp)
 ) WITH (
   tsdb.hypertable=true,
@@ -72,5 +72,5 @@ CREATE TABLE IF NOT EXISTS gex_net (
   tsdb.orderby='tstamp DESC'
 );
 
-CALL remove_columnstore_policy('gex_net');
-CALL add_columnstore_policy('gex_net', after => INTERVAL '1d');
+CALL remove_columnstore_policy('event_underlying');
+CALL add_columnstore_policy('event_underlying', after => INTERVAL '1d');
