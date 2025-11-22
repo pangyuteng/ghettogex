@@ -2,7 +2,7 @@
 <script>
 
 
-function makeChartScatter(elementName,mytitle) {
+function makeChartScatter(elementName,mytitle,chartWidth,showLegend) {
 
 	const drawPoints = (u, seriesIdx, idx0, idx1) => {
 		const size = 5 * pxRatio;
@@ -71,9 +71,10 @@ function makeChartScatter(elementName,mytitle) {
 	const opts = {
 		title: mytitle,
 		mode: 2,
-		width: 420,
+		width: chartWidth,
 		height: 420,
 		legend: {
+			show: showLegend,
 			live: false,
 		},
 		hooks: {
@@ -221,17 +222,28 @@ function makeChartScatter(elementName,mytitle) {
 }
 
 
-let mychartCallScatter = makeChartScatter("myCallOrderImbalance","call-order-imbalance");
-let mychartPutScatter = makeChartScatter("myPutOrderImbalance","put-order-imbalance");
+let mychartCallScatter = makeChartScatter("myCallOrderImbalance","call-order-imbalance",420,true);
+let mychartPutScatter = makeChartScatter("myPutOrderImbalance","put-order-imbalance",420,true);
 
 function updateChartCallOrderImbalance(data,minval,maxval){
 	mychartCallScatter.setScale('y', {min: minval, max: maxval});
 	mychartCallScatter.setData(data);
-	
 }
 function updateChartPutOrderImbalance(data,minval,maxval){
 	mychartPutScatter.setScale('y', {min: minval, max: maxval});
 	mychartPutScatter.setData(data);
+}
+
+let mychartCallScatterZoomin = makeChartScatter("myCallOrderImbalanceZoomIn","zoomedin",150,false);
+let mychartPutScatterZoomin = makeChartScatter("myPutOrderImbalanceZoomIn","zoomedin",150,false);
+
+function updateChartCallOrderImbalanceZoomIn(data,minval,maxval){
+	mychartCallScatterZoomin.setScale('y', {min: minval, max: maxval});
+	mychartCallScatterZoomin.setData(data);
+}
+function updateChartPutOrderImbalanceZoomIn(data,minval,maxval){
+	mychartPutScatterZoomin.setScale('y', {min: minval, max: maxval});
+	mychartPutScatterZoomin.setData(data);
 }
 
 </script>

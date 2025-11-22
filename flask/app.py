@@ -57,6 +57,7 @@ from utils.pg_queries import (
     LATEST_GEX_STRIKE_QUERY,
     CANDLE_1MIN_QUERY,
     ORDER_IMBALANCE_QUERY,
+    ORDER_IMBALANCE_5MIN_QUERY,
     CANDLE_QC_QUERY,
     QUOTE_1MIN_QUERY,
     CONVEXITY_QUERY,
@@ -251,6 +252,7 @@ async def ws_main_socket():
                         apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,GREEKS_QUERY,(ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,CONVEXITYDX_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
+                        apostgres_execute(apool,ORDER_IMBALANCE_5MIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
@@ -419,7 +421,7 @@ async def ws_main_socket():
                         df = pd.DataFrame([dict(x) for x in gathered_res[6]])
                         df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
 
-                        df.volatility = df.volatility*100
+                        df.volatility = df.volatility
                         df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
 
                         cdf = df[df.contract_type=='C']
@@ -447,7 +449,43 @@ async def ws_main_socket():
                         ret_dict['ndx_major_pos_convexity'] = major_pos_convexity
                         ret_dict['ndx_major_neg_convexity'] = major_neg_convexity
 
+                    if gathered_res[8] is not None:
+                        df = pd.DataFrame([dict(x) for x in gathered_res[8]])
+                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                        df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
+                        df = df.dropna()
+                        filter_list = [
+                            df.order_imbalance<-200,
+                            (df.order_imbalance>=-200)&(df.order_imbalance<-100),
+                            (df.order_imbalance>=-100)&(df.order_imbalance<-50),
+                            (df.order_imbalance>=-50)&(df.order_imbalance<-25),
+                            (df.order_imbalance>=-25)&(df.order_imbalance<-10),
+                            (df.order_imbalance>=-10)&(df.order_imbalance<0),
+                            (df.order_imbalance>=0)&(df.order_imbalance<10),
+                            (df.order_imbalance>=10)&(df.order_imbalance<25),
+                            (df.order_imbalance>=25)&(df.order_imbalance<50),
+                            (df.order_imbalance>=50)&(df.order_imbalance<100),
+                            (df.order_imbalance>=100)&(df.order_imbalance<200),
+                            df.order_imbalance>=200,
+                        ]
+                        call_order_imbalance_list = [[],]
+                        put_order_imbalance_list = [[],]
+                        for row_filter in filter_list:
+                            row_tstamp = df.tstamp[row_filter&(df.contract_type=="C")].to_list()
+                            row_strike = df.strike[row_filter&(df.contract_type=="C")].to_list()
+                            call_item = [row_tstamp,row_strike,[]]
+                            call_order_imbalance_list.append(call_item)
+                            row_tstamp = df.tstamp[row_filter&(df.contract_type=="P")].to_list()
+                            row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
+                            put_item = [row_tstamp,row_strike,[]]
+                            put_order_imbalance_list.append(put_item)
+                        # add spx price for the past 10 min
+                        lst = ret_dict['prices']
+                        call_order_imbalance_list.append([ lst[0][-10:],lst[-1][-10:],[] ])
+                        put_order_imbalance_list.append([ lst[0][-10:],lst[-1][-10:],[] ])
 
+                        ret_dict['call_order_imbalance_zoomin'] = call_order_imbalance_list
+                        ret_dict['put_order_imbalance_zoomin'] = put_order_imbalance_list
 
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"

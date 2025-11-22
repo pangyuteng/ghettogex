@@ -25,6 +25,10 @@ ORDER_IMBALANCE_QUERY = """
 select * from order_imbalance where tstamp::date = %s and ticker = %s
 """
 
+ORDER_IMBALANCE_5MIN_QUERY = """
+select * from candle_1min where ticker = %s and expiration = %s AND tstamp > %s - interval '10 minute'
+"""
+
 CONVEXITY_QUERY = """
 WITH o_1day AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
@@ -128,14 +132,4 @@ WITH last_tstamp AS (select tstamp from gex_net where tstamp <= %s and tstamp >=
 last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike)
 SELECT * FROM last_tstamp
 LEFT JOIN last_gex_strike using (tstamp)
-"""
-
-"""
-WITH last_tstamp AS (select tstamp from gex_net where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp desc limit 1),
-last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike),
-last_price AS (select close from candle where tstamp <= %s and tstamp >= %s - interval '1 minute' and event_symbol = %s order by tstamp desc limit 1)
-SELECT * FROM last_tstamp
-LEFT JOIN last_gex_strike using (tstamp)
-WHERE strike < (select close*1.02 from last_price)
-AND strike > (select close*0.98 from last_price)
 """

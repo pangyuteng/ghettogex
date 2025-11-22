@@ -50,3 +50,6 @@ For devops folks these are shitty notes, likely okay to follow. For non-devops f
 + dns notes see `.cloudflared`
 
 
+## additional comments
+
++ if one prefers to hoard data, adjust timescaldb retention_policy, see `.timescaledb/08-retention.sql`.
