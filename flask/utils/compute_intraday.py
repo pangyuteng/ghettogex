@@ -40,6 +40,14 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
             except:
                 logger.error(traceback.format_exc())
 
+async def test_gex(ticker,et_tstamp,persist_to_postgres=True):
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+        async with apool.connection() as aconn:
+            try:
+                return await _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
+            except:
+                logger.error(traceback.format_exc())
+
 """
     mm_order_imbalance NOTE:
     In postgres tables `order_imbalance` we have:
@@ -214,8 +222,16 @@ async def _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
 
     # event_underlying ####################################
 
-    table_cols = ['ticker','tstamp','spot_price','gex','dex','vex','cex','convexity']
+    table_cols = ['ticker','tstamp','spot_price','gex','dex','vex','cex','convexity','contract_type']
     underlying_df = df[table_cols].copy()
+
+    underlying_df['call_dex']=df.dex
+    underlying_df['put_dex']=df.dex
+    call_idx = underlying_df.index[underlying_df.contract_type=='C'].tolist()
+    put_idx = underlying_df.index[underlying_df.contract_type=='P'].tolist()
+    underlying_df.loc[put_idx,'call_dex'] = 0
+    underlying_df.loc[call_idx,'put_dex'] = 0
+
     underlying_df = underlying_df.groupby(['ticker','tstamp']).agg(
         spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
         dex=pd.NamedAgg(column="dex", aggfunc="sum"),
@@ -223,13 +239,15 @@ async def _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
         vex=pd.NamedAgg(column="vex", aggfunc="sum"),
         cex=pd.NamedAgg(column="cex", aggfunc="sum"),
         convexity=pd.NamedAgg(column="convexity", aggfunc="sum"),
+        call_dex=pd.NamedAgg(column="call_dex", aggfunc="sum"),
+        put_dex=pd.NamedAgg(column="put_dex", aggfunc="sum"),
     ).reset_index()
 
     event_underlying_query_str = """
-        COPY event_underlying (ticker,tstamp,spot_price,dex,gex,vex,cex,convexity) FROM STDIN
+        COPY event_underlying (ticker,tstamp,spot_price,dex,gex,vex,cex,convexity,call_dex,put_dex) FROM STDIN
     """
     async def insert_underlying(row):
-        query_args = [row.ticker,row.tstamp,row.spot_price,row.dex,row.gex,row.vex,row.cex,row.convexity]
+        query_args = [row.ticker,row.tstamp,row.spot_price,row.dex,row.gex,row.vex,row.cex,row.convexity,row.call_dex,row.put_dex]
         return query_args
 
     query_dict[event_underlying_query_str] = await asyncio.gather(*(insert_underlying(row) for n,row in underlying_df.iterrows()))
@@ -268,7 +286,7 @@ def tryone(ticker,tstampstr):
     tstamp = pytz.timezone('US/Eastern').localize(tstamp)
     logger.debug(f"{ticker} {tstamp}")
     try:
-        out_df = asyncio.run(compute_gex(ticker,tstamp,persist_to_postgres=True))
+        out_df = asyncio.run(test_gex(ticker,tstamp,persist_to_postgres=True))
         if out_df is not None:
             logger.debug(out_df.head())
             logger.debug(f'gex {out_df.gex.sum()} convexity {out_df.convexity.sum()}')
