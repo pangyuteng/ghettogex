@@ -1,12 +1,14 @@
 
 CREATE MATERIALIZED VIEW event_underlying_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, ticker, 
-  last(spot_price,tstamp) as spot_price,
+  avg(spot_price) as spot_price,
   avg(gex) as gex,
   avg(dex) as dex,
   avg(vex) as vex,
   avg(cex) as cex,
-  avg(convexity) as convexity
+  avg(convexity) as convexity,
+  avg(call_dex) as call_dex,
+  avg(put_dex) as put_dex
 FROM event_underlying
 GROUP BY time_bucket('1m', tstamp), ticker;
 

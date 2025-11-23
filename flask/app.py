@@ -497,10 +497,13 @@ async def ws_main_socket():
                         df['convexity_diff'] = df.convexity.diff()
                         df = df.replace({np.nan: None})
 
-                        lst = [df[i].tolist() for i in ['tstamp','gex','gex_diff']]
-                        ret_dict['gexdiff'] = lst
-                        lst = [df[i].tolist() for i in ['tstamp','convexity','convexity_diff']]
-                        ret_dict['convexitydiff'] = lst
+                        gex_lst = [df[i].tolist() for i in ['tstamp','gex','gex_diff']]
+                        ret_dict['gexdiff'] = gex_lst
+                        convexity_lst = [df[i].tolist() for i in ['tstamp','convexity','convexity_diff']]
+                        ret_dict['convexitydiff'] = convexity_lst
+
+                        dex_lst = [df[i].tolist() for i in ['tstamp','spx_close','dex','call_dex','put_dex']]
+                        ret_dict['dex'] = dex_lst
 
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"
