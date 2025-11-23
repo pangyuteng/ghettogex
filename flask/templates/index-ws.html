@@ -9,7 +9,7 @@
     let ndxpriceSpan = document.getElementById("ndxpriceSpan");
     let espriceSpan = document.getElementById("espriceSpan");
     let vixSpan = document.getElementById("vixSpan");
-    //let vix1dSpan = document.getElementById("vix1dSpan");
+    let commentarySpan = document.getElementById("commentarySpan");
 
     ws.onmessage = function(event) {
         let newdata = JSON.parse(event.data);
@@ -22,7 +22,7 @@
         ndxpriceSpan.textContent = newdata.ndx_price;
         espriceSpan.textContent = newdata.es_price;
         vixSpan.textContent = newdata.vix_price;
-        //vix1dSpan.textContent = newdata.vix1d_price;
+        commentarySpan.textContent = newdata.commentary;
         updateChartPrices(newdata.prices,newdata.spot_min_lim,newdata.spot_max_lim);
         updateChartDex(newdata.dex,newdata.spot_min_lim,newdata.spot_max_lim);
         updateChartCallOrderImbalance(newdata.call_order_imbalance,newdata.spot_min_lim,newdata.spot_max_lim);

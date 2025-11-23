@@ -456,6 +456,8 @@ async def ws_main_socket():
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
                         df = df.dropna()
+                        order_imbalance_zoomin_df = df.copy()
+
                         filter_list = [
                             df.order_imbalance<-200,
                             (df.order_imbalance>=-200)&(df.order_imbalance<-100),
@@ -504,6 +506,12 @@ async def ws_main_socket():
 
                         dex_lst = [df[i].tolist() for i in ['tstamp','spot_price','dex','call_dex','put_dex']]
                         ret_dict['dex'] = dex_lst
+
+                    message = ""
+                    #if vix_price > 19: message+= "vix > 19, good gamma scalping environment"
+                    # if gap up 0.5%, becare of negative gamma below spot, do not short put
+                    # if huge order_imblance order_imbalance_zoomin_df
+                    ret_dict['commentary'] = message
 
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"
