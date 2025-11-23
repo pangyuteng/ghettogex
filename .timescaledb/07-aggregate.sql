@@ -71,15 +71,21 @@ ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.enable_columnstore = tr
 
 CREATE MATERIALIZED VIEW quote_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-last(bid_price,tstamp) as last_bid_price,
-last(ask_price,tstamp) as last_ask_price
+first(bid_price,tstamp) as open_bid_price,
+max(bid_price) as high_bid_price,
+min(bid_price) as low_bid_price,
+last(bid_price,tstamp) as close_bid_price,
+first(ask_price,tstamp) as open_ask_price,
+max(ask_price) as high_ask_price,
+min(ask_price) as low_ask_price,
+last(ask_price,tstamp) as close_ask_price
 FROM quote where ticker in ('SPXW','NDXP') 
 GROUP BY time_bucket('1m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('quote_1min',
   start_offset => INTERVAL '1 month',
   end_offset => NULL,
-  schedule_interval => INTERVAL '1 sec');
+  schedule_interval => INTERVAL '15 sec');
 
 CALL refresh_continuous_aggregate('quote_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW quote_1min set (timescaledb.materialized_only = false);
@@ -89,28 +95,20 @@ ALTER MATERIALIZED VIEW quote_1min set (timescaledb.enable_columnstore = true);
 -- SELECT remove_continuous_aggregate_policy('quote_1min');
 
 
-/* ??? unsure if these are useful in quote_1min, extra compute
-avg(bid_size) as avg_bid_size,
-avg(ask_size) as avg_ask_size,
-stddev(bid_size) as std_bid_size,
-stddev(ask_size) as std_ask_size
-*/
-
-
 -- NOTE: below *_1day are meant to simplify query, maybe this is a bad idea, as it hides potential missing data
 
 --
 
 CREATE MATERIALIZED VIEW quote_1day WITH (timescaledb.continuous) AS
 SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-last(bid_price,tstamp) as last_bid_price,last(ask_price,tstamp) as last_ask_price
-FROM quote where ticker in ('SPXW','NDXP')
+last(close_bid_price,tstamp) as last_bid_price,last(close_ask_price,tstamp) as last_ask_price 
+FROM quote_1min where ticker in ('SPXW','NDXP')
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('quote_1day',
   start_offset => INTERVAL '1 month',
   end_offset => NULL,
-  schedule_interval => INTERVAL '1 sec');
+  schedule_interval => INTERVAL '5 sec');
 
 CALL refresh_continuous_aggregate('quote_1day', NULL, NULL);
 ALTER MATERIALIZED VIEW quote_1day set (timescaledb.materialized_only = false);
