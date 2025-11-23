@@ -85,7 +85,7 @@ GROUP BY time_bucket('1m', tstamp), event_symbol, ticker,expiration,contract_typ
 SELECT add_continuous_aggregate_policy('quote_1min',
   start_offset => INTERVAL '1 month',
   end_offset => NULL,
-  schedule_interval => INTERVAL '15 sec');
+  schedule_interval => INTERVAL '5 sec');
 
 CALL refresh_continuous_aggregate('quote_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW quote_1min set (timescaledb.materialized_only = false);
