@@ -135,7 +135,7 @@ LEFT JOIN last_gex_strike using (tstamp)
 
 GEX_CONVEXITY_QUERY = """
 WITH price_sec AS (select tstamp,close as spx_close from candle_1min where event_symbol = %s and close != 0 and tstamp > %s - interval '30 minute' and tstamp <= %s),
-event_sec AS (select tstamp,gex,convexity from event_underlying_1min where ticker = %s and tstamp > %s - interval '30 minute' and tstamp <= %s)
+event_sec AS (select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex from event_underlying_1min where ticker = %s and tstamp > %s - interval '30 minute' and tstamp <= %s)
 SELECT * FROM price_sec
 LEFT JOIN event_sec using (tstamp)
 ORDER BY tstamp
