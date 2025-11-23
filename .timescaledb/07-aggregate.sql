@@ -71,7 +71,8 @@ ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.enable_columnstore = tr
 
 CREATE MATERIALIZED VIEW quote_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-last(bid_price,tstamp) as last_bid_price,last(ask_price,tstamp) as last_ask_price
+last(bid_price,tstamp) as last_bid_price,
+last(ask_price,tstamp) as last_ask_price
 FROM quote where ticker in ('SPXW','NDXP') 
 GROUP BY time_bucket('1m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
@@ -86,6 +87,15 @@ ALTER MATERIALIZED VIEW quote_1min set (timescaledb.enable_columnstore = true);
 
 -- DROP MATERIALIZED VIEW quote_1min
 -- SELECT remove_continuous_aggregate_policy('quote_1min');
+
+
+/* ??? unsure if these are useful in quote_1min, extra compute
+avg(bid_size) as avg_bid_size,
+avg(ask_size) as avg_ask_size,
+stddev(bid_size) as std_bid_size,
+stddev(ask_size) as std_ask_size
+*/
+
 
 -- NOTE: below *_1day are meant to simplify query, maybe this is a bad idea, as it hides potential missing data
 
