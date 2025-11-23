@@ -25,7 +25,7 @@ ORDER_IMBALANCE_QUERY = """
 select * from order_imbalance where tstamp::date = %s and ticker = %s
 """
 
-ORDER_IMBALANCE_5MIN_QUERY = """
+ORDER_IMBALANCE_LASTXMIN_QUERY = """
 select * from candle_1min where ticker = %s and expiration = %s AND tstamp > %s - interval '30 minute'
 """
 
@@ -126,10 +126,9 @@ LEFT JOIN vix1d_1min using (tstamp)
 ORDER BY tstamp
 """
 
-
 LATEST_GEX_STRIKE_QUERY = """
-WITH last_tstamp AS (select tstamp from gex_net where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp desc limit 1),
-last_gex_strike AS (select * from gex_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike)
+WITH last_tstamp AS (select tstamp from event_underlying where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp desc limit 1),
+last_gex_strike AS (select * from event_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike)
 SELECT * FROM last_tstamp
 LEFT JOIN last_gex_strike using (tstamp)
 """

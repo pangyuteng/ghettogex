@@ -57,7 +57,7 @@ from utils.pg_queries import (
     LATEST_GEX_STRIKE_QUERY,
     CANDLE_1MIN_QUERY,
     ORDER_IMBALANCE_QUERY,
-    ORDER_IMBALANCE_5MIN_QUERY,
+    ORDER_IMBALANCE_LASTXMIN_QUERY,
     CANDLE_QC_QUERY,
     QUOTE_1MIN_QUERY,
     CONVEXITY_QUERY,
@@ -253,7 +253,7 @@ async def ws_main_socket():
                         apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,GREEKS_QUERY,(ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,CONVEXITYDX_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
-                        apostgres_execute(apool,ORDER_IMBALANCE_5MIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
+                        apostgres_execute(apool,ORDER_IMBALANCE_LASTXMIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
                         apostgres_execute(apool,GEX_CONVEXITY_QUERY,(ticker,tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc)),
                     ]
 
@@ -309,14 +309,14 @@ async def ws_main_socket():
                                 raise LookupError("null gex query!")
 
                             df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
-                            df.volume_gex = df.volume_gex/1e9
-                            df['pos_gex'] = df.volume_gex.where(df.volume_gex>0)
-                            df['neg_gex'] = df.volume_gex.where(df.volume_gex<=0)
+                            df.gex = df.gex/1e9
+                            df['pos_gex'] = df.gex.where(df.gex>0)
+                            df['neg_gex'] = df.gex.where(df.gex<=0)
                             df = df.replace({np.nan: None})
 
                             gex_list = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
-                            major_pos_gex_strike = df["strike"].iloc[df.volume_gex.argmax(skipna=True)]
-                            major_neg_gex_strike = df["strike"].iloc[df.volume_gex.argmin(skipna=True)]
+                            major_pos_gex_strike = df["strike"].iloc[df.gex.argmax(skipna=True)]
+                            major_neg_gex_strike = df["strike"].iloc[df.gex.argmin(skipna=True)]
 
                             ret_dict['gex_list'] = gex_list
                             ret_dict['major_pos_gex_strike'] = major_pos_gex_strike

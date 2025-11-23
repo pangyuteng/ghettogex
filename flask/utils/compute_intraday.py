@@ -273,8 +273,7 @@ def main(ticker,my_date):
         try:
             out_df = asyncio.run(compute_gex(ticker,tstamp,persist_to_postgres=False))
             if out_df is not None:
-                logger.debug(f'gex {out_df.gex.sum()} convexity {out_df.convexity.sum()}')
-                #logger.debug(f'volume_gex {out_df.volume_gex.sum()} state_gex {out_df.state_gex.sum()}')
+                logger.debug(f'gex {out_df.gex.sum()}')
         except KeyboardInterrupt:
             sys.exit(1)
         except:
@@ -289,8 +288,7 @@ def tryone(ticker,tstampstr):
         out_df = asyncio.run(test_gex(ticker,tstamp,persist_to_postgres=True))
         if out_df is not None:
             logger.debug(out_df.head())
-            logger.debug(f'gex {out_df.gex.sum()} convexity {out_df.convexity.sum()}')
-            #logger.debug(f'volume_gex {out_df.volume_gex.sum()} state_gex {out_df.state_gex.sum()}')
+            logger.debug(f'gex {out_df.gex.sum()}')
 
     except KeyboardInterrupt:
         sys.exit(1)
