@@ -1,26 +1,43 @@
 <script>
 
-function makeChartPrices() {
+function makeChartDex() {
 	let isYRangeFixed = false;
 	const opts = {
-		title: "prices",
-		width: 380,
+		title: "dex,last-30min",
+		width: 240,
 		height: 380,
+		legend: {
+			show: false,
+		},
 		series: [
 			{},
-			{
-				label: "vix",
-				scale: "scale1",
-				value: (u, v) => v == null ? null : v.toFixed(2) + "",
-				stroke: "rgba(255,0,0,1)",
-				width: 2/devicePixelRatio,
-			},
 			{
 				label: "spx",
 				scale: "scale0",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
-				width: 2/devicePixelRatio,
 				stroke: "rgba(255,255,255,1)",
+				width: 2/devicePixelRatio,
+			},
+			{
+				label: "dex",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				width: 2/devicePixelRatio,
+				stroke: "rgba(255,0,0,1)",
+			},
+			{
+				label: "call_dex",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				width: 2/devicePixelRatio,
+				stroke: "rgba(0,255,0,1)",
+			},
+			{
+				label: "put_dex",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				width: 2/devicePixelRatio,
+				stroke: "rgba(255,0,0,1)",
 			},
 		],
 		axes: [
@@ -48,14 +65,14 @@ function makeChartPrices() {
 		],
 	};
 	
-	return new uPlot(opts, [], document.getElementById("mySPXVIX"));
+	return new uPlot(opts, [], document.getElementById("myDex"));
 }
 
-let mychartPrices = makeChartPrices();
+let mychartDex = makeChartDex();
 
-function updateChartPrices(data,minval,maxval){
-	mychartPrices.setScale('scale0', {min: minval, max: maxval});
-	mychartPrices.setData(data);
+function updateChartDex(data,minval,maxval){
+	mychartDex.setScale('scale0', {min: minval, max: maxval});
+	mychartDex.setData(data);
 }
 
 </script>

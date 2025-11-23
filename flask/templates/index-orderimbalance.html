@@ -72,7 +72,7 @@ function makeChartScatter(elementName,mytitle,chartWidth,showLegend) {
 		title: mytitle,
 		mode: 2,
 		width: chartWidth,
-		height: 420,
+		height: 380,
 		legend: {
 			show: showLegend,
 			live: false,
@@ -222,8 +222,8 @@ function makeChartScatter(elementName,mytitle,chartWidth,showLegend) {
 }
 
 
-let mychartCallScatter = makeChartScatter("myCallOrderImbalance","call-order-imbalance",420,false);
-let mychartPutScatter = makeChartScatter("myPutOrderImbalance","put-order-imbalance",420,false);
+let mychartCallScatter = makeChartScatter("myCallOrderImbalance","call-order-imbalance",380,false);
+let mychartPutScatter = makeChartScatter("myPutOrderImbalance","put-order-imbalance",380,false);
 
 function updateChartCallOrderImbalance(data,minval,maxval){
 	mychartCallScatter.setScale('y', {min: minval, max: maxval});
