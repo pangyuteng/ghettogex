@@ -33,18 +33,29 @@
 
 + call and put order imbalance are sum of 0DTE SPXW candle bid and ask volume every 5min, more selling (red), more buying (green), bins: {{ order_imbalance_bin_str }}.<br>
 
-<br># gex plot<br><br>
+<br># gamma exposure (gex)<br><br>
 
 + gex is a guesstimate using 0DTE SPXW order imbalance from only the current day (akin @gexbot Classic, or @unusual_whales spot gex volume - not as accurate as @optionsdepth, @spotgamma Trace, @gexbot State) <br>
 
 + horizontal dashed lines: spot: white, expected moves: gray, major positive gex strike: green, major negative gex strike: red.<br>
 
-<br># convexity plot<br><br>
+<br># convexity<br><br>
 
 + 0DTE SPXW order imbalance of the entire day multiplied by current gamma, no put or call distinction. see gexbot document for more info.<br>
 
 + horizontal dashed lines: major positive convexity: cyan, major negative convexity: purple.<br>
 
+<br># volatility<br><br>
+
++ [exploratory] pyvollib, this is the most basic lib, definitely not ideal.<br>
+
+<br># delta exposure (dex)<br><br>
+
++ [exploratory], dex is computed with order imbalance, could be used to confirm order imbalance direction <br>
+
+<br># net gex, net convexity <br><br>
+
++ [exploratory], attempt to replicate gexbot orderflow feature, ***definitely not reliable***.<br>
 
 <br>
 <br>
