@@ -452,15 +452,15 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
         
         session = get_session_reuse()
         
-        if ticker in ["ES"]:
+        if ticker in ["ES"]: # futures with options
             future_list = await Future.a_get(session,product_codes=ticker)
             future_list = sorted(future_list,key=lambda x: x.expires_at,reverse=False)
             equity = await Future.a_get(session, future_list[0].symbol)
             chain = get_future_option_chain(session, ticker)
-        elif ticker == "VIX1D":
+        elif ticker in ["VIX1D"]: # indicators that can't be traded
             equity= None
             chain = {}
-        else:
+        else: # equity with options
             equity = await Equity.a_get(session, ticker)
             chain = get_option_chain(session, ticker)
 
@@ -473,15 +473,15 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
 
         # underlying
         if "None" in expiration_list:
-            if ticker == "VIX1D":
-                underlying_streamer_symbols = ["VIX1D"]
+            if ticker in ["VIX1D"]: # just use ticker as streamer_symbol
+                underlying_streamer_symbols = [ticker]
             else:
                 underlying_streamer_symbols = [equity.streamer_symbol]
             live_prices = await LivePrices.create(myqueue,session,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres)
             live_prices_list.append(live_prices)
 
         for expiration in expirations:
-            if ticker in ["VIX","VIX1D","ES"]: # ignore options for VIX and futures.
+            if ticker in ["VIX","VIX1D","ES","UVXY"]: # ignore options for VIX and futures.
                 continue 
             if expiration.strftime("%Y-%m-%d") not in expiration_list:
                 continue

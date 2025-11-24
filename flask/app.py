@@ -277,8 +277,6 @@ async def ws_main_socket():
                         ret_dict['vix_price'] = vix_price
                         ret_dict['spx_price'] = df.spx_close.iloc[-1]
                         ret_dict['ndx_price'] = df.ndx_close.iloc[-1]
-                        
-                        ret_dict['vix1d_price'] = df.vix1d_close.iloc[-1]
 
                         if vix_price > 50: # vary lim by last vix price
                             plus_prct = 1.3

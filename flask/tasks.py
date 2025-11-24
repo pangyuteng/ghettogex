@@ -94,7 +94,7 @@ class ManageSubscription(luigi.Task):
             for row in fetched:
                 ticker = row['ticker']
                 logger.info(f"trigger subscriptions apply_async {ticker}")
-                if ticker in ["VIX","VIX1D","ES"]:
+                if ticker in ["VIX","VIX1D","ES","UVXY"]:
 
                     expirations_str = "None"
                     trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
