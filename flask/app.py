@@ -245,7 +245,7 @@ async def ws_main_socket():
 
                     timea = time.time()
                     query_list = [
-                        apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp,dstamp)),
+                        apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp)),
                         apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(ticker,tstamp_utc,ticker_alt,tstamp_utc)),
@@ -327,63 +327,69 @@ async def ws_main_socket():
 
                     if gathered_res[2] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[2]])
-                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
-                        df = df.dropna()
-                        #
-                        # NOTE: remember to update order_imbalance_bin_str
-                        # 
-                        # NOTE: selected from SPX order_imbalance 5min table on 2025-11-21
-                        #
-                        filter_list = [
-                            df.order_imbalance<-200,
-                            (df.order_imbalance>=-200)&(df.order_imbalance<-100),
-                            (df.order_imbalance>=-100)&(df.order_imbalance<-50),
-                            (df.order_imbalance>=-50)&(df.order_imbalance<-25),
-                            (df.order_imbalance>=-25)&(df.order_imbalance<-10),
-                            (df.order_imbalance>=-10)&(df.order_imbalance<0),
-                            (df.order_imbalance>=0)&(df.order_imbalance<10),
-                            (df.order_imbalance>=10)&(df.order_imbalance<25),
-                            (df.order_imbalance>=25)&(df.order_imbalance<50),
-                            (df.order_imbalance>=50)&(df.order_imbalance<100),
-                            (df.order_imbalance>=100)&(df.order_imbalance<200),
-                            df.order_imbalance>=200,
-                        ]
-                        call_order_imbalance_list = [[],]
-                        put_order_imbalance_list = [[],]
-                        for row_filter in filter_list:
-                            row_tstamp = df.tstamp[row_filter&(df.contract_type=="C")].to_list()
-                            row_strike = df.strike[row_filter&(df.contract_type=="C")].to_list()
-                            call_item = [row_tstamp,row_strike,[]]
-                            call_order_imbalance_list.append(call_item)
-                            row_tstamp = df.tstamp[row_filter&(df.contract_type=="P")].to_list()
-                            row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
-                            put_item = [row_tstamp,row_strike,[]]
-                            put_order_imbalance_list.append(put_item)
-                        # add spx price
-                        lst = ret_dict['prices']
-                        call_order_imbalance_list.append([ lst[0],lst[-1],[] ])
-                        put_order_imbalance_list.append([ lst[0],lst[-1],[] ])
+                        try:
+                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                            df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
+                            df = df.dropna()
+                            #
+                            # NOTE: remember to update order_imbalance_bin_str
+                            # 
+                            # NOTE: selected from SPX order_imbalance 5min table on 2025-11-21
+                            #
+                            filter_list = [
+                                df.order_imbalance<-200,
+                                (df.order_imbalance>=-200)&(df.order_imbalance<-100),
+                                (df.order_imbalance>=-100)&(df.order_imbalance<-50),
+                                (df.order_imbalance>=-50)&(df.order_imbalance<-25),
+                                (df.order_imbalance>=-25)&(df.order_imbalance<-10),
+                                (df.order_imbalance>=-10)&(df.order_imbalance<0),
+                                (df.order_imbalance>=0)&(df.order_imbalance<10),
+                                (df.order_imbalance>=10)&(df.order_imbalance<25),
+                                (df.order_imbalance>=25)&(df.order_imbalance<50),
+                                (df.order_imbalance>=50)&(df.order_imbalance<100),
+                                (df.order_imbalance>=100)&(df.order_imbalance<200),
+                                df.order_imbalance>=200,
+                            ]
+                            call_order_imbalance_list = [[],]
+                            put_order_imbalance_list = [[],]
+                            for row_filter in filter_list:
+                                row_tstamp = df.tstamp[row_filter&(df.contract_type=="C")].to_list()
+                                row_strike = df.strike[row_filter&(df.contract_type=="C")].to_list()
+                                call_item = [row_tstamp,row_strike,[]]
+                                call_order_imbalance_list.append(call_item)
+                                row_tstamp = df.tstamp[row_filter&(df.contract_type=="P")].to_list()
+                                row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
+                                put_item = [row_tstamp,row_strike,[]]
+                                put_order_imbalance_list.append(put_item)
+                            # add spx price
+                            lst = ret_dict['prices']
+                            call_order_imbalance_list.append([ lst[0],lst[-1],[] ])
+                            put_order_imbalance_list.append([ lst[0],lst[-1],[] ])
 
-                        ret_dict['call_order_imbalance'] = call_order_imbalance_list
-                        ret_dict['put_order_imbalance'] = put_order_imbalance_list
+                            ret_dict['call_order_imbalance'] = call_order_imbalance_list
+                            ret_dict['put_order_imbalance'] = put_order_imbalance_list
+                        except:
+                            ret_dict['call_order_imbalance'] = []
+                            ret_dict['put_order_imbalance'] = []
+                            app.logger.error(traceback.format_exc())
 
                     if gathered_res[3] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[3]])
-                        if len(df) > 0:
+                        try:
+                            df = pd.DataFrame([dict(x) for x in gathered_res[3]])
                             latest_data_tstamp = df.tstamp.min()
                             latest_data_tstamp_str = latest_data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
                             qc_comment = "***STALE TSTAMP!***" if (tstamp_utc.replace(tzinfo=None)-latest_data_tstamp).total_seconds() > 60 else ""
                             ret_dict['qc_comment'] = qc_comment
                             ret_dict['data_tstamp'] = latest_data_tstamp_str
-                        else:
+                        except:
                             qc_comment = "***STALE TSTAMP!***"
                             ret_dict['qc_comment'] = qc_comment
                             ret_dict['data_tstamp'] = "null"
+                            app.logger.error(traceback.format_exc())
 
                     if gathered_res[4] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[4]])
                         try:
+                            df = pd.DataFrame([dict(x) for x in gathered_res[4]])
                             if len(df) == 0:
                                 raise LookupError("null quote query!")
                             spot_price = ret_dict['spx_price']
@@ -401,115 +407,142 @@ async def ws_main_socket():
                             app.logger.error(traceback.format_exc())
 
                     if gathered_res[5] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[5]])
-                        df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
-                        df['convexity'] = df.gamma*df.order_imbalance
-                        df['pos_convexity'] = df.convexity.where(df.convexity>0)
-                        df['neg_convexity'] = df.convexity.where(df.convexity<=0)
+                        try:
+                            df = pd.DataFrame([dict(x) for x in gathered_res[5]])
+                            df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
+                            df['convexity'] = df.gamma*df.order_imbalance
+                            df['pos_convexity'] = df.convexity.where(df.convexity>0)
+                            df['neg_convexity'] = df.convexity.where(df.convexity<=0)
 
-                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)] # consider moving this up prior filter like ndx
-                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
+                            major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)] # consider moving this up prior filter like ndx
+                            major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
 
-                        df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
-                        convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
+                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
+                            convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
 
-                        ret_dict['convexity_list'] = convexity_list
-                        ret_dict['major_pos_convexity'] = major_pos_convexity
-                        ret_dict['major_neg_convexity'] = major_neg_convexity
+                            ret_dict['convexity_list'] = convexity_list
+                            ret_dict['major_pos_convexity'] = major_pos_convexity
+                            ret_dict['major_neg_convexity'] = major_neg_convexity
+                        except:
+                            ret_dict['convexity_list'] = []
+                            ret_dict['major_pos_convexity'] = None
+                            ret_dict['major_pos_convexity'] = None
+                            app.logger.error(traceback.format_exc())
 
                     if gathered_res[6] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[6]])
-                        df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
+                        try:
+                            df = pd.DataFrame([dict(x) for x in gathered_res[6]])
+                            df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
 
-                        df.volatility = df.volatility
-                        df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
+                            df.volatility = df.volatility
+                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
 
-                        cdf = df[df.contract_type=='C']
-                        pdf = df[df.contract_type=='P']
-                        volatility_list = [cdf.strike.tolist(),cdf.volatility.tolist(),pdf.volatility.tolist()]
-                        ret_dict['volatility_list'] = volatility_list
+                            cdf = df[df.contract_type=='C']
+                            pdf = df[df.contract_type=='P']
+                            volatility_list = [cdf.strike.tolist(),cdf.volatility.tolist(),pdf.volatility.tolist()]
+                            ret_dict['volatility_list'] = volatility_list
+                        except:
+                            ret_dict['volatility_list'] = []
+                            app.logger.error(traceback.format_exc())
 
                     if gathered_res[7] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[7]])
-                        df['convexity'] = df.gamma*df.order_imbalance
-                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
-                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
-                        ndx_max_lim = np.max([ndx_max_lim,major_pos_convexity+500,major_neg_convexity+500])
-                        ndx_min_lim = np.min([ndx_min_lim,major_pos_convexity-500,major_neg_convexity-500])
+                        try:
+                            df = pd.DataFrame([dict(x) for x in gathered_res[7]])
+                            df['convexity'] = df.gamma*df.order_imbalance
+                            major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
+                            major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
+                            ndx_max_lim = np.max([ndx_max_lim,major_pos_convexity+500,major_neg_convexity+500])
+                            ndx_min_lim = np.min([ndx_min_lim,major_pos_convexity-500,major_neg_convexity-500])
 
-                        df = df[(df.strike>ndx_min_lim) & (df.strike<ndx_max_lim)].reset_index()
-                        
-                        df['pos_convexity'] = df.convexity.where(df.convexity>0)
-                        df['neg_convexity'] = df.convexity.where(df.convexity<=0)
+                            df = df[(df.strike>ndx_min_lim) & (df.strike<ndx_max_lim)].reset_index()
+                            
+                            df['pos_convexity'] = df.convexity.where(df.convexity>0)
+                            df['neg_convexity'] = df.convexity.where(df.convexity<=0)
 
-                        df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
-                        convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
+                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
+                            convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
 
-                        ret_dict['ndx_convexity_list'] = convexity_list
-                        ret_dict['ndx_major_pos_convexity'] = major_pos_convexity
-                        ret_dict['ndx_major_neg_convexity'] = major_neg_convexity
+                            ret_dict['ndx_convexity_list'] = convexity_list
+                            ret_dict['ndx_major_pos_convexity'] = major_pos_convexity
+                            ret_dict['ndx_major_neg_convexity'] = major_neg_convexity
+                        except:
+                            ret_dict['ndx_convexity_list'] = []
+                            ret_dict['ndx_major_pos_convexity'] = None
+                            ret_dict['ndx_major_neg_convexity'] = None
+                            app.logger.error(traceback.format_exc())
 
                     if gathered_res[8] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[8]])
-                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
-                        df = df.dropna()
-                        order_imbalance_zoomin_df = df.copy()
+                        try:
+                            df = pd.DataFrame([dict(x) for x in gathered_res[8]])
+                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                            df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
+                            df = df.dropna()
+                            order_imbalance_zoomin_df = df.copy()
 
-                        filter_list = [
-                            df.order_imbalance<-200,
-                            (df.order_imbalance>=-200)&(df.order_imbalance<-100),
-                            (df.order_imbalance>=-100)&(df.order_imbalance<-50),
-                            (df.order_imbalance>=-50)&(df.order_imbalance<-25),
-                            (df.order_imbalance>=-25)&(df.order_imbalance<-10),
-                            (df.order_imbalance>=-10)&(df.order_imbalance<0),
-                            (df.order_imbalance>=0)&(df.order_imbalance<10),
-                            (df.order_imbalance>=10)&(df.order_imbalance<25),
-                            (df.order_imbalance>=25)&(df.order_imbalance<50),
-                            (df.order_imbalance>=50)&(df.order_imbalance<100),
-                            (df.order_imbalance>=100)&(df.order_imbalance<200),
-                            df.order_imbalance>=200,
-                        ]
-                        call_order_imbalance_list = [[],]
-                        put_order_imbalance_list = [[],]
-                        for row_filter in filter_list:
-                            row_tstamp = df.tstamp[row_filter&(df.contract_type=="C")].to_list()
-                            row_strike = df.strike[row_filter&(df.contract_type=="C")].to_list()
-                            call_item = [row_tstamp,row_strike,[]]
-                            call_order_imbalance_list.append(call_item)
-                            row_tstamp = df.tstamp[row_filter&(df.contract_type=="P")].to_list()
-                            row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
-                            put_item = [row_tstamp,row_strike,[]]
-                            put_order_imbalance_list.append(put_item)
-                        # add spx price for the past 10 min
-                        lst = ret_dict['prices']
-                        offset = -30
-                        call_order_imbalance_list.append([ lst[0][offset:],lst[-1][offset:],[] ])
-                        put_order_imbalance_list.append([ lst[0][offset:],lst[-1][offset:],[] ])
+                            filter_list = [
+                                df.order_imbalance<-200,
+                                (df.order_imbalance>=-200)&(df.order_imbalance<-100),
+                                (df.order_imbalance>=-100)&(df.order_imbalance<-50),
+                                (df.order_imbalance>=-50)&(df.order_imbalance<-25),
+                                (df.order_imbalance>=-25)&(df.order_imbalance<-10),
+                                (df.order_imbalance>=-10)&(df.order_imbalance<0),
+                                (df.order_imbalance>=0)&(df.order_imbalance<10),
+                                (df.order_imbalance>=10)&(df.order_imbalance<25),
+                                (df.order_imbalance>=25)&(df.order_imbalance<50),
+                                (df.order_imbalance>=50)&(df.order_imbalance<100),
+                                (df.order_imbalance>=100)&(df.order_imbalance<200),
+                                df.order_imbalance>=200,
+                            ]
+                            call_order_imbalance_list = [[],]
+                            put_order_imbalance_list = [[],]
+                            for row_filter in filter_list:
+                                row_tstamp = df.tstamp[row_filter&(df.contract_type=="C")].to_list()
+                                row_strike = df.strike[row_filter&(df.contract_type=="C")].to_list()
+                                call_item = [row_tstamp,row_strike,[]]
+                                call_order_imbalance_list.append(call_item)
+                                row_tstamp = df.tstamp[row_filter&(df.contract_type=="P")].to_list()
+                                row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
+                                put_item = [row_tstamp,row_strike,[]]
+                                put_order_imbalance_list.append(put_item)
+                            # add spx price for the past 10 min
+                            lst = ret_dict['prices']
+                            offset = -30
+                            call_order_imbalance_list.append([ lst[0][offset:],lst[-1][offset:],[] ])
+                            put_order_imbalance_list.append([ lst[0][offset:],lst[-1][offset:],[] ])
 
-                        ret_dict['call_order_imbalance_zoomin'] = call_order_imbalance_list
-                        ret_dict['put_order_imbalance_zoomin'] = put_order_imbalance_list
+                            ret_dict['call_order_imbalance_zoomin'] = call_order_imbalance_list
+                            ret_dict['put_order_imbalance_zoomin'] = put_order_imbalance_list
+                        except:
+                            ret_dict['call_order_imbalance_zoomin'] = []
+                            ret_dict['call_order_imbalance_zoomin'] = []
+                            app.logger.error(traceback.format_exc())
 
                     if gathered_res[9] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[9]])
-                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df['gex_diff'] = df.gex.diff()
-                        df['convexity_diff'] = df.convexity.diff()
-                        df = df.replace({np.nan: None})
+                        try:
+                            df = pd.DataFrame([dict(x) for x in gathered_res[9]])
+                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                            df['gex_diff'] = df.gex.diff()
+                            df['convexity_diff'] = df.convexity.diff()
+                            df = df.replace({np.nan: None})
 
-                        gex_lst = [df[i].tolist() for i in ['tstamp','gex','gex_diff']]
-                        ret_dict['gexdiff'] = gex_lst
-                        convexity_lst = [df[i].tolist() for i in ['tstamp','convexity','convexity_diff']]
-                        ret_dict['convexitydiff'] = convexity_lst
+                            gex_lst = [df[i].tolist() for i in ['tstamp','gex','gex_diff']]
+                            ret_dict['gexdiff'] = gex_lst
+                            convexity_lst = [df[i].tolist() for i in ['tstamp','convexity','convexity_diff']]
+                            ret_dict['convexitydiff'] = convexity_lst
 
-                        dex_lst = [df[i].tolist() for i in ['tstamp','spot_price','dex','call_dex','put_dex']]
-                        ret_dict['dex'] = dex_lst
-
-                    message = ""
-                    #if vix_price > 19: message+= "vix > 19, good gamma scalping environment"
+                            dex_lst = [df[i].tolist() for i in ['tstamp','spot_price','dex','call_dex','put_dex']]
+                            ret_dict['dex'] = dex_lst
+                        except:
+                            ret_dict['gexdiff'] = []
+                            ret_dict['convexitydiff'] = []
+                            ret_dict['dex'] = []
+                            app.logger.error(traceback.format_exc())
+                    
+                    commentary = ''
+                    #if vix_price > 19: commentary+= "vix > 19, good gamma scalping environment"
                     # if gap up 0.5%, becare of negative gamma below spot, do not short put
                     # if huge order_imblance order_imbalance_zoomin_df
-                    ret_dict['commentary'] = message
+                    ret_dict['commentary'] = None
 
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"

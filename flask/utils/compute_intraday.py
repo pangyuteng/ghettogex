@@ -256,7 +256,7 @@ async def _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
         try:
             await cpostgres_copy(aconn,query_dict)
         except:
-            logger.error(f"{query_dict}")
+            #logger.error(f"{query_dict}")
             traceback.print_exc()
 
     time_e = time.time()
