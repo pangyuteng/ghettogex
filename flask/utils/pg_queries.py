@@ -25,8 +25,9 @@ ORDER_IMBALANCE_QUERY = """
 select * from order_imbalance where tstamp::date = %s and ticker = %s
 """
 
+# select * from candle_1min where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
 ORDER_IMBALANCE_LASTXMIN_QUERY = """
-select * from candle_1min where ticker = %s and expiration = %s AND tstamp > %s - interval '30 minute'
+select tstamp,event_symbol,strike,contract_type,(ask_volume-bid_volume) as order_imbalance from candle where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
 """
 
 CONVEXITY_QUERY = """
@@ -139,7 +140,7 @@ LEFT JOIN event_sec using (tstamp)
 ORDER BY tstamp
 """
 
-GEX_CONVEXITY_RAW_QUERY = """
+GEX_CONVEXITY_LASTXMIN_QUERY = """
 select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex 
 from event_underlying where ticker = %s and tstamp > %s - interval '10 minute' and tstamp <= %s
 ORDER BY tstamp
