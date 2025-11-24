@@ -437,7 +437,8 @@ async def ws_main_socket():
                             df = pd.DataFrame([dict(x) for x in gathered_res[6]])
                             df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
 
-                            df.volatility = df.volatility
+                            df.loc[(df.contract_type == 'C')&(df.strike<spot_price), 'volatility'] = 0
+                            df.loc[(df.contract_type == 'P')&(df.strike>spot_price), 'volatility'] = 0
                             df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
 
                             cdf = df[df.contract_type=='C']
