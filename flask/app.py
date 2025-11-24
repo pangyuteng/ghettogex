@@ -273,7 +273,10 @@ async def ws_main_socket():
                         lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]]
                         ret_dict['prices'] = lst
                         ret_dict['es_price'] = df.es_close.iloc[-1]
-                        vix_price = df.vix_close.iloc[-1]
+
+                        vix_index = df.vix_close.last_valid_index()
+                        vix_price = df.vix_close[vix_index]
+
                         ret_dict['vix_price'] = vix_price
                         ret_dict['spx_price'] = df.spx_close.iloc[-1]
                         ret_dict['ndx_price'] = df.ndx_close.iloc[-1]
