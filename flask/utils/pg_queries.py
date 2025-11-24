@@ -140,6 +140,7 @@ ORDER BY tstamp
 """
 
 GEX_CONVEXITY_RAW_QUERY = """
-select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex from event_underlying where ticker = %s and tstamp > %s - interval '30 minute' and tstamp <= %s
+select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex 
+from event_underlying where ticker = %s and tstamp > %s - interval '10 minute' and tstamp <= %s
 ORDER BY tstamp
 """

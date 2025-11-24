@@ -524,11 +524,12 @@ async def ws_main_socket():
                         try:
                             df = pd.DataFrame([dict(x) for x in gathered_res[9]])
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+                            df.gex = df.gex/1e9
                             df['gex_diff'] = df.gex.diff()
                             df['convexity_diff'] = df.convexity.diff()
                             df = df.replace({np.nan: None})
 
-                            gex_lst = [df[i].tolist() for i in ['tstamp','gex','gex_diff']]
+                            gex_lst = [df[i].tolist() for i in ['tstamp','gex_diff','gex']]
                             ret_dict['gexdiff'] = gex_lst
                             convexity_lst = [df[i].tolist() for i in ['tstamp','convexity','convexity_diff']]
                             ret_dict['convexitydiff'] = convexity_lst

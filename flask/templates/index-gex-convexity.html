@@ -3,7 +3,7 @@
 function makeChartGexDiff() {
 	let isYRangeFixed = false;
 	const opts = {
-		title: "last-30min",
+		title: "last-x-min",
 		width: 240,
 		height: 380,
 		legend: {
@@ -12,20 +12,20 @@ function makeChartGexDiff() {
 		series: [
 			{},
 			{
-				label: "net_gex",
-				scale: "scale0",
-				value: (u, v) => v == null ? null : v.toFixed(2) + "",
-				stroke: "rgba(100,200,100,0.7)",
-				dash: [3,3],
-				width: 2/devicePixelRatio
-			},
-			{
 				label: "diff(net_gex)",
 				scale: "scale1",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
 				paths: uPlot.paths.bars(),
-				fill: "rgba(210,210,10,1)",
+				fill: "rgba(210,210,10,0.7)",
 				width: 5/devicePixelRatio,
+			},
+			{
+				label: "net_gex",
+				scale: "scale0",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				stroke: "rgba(100,200,100,1)",
+				dash: [3, 3],
+				width: 2/devicePixelRatio
 			},
 		],
 		axes: [
@@ -59,7 +59,7 @@ function makeChartGexDiff() {
 function makeChartConvexityDiff() {
 	let isYRangeFixed = false;
 	const opts = {
-		title: "last-30min",
+		title: "last-x-min",
 		width: 210,
 		height: 380,
 		legend: {
