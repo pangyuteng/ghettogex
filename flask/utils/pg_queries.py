@@ -25,7 +25,6 @@ ORDER_IMBALANCE_QUERY = """
 select * from order_imbalance where tstamp::date = %s and ticker = %s
 """
 
-# select * from candle_1min where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
 ORDER_IMBALANCE_LASTXMIN_QUERY = """
 select tstamp,event_symbol,strike,contract_type,(ask_volume-bid_volume) as order_imbalance from candle where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
 """
@@ -60,6 +59,7 @@ LEFT JOIN g_1day using (ticker,strike)
 ORDER BY strike
 """
 
+# not used, unsure if order imablance 1day or 1hr is preferred, maybe both?
 CONVEXITY_1HOUR_QUERY = """
 WITH o_1hr AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
@@ -132,16 +132,22 @@ SELECT * FROM last_tstamp
 LEFT JOIN last_gex_strike using (tstamp)
 """
 
-GEX_CONVEXITY_1MIN_QUERY = """
-WITH price_sec AS (select tstamp,close as spx_close from candle_1min where event_symbol = %s and close != 0 and tstamp > %s - interval '30 minute' and tstamp <= %s),
-event_sec AS (select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex from event_underlying_1min where ticker = %s and tstamp > %s - interval '30 minute' and tstamp <= %s)
-SELECT * FROM price_sec
-LEFT JOIN event_sec using (tstamp)
-ORDER BY tstamp
-"""
-
 GEX_CONVEXITY_LASTXMIN_QUERY = """
 select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex 
 from event_underlying where ticker = %s and tstamp > %s - interval '10 minute' and tstamp <= %s
+ORDER BY tstamp
+"""
+
+# not used - old info, why bother
+GEX_CONVEXITY_30MIN_QUERY = """
+select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex from event_underlying_1min
+where ticker = %s and tstamp > %s - interval '30 minute' and tstamp <= %s
+ORDER BY tstamp
+"""
+
+# not used - old info, why bother
+GEX_CONVEXITY_1DAY_QUERY = """
+select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex from event_underlying_1min 
+where ticker = %s and tstamp::date = %s
 ORDER BY tstamp
 """
