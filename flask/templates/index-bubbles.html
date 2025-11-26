@@ -153,8 +153,8 @@ function makeChartBubbles(elementName,mytitle,chartWidth,showLegend) {
 }
 
 
-let mychartEsBubbles = makeChartBubbles("myEsBubbles","es",380,false);
-let mychartUvxyBubbles = makeChartBubbles("myUvxyBubbles","uvxy",380,false);
+let mychartEsBubbles = makeChartBubbles("myEsBubbles","es,last-x-min",380,false);
+let mychartUvxyBubbles = makeChartBubbles("myUvxyBubbles","uvxy,last-x-min",380,false);
 
 function updateChartEsBubbles(data){
 	mychartEsBubbles.setData(data);

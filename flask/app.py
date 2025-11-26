@@ -64,7 +64,7 @@ from utils.pg_queries import (
     CONVEXITYDX_QUERY,
     GREEKS_QUERY,
     GEX_CONVEXITY_LASTXMIN_QUERY,
-    BUBBLES_1MIN_QUERY
+    BUBBLES_1DAY_QUERY
 )
 
 from utils.data_tasty import (
@@ -255,7 +255,7 @@ async def ws_main_socket():
                         apostgres_execute(apool,GREEKS_QUERY,(ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,CONVEXITYDX_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,ORDER_IMBALANCE_LASTXMIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
-                        apostgres_execute(apool,BUBBLES_1MIN_QUERY,(dstamp,)),
+                        apostgres_execute(apool,BUBBLES_1DAY_QUERY,(dstamp,)),
                         apostgres_execute(apool,GEX_CONVEXITY_LASTXMIN_QUERY,(ticker,tstamp_utc,tstamp_utc)),
                     ]
 
@@ -534,7 +534,7 @@ async def ws_main_socket():
                             es_df = df[df.event_symbol!='UVXY'].copy()
                             uvxy_df = df[df.event_symbol=='UVXY']
                             
-                            es_df.order_imbalance_ratio = es_df.order_imbalance_ratio *3 # scale to circle visible
+                            es_df.order_imbalance_ratio = es_df.order_imbalance_ratio *3 # scale to circle visible for candle_1min table
                             green_es_tstamp = es_df[es_df.color=='green'].tstamp.to_list()
                             green_es_price = es_df[es_df.color=='green'].close.to_list()
                             green_es_order_imbalance_ratio = es_df[es_df.color=='green'].order_imbalance_ratio.abs().to_list()

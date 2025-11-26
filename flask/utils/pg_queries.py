@@ -152,10 +152,21 @@ where ticker = %s and tstamp::date = %s
 ORDER BY tstamp
 """
 
-BUBBLES_1MIN_QUERY = """
+# not used - noisy
+BUBBLES_LAXSTXMIN_QUERY = """
+select tstamp,event_symbol,open,close,ask_volume,bid_volume
+from candle
+where (event_symbol like '/ES%%' or event_symbol = 'UVXY') 
+and tstamp > %s - interval '10 minute' and tstamp <= %s
+and open != 0 and close != 0
+ORDER BY tstamp
+"""
+
+BUBBLES_1DAY_QUERY = """
 select tstamp,event_symbol,open,close,ask_volume,bid_volume
 from candle_1min
 where (event_symbol like '/ES%%' or event_symbol = 'UVXY') 
-and tstamp::date = %s and open != 0 and close != 0
+and tstamp::date = %s
+and open != 0 and close != 0
 ORDER BY tstamp
 """
