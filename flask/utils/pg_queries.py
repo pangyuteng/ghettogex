@@ -151,3 +151,11 @@ select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex from event_underlyin
 where ticker = %s and tstamp::date = %s
 ORDER BY tstamp
 """
+
+BUBBLES_1MIN_QUERY = """
+select tstamp,event_symbol,open,close,ask_volume,bid_volume
+from candle_1min
+where (event_symbol like '/ES%%' or event_symbol = 'UVXY') 
+and tstamp::date = %s and open != 0 and close != 0
+ORDER BY tstamp
+"""

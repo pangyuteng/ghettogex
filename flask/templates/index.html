@@ -33,17 +33,25 @@ ndx: <span id="ndxpriceSpan" style="font-size: 20px !important; color: #8f8f8f;"
 
 <div class="box">
     <div class="one" id="mySPXVIX"></div>
+    <div class="one" id="myEsBubbles"></div>
+    <div class="one" id="myUvxyBubbles"></div>
+</div>
+
+<div class="box">
     <div class="one" id="myCallOrderImbalance"></div>
     <div class="one" id="myPutOrderImbalance"></div>
-    <div class="one" id="myDex"></div>
     <div class="one" id="myCallOrderImbalanceZoomIn"></div>
     <div class="one" id="myPutOrderImbalanceZoomIn"></div>
 </div>
+
 <div class="box">
     <div class="one" id="mySPXVolatility"></div>
     <div class="one" id="myGexStrike"></div>
     <div class="one" id="myConvexity"></div>
     <div class="one" id="myNdxConvexity"></div>
+</div>
+<div class="box">
+    <div class="one" id="myDex"></div>
     <div class="one" id="myGexDiff"></div>
     <div class="one" id="myConvexityDiff"></div>
 </div>
@@ -60,6 +68,7 @@ server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; co
 {% include 'index-convexity-ndx.html' %}
 {% include 'index-volatility.html' %}
 {% include 'index-gex-convexity.html' %}
+{% include 'index-bubbles.html' %}
 
 {% include 'index-ws.html' %}
 
