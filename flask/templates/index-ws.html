@@ -10,6 +10,7 @@
     let espriceSpan = document.getElementById("espriceSpan");
     let vixSpan = document.getElementById("vixSpan");
     let commentarySpan = document.getElementById("commentarySpan");
+    let likelyCloseSpan = document.getElementById("likelyCloseSpan");
 
     ws.onmessage = function(event) {
         let newdata = JSON.parse(event.data);
@@ -23,7 +24,8 @@
         espriceSpan.textContent = newdata.es_price;
         vixSpan.textContent = newdata.vix_price;
         commentarySpan.textContent = newdata.commentary;
-        updateChartPrices(newdata.prices,newdata.spot_min_lim,newdata.spot_max_lim);
+        likelyCloseSpan.textContent = newdata.likey_close_price_list;
+        updateChartPrices(newdata);
         updateChartEsBubbles(newdata.esdata);
         updateChartUvxyBubbles(newdata.uvxydata);
         updateChartDex(newdata.dex,newdata.spot_min_lim,newdata.spot_max_lim);

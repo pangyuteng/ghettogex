@@ -1,5 +1,35 @@
 <script>
 
+function linesPricesPlugin({linesPrices}) {
+	function drawLines(u) {
+		const { ctx, bbox } = u;
+		linesPrices.forEach( item => {
+			xVal = item[0];
+			color = item[1];
+			let x4 = u.valToPos(xVal, 'scale0', true);
+			let ylft = u.valToPos(u.scales.x.min, 'x', true);
+			let yrgt = u.valToPos(u.scales.x.max, 'x', true);
+			u.ctx.save();
+			u.ctx.beginPath();
+			u.ctx.moveTo(ylft,x4);
+			u.ctx.lineTo(yrgt,x4);
+			u.ctx.setLineDash([5,5]);
+			u.ctx.lineWidth = 1.5;
+			u.ctx.strokeStyle = color;
+			u.ctx.stroke();
+			u.ctx.restore();
+		});
+	}
+
+  return {
+    hooks: {
+      draw: drawLines,
+    }
+  };
+}
+
+const linesPrices = [];
+
 function makeChartPrices() {
 	let isYRangeFixed = false;
 	const opts = {
@@ -22,6 +52,9 @@ function makeChartPrices() {
 				width: 2/devicePixelRatio,
 				stroke: "rgba(255,255,255,1)",
 			},
+		],
+		plugins: [
+			linesPricesPlugin({linesPrices})
 		],
 		axes: [
 			{
@@ -53,9 +86,14 @@ function makeChartPrices() {
 
 let mychartPrices = makeChartPrices();
 
-function updateChartPrices(data,minval,maxval){
-	//mychartPrices.setScale('scale0', {min: minval, max: maxval});
-	mychartPrices.setData(data);
+function updateChartPrices(data){
+	mychartPrices.setScale('scale0', {min: data.spot_min_lim, max: data.spot_max_lim});
+	linesPrices[0] = [data.likey_close_price_list[0],'gray'];
+	linesPrices[1] = [data.likey_close_price_list[1],'gray'];
+	linesPrices[2] = [data.likey_close_price_list[2],'gray'];
+	linesPrices[3] = [data.likey_close_price_list[3],'gray'];
+
+	mychartPrices.setData(data.prices);
 }
 
 </script>
