@@ -272,6 +272,10 @@ async def ws_main_socket():
                     spot_min_lim = 0
 
                     if gathered_res[0] is not None:
+
+                        if len(gathered_res[0]) == 0:
+                            raise ValueError("found no data!")
+
                         df = pd.DataFrame([dict(x) for x in gathered_res[0]])
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df.ndx_close = df.ndx_close.round(decimals=2)
@@ -279,7 +283,7 @@ async def ws_main_socket():
                         lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]]
                         ret_dict['prices'] = lst
                         ret_dict['es_price'] = df.es_close.iloc[-1]
-#
+
                         vix_open = df.vix_close[df.vix_close.first_valid_index()]
                         spx_open = df.spx_close[df.spx_close.first_valid_index()]
                         filtered_df = prct_range_df[(prct_range_df.maxvix>vix_open)&(prct_range_df.minvix<=vix_open)].reset_index()
@@ -559,6 +563,7 @@ async def ws_main_socket():
                             es_list = [[],
                                 [green_es_tstamp,green_es_price,green_es_order_imbalance_ratio],
                                 [red_es_tstamp,red_es_price,red_es_order_imbalance_ratio],
+                                [es_df.tstamp.to_list(),es_df.close.to_list()],
                             ]
                             
                             green_uvxy_tstamp = uvxy_df[uvxy_df.color=='green'].tstamp.to_list()
@@ -572,6 +577,7 @@ async def ws_main_socket():
                             uvxy_list = [[],
                                 [green_uvxy_tstamp,green_uvxy_price,green_uvxy_order_imbalance_ratio],
                                 [red_uvxy_tstamp,red_uvxy_price,red_uvxy_order_imbalance_ratio],
+                                [uvxy_df.tstamp.to_list(),uvxy_df.close.to_list()],
                             ]
 
                             ret_dict['esdata'] = es_list

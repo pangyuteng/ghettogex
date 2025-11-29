@@ -142,12 +142,17 @@ function makeChartBubbles(elementName,mytitle,chartWidth,showLegend) {
 				fill: "rgba(255,0,0,0.5)",
 				paths: drawPoints,
 			},
+			{
+				stroke: "rgba(255,255,255,0.5)",
+				width: 2/devicePixelRatio,
+			},
 		],
 	};
 	// first element has to be empty, didt not investigate why, guessing uplot architecture constraint.
 	let ogdata = [ [],
 		[[1,1,1],[1,1,1],[1,1,1]],
 		[[1,1,1],[1,1,1],[1,1,1]],
+		[[1,1],[2,2]],
 	] ;
 	return new uPlot(opts, ogdata, document.getElementById(elementName));
 }
