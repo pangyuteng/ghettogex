@@ -279,7 +279,7 @@ async def ws_main_socket():
                         lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]]
                         ret_dict['prices'] = lst
                         ret_dict['es_price'] = df.es_close.iloc[-1]
-
+#
                         vix_open = df.vix_close[df.vix_close.first_valid_index()]
                         spx_open = df.spx_close[df.spx_close.first_valid_index()]
                         filtered_df = prct_range_df[(prct_range_df.maxvix>vix_open)&(prct_range_df.minvix<=vix_open)].reset_index()
@@ -612,12 +612,13 @@ async def ws_main_socket():
 
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['duration_time'] = f"{duration_time:0.3f}sec"
+                    ret_dict['error_status'] = None
                 except:
                     ret_dict['qc_comment'] = "unexpected error!!! ffff likely missing data, services down!"
                     ret_dict['duration_time'] = None
                     ret_dict['data_tstamp'] = None
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                    ret_dict['status'] = 'traceback:'+traceback.format_exc()
+                    ret_dict['error_status'] = 'traceback:'+traceback.format_exc()
                     app.logger.error(traceback.format_exc())
 
                 await websocket.send_json(ret_dict)

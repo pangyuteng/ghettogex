@@ -1,6 +1,7 @@
 
 <script>
     const ws = new WebSocket("/ws-main-socket?dstamp={{ dstamp }}");
+    let errorSpan = document.getElementById("errorSpan");
     let dataQcSpan = document.getElementById("dataQcSpan");
     let serverTstampSpan = document.getElementById("serverTstampSpan");
     let queryTimeSpan = document.getElementById("queryTimeSpan");
@@ -14,6 +15,7 @@
 
     ws.onmessage = function(event) {
         let newdata = JSON.parse(event.data);
+        errorSpan.textContent = newdata.error_status;
         dataQcSpan.textContent = newdata.qc_comment;
         serverTstampSpan.textContent = newdata.server_tstamp;
         serverTstampSpan.textContent = newdata.server_tstamp;
