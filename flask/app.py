@@ -548,21 +548,20 @@ async def ws_main_socket():
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                             df = df.replace({np.nan: 0})
                             
-                            #df['order_imbalance_ratio'] = (df.ask_volume-df.bid_volume)/(df.ask_volume+df.bid_volume)
-                            #df['color'] = df.apply(lambda x: 'green' if x.order_imbalance_ratio > 0 else 'red',axis=1)
-
-                            # copying bookmap?? ask-bid only. no normalize.
-                            df['order_imbalance_ratio'] = df.ask_volume-df.bid_volume
                             if False: # for whole day.
+                                df['order_imbalance_ratio'] = (df.ask_volume-df.bid_volume)/(df.ask_volume+df.bid_volume)
+                                df['color'] = df.apply(lambda x: 'green' if x.order_imbalance_ratio > 0 else 'red',axis=1)
                                 df.order_imbalance_ratio = df.order_imbalance_ratio/50
                             if True:
+                                # copying bookmap?? ask-bid only. no normalize.
+                                df['order_imbalance_ratio'] = df.ask_volume-df.bid_volume
                                 df.order_imbalance_ratio = df.order_imbalance_ratio
-                            
+
                             df['color'] = df.apply(lambda x: 'green' if x.order_imbalance_ratio > 0 else 'red',axis=1)
                             df.order_imbalance_ratio = df.order_imbalance_ratio.abs()
 
                             es_df = df[df.event_symbol!='UVXY'].copy()
-                            uvxy_df = df[df.event_symbol=='UVXY']
+                            uvxy_df = df[df.event_symbol=='UVXY'].copy()
 
                             if False: # for whole day.
                                 es_df.order_imbalance_ratio = es_df.order_imbalance_ratio * 2 # scale to circle visible for candle_1min table
