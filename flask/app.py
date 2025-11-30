@@ -63,6 +63,7 @@ from utils.pg_queries import (
     CONVEXITY_QUERY,
     CONVEXITYDX_QUERY,
     GREEKS_QUERY,
+    GEX_CONVEXITY_1DAY_QUERY,
     GEX_CONVEXITY_LASTXMIN_QUERY,
     BUBBLES_1DAY_QUERY,
     BUBBLES_LAXSTXMIN_QUERY
@@ -262,7 +263,8 @@ async def ws_main_socket():
                         apostgres_execute(apool,ORDER_IMBALANCE_LASTXMIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
                         #apostgres_execute(apool,BUBBLES_1DAY_QUERY,(dstamp,)),
                         apostgres_execute(apool,BUBBLES_LAXSTXMIN_QUERY,(tstamp_utc,tstamp_utc)),
-                        apostgres_execute(apool,GEX_CONVEXITY_LASTXMIN_QUERY,(ticker,tstamp_utc,tstamp_utc)),
+                        #apostgres_execute(apool,GEX_CONVEXITY_LASTXMIN_QUERY,(ticker,tstamp_utc,tstamp_utc)),
+                        apostgres_execute(apool,GEX_CONVEXITY_1DAY_QUERY,(ticker,dstamp)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)

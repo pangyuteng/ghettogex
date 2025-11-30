@@ -138,21 +138,12 @@ from event_underlying where ticker = %s and tstamp > %s - interval '10 minute' a
 ORDER BY tstamp
 """
 
-# not used - old info, why bother
-GEX_CONVEXITY_30MIN_QUERY = """
-select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex from event_underlying_1min
-where ticker = %s and tstamp > %s - interval '30 minute' and tstamp <= %s
-ORDER BY tstamp
-"""
-
-# not used - old info, why bother
 GEX_CONVEXITY_1DAY_QUERY = """
 select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex from event_underlying_1min 
 where ticker = %s and tstamp::date = %s
 ORDER BY tstamp
 """
 
-# not used - noisy
 BUBBLES_LAXSTXMIN_QUERY = """
 select tstamp,event_symbol,open,close,ask_volume,bid_volume
 from candle
