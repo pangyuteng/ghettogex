@@ -157,7 +157,7 @@ BUBBLES_LAXSTXMIN_QUERY = """
 select tstamp,event_symbol,open,close,ask_volume,bid_volume
 from candle
 where (event_symbol like '/ES%%' or event_symbol = 'UVXY') 
-and tstamp > %s - interval '10 minute' and tstamp <= %s
+and tstamp > %s - interval '60 minute' and tstamp <= %s
 and open != 0 and close != 0
 ORDER BY tstamp
 """

@@ -20,7 +20,8 @@ function makeChartBubbles(elementName,mytitle,chartWidth,showLegend) {
 			for (let i = 0; i < d[0].length; i++) {
 				let xVal = d[0][i];
 				let yVal = d[1][i];
-				let size = 20 * d[2][i] * pxRatio;;
+				//let size = 20 * d[2][i] * pxRatio; // for wholeday
+				let size = d[2][i] * pxRatio;; // for last-x-min
 				
 				if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
 					let cx = valToPosX(xVal, scaleX, xDim, xOff);
