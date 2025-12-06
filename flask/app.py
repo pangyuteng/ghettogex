@@ -612,6 +612,11 @@ async def ws_main_socket():
                     if gathered_res[10] is not None:
                         try:
                             df = pd.DataFrame([dict(x) for x in gathered_res[10]])
+
+                            if len(df) > 5:
+                                # ignore the first 2 minutes, as gex data fluctuates as events flow in.
+                                df = df[df.tstamp > market_open+datetime.timedelta(minutes=1)].reset_index()
+
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                             df.gex = df.gex/1e9
                             df['gex_diff'] = df.gex.diff()
