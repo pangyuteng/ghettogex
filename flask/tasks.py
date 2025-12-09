@@ -102,7 +102,15 @@ class ManageSubscription(luigi.Task):
                 else:
                     if ticker not in mydict.keys():
                         session = get_session_reuse()
-                        chain = get_option_chain(session, ticker)
+                        if ticker == 'SPX':
+                            ticker_alt = 'SPXW'
+                        elif ticker == 'NDX':
+                            ticker_alt = 'NDXP'
+                        elif ticker == 'VIX':
+                            ticker_alt = 'VIXW'
+                        else:
+                            ticker_alt = ticker
+                        chain = get_option_chain(session, ticker_alt)
                         expiration_list = ["None"]
                         expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items()])
                     else:
