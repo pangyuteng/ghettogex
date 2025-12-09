@@ -118,7 +118,7 @@ class ManageSubscription(luigi.Task):
 
                     #chunk_list = [','.join(x) for x in chunks(expiration_list, 2)]
                     for n,expirations_str in enumerate(expiration_list):
-                        trigger_subscription.apply_async(args=[ticker_alt,expirations_str],queue="stream")
+                        trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
 
                         if n == 3:
                             break

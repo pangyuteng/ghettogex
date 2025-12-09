@@ -452,6 +452,15 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
         
         session = get_session_reuse()
         
+        if ticker == 'SPX':
+            ticker_alt = 'SPXW'
+        elif ticker == 'NDX':
+            ticker_alt = 'NDXP'
+        elif ticker == 'VIX':
+            ticker_alt = 'VIXW'
+        else:
+            ticker_alt = ticker
+
         if ticker in ["ES"]: # futures with options
             future_list = await Future.a_get(session,product_codes=ticker)
             future_list = sorted(future_list,key=lambda x: x.expires_at,reverse=False)
@@ -462,7 +471,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
             chain = {}
         else: # equity with options
             equity = await Equity.a_get(session, ticker)
-            chain = get_option_chain(session, ticker)
+            chain = get_option_chain(session, ticker_alt)
 
         expirations = sorted(list(chain.keys()))
         live_prices_list = []
