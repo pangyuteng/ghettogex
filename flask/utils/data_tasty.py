@@ -471,7 +471,7 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
             chain = {}
         else: # equity with options
             equity = await Equity.a_get(session, ticker)
-            chain = get_option_chain(session, ticker_alt)
+            chain = get_option_chain(session, ticker)
 
         expirations = sorted(list(chain.keys()))
         live_prices_list = []

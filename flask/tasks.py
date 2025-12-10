@@ -110,7 +110,7 @@ class ManageSubscription(luigi.Task):
                             ticker_alt = 'VIXW'
                         else:
                             ticker_alt = ticker
-                        chain = get_option_chain(session, ticker_alt)
+                        chain = get_option_chain(session, ticker)
                         expiration_list = ["None"]
                         expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items()])
                     else:
