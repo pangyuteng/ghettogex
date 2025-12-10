@@ -89,7 +89,7 @@ class ManageSubscription(luigi.Task):
             fetched = postgres_execute(query_str,query_args,is_commit=False)
             if fetched is None:
                 return
-
+            et_tstamp = now_in_new_york()
             fetched = [dict(x) for x in fetched]
             for row in fetched:
                 ticker = row['ticker']
@@ -112,7 +112,7 @@ class ManageSubscription(luigi.Task):
                             ticker_alt = ticker
                         chain = get_option_chain(session, ticker)
                         expiration_list = ["None"]
-                        expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items()])
+                        expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items() if k >= et_tstamp.date()])
                     else:
                         expiration_list = mydict[ticker]
 
