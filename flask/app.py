@@ -314,8 +314,8 @@ async def ws_main_socket():
                             plus_prct = 1.03
                             minus_prct = 0.97
                         else:
-                            plus_prct = 1.01
-                            minus_prct = 0.99
+                            plus_prct = 1.03
+                            minus_prct = 0.97
 
                         spot_max_lim = df.spx_close.max()*plus_prct # +100
                         spot_min_lim = df.spx_close.min()*minus_prct # -100
