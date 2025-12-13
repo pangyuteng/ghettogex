@@ -32,19 +32,7 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
         async with apool.connection() as aconn:
             try:
-                await _compute_og_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
-            except:
-                logger.error(traceback.format_exc())
-            try:
-                return await _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
-            except:
-                logger.error(traceback.format_exc())
-
-async def test_gex(ticker,et_tstamp,persist_to_postgres=True):
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
-        async with apool.connection() as aconn:
-            try:
-                return await _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
+                return await _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)
             except:
                 logger.error(traceback.format_exc())
 
@@ -57,88 +45,7 @@ async def test_gex(ticker,et_tstamp,persist_to_postgres=True):
     for market maker `mm_order_imbalance` we flip it via *-1.
 """
 
-async def _compute_og_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
-    time_c = time.time()
-    utc = pytz.timezone('UTC')
-    utc_tstamp = et_tstamp.astimezone(tz=utc)
-
-    if ticker == 'SPX':
-        ticker_alt = 'SPXW'
-    elif ticker == 'NDX':
-        ticker_alt = 'NDXP'
-    elif ticker == 'VIX':
-        ticker_alt = 'VIXW'
-    else:
-        ticker_alt = ticker
-
-    expiration = utc_tstamp.date()
-
-    query_args = (ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker,expiration,'VIX',expiration)
-    fetched = await cpostgres_execute(aconn,ORDER_IMBALANCE_GEX_QUERY,query_args)
-    df = pd.DataFrame([dict(x) for x in fetched])
-    df['mm_order_imbalance'] = -1 * df.order_imbalance # see above mm_order_imbalance note
-    df['hedge_sign'] = df.contract_type.apply(lambda x: -1 if x == 'P' else 1)
-
-    # NOTE: we are using dxlink gamma which is lagged by 1 min!!!
-    df['volume_gex'] = df.gamma * df.mm_order_imbalance * df.spot_price * df.spot_price * df.hedge_sign
-    df['state_gex'] = df.volume_gex
-    df['tstamp'] = utc_tstamp.replace(tzinfo=None) # postgres tsamp have no tzinfo
-    df['ticker'] = ticker
-
-    query_dict = {}
-
-    table_cols = ['ticker','strike','tstamp','spot_price','volume_gex','state_gex','mm_order_imbalance']
-
-    strike_ex_df = df[table_cols].copy()
-    strike_ex_df = strike_ex_df.groupby(['ticker','strike','tstamp']).agg(
-        spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
-        volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
-        state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
-    ).reset_index()
-
-    gex_strike_query_str = """
-        COPY gex_strike (ticker,strike,tstamp,volume_gex,state_gex) FROM STDIN
-    """
-    async def insert_gex_strike(row):
-        query_args = [row.ticker,row.strike,row.tstamp,row.volume_gex,row.state_gex]
-        return query_args
-    query_dict[gex_strike_query_str] = await asyncio.gather(*(insert_gex_strike(row) for n,row in strike_ex_df.iterrows()))
-
-    table_cols = [
-        'ticker','tstamp','spot_price','volume_gex','state_gex',
-    ]
-
-    net_gex_df = strike_ex_df[table_cols].copy()
-    net_gex_df = net_gex_df.groupby(['ticker','tstamp']).agg(
-        spot_price=pd.NamedAgg(column="spot_price", aggfunc="last"),
-        volume_gex=pd.NamedAgg(column="volume_gex", aggfunc="sum"),
-        state_gex=pd.NamedAgg(column="state_gex", aggfunc="sum"),
-    ).reset_index()
-
-    gex_net_query_str = """
-        COPY gex_net (ticker,tstamp,volume_gex,state_gex,spot_price) FROM STDIN
-    """
-    async def insert_gex_net(row):
-        query_args = [row.ticker,row.tstamp,row.volume_gex,row.state_gex,row.spot_price]
-        return query_args
-
-    query_dict[gex_net_query_str] = await asyncio.gather(*(insert_gex_net(row) for n,row in net_gex_df.iterrows()))
-
-    if persist_to_postgres:
-        try:
-            await cpostgres_copy(aconn,query_dict)
-        except:
-            logger.error(f"{query_dict}")
-            traceback.print_exc()
-
-    time_e = time.time()
-    logger.info(f'_compute_og_gex done {time_e-time_c}')
-    return net_gex_df
-
-"""
-NOTE: goal of _compute_ghetto_gex is to ultimately replace _compute_og_gex
-"""
-async def _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
+async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     time_c = time.time()
     utc = pytz.timezone('UTC')
     utc_tstamp = et_tstamp.astimezone(tz=utc)
@@ -260,7 +167,7 @@ async def _compute_ghetto_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
             traceback.print_exc()
 
     time_e = time.time()
-    logger.info(f'_compute_ghetto_gex done {time_e-time_c}')
+    logger.info(f'_compute_gex done {time_e-time_c}')
     return underlying_df
 
 
@@ -285,7 +192,7 @@ def tryone(ticker,tstampstr):
     tstamp = pytz.timezone('US/Eastern').localize(tstamp)
     logger.debug(f"{ticker} {tstamp}")
     try:
-        out_df = asyncio.run(test_gex(ticker,tstamp,persist_to_postgres=True))
+        out_df = asyncio.run(compute_gex(ticker,tstamp,persist_to_postgres=True))
         if out_df is not None:
             logger.debug(out_df.head())
             logger.debug(f'gex {out_df.gex.sum()}')
