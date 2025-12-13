@@ -111,16 +111,18 @@ class ManageSubscription(luigi.Task):
                         else:
                             ticker_alt = ticker
                         chain = get_option_chain(session, ticker)
+
+                        # there were a few incidents where i saw expired contracts
                         expiration_list = ["None"]
                         expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items() if k >= et_tstamp.date()])
+                        mydict[ticker] = expiration_list
+
                     else:
                         expiration_list = mydict[ticker]
 
-                    #chunk_list = [','.join(x) for x in chunks(expiration_list, 2)]
                     for n,expirations_str in enumerate(expiration_list):
                         trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
-
-                        if n == 3:
+                        if n == 1:
                             break
 
             if is_market_open():
