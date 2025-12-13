@@ -246,10 +246,12 @@ async def ws_main_socket():
                     ticker = 'SPX'
                     ticker_alt = 'SPXW'
                     ndx_ticker_alt = 'NDXP'
+                    spy_ticker = 'SPY'
+                    qqq_ticker = 'QQQ'
 
                     timea = time.time()
                     query_list = [
-                        apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp)),
+                        apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp,dstamp,dstamp)),
                         apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(ticker,tstamp_utc,ticker_alt,tstamp_utc)),
@@ -260,6 +262,8 @@ async def ws_main_socket():
                         apostgres_execute(apool,CONVEXITYDX_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,ORDER_IMBALANCE_LASTXMIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
                         apostgres_execute(apool,GEX_CONVEXITY_1DAY_QUERY,(ticker,dstamp)),
+                        apostgres_execute(apool,CONVEXITYDX_QUERY,(spy_ticker,dstamp,dstamp,spy_ticker,dstamp,dstamp)),
+                        apostgres_execute(apool,CONVEXITYDX_QUERY,(qqq_ticker,dstamp,dstamp,qqq_ticker,dstamp,dstamp)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
@@ -282,6 +286,9 @@ async def ws_main_socket():
                         lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]]
                         ret_dict['prices'] = lst
                         ret_dict['es_price'] = df.es_close.iloc[-1]
+                        ret_dict['spy_price'] = df.spy_close.iloc[-1]
+                        ret_dict['qqq_price'] = df.qqq_close.iloc[-1]
+
 
                         vix_open = df.vix_close[df.vix_close.first_valid_index()]
                         spx_open = df.spx_close[df.spx_close.first_valid_index()]
@@ -320,6 +327,12 @@ async def ws_main_socket():
                         
                         ndx_max_lim = df.ndx_close.max()*plus_prct
                         ndx_min_lim = df.ndx_close.min()*minus_prct
+
+                        spy_max_lim = df.spy_close.max()*plus_prct
+                        spy_min_lim = df.spy_close.min()*minus_prct
+
+                        qqq_max_lim = df.qqq_close.max()*plus_prct
+                        qqq_min_lim = df.qqq_close.min()*minus_prct
 
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
@@ -473,8 +486,8 @@ async def ws_main_socket():
                             df['convexity'] = df.gamma*df.order_imbalance
                             major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
                             major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
-                            ndx_max_lim = np.max([ndx_max_lim,major_pos_convexity+500,major_neg_convexity+500])
-                            ndx_min_lim = np.min([ndx_min_lim,major_pos_convexity-500,major_neg_convexity-500])
+                            #ndx_max_lim = np.max([ndx_max_lim,major_pos_convexity+100,major_neg_convexity+100])
+                            #ndx_min_lim = np.min([ndx_min_lim,major_pos_convexity-100,major_neg_convexity-100])
 
                             df = df[(df.strike>ndx_min_lim) & (df.strike<ndx_max_lim)].reset_index()
                             
@@ -582,6 +595,58 @@ async def ws_main_socket():
                     ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['error_status'] = 'traceback:'+traceback.format_exc()
                     app.logger.error(traceback.format_exc())
+
+                    if gathered_res[10] is not None:
+                        try:
+                            df = pd.DataFrame([dict(x) for x in gathered_res[10]])
+                            df['convexity'] = df.gamma*df.order_imbalance
+                            major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
+                            major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
+                            #spy_max_lim = np.max([spy_max_lim,major_pos_convexity+100,major_neg_convexity+100])
+                            #spy_min_lim = np.min([spy_min_lim,major_pos_convexity-100,major_neg_convexity-100])
+
+                            df = df[(df.strike>spy_min_lim) & (df.strike<spy_max_lim)].reset_index()
+                            
+                            df['pos_convexity'] = df.convexity.where(df.convexity>0)
+                            df['neg_convexity'] = df.convexity.where(df.convexity<=0)
+
+                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
+                            convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
+
+                            ret_dict['spy_convexity_list'] = convexity_list
+                            ret_dict['spy_major_pos_convexity'] = major_pos_convexity
+                            ret_dict['ndx_major_neg_convexity'] = major_neg_convexity
+                        except:
+                            ret_dict['ndx_convexity_list'] = []
+                            ret_dict['ndx_major_pos_convexity'] = None
+                            ret_dict['ndx_major_neg_convexity'] = None
+                            app.logger.error(traceback.format_exc())
+
+                    if gathered_res[11] is not None:
+                        try:
+                            df = pd.DataFrame([dict(x) for x in gathered_res[11]])
+                            df['convexity'] = df.gamma*df.order_imbalance
+                            major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
+                            major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
+                            #qqq_max_lim = np.max([qqq_max_lim,major_pos_convexity+100,major_neg_convexity+100])
+                            #qqq_min_lim = np.min([qqq_min_lim,major_pos_convexity-100,major_neg_convexity-100])
+
+                            df = df[(df.strike>qqq_min_lim) & (df.strike<qqq_max_lim)].reset_index()
+                            
+                            df['pos_convexity'] = df.convexity.where(df.convexity>0)
+                            df['neg_convexity'] = df.convexity.where(df.convexity<=0)
+
+                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
+                            convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
+
+                            ret_dict['qqq_convexity_list'] = convexity_list
+                            ret_dict['qqq_major_pos_convexity'] = major_pos_convexity
+                            ret_dict['qqq_major_neg_convexity'] = major_neg_convexity
+                        except:
+                            ret_dict['qqq_convexity_list'] = []
+                            ret_dict['qqq_major_pos_convexity'] = None
+                            ret_dict['qqq_major_neg_convexity'] = None
+                            app.logger.error(traceback.format_exc())
 
                 await websocket.send_json(ret_dict)
                 await asyncio.sleep(1)
