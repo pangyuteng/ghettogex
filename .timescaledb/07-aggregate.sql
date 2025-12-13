@@ -54,7 +54,7 @@ ALTER MATERIALIZED VIEW candle_1min set (timescaledb.enable_columnstore = true);
 CREATE MATERIALIZED VIEW order_imbalance WITH (timescaledb.continuous) AS
 SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 sum(order_imbalance) as order_imbalance
-FROM candle_1min where (ticker in ('SPXW','NDXP') or event_symbol like '/ES%' )
+FROM candle_1min
 GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('order_imbalance',
@@ -68,6 +68,7 @@ ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.enable_columnstore = tr
 
 -- DROP MATERIALIZED VIEW order_imbalance
 -- SELECT remove_continuous_aggregate_policy('order_imbalance');
+-- where (ticker in ('SPXW','NDXP','SPY','QQQ') or event_symbol like '/ES%' )
 
 CREATE MATERIALIZED VIEW quote_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
@@ -79,7 +80,7 @@ first(ask_price,tstamp) as open_ask_price,
 max(ask_price) as high_ask_price,
 min(ask_price) as low_ask_price,
 last(ask_price,tstamp) as close_ask_price
-FROM quote where ticker in ('SPXW','NDXP') 
+FROM quote
 GROUP BY time_bucket('1m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('quote_1min',
@@ -102,7 +103,7 @@ ALTER MATERIALIZED VIEW quote_1min set (timescaledb.enable_columnstore = true);
 CREATE MATERIALIZED VIEW quote_1day WITH (timescaledb.continuous) AS
 SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 last(close_bid_price,tstamp) as last_bid_price,last(close_ask_price,tstamp) as last_ask_price 
-FROM quote_1min where ticker in ('SPXW','NDXP')
+FROM quote_1min
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('quote_1day',
@@ -123,7 +124,7 @@ ALTER MATERIALIZED VIEW quote_1day set (timescaledb.enable_columnstore = true);
 CREATE MATERIALIZED VIEW order_imbalance_1day WITH (timescaledb.continuous) AS
 SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 sum(order_imbalance) as order_imbalance
-FROM order_imbalance where ticker in ('SPXW','NDXP')
+FROM order_imbalance
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('order_imbalance_1day',
@@ -146,7 +147,7 @@ last(price,tstamp) as price,
 last(volatility,tstamp) as volatility,	
 last(delta,tstamp) as delta,
 last(gamma,tstamp) as gamma
-FROM greeks where ticker in ('SPXW','NDXP')
+FROM greeks where ticker is not null
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker, expiration, contract_type, strike;
 
 SELECT add_continuous_aggregate_policy('greeksdx_1day',
@@ -168,7 +169,7 @@ last(bid_price,tstamp) as bid_price,
 last(volatility,tstamp) as volatility,	
 last(delta,tstamp) as delta,
 last(gamma,tstamp) as gamma
-FROM event_contract where ticker in ('SPXW','NDXP')
+FROM event_contract where ticker is not null
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker, expiration, contract_type, strike;
 
 SELECT add_continuous_aggregate_policy('greeks_1day',
