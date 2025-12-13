@@ -562,6 +562,10 @@ async def ws_main_socket():
 
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                             df.gex = df.gex/1e9
+                            df.dex = df.dex/1e9
+                            df.call_dex = df.call_dex/1e9
+                            df.put_dex = df.put_dex/1e9
+
                             df['gex_diff'] = df.gex.diff()
                             df['convexity_diff'] = df.convexity.diff()
                             df = df.replace({np.nan: None})
