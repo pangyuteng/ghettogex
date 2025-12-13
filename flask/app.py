@@ -177,9 +177,9 @@ async def get_equity():
     except:
         return jsonify(traceback.format_exc()),401
 
-@app.route("/")
+@app.route("/debug")
 @login_required
-async def home():
+async def debug():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
     dstamp = request.args.get("dstamp",None)
@@ -218,11 +218,11 @@ async def home():
         app.logger.error(traceback.format_exc())
         market_status = "unexepcted error!"
         load_data = False
-    return await render_template("index.html",dstamp=dstamp,load_data=load_data,market_status=market_status)
+    return await render_template("debug.html",dstamp=dstamp,load_data=load_data,market_status=market_status)
 
-@app.websocket('/ws-main-socket') # name so bad
+@app.websocket('/ws-debug-socket') # name so bad
 @login_required
-async def ws_main_socket():
+async def ws_debug_socket():
     try:
         message = None
         ret_dict = {}
@@ -261,10 +261,8 @@ async def ws_main_socket():
                         apostgres_execute(apool,GREEKS_QUERY,(ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,CONVEXITYDX_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,ORDER_IMBALANCE_LASTXMIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
-                        #apostgres_execute(apool,BUBBLES_1DAY_QUERY,(dstamp,)),
-                        apostgres_execute(apool,BUBBLES_LAXSTXMIN_QUERY,(tstamp_utc,tstamp_utc)),
-                        #apostgres_execute(apool,GEX_CONVEXITY_LASTXMIN_QUERY,(ticker,tstamp_utc,tstamp_utc)),
                         apostgres_execute(apool,GEX_CONVEXITY_1DAY_QUERY,(ticker,dstamp)),
+                        apostgres_execute(apool,BUBBLES_LAXSTXMIN_QUERY,(tstamp_utc,tstamp_utc)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
@@ -544,9 +542,9 @@ async def ws_main_socket():
                             ret_dict['call_order_imbalance_zoomin'] = []
                             app.logger.error(traceback.format_exc())
 
-                    if gathered_res[9] is not None:
+                    if gathered_res[10] is not None:
                         try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[9]])
+                            df = pd.DataFrame([dict(x) for x in gathered_res[10]])
                             df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                             df = df.replace({np.nan: 0})
                             
@@ -608,10 +606,10 @@ async def ws_main_socket():
                             ret_dict['esdata'] = []
                             ret_dict['uvxydata'] = []
                             app.logger.error(traceback.format_exc())
-                        
-                    if gathered_res[10] is not None:
+
+                    if gathered_res[9] is not None:
                         try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[10]])
+                            df = pd.DataFrame([dict(x) for x in gathered_res[9]])
 
                             if len(df) > 5:
                                 # ignore the first 2 minutes, as gex data fluctuates as events flow in.

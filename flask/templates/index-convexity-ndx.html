@@ -1,7 +1,7 @@
 
 <script>
 
-function makeChartH3(opts) {
+function makeChartConvexity(opts,elementId) {
 	let bars = uPlot.paths.bars({align: 0, size: [1, 4], gap: 0});
 	opts = uPlot.assign({
 		scales: {
@@ -41,13 +41,13 @@ function makeChartH3(opts) {
 		],
 	}, opts);
 
-	return new uPlot(opts, [], document.getElementById("myNdxConvexity"));
+	return new uPlot(opts, [], document.getElementById(elementId));
 }
 
-function linesPlugin3({lines3}) {
+function linesPluginConvexity(mylines) {
 	function drawLines(u) {
 		  const { ctx, bbox } = u;
-		lines3.forEach( item => {
+		mylines.forEach( item => {
 			xVal = item[0];
 			color = item[1];
 			let x4 = u.valToPos(xVal, 'x', true);
@@ -72,12 +72,15 @@ function linesPlugin3({lines3}) {
   };
 }
 
-const lines3 = [];
+const linesSPX = [];
+const linesNDX = [];
+const linesSPY = [];
+const linesQQQ = [];
 
-let mychartH3 = makeChartH3({
+let mychartConvexitySPX = makeChartConvexity({
 	width: 380,
 	height: 380,
-	title: "ndx-convexity*",
+	title: "spx-convexity*",
 	scales: {
 		x: {
 			dir: 1,
@@ -89,7 +92,7 @@ let mychartH3 = makeChartH3({
 		}
 	},
 	plugins: [
-		linesPlugin3({lines3})
+		linesPluginConvexity(linesSPX)
 	],
 	axes: [
 		{
@@ -105,15 +108,137 @@ let mychartH3 = makeChartH3({
 			tick: {stroke: "#666666",width:1},
 		}
 	],
-});
+},"mySpxConvexity");
+
+let mychartConvexityNDX = makeChartConvexity({
+	width: 380,
+	height: 380,
+	title: "ndx-convexity*",
+	scales: {
+		x: {
+			dir: 1,
+			ori: 1,
+		},
+		y: {
+			dir: 1,
+			ori: 0,
+		}
+	},
+	plugins: [
+		linesPluginConvexity(linesNDX)
+	],
+	axes: [
+		{
+			side: 3,
+			stroke: "#666666",
+			tick: {stroke: "#666666",width:1},
+			grid: {stroke: "#666666",width:1},
+		},
+		{
+			side: 0,
+			stroke: "#666666",
+			grid: {stroke: "#666666",width:1},
+			tick: {stroke: "#666666",width:1},
+		}
+	],
+},"myNdxConvexity");
+
+let mychartConvexitySPY = makeChartConvexity({
+	width: 380,
+	height: 380,
+	title: "spy-convexity*",
+	scales: {
+		x: {
+			dir: 1,
+			ori: 1,
+		},
+		y: {
+			dir: 1,
+			ori: 0,
+		}
+	},
+	plugins: [
+		linesPluginConvexity(linesSPY)
+	],
+	axes: [
+		{
+			side: 3,
+			stroke: "#666666",
+			tick: {stroke: "#666666",width:1},
+			grid: {stroke: "#666666",width:1},
+		},
+		{
+			side: 0,
+			stroke: "#666666",
+			grid: {stroke: "#666666",width:1},
+			tick: {stroke: "#666666",width:1},
+		}
+	],
+},"mySpyConvexity");
 
 
-function updateChartConvexityNDX(data){
-	lines3[0] = [data.ndx_price,'white'];
-	lines3[1] = [data.ndx_major_pos_convexity,'cyan'];
-	lines3[2] = [data.ndx_major_neg_convexity,'purple'];
-	mychartH3.setData(data.ndx_convexity_list);
+let mychartConvexityQQQ = makeChartConvexity({
+	width: 380,
+	height: 380,
+	title: "qqq-convexity*",
+	scales: {
+		x: {
+			dir: 1,
+			ori: 1,
+		},
+		y: {
+			dir: 1,
+			ori: 0,
+		}
+	},
+	plugins: [
+		linesPluginConvexity(linesNDX)
+	],
+	axes: [
+		{
+			side: 3,
+			stroke: "#666666",
+			tick: {stroke: "#666666",width:1},
+			grid: {stroke: "#666666",width:1},
+		},
+		{
+			side: 0,
+			stroke: "#666666",
+			grid: {stroke: "#666666",width:1},
+			tick: {stroke: "#666666",width:1},
+		}
+	],
+},"myQqqConvexity");
+
+
+function updateChartConvexitySPX(data){
+	linesSPX[0] = [data.plus_expected_move,'gray'];
+	linesSPX[1] = [data.minus_expected_move,'gray'];
+	linesSPX[2] = [data.major_pos_convexity,'cyan'];
+	linesSPX[3] = [data.major_neg_convexity,'purple'];
+	linesSPX[4] = [data.spx_price,'white'];
+	mychartConvexitySPX.setData(data.convexity_list);
 }
 
+function updateChartConvexityNDX(data){
+	linesNDX[0] = [data.ndx_price,'white'];
+	linesNDX[1] = [data.ndx_major_pos_convexity,'cyan'];
+	linesNDX[2] = [data.ndx_major_neg_convexity,'purple'];
+	mychartConvexityNDX.setData(data.ndx_convexity_list);
+}
+
+function updateChartConvexitySPY(data){
+	linesSPY[0] = [data.spy_price,'white'];
+	linesSPY[1] = [data.spy_major_pos_convexity,'cyan'];
+	linesSPY[2] = [data.spy_major_neg_convexity,'purple'];
+	mychartConvexitySPY.setData(data.spy_convexity_list);
+}
+
+function updateChartConvexityQQQ(data){
+	linesQQQ[0] = [data.qqq_price,'white'];
+	linesQQQ[1] = [data.qqq_major_pos_convexity,'cyan'];
+	linesQQQ[2] = [data.qqq_major_neg_convexity,'purple'];
+	mychartConvexityQQQ.setData(data.qqq_convexity_list);
+}
 
 </script>

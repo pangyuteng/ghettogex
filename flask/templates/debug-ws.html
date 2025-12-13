@@ -1,6 +1,6 @@
 
 <script>
-    const ws = new WebSocket("/ws-main-socket?dstamp={{ dstamp }}");
+    const ws = new WebSocket("/ws-debug-socket?dstamp={{ dstamp }}");
     let errorSpan = document.getElementById("errorSpan");
     let dataQcSpan = document.getElementById("dataQcSpan");
     let serverTstampSpan = document.getElementById("serverTstampSpan");
@@ -36,8 +36,10 @@
         updateChartCallOrderImbalanceZoomIn(newdata.call_order_imbalance_zoomin,newdata.spot_min_lim,newdata.spot_max_lim);
         updateChartPutOrderImbalanceZoomIn(newdata.put_order_imbalance_zoomin,newdata.spot_min_lim,newdata.spot_max_lim);
         updateChartGex(newdata);
-        updateChartConvexity(newdata);
+        updateChartConvexitySPX(newdata);
         updateChartConvexityNDX(newdata);
+        updateChartConvexitySPY(newdata);
+        updateChartConvexityQQQ(newdata);
         updateChartVolatility(newdata);
         updateChartGexDiff(newdata.gexdiff);
         updateChartConvexityDiff(newdata.convexitydiff);
