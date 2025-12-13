@@ -1,12 +1,16 @@
+# in index.html
 
+<div class="one" id="myEsBubbles"></div>
+<div class="one" id="myUvxyBubbles"></div>
 {% include 'index-bubbles.html' %}
 
---
+
+# in index-ws.html
 
 updateChartEsBubbles(newdata.esdata);
 updateChartUvxyBubbles(newdata.uvxydata);
 
---
+# in app.py
 
 BUBBLES_LAXSTXMIN_QUERY = """
 select tstamp,event_symbol,open,close,ask_volume,bid_volume

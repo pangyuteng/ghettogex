@@ -1,6 +1,6 @@
 
 <script>
-    const ws = new WebSocket("/ws-debug-socket?dstamp={{ dstamp }}");
+    const ws = new WebSocket("/ws-main-socket?dstamp={{ dstamp }}");
     let errorSpan = document.getElementById("errorSpan");
     let dataQcSpan = document.getElementById("dataQcSpan");
     let serverTstampSpan = document.getElementById("serverTstampSpan");

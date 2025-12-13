@@ -174,9 +174,9 @@ async def get_equity():
     except:
         return jsonify(traceback.format_exc()),401
 
-@app.route("/debug")
+@app.route("/")
 @login_required
-async def debug():
+async def home():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
     dstamp = request.args.get("dstamp",None)
@@ -215,11 +215,11 @@ async def debug():
         app.logger.error(traceback.format_exc())
         market_status = "unexepcted error!"
         load_data = False
-    return await render_template("debug.html",dstamp=dstamp,load_data=load_data,market_status=market_status)
+    return await render_template("index.html",dstamp=dstamp,load_data=load_data,market_status=market_status)
 
-@app.websocket('/ws-debug-socket') # name so bad
+@app.websocket('/ws-main-socket') # name so bad
 @login_required
-async def ws_debug_socket():
+async def ws_main_socket():
     try:
         message = None
         ret_dict = {}
@@ -254,7 +254,8 @@ async def ws_debug_socket():
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(ticker,tstamp_utc,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,QUOTE_1MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
-                        apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
+                        #apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
+                        apostgres_execute(apool,CONVEXITYDX_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,GREEKS_QUERY,(ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,CONVEXITYDX_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,ORDER_IMBALANCE_LASTXMIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
