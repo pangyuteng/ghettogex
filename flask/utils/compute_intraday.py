@@ -74,7 +74,6 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
 
     try:
 
-        df['convexity'] = df.gamma*df.order_imbalance
         expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(df.expiration.unique())}
         df['time_till_exp'] = df.apply(lambda x: (expiration_mapper[x.expiration]-x.tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR, axis=1)
         epsilon = 1e-5
@@ -86,6 +85,8 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
             df['open_interest']=df.mm_order_imbalance
             compute_greeks(df)
             compute_exposure(df)
+
+        df['convexity'] = df.gamma*df.order_imbalance
 
     except:
         logger.error(traceback.format_exc())
