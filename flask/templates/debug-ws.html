@@ -28,8 +28,6 @@
         commentarySpan.textContent = newdata.commentary;
         likelyCloseSpan.textContent = newdata.likey_close_price_list;
         updateChartPrices(newdata);
-        updateChartEsBubbles(newdata.esdata);
-        updateChartUvxyBubbles(newdata.uvxydata);
         updateChartDex(newdata.dex,newdata.spot_min_lim,newdata.spot_max_lim);
         updateChartCallOrderImbalance(newdata.call_order_imbalance,newdata.spot_min_lim,newdata.spot_max_lim);
         updateChartPutOrderImbalance(newdata.put_order_imbalance,newdata.spot_min_lim,newdata.spot_max_lim);

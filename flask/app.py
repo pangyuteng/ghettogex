@@ -64,9 +64,6 @@ from utils.pg_queries import (
     CONVEXITYDX_QUERY,
     GREEKS_QUERY,
     GEX_CONVEXITY_1DAY_QUERY,
-    GEX_CONVEXITY_LASTXMIN_QUERY,
-    BUBBLES_1DAY_QUERY,
-    BUBBLES_LAXSTXMIN_QUERY
 )
 
 from utils.data_tasty import (
@@ -262,7 +259,6 @@ async def ws_debug_socket():
                         apostgres_execute(apool,CONVEXITYDX_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,ORDER_IMBALANCE_LASTXMIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
                         apostgres_execute(apool,GEX_CONVEXITY_1DAY_QUERY,(ticker,dstamp)),
-                        apostgres_execute(apool,BUBBLES_LAXSTXMIN_QUERY,(tstamp_utc,tstamp_utc)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
@@ -540,71 +536,6 @@ async def ws_debug_socket():
                         except:
                             ret_dict['call_order_imbalance_zoomin'] = []
                             ret_dict['call_order_imbalance_zoomin'] = []
-                            app.logger.error(traceback.format_exc())
-
-                    if gathered_res[10] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[10]])
-                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                            df = df.replace({np.nan: 0})
-                            
-                            if False: # for whole day.
-                                df['order_imbalance_ratio'] = (df.ask_volume-df.bid_volume)/(df.ask_volume+df.bid_volume)
-                                df['color'] = df.apply(lambda x: 'green' if x.order_imbalance_ratio > 0 else 'red',axis=1)
-                                df.order_imbalance_ratio = df.order_imbalance_ratio/50
-                            if True:
-                                # copying bookmap?? ask-bid only. no normalize.
-                                df['order_imbalance_ratio'] = df.ask_volume-df.bid_volume
-                                df.order_imbalance_ratio = df.order_imbalance_ratio
-
-                            df['color'] = df.apply(lambda x: 'green' if x.order_imbalance_ratio > 0 else 'red',axis=1)
-                            df.order_imbalance_ratio = df.order_imbalance_ratio.abs()
-
-                            es_df = df[df.event_symbol!='UVXY'].copy()
-                            uvxy_df = df[df.event_symbol=='UVXY'].copy()
-
-                            if False: # for whole day.
-                                es_df.order_imbalance_ratio = es_df.order_imbalance_ratio * 2 # scale to circle visible for candle_1min table
-                                uvxy_df.order_imbalance_ratio = uvxy_df.order_imbalance_ratio * 0.1
-                            if True: # for last-x-min
-                                # scaled only using last-x-min from 2025-11-21 to 2025-11-28
-                                es_df.order_imbalance_ratio = es_df.order_imbalance_ratio*0.1
-                                uvxy_df.order_imbalance_ratio = uvxy_df.order_imbalance_ratio*0.001
-
-                            green_es_tstamp = es_df[es_df.color=='green'].tstamp.to_list()
-                            green_es_price = es_df[es_df.color=='green'].close.to_list()
-                            green_es_order_imbalance_ratio = es_df[es_df.color=='green'].order_imbalance_ratio.abs().to_list()
-
-                            red_es_tstamp = es_df[es_df.color=='red'].tstamp.to_list()
-                            red_es_price = es_df[es_df.color=='red'].close.to_list()
-                            red_es_order_imbalance_ratio = es_df[es_df.color=='red'].order_imbalance_ratio.abs().to_list()
-
-                            es_list = [[],
-                                [green_es_tstamp,green_es_price,green_es_order_imbalance_ratio],
-                                [red_es_tstamp,red_es_price,red_es_order_imbalance_ratio],
-                                [es_df.tstamp.to_list(),es_df.close.to_list()],
-                            ]
-                            
-                            green_uvxy_tstamp = uvxy_df[uvxy_df.color=='green'].tstamp.to_list()
-                            green_uvxy_price = uvxy_df[uvxy_df.color=='green'].close.to_list()
-                            green_uvxy_order_imbalance_ratio = uvxy_df[uvxy_df.color=='green'].order_imbalance_ratio.abs().to_list()
-
-                            red_uvxy_tstamp = uvxy_df[uvxy_df.color=='red'].tstamp.to_list()
-                            red_uvxy_price = uvxy_df[uvxy_df.color=='red'].close.to_list()
-                            red_uvxy_order_imbalance_ratio = uvxy_df[uvxy_df.color=='red'].order_imbalance_ratio.abs().to_list()
-
-                            uvxy_list = [[],
-                                [green_uvxy_tstamp,green_uvxy_price,green_uvxy_order_imbalance_ratio],
-                                [red_uvxy_tstamp,red_uvxy_price,red_uvxy_order_imbalance_ratio],
-                                [uvxy_df.tstamp.to_list(),uvxy_df.close.to_list()],
-                            ]
-
-                            ret_dict['esdata'] = es_list
-                            ret_dict['uvxydata'] = uvxy_list
-
-                        except:
-                            ret_dict['esdata'] = []
-                            ret_dict['uvxydata'] = []
                             app.logger.error(traceback.format_exc())
 
                     if gathered_res[9] is not None:
