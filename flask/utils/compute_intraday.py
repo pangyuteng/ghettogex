@@ -60,7 +60,8 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
         ticker_alt = ticker
 
     expiration = utc_tstamp.date()
-
+    
+    # note we hard code a VIX here
     query_args = (ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker,expiration,'VIX',expiration)
     fetched = await cpostgres_execute(aconn,ORDER_IMBALANCE_GEX_QUERY,query_args)
     

@@ -94,11 +94,11 @@ def compute_greeks(df):
     K = df.strike.astype(np.float16)
     t = df.time_till_exp.astype(np.float16)
     r = np.float64(yield_10yr)
-    sv = df.spot_volatility/100
+    sv = df.spot_volatility/100 # ? we dont need this.
 
     volatility = py_vollib.black_scholes_merton.implied_volatility.implied_volatility(price, S, K, t, r, flag, q, return_as='numpy')
-    gamma = py_vollib.black_scholes_merton.greeks.numerical.gamma(flag, S, K, t, r, sv, q, return_as='numpy')
-    delta = py_vollib.black_scholes_merton.greeks.numerical.delta(flag, S, K, t, r, sv, q, return_as='numpy')
+    gamma = py_vollib.black_scholes_merton.greeks.numerical.gamma(flag, S, K, t, r, volatility, q, return_as='numpy')
+    delta = py_vollib.black_scholes_merton.greeks.numerical.delta(flag, S, K, t, r, volatility, q, return_as='numpy')
 
     df['volatility'] = volatility
     df['gamma'] = gamma
@@ -115,8 +115,6 @@ def compute_exposure(df):
     dividend_yield = 0.0
 
     spot_price = df.at[0,'spot_price']
-    spot_volatility = df.at[0,'spot_volatility']
-    print(spot_price,spot_volatility)
 
     np_spot_price = np.array([[spot_price]]).astype(np.float64)
     yield_10yr = np.float64(yield_10yr)
