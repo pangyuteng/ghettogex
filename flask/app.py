@@ -483,14 +483,12 @@ async def ws_main_socket():
                     if gathered_res[7] is not None:
                         try:
                             df = pd.DataFrame([dict(x) for x in gathered_res[7]])
+                            df = df[(df.strike>ndx_min_lim) & (df.strike<ndx_max_lim)].reset_index()
                             df['convexity'] = df.gamma*df.order_imbalance
+
                             major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
                             major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
-                            #ndx_max_lim = np.max([ndx_max_lim,major_pos_convexity+100,major_neg_convexity+100])
-                            #ndx_min_lim = np.min([ndx_min_lim,major_pos_convexity-100,major_neg_convexity-100])
 
-                            df = df[(df.strike>ndx_min_lim) & (df.strike<ndx_max_lim)].reset_index()
-                            
                             df['pos_convexity'] = df.convexity.where(df.convexity>0)
                             df['neg_convexity'] = df.convexity.where(df.convexity<=0)
 
@@ -599,13 +597,12 @@ async def ws_main_socket():
                     if gathered_res[10] is not None:
                         try:
                             df = pd.DataFrame([dict(x) for x in gathered_res[10]])
+                            df = df[(df.strike>spy_min_lim) & (df.strike<spy_max_lim)].reset_index()
                             df['convexity'] = df.gamma*df.order_imbalance
+
                             major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
                             major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
-                            #spy_max_lim = np.max([spy_max_lim,major_pos_convexity+100,major_neg_convexity+100])
-                            #spy_min_lim = np.min([spy_min_lim,major_pos_convexity-100,major_neg_convexity-100])
-
-                            df = df[(df.strike>spy_min_lim) & (df.strike<spy_max_lim)].reset_index()
+                            
                             
                             df['pos_convexity'] = df.convexity.where(df.convexity>0)
                             df['neg_convexity'] = df.convexity.where(df.convexity<=0)
@@ -625,13 +622,13 @@ async def ws_main_socket():
                     if gathered_res[11] is not None:
                         try:
                             df = pd.DataFrame([dict(x) for x in gathered_res[11]])
+                            df = df[(df.strike>qqq_min_lim) & (df.strike<qqq_max_lim)].reset_index()
                             df['convexity'] = df.gamma*df.order_imbalance
+
                             major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
                             major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
-                            #qqq_max_lim = np.max([qqq_max_lim,major_pos_convexity+100,major_neg_convexity+100])
-                            #qqq_min_lim = np.min([qqq_min_lim,major_pos_convexity-100,major_neg_convexity-100])
 
-                            df = df[(df.strike>qqq_min_lim) & (df.strike<qqq_max_lim)].reset_index()
+                            
                             
                             df['pos_convexity'] = df.convexity.where(df.convexity>0)
                             df['neg_convexity'] = df.convexity.where(df.convexity<=0)
