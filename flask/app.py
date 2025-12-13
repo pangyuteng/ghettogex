@@ -248,6 +248,8 @@ async def ws_main_socket():
                     ndx_ticker_alt = 'NDXP'
                     spy_ticker = 'SPY'
                     qqq_ticker = 'QQQ'
+                    
+                    # TODO: refactor needed, getting real ugly.
 
                     timea = time.time()
                     query_list = [
