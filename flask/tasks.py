@@ -170,14 +170,22 @@ def trigger_gex_cache(*args,**kwargs):
         if fetched is None:
             return
         fetched = [dict(x) for x in fetched]
-        for row in fetched:
-            ticker = row['ticker']
-            is_compute_gex = row['compute_gex']
-            if not is_compute_gex:
-                continue
 
-            logger.info(f"trigger_gex_cache {ticker}")
-            asyncio.run(compute_gex(ticker,et_tstamp,persist_to_postgres=True))
+        async def waitforjobs(fetched):
+
+            jobs_list = []
+            for row in fetched:
+                ticker = row['ticker']
+                is_compute_gex = row['compute_gex']
+                if not is_compute_gex:
+                    continue
+
+                logger.info(f"trigger_gex_cache {ticker}")
+                jobs_list.append(compute_gex(ticker,et_tstamp,persist_to_postgres=True))
+
+            await asyncio.gather(*jobs_list)
+
+        asyncio.run(waitforjobs(fetched))
 
 
 if __name__ == "__main__":

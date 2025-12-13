@@ -6,9 +6,9 @@ CREATE TABLE IF NOT EXISTS watchlist (
 );
 
 INSERT INTO watchlist(ticker,compute_gex) VALUES('SPX',true);
-INSERT INTO watchlist(ticker,compute_gex) VALUES('NDX',false);
-INSERT INTO watchlist(ticker,compute_gex) VALUES('SPY',false);
-INSERT INTO watchlist(ticker,compute_gex) VALUES('QQQ',false);
+INSERT INTO watchlist(ticker,compute_gex) VALUES('NDX',true);
+INSERT INTO watchlist(ticker,compute_gex) VALUES('SPY',true);
+INSERT INTO watchlist(ticker,compute_gex) VALUES('QQQ',true);
 INSERT INTO watchlist(ticker,compute_gex) VALUES('VIX',false);
 INSERT INTO watchlist(ticker,compute_gex) VALUES('UVXY',false);
 INSERT INTO watchlist(ticker,compute_gex) VALUES('ES',false);
