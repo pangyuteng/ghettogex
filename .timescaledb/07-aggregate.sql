@@ -24,6 +24,29 @@ ALTER MATERIALIZED VIEW event_underlying_1min set (timescaledb.enable_columnstor
 -- DROP MATERIALIZED VIEW event_underlying_1min;
 -- SELECT remove_continuous_aggregate_policy('event_underlying_1min');
 
+CREATE MATERIALIZED VIEW event_strike_1min WITH (timescaledb.continuous) AS
+SELECT time_bucket('1m', tstamp) as tstamp, ticker, strike,
+  avg(gex) as gex,
+  avg(dex) as dex,
+  avg(vex) as vex,
+  avg(cex) as cex,
+  avg(convexity) as convexity
+FROM event_strike
+GROUP BY time_bucket('1m', tstamp), ticker;
+
+SELECT add_continuous_aggregate_policy('event_strike_1min',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '5 sec');
+
+CALL refresh_continuous_aggregate('event_strike_1min', NULL, NULL);
+ALTER MATERIALIZED VIEW event_strike_1min set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW event_strike_1min set (timescaledb.enable_columnstore = true);
+
+-- DROP MATERIALIZED VIEW event_strike_1min;
+-- SELECT remove_continuous_aggregate_policy('event_strike_1min');
+
+
 CREATE MATERIALIZED VIEW candle_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 first(open,tstamp) as open,
