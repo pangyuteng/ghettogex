@@ -600,56 +600,53 @@ async def ws_main_socket():
                     ret_dict['error_status'] = 'traceback:'+traceback.format_exc()
                     app.logger.error(traceback.format_exc())
 
-                    if gathered_res[10] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[10]])
-                            df = df[(df.strike>spy_min_lim) & (df.strike<spy_max_lim)].reset_index()
-                            df['convexity'] = df.gamma*df.order_imbalance
+                if gathered_res[10] is not None:
+                    try:
+                        df = pd.DataFrame([dict(x) for x in gathered_res[10]])
+                        df = df[(df.strike>spy_min_lim) & (df.strike<spy_max_lim)].reset_index()
+                        df['convexity'] = df.gamma*df.order_imbalance
 
-                            major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
-                            major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
-                            
-                            
-                            df['pos_convexity'] = df.convexity.where(df.convexity>0)
-                            df['neg_convexity'] = df.convexity.where(df.convexity<=0)
+                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
+                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
+                        
+                        df['pos_convexity'] = df.convexity.where(df.convexity>0)
+                        df['neg_convexity'] = df.convexity.where(df.convexity<=0)
 
-                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
-                            convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
+                        df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
+                        convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
 
-                            ret_dict['spy_convexity_list'] = convexity_list
-                            ret_dict['spy_major_pos_convexity'] = major_pos_convexity
-                            ret_dict['ndx_major_neg_convexity'] = major_neg_convexity
-                        except:
-                            ret_dict['ndx_convexity_list'] = []
-                            ret_dict['ndx_major_pos_convexity'] = None
-                            ret_dict['ndx_major_neg_convexity'] = None
-                            app.logger.error(traceback.format_exc())
+                        ret_dict['spy_convexity_list'] = convexity_list
+                        ret_dict['spy_major_pos_convexity'] = major_pos_convexity
+                        ret_dict['spy_major_neg_convexity'] = major_neg_convexity
+                    except:
+                        ret_dict['spy_convexity_list'] = []
+                        ret_dict['spy_major_pos_convexity'] = None
+                        ret_dict['spy_major_neg_convexity'] = None
+                        app.logger.error(traceback.format_exc())
 
-                    if gathered_res[11] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[11]])
-                            df = df[(df.strike>qqq_min_lim) & (df.strike<qqq_max_lim)].reset_index()
-                            df['convexity'] = df.gamma*df.order_imbalance
+                if gathered_res[11] is not None:
+                    try:
+                        df = pd.DataFrame([dict(x) for x in gathered_res[11]])
+                        df = df[(df.strike>qqq_min_lim) & (df.strike<qqq_max_lim)].reset_index()
+                        df['convexity'] = df.gamma*df.order_imbalance
 
-                            major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
-                            major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
+                        major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
+                        major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
 
-                            
-                            
-                            df['pos_convexity'] = df.convexity.where(df.convexity>0)
-                            df['neg_convexity'] = df.convexity.where(df.convexity<=0)
+                        df['pos_convexity'] = df.convexity.where(df.convexity>0)
+                        df['neg_convexity'] = df.convexity.where(df.convexity<=0)
 
-                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
-                            convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
+                        df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
+                        convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
 
-                            ret_dict['qqq_convexity_list'] = convexity_list
-                            ret_dict['qqq_major_pos_convexity'] = major_pos_convexity
-                            ret_dict['qqq_major_neg_convexity'] = major_neg_convexity
-                        except:
-                            ret_dict['qqq_convexity_list'] = []
-                            ret_dict['qqq_major_pos_convexity'] = None
-                            ret_dict['qqq_major_neg_convexity'] = None
-                            app.logger.error(traceback.format_exc())
+                        ret_dict['qqq_convexity_list'] = convexity_list
+                        ret_dict['qqq_major_pos_convexity'] = major_pos_convexity
+                        ret_dict['qqq_major_neg_convexity'] = major_neg_convexity
+                    except:
+                        ret_dict['qqq_convexity_list'] = []
+                        ret_dict['qqq_major_pos_convexity'] = None
+                        ret_dict['qqq_major_neg_convexity'] = None
+                        app.logger.error(traceback.format_exc())
 
                 await websocket.send_json(ret_dict)
                 await asyncio.sleep(1)
