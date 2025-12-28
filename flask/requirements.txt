@@ -29,3 +29,5 @@ numba==0.61.0
 financepy==0.360
 pandarallel==1.6.5
 schwab_py==1.5.1
+TA-Lib==0.6.8
+statsmodels==0.14.6
