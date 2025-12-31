@@ -77,8 +77,12 @@ ORDER BY strike
 """
 
 GREEKS_QUERY = """
-select distinct event_symbol,ticker,expiration,strike,contract_type,last(gamma,tstamp) as gamma,last(volatility,tstamp) as volatility
-from greeks_1day where ticker = %s and expiration = %s and tstamp::date = %s
+select distinct event_symbol,ticker,expiration,strike,contract_type,
+last(greeks_1day.gamma,tstamp) as gamma,last(greeks_1day.volatility,tstamp) as volatility,
+last(greeksdx_1day.gamma,tstamp) as dx_gamma,last(greeksdx_1day.volatility,tstamp) as dx_volatility
+from greeks_1day 
+left join greeksdx_1day using (event_symbol,ticker,expiration,strike,contract_type,tstamp)
+where ticker = %s and expiration = %s and tstamp::date = %s
 group by event_symbol,ticker,expiration,strike,contract_type
 ORDER BY contract_type,strike
 """

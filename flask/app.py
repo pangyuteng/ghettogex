@@ -476,7 +476,9 @@ async def ws_main_socket():
 
                             cdf = df[df.contract_type=='C']
                             pdf = df[df.contract_type=='P']
-                            volatility_list = [cdf.strike.tolist(),cdf.volatility.tolist(),pdf.volatility.tolist()]
+                            dxdf = df[df.contract_type=='P']
+
+                            volatility_list = [cdf.strike.tolist(),dxdf.dx_volatility.tolist(),cdf.volatility.tolist(),pdf.volatility.tolist()]
                             ret_dict['volatility_list'] = volatility_list
                         except:
                             ret_dict['volatility_list'] = []
