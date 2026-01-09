@@ -301,6 +301,7 @@ async def ws_main_socket():
 
                         vix_index = df.vix_close.last_valid_index()
                         vix_price = df.vix_close[vix_index]
+                        vix_max = df.vix_close.max()
 
                         ret_dict['likey_close_price_list'] = likey_close_price_list
 
@@ -308,13 +309,13 @@ async def ws_main_socket():
                         ret_dict['spx_price'] = df.spx_close.iloc[-1]
                         ret_dict['ndx_price'] = df.ndx_close.iloc[-1]
 
-                        if vix_price > 50: # vary lim by last vix price
+                        if vix_max > 50: # vary lim by last vix price
                             plus_prct = 1.3
                             minus_prct = 0.7
-                        elif vix_price > 30:
+                        elif vix_max > 30:
                             plus_prct = 1.1
                             minus_prct = 0.9
-                        elif vix_price > 15:
+                        elif vix_max > 15:
                             plus_prct = 1.03
                             minus_prct = 0.97
                         else:
