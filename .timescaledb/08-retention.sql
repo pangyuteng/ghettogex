@@ -30,7 +30,7 @@ SELECT add_retention_policy('event_strike', INTERVAL '100 days');
 SELECT add_retention_policy('event_underlying', INTERVAL '100 days');
 
 SELECT add_retention_policy('event_underlying_1min', INTERVAL '100 days');
-SELECT remove_retention_policy('event_underlying_1min', INTERVAL '100 days');
+SELECT add_retention_policy('event_strike_1min', INTERVAL '100 days');
 SELECT add_retention_policy('candle_1min', INTERVAL '100 days');
 SELECT add_retention_policy('order_imbalance', INTERVAL '100 days');
 SELECT add_retention_policy('quote_1min', INTERVAL '100 days');
