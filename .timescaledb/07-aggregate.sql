@@ -32,7 +32,7 @@ SELECT time_bucket('1m', tstamp) as tstamp, ticker, strike,
   avg(cex) as cex,
   avg(convexity) as convexity
 FROM event_strike
-GROUP BY time_bucket('1m', tstamp), ticker;
+GROUP BY time_bucket('1m', tstamp), ticker, strike;
 
 SELECT add_continuous_aggregate_policy('event_strike_1min',
   start_offset => INTERVAL '1 month',
