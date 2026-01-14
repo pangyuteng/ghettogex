@@ -26,7 +26,8 @@ select * from order_imbalance where tstamp::date = %s and ticker = %s
 """
 
 ORDER_IMBALANCE_LASTXMIN_QUERY = """
-select tstamp,event_symbol,strike,contract_type,(ask_volume-bid_volume) as order_imbalance from candle where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
+select tstamp,event_symbol,strike,contract_type,(ask_volume-bid_volume) as order_imbalance from candle 
+where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
 """
 
 CONVEXITY_QUERY = """
