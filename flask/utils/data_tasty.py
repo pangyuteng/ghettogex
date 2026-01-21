@@ -308,6 +308,23 @@ def parse_symbol(event_symbol):
 # commit https://github.com/tastyware/tastytrade/blob/97e1bc6632cfd4a15721da816085eb906a02bcb0/docs/data-streamer.rst#L76
 # # interval '5s' '15s', '5m', '1h', '3d',
 CANDLE_TYPE = 's'
+async def _subscribe(streamer, streamer_symbols, expiration):
+    # subscribe to quotes and greeks for all options on that date
+    start_time = now_in_new_york() # start from now
+    await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time,refresh_interval=1.0)
+    await streamer.subscribe(Quote,streamer_symbols,refresh_interval=1.0)
+
+    if expiration is not None:
+        await streamer.subscribe(Greeks, streamer_symbols)
+        await streamer.subscribe(Summary, streamer_symbols)
+        await streamer.subscribe(TimeAndSale, streamer_symbols)
+
+    if False:
+        await streamer.subscribe(Trade, streamer_symbols)
+        await streamer.subscribe(Profile, streamer_symbols)
+        await streamer.subscribe(TheoPrice, streamer_symbols)
+        await streamer.subscribe(Underlying, streamer_symbols)
+
 @dataclass
 class LivePrices:
     candle: dict[str, Candle]
@@ -336,23 +353,8 @@ class LivePrices:
         save_to_postres: bool = False,
         ):
 
-        streamer = await DXLinkStreamer(session)
-        # subscribe to quotes and greeks for all options on that date
-        start_time = now_in_new_york() # start from now
-        await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time,refresh_interval=1.0)
-        await streamer.subscribe(Quote,streamer_symbols,refresh_interval=1.0)
-
-        if expiration is not None:
-            await streamer.subscribe(Greeks, streamer_symbols)
-            await streamer.subscribe(Summary, streamer_symbols)
-            await streamer.subscribe(TimeAndSale, streamer_symbols)
-
-        if False:
-            await streamer.subscribe(Trade, streamer_symbols)
-            await streamer.subscribe(Profile, streamer_symbols)
-            await streamer.subscribe(TheoPrice, streamer_symbols)
-            await streamer.subscribe(Underlying, streamer_symbols)
-
+        streamer = await DXLinkStreamer(session,reconnect_fn=_subscribe, reconnect_args=(streamer_symbols,expiration))
+        await _subscribe(streamer,streamer_symbols,expiration)
 
         self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
                    streamer, streamer_symbols,[],ticker,expiration,save_to_postres=save_to_postres)
