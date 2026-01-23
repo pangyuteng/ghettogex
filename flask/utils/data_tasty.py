@@ -325,6 +325,7 @@ async def _subscribe(streamer, streamer_symbols, expiration):
         await streamer.subscribe(TheoPrice, streamer_symbols)
         await streamer.subscribe(Underlying, streamer_symbols)
 
+    logger.debug(f"_subscribe {streamer_symbols[0]}")
     # TODO: delete later after confirming reconnection working.
     #########
     tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
