@@ -92,8 +92,6 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = "dLxWOjuwlk2z0n2I4NgxaQ" # import secrets ; secrets.token_urlsafe(16)
 auth_manager = QuartAuth(app)
 
-prct_range_csv = os.path.join(STATIC_DIR,"prct_range.csv")
-prct_range_df = pd.read_csv(prct_range_csv)
 
 @app.route("/ping")
 async def ping():
@@ -291,17 +289,16 @@ async def ws_main_socket():
                         ret_dict['spy_price'] = df.spy_close.iloc[-1]
                         ret_dict['qqq_price'] = df.qqq_close.iloc[-1]
 
-
-                        vix_open = df.vix_close[df.vix_close.first_valid_index()]
-                        spx_open = df.spx_close[df.spx_close.first_valid_index()]
-                        filtered_df = prct_range_df[(prct_range_df.maxvix>vix_open)&(prct_range_df.minvix<=vix_open)].reset_index()
-                        likey_close_price_list = filtered_df[['-2SD','-1SD','+1SD','+2SD']].values.flatten()
-                        likey_close_price_list = spx_open+likey_close_price_list*0.01*spx_open
-                        likey_close_price_list = likey_close_price_list.astype(int).tolist()
-
                         vix_index = df.vix_close.last_valid_index()
                         vix_price = df.vix_close[vix_index]
                         vix_max = df.vix_close.max()
+
+                        vem = vix_price/np.sqrt(252) # daily expected move using vix last
+
+                        spx_open = df.spx_close[df.spx_close.first_valid_index()]
+                        likey_close_price_list = np.array([-1*vem,1*vem])
+                        likey_close_price_list = spx_open+likey_close_price_list*0.01*spx_open
+                        likey_close_price_list = likey_close_price_list.astype(int).tolist()
 
                         ret_dict['likey_close_price_list'] = likey_close_price_list
 
@@ -309,21 +306,12 @@ async def ws_main_socket():
                         ret_dict['spx_price'] = df.spx_close.iloc[-1]
                         ret_dict['ndx_price'] = df.ndx_close.iloc[-1]
 
-                        if vix_max > 50: # vary lim by last vix price
-                            plus_prct = 1.3
-                            minus_prct = 0.7
-                        elif vix_max > 30:
-                            plus_prct = 1.1
-                            minus_prct = 0.9
-                        elif vix_max > 15:
-                            plus_prct = 1.03
-                            minus_prct = 0.97
-                        else:
-                            plus_prct = 1.02
-                            minus_prct = 0.98
+                        vmem = vix_max/np.sqrt(252) # daily expected move using vix max
+                        plus_prct = (1+vem*0.01*2.5)
+                        minus_prct = (1-vem*0.01*2.5)
 
-                        spot_max_lim = df.spx_close.max()*plus_prct # +100
-                        spot_min_lim = df.spx_close.min()*minus_prct # -100
+                        spot_max_lim = df.spx_close.mean()*plus_prct # +100
+                        spot_min_lim = df.spx_close.mean()*minus_prct # -100
 
                         ret_dict['spot_min_lim'] = spot_min_lim
                         ret_dict['spot_max_lim'] = spot_max_lim

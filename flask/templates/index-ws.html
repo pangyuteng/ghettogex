@@ -12,6 +12,7 @@
     let vixSpan = document.getElementById("vixSpan");
     let commentarySpan = document.getElementById("commentarySpan");
     let likelyCloseSpan = document.getElementById("likelyCloseSpan");
+    let titleSpan = document.getElementById("titleSpan");
 
     ws.onmessage = function(event) {
         let newdata = JSON.parse(event.data);
@@ -21,12 +22,14 @@
         serverTstampSpan.textContent = newdata.server_tstamp;
         queryTimeSpan.textContent = newdata.duration_time;
         dataTstampSpan.textContent = newdata.data_tstamp;
+        titleSpan.textContent = "spx:"+newdata.spx_price.toString()+",vix:"+newdata.vix_price.toString();
+        vixSpan.textContent = newdata.vix_price;
         spxpriceSpan.textContent = newdata.spx_price;
         ndxpriceSpan.textContent = newdata.ndx_price;
         espriceSpan.textContent = newdata.es_price;
-        vixSpan.textContent = newdata.vix_price;
         commentarySpan.textContent = newdata.commentary;
         likelyCloseSpan.textContent = newdata.likey_close_price_list;
+
         updateChartPrices(newdata);
         updateChartDex(newdata.dex,newdata.spot_min_lim,newdata.spot_max_lim);
         updateChartCallOrderImbalance(newdata.call_order_imbalance,newdata.spot_min_lim,newdata.spot_max_lim);

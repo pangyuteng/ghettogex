@@ -3,7 +3,7 @@
 <head>
 
     <meta charset="utf-8">
-    <title>ghettogex</title>
+    <title id="titleSpan">ghettogex</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" href="/static/uPlot.min.css">
@@ -21,6 +21,7 @@
 
 
 {% if load_data %}
+expected move based on vix:<span id="likelyCloseSpan" style="font-size: 20px !important; color: #ffffff;"></span><br>
 <span id="errorSpan" style="font-size: 20px !important; color: #ff0000;"></span>
 data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <span id="dataQcSpan" style="font-size: 18px !important; color: #ff0000;"></span>
@@ -56,8 +57,6 @@ ndx: <span id="ndxpriceSpan" style="font-size: 20px !important; color: #8f8f8f;"
 <br>
 server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 , query_time: <span id="queryTimeSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
-<br>
-historical close range(+/-1&2SD):<span id="likelyCloseSpan" style="font-size: 20px !important; color: #ffffff;"></span>
 <br>
 
 {% include 'index-spx-vix.html' %}
