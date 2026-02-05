@@ -291,10 +291,9 @@ async def ws_main_socket():
 
                         vix_index = df.vix_close.last_valid_index()
                         vix_price = df.vix_close[vix_index]
-                        vix_max = df.vix_close.max()
 
-                        vem = vix_price/np.sqrt(252) # daily expected move using vix last
-
+                        vix_open = df.vix_close[df.vix_close.first_valid_index()]
+                        vem = vix_open/np.sqrt(252) # daily expected move using vix last
                         spx_open = df.spx_close[df.spx_close.first_valid_index()]
                         likey_close_price_list = np.array([-1*vem,1*vem])
                         likey_close_price_list = spx_open+likey_close_price_list*0.01*spx_open
@@ -306,6 +305,7 @@ async def ws_main_socket():
                         ret_dict['spx_price'] = df.spx_close.iloc[-1]
                         ret_dict['ndx_price'] = df.ndx_close.iloc[-1]
 
+                        vix_max = df.vix_close.max()
                         vmem = vix_max/np.sqrt(252) # daily expected move using vix max
                         plus_prct = (1+vem*0.01*2.5)
                         minus_prct = (1-vem*0.01*2.5)
