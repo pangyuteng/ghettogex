@@ -23,3 +23,10 @@ CREATE TABLE IF NOT EXISTS settings (
     , from_scratch bool
     , CONSTRAINT settings_uni CHECK (settings_id)
 );
+
+CREATE TABLE IF NOT EXISTS external_apps (
+    external_apps_id SERIAL PRIMARY KEY,
+    app_name text,
+    chat_id text,
+    alert_type text
+);

@@ -25,6 +25,12 @@ task_queues = (
 )
 
 beat_schedule = {
+   'trigger_telegram_bot': {
+       'task': 'tasks.trigger_telegram_bot',
+       'schedule': crontab(minute=15, hour=2),
+       'options': {'queue': 'default'},
+       'args': [],
+   },
     'manage_subscriptions': {
         'task': 'tasks.manage_subscriptions',
         'schedule': crontab(minute='*/5'),

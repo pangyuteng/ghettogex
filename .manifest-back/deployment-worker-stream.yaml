@@ -52,6 +52,11 @@ spec:
             secretKeyRef:
               name: tasty-env
               key: TASTYTRADE_REFRESH_TOKEN
+        - name: TELEGRAM_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: TELEGRAM_BOT_TOKEN
         volumeMounts:
         - name: sm-volume
           mountPath: /mnt/sm-data

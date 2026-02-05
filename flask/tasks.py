@@ -22,6 +22,7 @@ from utils.postgres_utils import postgres_execute, vaccum_full_analyze
 from utils.data_tasty import background_subscribe, get_session_reuse
 from utils.misc import is_market_open, now_in_new_york, timedelta_from_market_open
 from utils.compute_intraday import compute_gex
+from utils.mytelegram import telegram_bot
 
 import tastytrade
 
@@ -129,6 +130,18 @@ class ManageSubscription(luigi.Task):
                 time.sleep(60)
             else:
                 break
+
+class TelegramBot(luigi.Task):
+    def output(self): # an output that never exists
+        return AlwaysRunTarget()
+    def run(self):
+        asyncio.run(telegram_bot())
+
+@celery_app.task
+def trigger_telegram_bot(*args,**kwargs):
+    logger.info(f"trigger_telegram_bot")
+    task = TelegramBot()
+    ret_code = luigi.build([task])
 
 @celery_app.task
 def trigger_subscription(*args,**kwargs):
