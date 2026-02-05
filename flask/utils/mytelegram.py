@@ -33,7 +33,7 @@ async def get_last_1min_spx_volume():
         )
         cdf = pd.DataFrame([dict(x) for x in fetched])
         if len(cdf) == 0:
-            return 600000
+            return None
 
         cdf['tstamp_1min'] = cdf.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
         cdf.ask_volume = cdf.ask_volume.fillna(0)
