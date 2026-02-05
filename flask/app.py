@@ -38,7 +38,6 @@ from quart_auth import (
 )
 
 from utils.misc import (
-    CACHE_FOLDER,
     EXPECTED_HASH,
     check_password,
     get_market_open_close,
