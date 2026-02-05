@@ -32,6 +32,11 @@ spec:
           value: postgres://postgres:postgres@postgres:5432/postgres
         - name: C_FORCE_ROOT
           value: "true"
+        - name: TELEGRAM_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: TELEGRAM_BOT_TOKEN
         volumeMounts:
         - name: sm-volume
           mountPath: /mnt/sm-data
