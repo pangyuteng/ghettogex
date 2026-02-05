@@ -51,7 +51,7 @@ async def get_last_1min_spx_volume():
 
     return last_volume
 
-async def check_price(context):
+async def volume_alert(context):
     global last_notified_tstamp
 
     if not is_market_open():
@@ -106,7 +106,7 @@ async def telegram_bot():
 
     job_queue: JobQueue = app.job_queue
     job_queue.run_repeating(
-        callback=check_price,
+        callback=volume_alert,
         interval=CHECK_INTERVAL_SECONDS,
         first=3
     )
