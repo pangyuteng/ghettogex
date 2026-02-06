@@ -102,7 +102,7 @@ async def generate_volume_plot(workdir):
 
 if __name__ == "__main__":
     try:
-        asyncio.run(generate_volume_plot(None))
+        asyncio.run(generate_volume_plot("."))
     except (KeyboardInterrupt, SystemExit):
         logger.info("stopped by user")
 
