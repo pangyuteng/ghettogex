@@ -20,7 +20,6 @@ async def generate_volume_plot(workdir):
     ticker = "SPX"
     ticker_alt = "SPXW"
     day_stamp = tstamp.strftime("%Y-%m-%d")
-    day_stamp = '2026-02-05'
 
     market_open,market_close = get_market_open_close(day_stamp,no_tzinfo=True)
     expiration = market_open.strftime("%Y-%m-%d")
