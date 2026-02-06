@@ -1,3 +1,4 @@
+import os
 import logging
 logger = logging.getLogger(__file__)
 
@@ -5,6 +6,8 @@ import pytz
 import datetime
 import pandas_market_calendars as mcal
 import bcrypt
+
+EXPECTED_HASH = os.environ.get("EXPECTED_HASH")
 
 nyse = mcal.get_calendar('NYSE')
 def is_market_open(tstamp=None):
@@ -60,5 +63,3 @@ def get_hashed_password(plain_text_password):
 def check_password(plain_text_password, hashed_password_str):
     # Check hashed password. Using bcrypt, the salt is saved into the hash itself
     return bcrypt.checkpw(plain_text_password.encode('utf-8'), hashed_password_str.encode('utf-8'))
-
-EXPECTED_HASH = os.environ.get("EXPECTED_HASH")

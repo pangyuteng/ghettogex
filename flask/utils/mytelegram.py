@@ -7,13 +7,13 @@ TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 
 import pandas as pd
 import asyncio
-from telegram import Update
+import aiofiles
+from telegram import Update, InputMediaDocument
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, JobQueue
 
 from .misc import get_market_open_close, is_market_open
 from .postgres_utils import apostgres_execute
-
-
+from .myplots import generate_volume_plot
 
 last_notified_tstamp = None
 VOLUME_THRESHOLD = 25000
@@ -86,23 +86,47 @@ async def volume_alert(context):
             fetched = await apostgres_execute(None,query_str,(),is_commit=False)
             fetched = [dict(x) for x in fetched]
             for row in fetched:
-                print(row['chat_id'])
+
                 await context.bot.send_message(
                     chat_id=row['chat_id'],
                     text=msg,
                     parse_mode="Markdown"
                 )
                 logger.info(f"Alert sent: {msg}")
+                async with aiofiles.tempfile.TemporaryDirectory() as tmpdir:
+                    strike_volume_png_file, total_volume_png_file = await generate_volume_plot(tmpdir)
+                    chat_id = row['chat_id']
+                    media_1 = InputMediaDocument(media=open(strike_volume_png_file, 'rb'),)
+                    media_2 = InputMediaDocument(media=open(total_volume_png_file, 'rb'),)
+                    await context.bot.send_media_group(chat_id=chat_id, media=[media_1,media_2])
+
         except:
             logger.error(traceback.format_exc())
 
-async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def request_volume_plot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async with aiofiles.tempfile.TemporaryDirectory() as tmpdir:
+        strike_volume_png_file, total_volume_png_file = await generate_volume_plot(tmpdir)
+        chat_id = update.effective_chat.id
+        media_1 = InputMediaDocument(media=open(strike_volume_png_file, 'rb'),)
+        media_2 = InputMediaDocument(media=open(total_volume_png_file, 'rb'),)
+        await context.bot.send_media_group(chat_id=chat_id, media=[media_1,media_2])
+
+HELP_TEXT = """
+    \n\n
+    commands:\n
+    /help : for help\n
+    /volume : for 0DTE SPX Volume\n
+    /subscribe : subscribe alert\n
+    /unsubscribe : unsubscribe alert\n
+"""
+async def request_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info(f"effective_chat.id {update.effective_chat.id}")
-    await update.message.reply_text(f'Hello {update.effective_user.first_name} from ghettogex_bot')
+    await update.message.reply_text(f"Hello {update.effective_user.first_name} from ghettogex_bot"+HELP_TEXT)
 
 async def telegram_bot():
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-    app.add_handler(CommandHandler("hello", hello))
+    app.add_handler(CommandHandler("help", request_help))
+    app.add_handler(CommandHandler("volume", request_volume_plot))
 
     job_queue: JobQueue = app.job_queue
     job_queue.run_repeating(
