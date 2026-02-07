@@ -304,23 +304,31 @@ async def ws_main_socket():
 
                         vix_max = df.vix_close.max()
                         vmem = vix_max/np.sqrt(252) # daily expected move using vix max
+
                         plus_prct = (1+vem*0.01*2.5)
                         minus_prct = (1-vem*0.01*2.5)
 
-                        spot_max_lim = df.spx_close.mean()*plus_prct # +100
-                        spot_min_lim = df.spx_close.mean()*minus_prct # -100
+                        spx_close = df.spx_close[df.spx_close.last_valid_index()]
+                        spot_max_lim = spx_close*plus_prct # +100
+                        spot_min_lim = spx_close*minus_prct # -100
 
-                        ret_dict['spot_min_lim'] = spot_min_lim
                         ret_dict['spot_max_lim'] = spot_max_lim
-                        
-                        ndx_max_lim = df.ndx_close.max()*plus_prct
-                        ndx_min_lim = df.ndx_close.min()*minus_prct
+                        ret_dict['spot_min_lim'] = spot_min_lim
 
-                        spy_max_lim = df.spy_close.max()*plus_prct
-                        spy_min_lim = df.spy_close.min()*minus_prct
+                        spy_close = df.spy_close[df.spy_close.last_valid_index()]
+                        spy_max_lim = spy_close*plus_prct
+                        spy_min_lim = spy_close*minus_prct
 
-                        qqq_max_lim = df.qqq_close.max()*plus_prct
-                        qqq_min_lim = df.qqq_close.min()*minus_prct
+                        qqq_plus_prct = (1+vem*0.01*2.5)
+                        qqq_minus_prct = (1-vem*0.01*2.5)
+
+                        qqq_close = df.qqq_close[df.qqq_close.last_valid_index()]
+                        qqq_max_lim = qqq_close*plus_prct
+                        qqq_min_lim = qqq_close*qqq_minus_prct
+
+                        ndx_close = df.ndx_close[df.ndx_close.last_valid_index()]
+                        ndx_max_lim = ndx_close*qqq_plus_prct
+                        ndx_min_lim = ndx_close*qqq_minus_prct
 
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
