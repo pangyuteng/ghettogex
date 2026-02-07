@@ -87,7 +87,7 @@ function makeChartPrices() {
 let mychartPrices = makeChartPrices();
 
 function updateChartPrices(data){
-	mychartPrices.setScale('scale0', {min: data.spot_min_lim, max: data.spot_max_lim});
+	mychartPrices.setScale('scale0', {min: data.spx_min_lim, max: data.spx_max_lim});
 	linesPrices[0] = [data.likey_close_price_list[0],'gray'];
 	linesPrices[1] = [data.likey_close_price_list[1],'gray'];
 	linesPrices[2] = [data.likey_close_price_list[2],'gray'];

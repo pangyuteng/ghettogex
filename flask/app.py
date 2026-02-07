@@ -308,27 +308,34 @@ async def ws_main_socket():
                         plus_prct = (1+vem*0.01*2.5)
                         minus_prct = (1-vem*0.01*2.5)
 
-                        spx_close = df.spx_close[df.spx_close.last_valid_index()]
-                        spot_max_lim = spx_close*plus_prct # +100
-                        spot_min_lim = spx_close*minus_prct # -100
+                        spx_mean = df.spx_close.mean()
+                        spot_max_lim = spx_mean*plus_prct
+                        spot_min_lim = spx_mean*minus_prct
 
-                        ret_dict['spot_max_lim'] = spot_max_lim
+                        ret_dict['spot_max_lim'] = spot_max_lim # center at mean
                         ret_dict['spot_min_lim'] = spot_min_lim
 
-                        spy_close = df.spy_close[df.spy_close.last_valid_index()]
-                        spy_max_lim = spy_close*plus_prct
-                        spy_min_lim = spy_close*minus_prct
+                        misc_plus_prct = (1+vem*0.01*2)
+                        misc_minus_prct = (1-vem*0.01*2)
 
-                        qqq_plus_prct = (1+vem*0.01*2.5)
-                        qqq_minus_prct = (1-vem*0.01*2.5)
+                        spx_close = df.spx_close[df.spx_close.last_valid_index()]
+                        spx_max_lim = spx_close*misc_plus_prct
+                        spx_min_lim = spx_close*misc_minus_prct
+
+                        ret_dict['spx_max_lim'] = spx_max_lim # center at close
+                        ret_dict['spx_min_lim'] = spx_min_lim
+
+                        spy_close = df.spy_close[df.spy_close.last_valid_index()]
+                        spy_max_lim = spy_close*misc_plus_prct
+                        spy_min_lim = spy_close*misc_minus_prct
 
                         qqq_close = df.qqq_close[df.qqq_close.last_valid_index()]
-                        qqq_max_lim = qqq_close*plus_prct
-                        qqq_min_lim = qqq_close*qqq_minus_prct
+                        qqq_max_lim = qqq_close*misc_plus_prct
+                        qqq_min_lim = qqq_close*misc_minus_prct
 
                         ndx_close = df.ndx_close[df.ndx_close.last_valid_index()]
-                        ndx_max_lim = ndx_close*qqq_plus_prct
-                        ndx_min_lim = ndx_close*qqq_minus_prct
+                        ndx_max_lim = ndx_close*misc_plus_prct
+                        ndx_min_lim = ndx_close*misc_minus_prct
 
                     if gathered_res[1] is not None:
                         df = pd.DataFrame([dict(x) for x in gathered_res[1]])
@@ -439,7 +446,7 @@ async def ws_main_socket():
                     if gathered_res[5] is not None:
                         try:
                             df = pd.DataFrame([dict(x) for x in gathered_res[5]])
-                            df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
+                            df = df[(df.strike>spx_min_lim) & (df.strike<spx_max_lim)].reset_index()
                             df['convexity'] = df.gamma*df.order_imbalance
                             df['pos_convexity'] = df.convexity.where(df.convexity>0)
                             df['neg_convexity'] = df.convexity.where(df.convexity<=0)
