@@ -105,10 +105,17 @@ async def volume_alert(context):
 
 async def request_volume_plot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     async with aiofiles.tempfile.TemporaryDirectory() as tmpdir:
-        strike_volume_png_file, total_volume_png_file = await generate_volume_plot(tmpdir)
+        
+        tstamp = datetime.datetime.now()
+
+        if is_market_open():
+            strike_volume_png_file, total_volume_png_file = await generate_volume_plot(tmpdir)
+        else:
+            strike_volume_png_file, total_volume_png_file = None, None
+
         if strike_volume_png_file is None:
             chat_id = update.effective_chat.id
-            await context.bot.send_message(chat_id=chat_id, text='market closed will not generate.')
+            await context.bot.send_message(chat_id=chat_id, text=f'market closed, will not generate. {tstamp}')
         else:
             chat_id = update.effective_chat.id
             media_1 = InputMediaDocument(media=open(strike_volume_png_file, 'rb'),)
