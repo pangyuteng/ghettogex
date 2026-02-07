@@ -30,6 +30,8 @@ select tstamp,event_symbol,strike,contract_type,(ask_volume-bid_volume) as order
 where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
 """
 
+# maybe this is wrong does not match with gexbot. end of day convexity is always extremely negative.
+# while that could be fine for gex???? 
 CONVEXITY_QUERY = """
 WITH o_1day AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
@@ -45,6 +47,7 @@ LEFT JOIN g_1day using (ticker,strike)
 ORDER BY strike
 """
 
+# CONVEXITYDX_QUERY does not match gexbot. maybe they are doing rolling 1 hr?
 CONVEXITYDX_QUERY = """
 WITH o_1day AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
@@ -56,6 +59,21 @@ from greeksdx_1day where ticker = %s and expiration = %s and tstamp::date = %s
 group by ticker,strike
 )
 SELECT ticker,strike,gamma,order_imbalance from o_1day
+LEFT JOIN g_1day using (ticker,strike)
+ORDER BY strike
+"""
+
+INTERVAL_CONVEXITY_QUERY = """
+WITH o_interval AS (
+select distinct ticker,strike,sum(order_imbalance) as order_imbalance
+from order_imbalance where ticker = %s and expiration = %s and tstamp::date = %s and tstamp >= %s - interval '60 minute'
+group by ticker,strike
+), g_1day AS (
+select distinct ticker,strike,last(gamma,tstamp) as gamma
+from greeksdx_1day where ticker = %s and expiration = %s and tstamp::date = %s
+group by ticker,strike
+)
+SELECT ticker,strike,gamma,order_imbalance from o_interval
 LEFT JOIN g_1day using (ticker,strike)
 ORDER BY strike
 """

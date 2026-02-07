@@ -59,8 +59,7 @@ from utils.pg_queries import (
     ORDER_IMBALANCE_LASTXMIN_QUERY,
     CANDLE_QC_QUERY,
     QUOTE_1MIN_QUERY,
-    CONVEXITY_QUERY,
-    CONVEXITYDX_QUERY,
+    INTERVAL_CONVEXITY_QUERY,
     GREEKS_QUERY,
     GEX_CONVEXITY_1DAY_QUERY,
 )
@@ -255,14 +254,13 @@ async def ws_main_socket():
                         apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
                         apostgres_execute(apool,CANDLE_QC_QUERY,(ticker,tstamp_utc,ticker_alt,tstamp_utc)),
                         apostgres_execute(apool,QUOTE_1MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
-                        #apostgres_execute(apool,CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
-                        apostgres_execute(apool,CONVEXITYDX_QUERY,(ticker_alt,dstamp,dstamp,ticker_alt,dstamp,dstamp)),
+                        apostgres_execute(apool,INTERVAL_CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,tstamp_utc,ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,GREEKS_QUERY,(ticker_alt,dstamp,dstamp)),
-                        apostgres_execute(apool,CONVEXITYDX_QUERY,(ndx_ticker_alt,dstamp,dstamp,ndx_ticker_alt,dstamp,dstamp)),
+                        apostgres_execute(apool,INTERVAL_CONVEXITY_QUERY,(ndx_ticker_alt,dstamp,dstamp,tstamp_utc,ndx_ticker_alt,dstamp,dstamp)),
                         apostgres_execute(apool,ORDER_IMBALANCE_LASTXMIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
                         apostgres_execute(apool,GEX_CONVEXITY_1DAY_QUERY,(ticker,dstamp)),
-                        apostgres_execute(apool,CONVEXITYDX_QUERY,(spy_ticker,dstamp,dstamp,spy_ticker,dstamp,dstamp)),
-                        apostgres_execute(apool,CONVEXITYDX_QUERY,(qqq_ticker,dstamp,dstamp,qqq_ticker,dstamp,dstamp)),
+                        apostgres_execute(apool,INTERVAL_CONVEXITY_QUERY,(spy_ticker,dstamp,dstamp,tstamp_utc,spy_ticker,dstamp,dstamp)),
+                        apostgres_execute(apool,INTERVAL_CONVEXITY_QUERY,(qqq_ticker,dstamp,dstamp,tstamp_utc,qqq_ticker,dstamp,dstamp)),
                     ]
 
                     gathered_res = await asyncio.gather(*query_list)
