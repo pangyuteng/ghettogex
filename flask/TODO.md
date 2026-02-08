@@ -17,67 +17,69 @@ the corresponding chart's query (in `utils/postgres_utils.py`) and html/js examp
 
     + query: INTERVAL_CONVEXITY_QUERY
 
-    + html/js: templates/index-convexity.html
+    + html/js: templates/index-convexity.html, also refer to function `updateChartConvexitySPX`.
+
 
 + volatility
 
     + query: GREEKS_QUERY
 
-    + html/js: templates/index-volatility.html
+    + html/js: templates/index-volatility.html, also refer to function `updateChartVolatility`.
 
 + price
 
     + query: CANDLE_1MIN_QUERY
 
-    + html/js: templates/index-spx-vix.html
+    + html/js: templates/index-spx-vix.html, also refer to function `updateChartPrices`.
 
 + gex
 
     + query: LATEST_GEX_STRIKE_QUERY
 
-    + html/js: index-gex.html
+    + html/js: index-gex.html, also refer to function `updateChartGex`.
 
 + dexflow
 
     + query: GEX_CONVEXITY_1DAY_QUERY
 
-    + html/js: templates/index-dex.html
+    + html/js: templates/index-dex.html, also refer to function `updateChartDex`.
 
 + gexflow
 
     + query: GEX_CONVEXITY_1DAY_QUERY
 
-    + html/js: index-net-diff.html
+    + html/js: index-net-diff.html, also refer to function `updateChartGexDiff`.
 
 + convexityflow
 
     + query: GEX_CONVEXITY_1DAY_QUERY
 
-    + html/js: index-net-diff.html
+    + html/js: index-net-diff.html, also refer to function `updateChartConvexityDiff`.
 
 + call-order-imbalance
 
     + query: ORDER_IMBALANCE_QUERY
 
-    + html/js: templates/index-orderimbalance.html
+    + html/js: templates/index-orderimbalance.html, also refer to function `updateChartCallOrderImbalance`.
 
 + put-order-imbalance
 
     + query: ORDER_IMBALANCE_QUERY
 
-    + html/js: templates/index-orderimbalance.html
+    + html/js: templates/index-orderimbalance.html, also refer to function `updateChartPutOrderImbalance`.
 
 + call-last-x-min
 
     + query: ORDER_IMBALANCE_LASTXMIN_QUERY
 
-    + html/js: templates/
+    + html/js: templates/index-orderimbalance.html , also refer to function `updateChartCallOrderImbalanceZoomIn`.
 
 + put-last-x-min
 
     + query: ORDER_IMBALANCE_LASTXMIN_QUERY
 
-    + html/js: templates/
+    + html/js: templates/index-orderimbalance.html, also refer to function `updateChartPutOrderImbalanceZoomIn`.
+
 
 
 If you need a docker environment to spin up app.py, i can provide you a running docker container and app.py password
