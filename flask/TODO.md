@@ -79,3 +79,5 @@ the corresponding chart's query (in `utils/postgres_utils.py`) and html/js examp
 
     + html/js: templates/
 
+
+If you need a docker environment to spin up app.py, i can provide you a running docker container and app.py password
