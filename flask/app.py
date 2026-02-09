@@ -132,18 +132,18 @@ def process_price_data(rows, ticker):
     ticker_open = ticker_close_col[ticker_open_idx] if ticker_open_idx is not None else 0
     likey_close_price_list = np.array([-1*vem,1*vem])
     likey_close_price_list = ticker_open+likey_close_price_list*0.01*ticker_open
-    likey_close_price_list = likey_close_price_list.astype(int).tolist()
+    likey_close_price_list = likey_close_price_list.astype(float).tolist()
 
     plus_prct = (1+vem*0.01*2.5)
     minus_prct = (1-vem*0.01*2.5)
     ticker_mean = ticker_close_col.mean()
-    spot_max_lim = ticker_mean*plus_prct
+    spot_max_lim = ticker_mean*plus_prct # used by gex plot
     spot_min_lim = ticker_mean*minus_prct
 
     misc_plus_prct = (1+vem*0.01*2)
     misc_minus_prct = (1-vem*0.01*2)
     ticker_close = ticker_close_col[ticker_close_col.last_valid_index()]
-    max_lim = ticker_close*misc_plus_prct
+    max_lim = ticker_close*misc_plus_prct # used by convexity plot
     min_lim = ticker_close*misc_minus_prct
 
     return {
@@ -517,8 +517,8 @@ async def ws_main_socket():
                     query_list = []  # corresponding coroutines
 
                     need_flow = _needs_query_group(charts, ['dexflow','gexflow','convexityflow'])
-                    need_oi = _needs_query_group(charts, ['call-order-imbalance','put-order-imbalance'])
-                    need_oi_zoom = _needs_query_group(charts, ['call-last-x-min','put-last-x-min'])
+                    need_ordim = _needs_query_group(charts, ['call-order-imbalance','put-order-imbalance'])
+                    need_ordim_zoom = _needs_query_group(charts, ['call-last-x-min','put-last-x-min'])
                     need_gex = 'gex' in charts
                     need_convexity = 'convexity' in charts
                     need_volatility = 'volatility' in charts
@@ -558,12 +558,12 @@ async def ws_main_socket():
                             query_list.append(apostgres_execute(apool, QUOTE_1MIN_QUERY, (dstamp, options_ticker, tstamp_utc)))
 
                         # Order imbalance (full day)
-                        if need_oi:
+                        if need_ordim:
                             query_keys.append((ticker, 'order_imbalance'))
                             query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_QUERY, (dstamp, options_ticker)))
 
                         # Order imbalance zoom (last x min)
-                        if need_oi_zoom:
+                        if need_ordim_zoom:
                             query_keys.append((ticker, 'order_imbalance_zoom'))
                             query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_LASTXMIN_QUERY, (options_ticker, dstamp, tstamp_utc)))
 

@@ -625,7 +625,7 @@ const CHART_CONFIGS = {
 
 	'call-order-imbalance': {
 		make: function(elementId, ticker) {
-			return makeChartScatter(elementId, ticker + "-call-oi", 380, false);
+			return makeChartScatter(elementId, ticker + "-call-ordim", 380, false);
 		},
 		update: function(chartObj, tickerData) {
 			let oi = tickerData['call-order-imbalance'];
@@ -638,7 +638,7 @@ const CHART_CONFIGS = {
 
 	'put-order-imbalance': {
 		make: function(elementId, ticker) {
-			return makeChartScatter(elementId, ticker + "-put-oi", 380, false);
+			return makeChartScatter(elementId, ticker + "-put-ordim", 380, false);
 		},
 		update: function(chartObj, tickerData) {
 			let oi = tickerData['put-order-imbalance'];
@@ -651,7 +651,7 @@ const CHART_CONFIGS = {
 
 	'call-last-x-min': {
 		make: function(elementId, ticker) {
-			return makeChartScatter(elementId, ticker + "-call,last-x-min", 240, false);
+			return makeChartScatter(elementId, ticker + "-call-ordim,last-x-min", 240, false);
 		},
 		update: function(chartObj, tickerData) {
 			let oi = tickerData['call-last-x-min'];
@@ -664,7 +664,7 @@ const CHART_CONFIGS = {
 
 	'put-last-x-min': {
 		make: function(elementId, ticker) {
-			return makeChartScatter(elementId, ticker + "-put,last-x-min", 240, false);
+			return makeChartScatter(elementId, ticker + "-put-ordim,last-x-min", 240, false);
 		},
 		update: function(chartObj, tickerData) {
 			let oi = tickerData['put-last-x-min'];
