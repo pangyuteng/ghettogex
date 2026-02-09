@@ -1,0 +1,693 @@
+<script>
+
+// --- Shared lines plugin (replaces linesPricesPlugin, linesPlugin1, linesPluginConvexity, linesVolatilityPlugin) ---
+function linesPlugin(linesArray) {
+	function drawLines(u) {
+		const { ctx, bbox } = u;
+		linesArray.forEach( item => {
+			if (!item) return;
+			xVal = item[0];
+			color = item[1];
+			let x4 = u.valToPos(xVal, 'x', true);
+			let ylft = u.valToPos(u.scales.y.min, 'y', true);
+			let yrgt = u.valToPos(u.scales.y.max, 'y', true);
+			u.ctx.save();
+			u.ctx.beginPath();
+			u.ctx.moveTo(ylft, x4);
+			u.ctx.lineTo(yrgt, x4);
+			u.ctx.setLineDash([5,5]);
+			u.ctx.lineWidth = 1.5;
+			u.ctx.strokeStyle = color;
+			u.ctx.stroke();
+			u.ctx.restore();
+		});
+	}
+	return {
+		hooks: {
+			draw: drawLines,
+		}
+	};
+}
+
+// Variant for price chart (horizontal lines with scale0)
+function linesPricesPlugin(linesArray) {
+	function drawLines(u) {
+		const { ctx, bbox } = u;
+		linesArray.forEach( item => {
+			if (!item) return;
+			xVal = item[0];
+			color = item[1];
+			let x4 = u.valToPos(xVal, 'scale0', true);
+			let ylft = u.valToPos(u.scales.x.min, 'x', true);
+			let yrgt = u.valToPos(u.scales.x.max, 'x', true);
+			u.ctx.save();
+			u.ctx.beginPath();
+			u.ctx.moveTo(ylft,x4);
+			u.ctx.lineTo(yrgt,x4);
+			u.ctx.setLineDash([5,5]);
+			u.ctx.lineWidth = 1.5;
+			u.ctx.strokeStyle = color;
+			u.ctx.stroke();
+			u.ctx.restore();
+		});
+	}
+	return {
+		hooks: {
+			draw: drawLines,
+		}
+	};
+}
+
+// --- Scatter chart maker (from index-orderimbalance.html) ---
+function makeChartScatter(elementId, mytitle, chartWidth, showLegend) {
+	const drawPoints = (u, seriesIdx, idx0, idx1) => {
+		const size = 5 * pxRatio;
+		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+			let d = u.data[seriesIdx];
+			u.ctx.fillStyle = series.stroke();
+			let deg360 = 2 * Math.PI;
+			let p = new Path2D();
+			for (let i = 0; i < d[0].length; i++) {
+				let xVal = d[0][i];
+				let yVal = d[1][i];
+				if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
+					let cx = valToPosX(xVal, scaleX, xDim, xOff);
+					let cy = valToPosY(yVal, scaleY, yDim, yOff);
+					p.moveTo(cx + size/2, cy);
+					arc(p, cx, cy, size/2, 0, deg360);
+				}
+			}
+			u.ctx.fill(p);
+		});
+		return null;
+	};
+
+	let qt;
+	let pxRatio;
+
+	function setPxRatio() {
+		pxRatio = uPlot.pxRatio;
+	}
+
+	function guardedRange(u, min, max) {
+		if (max == min) {
+			if (min == null) {
+				min = 0;
+				max = 100;
+			} else {
+				let delta = Math.abs(max) || 100;
+				max += delta;
+				min -= delta;
+			}
+		}
+		return [min, max];
+	}
+
+	setPxRatio();
+	window.addEventListener('dppxchange', setPxRatio);
+
+	const opts = {
+		title: mytitle,
+		mode: 2,
+		width: chartWidth,
+		height: 380,
+		legend: {
+			show: showLegend,
+			live: false,
+		},
+		hooks: {
+			drawClear: [
+				u => {
+					u.series.forEach((s, i) => {
+						if (i > 0) s._paths = null;
+					});
+				},
+			],
+		},
+		scales: {
+			x: {
+				time: true,
+				range: guardedRange,
+			},
+			y: {
+				time: false,
+				range: guardedRange,
+			},
+		},
+		axes: [
+			{
+				side: 0,
+				stroke: "#666666",
+				tick: {stroke: "#666666",width:1},
+				grid: {stroke: "#666666",width:1},
+			},
+			{
+				side: 3,
+				stroke: "#666666",
+				grid: {stroke: "#666666",width:1},
+				tick: {stroke: "#666666",width:1},
+			}
+		],
+		series: [
+			{},
+			{ stroke: "rgba(255,0,0,0.5)", fill: "rgba(255,0,0,0.5)", label: "<-200", paths: drawPoints },
+			{ stroke: "rgba(200,0,0,0.5)", fill: "rgba(200,0,0,0.5)", label: "-200,-100", paths: drawPoints },
+			{ stroke: "rgba(150,0,100,0.5)", fill: "rgba(150,0,0,0.5)", label: "-100,-50", paths: drawPoints },
+			{ stroke: "rgba(100,0,0,0.5)", fill: "rgba(100,0,0,0.5)", label: "-50,-25", paths: drawPoints },
+			{ stroke: "rgba(50,0,0,0.5)", fill: "rgba(50,0,0,0.5)", label: "-25,-10", paths: drawPoints },
+			{ stroke: "rgba(25,0,0,0.5)", fill: "rgba(25,0,0,0.5)", label: "-10,0", paths: drawPoints },
+			{ stroke: "rgba(0,25,0,0.5)", fill: "rgba(0,25,0,0.5)", label: "0,10", paths: drawPoints },
+			{ stroke: "rgba(0,50,0,0.5)", fill: "rgba(0,50,0,0.5)", label: "10,25", paths: drawPoints },
+			{ stroke: "rgba(0,100,0,0.5)", fill: "rgba(0,100,0,0.5)", label: "25,50", paths: drawPoints },
+			{ stroke: "rgba(0,150,0,0.5)", fill: "rgba(0,150,0,0.5)", label: "50,100", paths: drawPoints },
+			{ stroke: "rgba(0,200,0,0.5)", fill: "rgba(0,200,0,0.5)", label: "100,200", paths: drawPoints },
+			{ stroke: "rgba(0,255,0,0.5)", fill: "rgba(0,255,0,0.5)", label: ">200", paths: drawPoints },
+			{ stroke: "rgba(255,255,255,0.5)", fill: "rgba(255,255,255,0.5)", label: "spot", paths: drawPoints },
+		],
+	};
+	let ogdata = [ [],
+		[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],
+		[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],[[1,1,1],[1,1,1],[]],
+		[[1,1,1],[1,1,1],[]],
+	];
+	return new uPlot(opts, ogdata, document.getElementById(elementId));
+}
+
+
+// --- CHART_CONFIGS: maps chart type to {make, update} ---
+const CHART_CONFIGS = {
+
+	'price': {
+		make: function(elementId, ticker) {
+			let mylines = [];
+			const opts = {
+				title: ticker + "-prices",
+				width: 380,
+				height: 380,
+				series: [
+					{},
+					{
+						label: "companion",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						stroke: "rgba(255,0,0,1)",
+						width: 2/devicePixelRatio,
+					},
+					{
+						label: ticker,
+						scale: "scale0",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						width: 2/devicePixelRatio,
+						stroke: "rgba(255,255,255,1)",
+					},
+				],
+				plugins: [
+					linesPricesPlugin(mylines)
+				],
+				axes: [
+					{
+						side: 0,
+						stroke: "#666666",
+						tick: {stroke: "#666666",width:1},
+						grid: {stroke: "#666666",width:1},
+					},
+					{
+						side: 3,
+						scale: "scale0",
+						stroke: "#666666",
+						grid: {stroke: "#666666",width:1},
+						tick: {stroke: "#666666",width:1},
+					},
+					{
+						side: 1,
+						scale: "scale1",
+						values: (u, vals, space) => vals.map(v => v.toFixed(2) + ""),
+						stroke: "#666666",
+						grid: {show: false},
+						tick: {stroke: "#666666",width:1},
+					},
+				],
+			};
+			let chart = new uPlot(opts, [], document.getElementById(elementId));
+			chart._mylines = mylines;
+			return chart;
+		},
+		update: function(chartObj, tickerData) {
+			let pd = tickerData.price;
+			if (!pd || !pd.prices || pd.prices.length === 0) return;
+			chartObj.setScale('scale0', {min: pd.min_lim, max: pd.max_lim});
+			let lines = chartObj._mylines;
+			if (pd.likey_close_price_list && pd.likey_close_price_list.length >= 2) {
+				lines[0] = [pd.likey_close_price_list[0],'gray'];
+				lines[1] = [pd.likey_close_price_list[1],'gray'];
+			}
+			chartObj.setData(pd.prices);
+		}
+	},
+
+	'convexity': {
+		make: function(elementId, ticker) {
+			let mylines = [];
+			let bars = uPlot.paths.bars({align: 0, size: [1, 4], gap: 0});
+			let opts = {
+				width: 380,
+				height: 380,
+				title: ticker + "-convexity*",
+				scales: {
+					x: { time: false, dir: 1, ori: 1 },
+					y: { dir: 1, ori: 0 }
+				},
+				focus: { alpha: 0.3 },
+				cursor: {
+					lock: true,
+					drag: { x: true, y: true },
+					focus: { prox: 30 }
+				},
+				series: [
+					{},
+					{ stroke: "cyan", fill: "rgba(0,255,255,0.9)", paths: bars },
+					{ stroke: "purple", fill: "rgba(127,0,128,0.9)", paths: bars },
+				],
+				plugins: [
+					linesPlugin(mylines)
+				],
+				axes: [
+					{
+						side: 3,
+						stroke: "#666666",
+						tick: {stroke: "#666666",width:1},
+						grid: {stroke: "#666666",width:1},
+					},
+					{
+						side: 0,
+						stroke: "#666666",
+						grid: {stroke: "#666666",width:1},
+						tick: {stroke: "#666666",width:1},
+					}
+				],
+			};
+			let chart = new uPlot(opts, [], document.getElementById(elementId));
+			chart._mylines = mylines;
+			return chart;
+		},
+		update: function(chartObj, tickerData) {
+			let cd = tickerData.convexity;
+			let pd = tickerData.price || {};
+			let em = tickerData.expected_move || {};
+			if (!cd || !cd.convexity_list) return;
+			let lines = chartObj._mylines;
+			lines[0] = [em.plus,'gray'];
+			lines[1] = [em.minus,'gray'];
+			lines[2] = [cd.major_pos_convexity,'cyan'];
+			lines[3] = [cd.major_neg_convexity,'purple'];
+			lines[4] = [pd.ticker_price,'white'];
+			chartObj.setData(cd.convexity_list);
+		}
+	},
+
+	'volatility': {
+		make: function(elementId, ticker) {
+			let mylines = [];
+			let points = uPlot.paths.points();
+			let opts = {
+				width: 240,
+				height: 380,
+				title: ticker + "-volatility*",
+				scales: {
+					x: { time: false, dir: 1, ori: 1 },
+					y: { dir: 1, ori: 0 }
+				},
+				focus: { alpha: 0.3 },
+				cursor: {
+					lock: true,
+					drag: { x: true, y: true },
+					sync: { key: 1, scales: ["x"] },
+					focus: { prox: 30 }
+				},
+				series: [
+					{},
+					{ stroke: null, fill: "rgba(200,200,200,0.2)", paths: points },
+					{ stroke: null, fill: "rgba(0,255,0,0.5)", paths: points },
+					{ stroke: null, fill: "rgba(255,0,0,0.5)", paths: points },
+				],
+				plugins: [
+					linesPlugin(mylines)
+				],
+				axes: [
+					{
+						side: 3,
+						stroke: "#666666",
+						tick: {stroke: "#666666",width:1},
+						grid: {stroke: "#666666",width:1},
+					},
+					{
+						side: 0,
+						stroke: "#666666",
+						grid: {stroke: "#666666",width:1},
+						tick: {stroke: "#666666",width:1},
+					},
+				],
+			};
+			let chart = new uPlot(opts, [], document.getElementById(elementId));
+			chart._mylines = mylines;
+			return chart;
+		},
+		update: function(chartObj, tickerData) {
+			let vd = tickerData.volatility;
+			let pd = tickerData.price || {};
+			let em = tickerData.expected_move || {};
+			let gd = tickerData.gex || {};
+			let cd = tickerData.convexity || {};
+			if (!vd || !vd.volatility_list) return;
+			let lines = chartObj._mylines;
+			lines[0] = [pd.ticker_price,'white'];
+			lines[1] = [em.plus,'gray'];
+			lines[2] = [em.minus,'gray'];
+			lines[3] = [gd.major_pos_gex_strike,'green'];
+			lines[4] = [gd.major_neg_gex_strike,'red'];
+			lines[5] = [cd.major_pos_convexity,'cyan'];
+			lines[6] = [cd.major_neg_convexity,'purple'];
+			chartObj.setData(vd.volatility_list);
+		}
+	},
+
+	'gex': {
+		make: function(elementId, ticker) {
+			let mylines = [];
+			let bars = uPlot.paths.bars({align: 0, size: [1, 4], gap: 0});
+			let opts = {
+				width: 380,
+				height: 380,
+				title: ticker + "-gex*",
+				scales: {
+					x: { time: false, dir: 1, ori: 1 },
+					y: { dir: 1, ori: 0 }
+				},
+				focus: { alpha: 0.3 },
+				cursor: {
+					lock: true,
+					drag: { x: true, y: true },
+					sync: { key: 1, scales: ["x"] },
+					focus: { prox: 30 }
+				},
+				series: [
+					{},
+					{ stroke: "green", fill: "rgba(0,255,0,0.9)", paths: bars },
+					{ stroke: "red", fill: "rgba(255,0,0,0.9)", paths: bars },
+				],
+				plugins: [
+					linesPlugin(mylines)
+				],
+				axes: [
+					{
+						side: 3,
+						stroke: "#666666",
+						tick: {stroke: "#666666",width:1},
+						grid: {stroke: "#666666",width:1},
+					},
+					{
+						side: 0,
+						stroke: "#666666",
+						grid: {stroke: "#666666",width:1},
+						tick: {stroke: "#666666",width:1},
+					}
+				],
+			};
+			let chart = new uPlot(opts, [], document.getElementById(elementId));
+			chart._mylines = mylines;
+			return chart;
+		},
+		update: function(chartObj, tickerData) {
+			let gd = tickerData.gex;
+			let pd = tickerData.price || {};
+			let em = tickerData.expected_move || {};
+			if (!gd || !gd.gex_list) return;
+			let lines = chartObj._mylines;
+			lines[0] = [em.plus,'gray'];
+			lines[1] = [em.minus,'gray'];
+			lines[2] = [gd.major_pos_gex_strike,'green'];
+			lines[3] = [gd.major_neg_gex_strike,'red'];
+			lines[4] = [pd.ticker_price,'white'];
+			chartObj.setData(gd.gex_list);
+		}
+	},
+
+	'dexflow': {
+		make: function(elementId, ticker) {
+			const opts = {
+				title: ticker + "-dex,1day",
+				width: 380,
+				height: 380,
+				legend: { show: false },
+				series: [
+					{},
+					{
+						label: ticker,
+						scale: "scale0",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						stroke: "rgba(255,255,255,1)",
+						width: 2/devicePixelRatio,
+					},
+					{
+						label: "dex",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						width: 2/devicePixelRatio,
+						stroke: "rgba(0,0,255,1)",
+					},
+					{
+						label: "call_dex",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						width: 2/devicePixelRatio,
+						stroke: "rgba(0,255,0,1)",
+					},
+					{
+						label: "put_dex",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						width: 2/devicePixelRatio,
+						stroke: "rgba(255,0,0,1)",
+					},
+				],
+				axes: [
+					{
+						side: 0,
+						stroke: "#666666",
+						tick: {stroke: "#666666",width:1},
+						grid: {stroke: "#666666",width:1},
+					},
+					{
+						side: 3,
+						scale: "scale0",
+						stroke: "#666666",
+						grid: {stroke: "#666666",width:1},
+						tick: {stroke: "#666666",width:1},
+					},
+					{
+						side: 1,
+						scale: "scale1",
+						values: (u, vals, space) => vals.map(v => v.toFixed(2) + ""),
+						stroke: "#666666",
+						grid: {show: false},
+						tick: {stroke: "#666666",width:1},
+					},
+				],
+			};
+			return new uPlot(opts, [], document.getElementById(elementId));
+		},
+		update: function(chartObj, tickerData) {
+			let dd = tickerData.dexflow;
+			let pd = tickerData.price || {};
+			if (!dd || !dd.data || dd.data.length === 0) return;
+			chartObj.setScale('scale0', {min: pd.spot_min_lim, max: pd.spot_max_lim});
+			chartObj.setData(dd.data);
+		}
+	},
+
+	'gexflow': {
+		make: function(elementId, ticker) {
+			const opts = {
+				title: ticker + "-gex,1day",
+				width: 380,
+				height: 380,
+				legend: { show: false },
+				series: [
+					{},
+					{
+						label: "diff(net_gex)",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						paths: uPlot.paths.bars(),
+						fill: "rgba(210,210,10,0.7)",
+						width: 5/devicePixelRatio,
+					},
+					{
+						label: "net_gex",
+						scale: "scale0",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						stroke: "rgba(100,200,100,1)",
+						dash: [3, 3],
+						width: 2/devicePixelRatio
+					},
+				],
+				axes: [
+					{
+						side: 0,
+						stroke: "#666666",
+						tick: {stroke: "#666666",width:1},
+						grid: {stroke: "#666666",width:1},
+					},
+					{
+						side: 3,
+						scale: "scale0",
+						stroke: "#666666",
+						grid: {stroke: "#666666",width:1},
+						tick: {stroke: "#666666",width:1},
+					},
+					{
+						side: 1,
+						scale: "scale1",
+						values: (u, vals, space) => vals.map(v => v.toFixed(2) + ""),
+						stroke: "#666666",
+						grid: {show: false},
+						tick: {stroke: "#666666",width:1},
+					},
+				],
+			};
+			return new uPlot(opts, [], document.getElementById(elementId));
+		},
+		update: function(chartObj, tickerData) {
+			let gd = tickerData.gexflow;
+			if (!gd || !gd.data || gd.data.length === 0) return;
+			chartObj.setData(gd.data);
+		}
+	},
+
+	'convexityflow': {
+		make: function(elementId, ticker) {
+			const opts = {
+				title: ticker + "-convexity,1day",
+				width: 380,
+				height: 380,
+				legend: { show: false },
+				series: [
+					{},
+					{
+						label: "net_convexity",
+						scale: "scale0",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						stroke: "rgba(140,90,225,0.7)",
+						dash: [3,3],
+						width: 2/devicePixelRatio
+					},
+					{
+						label: "diff(net_convexity)",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						paths: uPlot.paths.bars(),
+						fill: "rgba(0,255,255,1)",
+						width: 5/devicePixelRatio
+					},
+				],
+				axes: [
+					{
+						side: 0,
+						stroke: "#666666",
+						tick: {stroke: "#666666",width:1},
+						grid: {stroke: "#666666",width:1},
+					},
+					{
+						side: 3,
+						scale: "scale0",
+						stroke: "#666666",
+						grid: {stroke: "#666666",width:1},
+						tick: {stroke: "#666666",width:1},
+					},
+					{
+						side: 1,
+						scale: "scale1",
+						values: (u, vals, space) => vals.map(v => v.toFixed(2) + ""),
+						stroke: "#666666",
+						grid: {show: false},
+						tick: {stroke: "#666666",width:1},
+					},
+				],
+			};
+			return new uPlot(opts, [], document.getElementById(elementId));
+		},
+		update: function(chartObj, tickerData) {
+			let cd = tickerData.convexityflow;
+			if (!cd || !cd.data || cd.data.length === 0) return;
+			chartObj.setData(cd.data);
+		}
+	},
+
+	'call-order-imbalance': {
+		make: function(elementId, ticker) {
+			return makeChartScatter(elementId, ticker + "-call-oi", 380, false);
+		},
+		update: function(chartObj, tickerData) {
+			let oi = tickerData['call-order-imbalance'];
+			let pd = tickerData.price || {};
+			if (!oi || !oi.data || oi.data.length === 0) return;
+			chartObj.setScale('y', {min: pd.spot_min_lim, max: pd.spot_max_lim});
+			chartObj.setData(oi.data);
+		}
+	},
+
+	'put-order-imbalance': {
+		make: function(elementId, ticker) {
+			return makeChartScatter(elementId, ticker + "-put-oi", 380, false);
+		},
+		update: function(chartObj, tickerData) {
+			let oi = tickerData['put-order-imbalance'];
+			let pd = tickerData.price || {};
+			if (!oi || !oi.data || oi.data.length === 0) return;
+			chartObj.setScale('y', {min: pd.spot_min_lim, max: pd.spot_max_lim});
+			chartObj.setData(oi.data);
+		}
+	},
+
+	'call-last-x-min': {
+		make: function(elementId, ticker) {
+			return makeChartScatter(elementId, ticker + "-call,last-x-min", 240, false);
+		},
+		update: function(chartObj, tickerData) {
+			let oi = tickerData['call-last-x-min'];
+			let pd = tickerData.price || {};
+			if (!oi || !oi.data || oi.data.length === 0) return;
+			chartObj.setScale('y', {min: pd.spot_min_lim, max: pd.spot_max_lim});
+			chartObj.setData(oi.data);
+		}
+	},
+
+	'put-last-x-min': {
+		make: function(elementId, ticker) {
+			return makeChartScatter(elementId, ticker + "-put,last-x-min", 240, false);
+		},
+		update: function(chartObj, tickerData) {
+			let oi = tickerData['put-last-x-min'];
+			let pd = tickerData.price || {};
+			if (!oi || !oi.data || oi.data.length === 0) return;
+			chartObj.setScale('y', {min: pd.spot_min_lim, max: pd.spot_max_lim});
+			chartObj.setData(oi.data);
+		}
+	},
+
+};
+
+// --- Chart registry initialization ---
+const chartRegistry = {};
+TICKERS.forEach(function(ticker) {
+	chartRegistry[ticker] = {};
+	CHARTS.forEach(function(chartType) {
+		let elementId = "chart-" + ticker + "-" + chartType;
+		let config = CHART_CONFIGS[chartType];
+		if (config && config.make) {
+			chartRegistry[ticker][chartType] = config.make(elementId, ticker);
+		}
+	});
+});
+
+</script>

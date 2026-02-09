@@ -14,61 +14,61 @@
         font: sans-serif;
         font-size: 14px;
     }
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat({{ tickers|length }}, 1fr);
+        gap: 4px;
+    }
+    .grid-header {
+        text-align: center;
+        font-size: 16px;
+        font-weight: bold;
+        color: #bebebe;
+        padding: 4px;
+    }
     </style>
 </head>
 
 <body>
 
-
 {% if load_data %}
-expected move based on vix,spx open:<span id="likelyCloseSpan" style="font-size: 20px !important; color: #ffffff;"></span><br>
 <span id="errorSpan" style="font-size: 20px !important; color: #ff0000;"></span>
 data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <span id="dataQcSpan" style="font-size: 18px !important; color: #ff0000;"></span>
 <br>
-ndx: <span id="ndxpriceSpan" style="font-size: 20px !important; color: #8f8f8f;"></span>
-/es: <span id="espriceSpan" style="font-size: 20px !important; color: #8f8f8f;"></span>
-, vix: <span id="vixSpan" style="font-size: 20px !important; color: #ff0000;"></span>
-, spx: <span id="spxpriceSpan" style="font-size: 20px !important; color: #ffffff;"></span>
-<marquee id="commentarySpan" style="font-size: 20px !important; color: #e2b900;"></marquee>
+{% for ticker in tickers %}
+{{ ticker }}: <span id="price-{{ ticker }}" style="font-size: 20px !important; color: #ffffff;"></span>
+(<span id="companion-{{ ticker }}" style="font-size: 16px !important; color: #ff0000;"></span>)&nbsp;&nbsp;
+{% endfor %}
+<br>
 
-<div class="box">
-    <div class="one" id="mySPXVIX"></div>
-    <div class="one" id="mySpxConvexity"></div>
-    <div class="one" id="mySpyConvexity"></div>
-    <div class="one" id="myQqqConvexity"></div>
-    <div class="one" id="myNdxConvexity"></div>
+<script>
+    const TICKERS = {{ tickers | tojson }};
+    const CHARTS = {{ charts | tojson }};
+</script>
+
+<!-- Dynamic grid: columns=tickers, rows=charts -->
+<div class="grid-container">
+    <!-- Column headers -->
+    {% for ticker in tickers %}
+    <div class="grid-header">{{ ticker }}</div>
+    {% endfor %}
+
+    <!-- Chart cells: rows=charts, cols=tickers -->
+    {% for chart in charts %}
+        {% for ticker in tickers %}
+        <div id="chart-{{ ticker }}-{{ chart }}"></div>
+        {% endfor %}
+    {% endfor %}
 </div>
-<div class="box">
-    <div class="one" id="mySPXVolatility"></div>
-    <div class="one" id="myDex"></div>
-    <div class="one" id="myGexDiff"></div>
-    <div class="one" id="myConvexityDiff"></div>
-</div>
-<div class="box">
-    <div class="one" id="myGexStrike"></div>
-    <div class="one" id="myCallOrderImbalance"></div>
-    <div class="one" id="myPutOrderImbalance"></div>
-    <div class="one" id="myCallOrderImbalanceZoomIn"></div>
-    <div class="one" id="myPutOrderImbalanceZoomIn"></div>
-</div>
-<div class="box">
-</div>
+
 <br>
 server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 , query_time: <span id="queryTimeSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <br>
 
-{% include 'index-spx-vix.html' %}
-{% include 'index-dex.html' %}
-{% include 'index-orderimbalance.html' %}
-{% include 'index-gex.html' %}
-{% include 'index-convexity.html' %}
-{% include 'index-volatility.html' %}
-{% include 'index-net-diff.html' %}
-
-
-{% include 'index-ws.html' %}
+{% include 'partials/chart-factory.html' %}
+{% include 'partials/ws-handler.html' %}
 
 <p class="myText">
 *** DISCLAIMER: For educational and entertainment purposes only. Content provided as is, use at your own risk. <br>
@@ -81,4 +81,3 @@ System is very unstable, beware of missing data, data for sure inaccurate with m
 {% endif %}
 </body>
 </html>
-

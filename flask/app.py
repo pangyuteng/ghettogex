@@ -55,6 +55,7 @@ from utils.postgres_utils import (
 from utils.pg_queries import (
     LATEST_GEX_STRIKE_QUERY,
     CANDLE_1MIN_QUERY,
+    CANDLE_1MIN_SINGLE_QUERY,
     ORDER_IMBALANCE_QUERY,
     ORDER_IMBALANCE_LASTXMIN_QUERY,
     CANDLE_QC_QUERY,
@@ -65,11 +66,23 @@ from utils.pg_queries import (
 )
 
 from utils.data_tasty import (
-    a_get_equity_data, 
+    a_get_equity_data,
     a_get_equity_data_session_reuse
 )
 
 et_tz = "America/New_york"
+
+TICKER_REGISTRY = {
+    'SPX':  {'options_ticker': 'SPXW', 'companion': 'VIX'},
+    'NDX':  {'options_ticker': 'NDXP', 'companion': 'VIX'},
+    'SPY':  {'options_ticker': 'SPY',  'companion': 'VIX'},
+    'QQQ':  {'options_ticker': 'QQQ',  'companion': 'VIX'},
+}
+VALID_CHARTS = ['price','convexity','volatility','gex','dexflow','gexflow',
+                'convexityflow','call-order-imbalance','put-order-imbalance',
+                'call-last-x-min','put-last-x-min']
+DEFAULT_TICKERS = ['SPX','SPY','QQQ','NDX']
+DEFAULT_CHARTS = VALID_CHARTS[:]
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(THIS_DIR,"templates")
@@ -89,6 +102,233 @@ app.config["QUART_AUTH_COOKIE_SECURE"]=False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = "dLxWOjuwlk2z0n2I4NgxaQ" # import secrets ; secrets.token_urlsafe(16)
 auth_manager = QuartAuth(app)
+
+
+# --- Processing helper functions ---
+
+def process_price_data(rows, ticker):
+    """Process CANDLE_1MIN_SINGLE_QUERY results for a single ticker."""
+    if rows is None or len(rows) == 0:
+        raise ValueError(f"found no price data for {ticker}!")
+
+    df = pd.DataFrame([dict(x) for x in rows])
+    df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+    df = df.replace({np.nan: None})
+
+    lst = [df[i].tolist() for i in ['tstamp','companion_close','ticker_close']]
+
+    ticker_close_col = df.ticker_close
+    companion_close_col = df.companion_close
+
+    ticker_price = ticker_close_col.iloc[-1]
+    companion_price_idx = companion_close_col.last_valid_index()
+    companion_price = companion_close_col[companion_price_idx] if companion_price_idx is not None else None
+
+    companion_open_idx = companion_close_col.first_valid_index()
+    companion_open = companion_close_col[companion_open_idx] if companion_open_idx is not None else 0
+    vem = companion_open/np.sqrt(252) if companion_open else 0
+
+    ticker_open_idx = ticker_close_col.first_valid_index()
+    ticker_open = ticker_close_col[ticker_open_idx] if ticker_open_idx is not None else 0
+    likey_close_price_list = np.array([-1*vem,1*vem])
+    likey_close_price_list = ticker_open+likey_close_price_list*0.01*ticker_open
+    likey_close_price_list = likey_close_price_list.astype(int).tolist()
+
+    plus_prct = (1+vem*0.01*2.5)
+    minus_prct = (1-vem*0.01*2.5)
+    ticker_mean = ticker_close_col.mean()
+    spot_max_lim = ticker_mean*plus_prct
+    spot_min_lim = ticker_mean*minus_prct
+
+    misc_plus_prct = (1+vem*0.01*2)
+    misc_minus_prct = (1-vem*0.01*2)
+    ticker_close = ticker_close_col[ticker_close_col.last_valid_index()]
+    max_lim = ticker_close*misc_plus_prct
+    min_lim = ticker_close*misc_minus_prct
+
+    return {
+        'prices': lst,
+        'ticker_price': ticker_price,
+        'companion_price': companion_price,
+        'likey_close_price_list': likey_close_price_list,
+        'min_lim': min_lim,
+        'max_lim': max_lim,
+        'spot_min_lim': spot_min_lim,
+        'spot_max_lim': spot_max_lim,
+    }
+
+
+def process_gex_data(rows, spot_min_lim, spot_max_lim):
+    """Process LATEST_GEX_STRIKE_QUERY results."""
+    df = pd.DataFrame([dict(x) for x in rows])
+    if len(df) == 0:
+        raise LookupError("null gex query!")
+
+    df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
+    df.gex = df.gex/1e9
+    df['pos_gex'] = df.gex.where(df.gex>0)
+    df['neg_gex'] = df.gex.where(df.gex<=0)
+    df = df.replace({np.nan: None})
+
+    gex_list = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
+    major_pos_gex_strike = df["strike"].iloc[df.gex.argmax(skipna=True)]
+    major_neg_gex_strike = df["strike"].iloc[df.gex.argmin(skipna=True)]
+
+    return {
+        'gex_list': gex_list,
+        'major_pos_gex_strike': major_pos_gex_strike,
+        'major_neg_gex_strike': major_neg_gex_strike,
+    }
+
+
+def process_convexity_data(rows, min_lim, max_lim):
+    """Process INTERVAL_CONVEXITY_QUERY results."""
+    df = pd.DataFrame([dict(x) for x in rows])
+    df = df[(df.strike>min_lim) & (df.strike<max_lim)].reset_index()
+    df['convexity'] = df.gamma*df.order_imbalance
+    df['pos_convexity'] = df.convexity.where(df.convexity>0)
+    df['neg_convexity'] = df.convexity.where(df.convexity<=0)
+
+    major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
+    major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
+
+    df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
+    convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
+
+    return {
+        'convexity_list': convexity_list,
+        'major_pos_convexity': major_pos_convexity,
+        'major_neg_convexity': major_neg_convexity,
+    }
+
+
+def process_volatility_data(rows, spot_min_lim, spot_max_lim, spot_price):
+    """Process GREEKS_QUERY results."""
+    df = pd.DataFrame([dict(x) for x in rows])
+    df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
+
+    df.loc[(df.contract_type == 'C')&(df.strike<spot_price), 'volatility'] = 0
+    df.loc[(df.contract_type == 'P')&(df.strike>spot_price), 'volatility'] = 0
+    df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
+
+    cdf = df[df.contract_type=='C']
+    pdf = df[df.contract_type=='P']
+    dxdf = df[df.contract_type=='P']
+
+    volatility_list = [cdf.strike.tolist(),dxdf.dx_volatility.tolist(),cdf.volatility.tolist(),pdf.volatility.tolist()]
+    return {'volatility_list': volatility_list}
+
+
+def process_flow_data(rows, market_open):
+    """Process GEX_CONVEXITY_1DAY_QUERY results."""
+    df = pd.DataFrame([dict(x) for x in rows])
+
+    if len(df) > 5:
+        # ignore the first 2 minutes, as gex data fluctuates as events flow in.
+        df = df[df.tstamp > market_open+datetime.timedelta(minutes=1)].reset_index()
+
+    df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+    df.gex = df.gex/1e9
+    df.dex = df.dex/1e9
+    df.call_dex = df.call_dex/1e9
+    df.put_dex = df.put_dex/1e9
+
+    df['gex_diff'] = df.gex.diff()
+    df['convexity_diff'] = df.convexity.diff()
+    df = df.replace({np.nan: None})
+
+    gex_lst = [df[i].tolist() for i in ['tstamp','gex_diff','gex']]
+    convexity_lst = [df[i].tolist() for i in ['tstamp','convexity','convexity_diff']]
+    dex_lst = [df[i].tolist() for i in ['tstamp','spot_price','dex','call_dex','put_dex']]
+
+    return {
+        'dex': dex_lst,
+        'gexdiff': gex_lst,
+        'convexitydiff': convexity_lst,
+    }
+
+
+def _build_order_imbalance_lists(df, prices_lst):
+    """Shared binning logic for order imbalance data."""
+    filter_list = [
+        df.order_imbalance<-200,
+        (df.order_imbalance>=-200)&(df.order_imbalance<-100),
+        (df.order_imbalance>=-100)&(df.order_imbalance<-50),
+        (df.order_imbalance>=-50)&(df.order_imbalance<-25),
+        (df.order_imbalance>=-25)&(df.order_imbalance<-10),
+        (df.order_imbalance>=-10)&(df.order_imbalance<0),
+        (df.order_imbalance>=0)&(df.order_imbalance<10),
+        (df.order_imbalance>=10)&(df.order_imbalance<25),
+        (df.order_imbalance>=25)&(df.order_imbalance<50),
+        (df.order_imbalance>=50)&(df.order_imbalance<100),
+        (df.order_imbalance>=100)&(df.order_imbalance<200),
+        df.order_imbalance>=200,
+    ]
+    call_list = [[],]
+    put_list = [[],]
+    for row_filter in filter_list:
+        row_tstamp = df.tstamp[row_filter&(df.contract_type=="C")].to_list()
+        row_strike = df.strike[row_filter&(df.contract_type=="C")].to_list()
+        call_list.append([row_tstamp,row_strike,[]])
+        row_tstamp = df.tstamp[row_filter&(df.contract_type=="P")].to_list()
+        row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
+        put_list.append([row_tstamp,row_strike,[]])
+    # add ticker price line
+    call_list.append([ prices_lst[0], prices_lst[-1], [] ])
+    put_list.append([ prices_lst[0], prices_lst[-1], [] ])
+    return call_list, put_list
+
+
+def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst):
+    """Process ORDER_IMBALANCE_QUERY results."""
+    df = pd.DataFrame([dict(x) for x in rows])
+    df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+    df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
+    df = df.dropna()
+    call_list, put_list = _build_order_imbalance_lists(df, prices_lst)
+    return {'call': call_list, 'put': put_list}
+
+
+def process_order_imbalance_zoom_data(rows, spot_min_lim, spot_max_lim, prices_lst):
+    """Process ORDER_IMBALANCE_LASTXMIN_QUERY results."""
+    df = pd.DataFrame([dict(x) for x in rows])
+    df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+    df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
+    df = df.dropna()
+    # use last 5 price points for the zoom view
+    offset = -5
+    zoom_prices = [ prices_lst[0][offset:], prices_lst[-1][offset:], [] ]
+    call_list, put_list = _build_order_imbalance_lists(df, [zoom_prices[0], zoom_prices[1]])
+    return {'call': call_list, 'put': put_list}
+
+
+def process_expected_move_data(rows, spot_price):
+    """Process QUOTE_1MIN_QUERY results."""
+    df = pd.DataFrame([dict(x) for x in rows])
+    if len(df) == 0:
+        raise LookupError("null quote query!")
+    df['mid_price'] = (df.last_bid_price+df.last_ask_price)/2.0
+    cdf = df[(df.contract_type=="C")&(df.strike>=spot_price)].reset_index().iloc[:3].reset_index()
+    pdf = df[(df.contract_type=="P")&(df.strike<=spot_price)].reset_index().iloc[-3:].reset_index()
+    expected_move = ( \
+        0.6*cdf.at[0,'mid_price']+0.3*cdf.at[1,'mid_price']*0.1*cdf.at[2,'mid_price'] + \
+        0.6*pdf.at[2,'mid_price']+0.3*pdf.at[1,'mid_price']*0.1*pdf.at[0,'mid_price'] )
+    return {
+        'plus': spot_price+expected_move,
+        'minus': spot_price-expected_move,
+    }
+
+
+def process_qc_data(rows, tstamp_utc):
+    """Process CANDLE_QC_QUERY results."""
+    df = pd.DataFrame([dict(x) for x in rows])
+    latest_data_tstamp = df.tstamp.min()
+    latest_data_tstamp_str = latest_data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
+    qc_comment = "***STALE TSTAMP!***" if (tstamp_utc.replace(tzinfo=None)-latest_data_tstamp).total_seconds() > 60 else ""
+    return {
+        'qc_comment': qc_comment,
+        'data_tstamp': latest_data_tstamp_str,
+    }
 
 
 @app.route("/ping")
@@ -159,7 +399,7 @@ async def get_equity():
     try:
         ticker = request.args.get("ticker",None)
         session_reuse = True if request.args.get("session_reuse","false") == "true" else False
-        
+
         if ticker is None:
             raise ValueError("ticker can't be None!")
         if session_reuse:
@@ -180,7 +420,7 @@ async def home():
     load_data = True
     try:
         if dstamp is None:
-            
+
             tstamp_et = now_in_new_york()
             tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC')).replace(tzinfo=None)
             dstamp = tstamp_et.strftime("%Y-%m-%d")
@@ -211,18 +451,49 @@ async def home():
         app.logger.error(traceback.format_exc())
         market_status = "unexepcted error!"
         load_data = False
-    return await render_template("index.html",dstamp=dstamp,load_data=load_data,market_status=market_status)
 
-@app.websocket('/ws-main-socket') # name so bad
+    tickers_param = request.args.get("tickers", None)
+    tickers = [t.strip().upper() for t in tickers_param.split(",")] if tickers_param else DEFAULT_TICKERS
+    tickers = [t for t in tickers if t in TICKER_REGISTRY]
+
+    charts_param = request.args.get("charts", None)
+    charts = [c.strip().lower() for c in charts_param.split(",")] if charts_param else DEFAULT_CHARTS
+    charts = [c for c in charts if c in VALID_CHARTS]
+
+    return await render_template("index.html",dstamp=dstamp,load_data=load_data,
+        market_status=market_status,tickers=tickers,charts=charts)
+
+
+def _parse_tickers_charts(args):
+    """Parse tickers and charts from websocket/request args."""
+    tickers_param = args.get("tickers", None)
+    tickers = [t.strip().upper() for t in tickers_param.split(",")] if tickers_param else DEFAULT_TICKERS
+    tickers = [t for t in tickers if t in TICKER_REGISTRY]
+
+    charts_param = args.get("charts", None)
+    charts = [c.strip().lower() for c in charts_param.split(",")] if charts_param else DEFAULT_CHARTS
+    charts = [c for c in charts if c in VALID_CHARTS]
+
+    return tickers, charts
+
+
+def _needs_query_group(charts, group_charts):
+    """Check if any of the group_charts are in the requested charts list."""
+    return any(c in charts for c in group_charts)
+
+
+@app.websocket('/ws-main-socket')
 @login_required
 async def ws_main_socket():
     try:
         message = None
-        ret_dict = {}
         dstamp = websocket.args.get("dstamp")
+        tickers, charts = _parse_tickers_charts(websocket.args)
+
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
             while True:
                 try:
+                    ret_dict = {'tickers': {}, 'meta': {}}
 
                     early = nyse.schedule(start_date=dstamp, end_date=dstamp)
                     if len(early) == 0:
@@ -239,418 +510,234 @@ async def ws_main_socket():
                         message = "break-while-loop"
                         tstamp_utc = market_close
 
-                    ticker = 'SPX'
-                    ticker_alt = 'SPXW'
-                    ndx_ticker_alt = 'NDXP'
-                    spy_ticker = 'SPY'
-                    qqq_ticker = 'QQQ'
-                    
-                    # TODO: refactor needed, getting real ugly.
-
                     timea = time.time()
-                    query_list = [
-                        apostgres_execute(apool,CANDLE_1MIN_QUERY,(dstamp,dstamp,dstamp,dstamp,dstamp,dstamp)),
-                        apostgres_execute(apool,LATEST_GEX_STRIKE_QUERY,(tstamp_utc,tstamp_utc,ticker,tstamp_utc,tstamp_utc,ticker)),
-                        apostgres_execute(apool,ORDER_IMBALANCE_QUERY,(dstamp,ticker_alt)),
-                        apostgres_execute(apool,CANDLE_QC_QUERY,(ticker,tstamp_utc,ticker_alt,tstamp_utc)),
-                        apostgres_execute(apool,QUOTE_1MIN_QUERY,(dstamp,ticker_alt,tstamp_utc)),
-                        apostgres_execute(apool,INTERVAL_CONVEXITY_QUERY,(ticker_alt,dstamp,dstamp,tstamp_utc,ticker_alt,dstamp,dstamp)),
-                        apostgres_execute(apool,GREEKS_QUERY,(ticker_alt,dstamp,dstamp)),
-                        apostgres_execute(apool,INTERVAL_CONVEXITY_QUERY,(ndx_ticker_alt,dstamp,dstamp,tstamp_utc,ndx_ticker_alt,dstamp,dstamp)),
-                        apostgres_execute(apool,ORDER_IMBALANCE_LASTXMIN_QUERY,(ticker_alt,dstamp,tstamp_utc)),
-                        apostgres_execute(apool,GEX_CONVEXITY_1DAY_QUERY,(ticker,dstamp)),
-                        apostgres_execute(apool,INTERVAL_CONVEXITY_QUERY,(spy_ticker,dstamp,dstamp,tstamp_utc,spy_ticker,dstamp,dstamp)),
-                        apostgres_execute(apool,INTERVAL_CONVEXITY_QUERY,(qqq_ticker,dstamp,dstamp,tstamp_utc,qqq_ticker,dstamp,dstamp)),
-                    ]
+
+                    # Build query list dynamically per ticker
+                    query_keys = []  # list of (ticker, query_group) tuples
+                    query_list = []  # corresponding coroutines
+
+                    need_flow = _needs_query_group(charts, ['dexflow','gexflow','convexityflow'])
+                    need_oi = _needs_query_group(charts, ['call-order-imbalance','put-order-imbalance'])
+                    need_oi_zoom = _needs_query_group(charts, ['call-last-x-min','put-last-x-min'])
+                    need_gex = 'gex' in charts
+                    need_convexity = 'convexity' in charts
+                    need_volatility = 'volatility' in charts
+
+                    for ticker in tickers:
+                        reg = TICKER_REGISTRY[ticker]
+                        options_ticker = reg['options_ticker']
+                        companion = reg['companion']
+
+                        # Always fetch price data (needed for limits used by other charts)
+                        query_keys.append((ticker, 'price'))
+                        query_list.append(apostgres_execute(apool, CANDLE_1MIN_SINGLE_QUERY, (dstamp, ticker, dstamp, companion)))
+
+                        # QC data (always fetch for first ticker only, use SPX-like ticker)
+                        if ticker == tickers[0]:
+                            query_keys.append((ticker, 'qc'))
+                            query_list.append(apostgres_execute(apool, CANDLE_QC_QUERY, (ticker, tstamp_utc, options_ticker, tstamp_utc)))
+
+                        # GEX strike data
+                        if need_gex:
+                            query_keys.append((ticker, 'gex'))
+                            query_list.append(apostgres_execute(apool, LATEST_GEX_STRIKE_QUERY, (tstamp_utc, tstamp_utc, ticker, tstamp_utc, tstamp_utc, ticker)))
+
+                        # Convexity data
+                        if need_convexity:
+                            query_keys.append((ticker, 'convexity'))
+                            query_list.append(apostgres_execute(apool, INTERVAL_CONVEXITY_QUERY, (options_ticker, dstamp, dstamp, tstamp_utc, options_ticker, dstamp, dstamp)))
+
+                        # Volatility (greeks)
+                        if need_volatility:
+                            query_keys.append((ticker, 'volatility'))
+                            query_list.append(apostgres_execute(apool, GREEKS_QUERY, (options_ticker, dstamp, dstamp)))
+
+                        # Expected move (quote data) - needed by convexity, gex, volatility charts
+                        if need_convexity or need_gex or need_volatility:
+                            query_keys.append((ticker, 'expected_move'))
+                            query_list.append(apostgres_execute(apool, QUOTE_1MIN_QUERY, (dstamp, options_ticker, tstamp_utc)))
+
+                        # Order imbalance (full day)
+                        if need_oi:
+                            query_keys.append((ticker, 'order_imbalance'))
+                            query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_QUERY, (dstamp, options_ticker)))
+
+                        # Order imbalance zoom (last x min)
+                        if need_oi_zoom:
+                            query_keys.append((ticker, 'order_imbalance_zoom'))
+                            query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_LASTXMIN_QUERY, (options_ticker, dstamp, tstamp_utc)))
+
+                        # Flow data (dex, gex diff, convexity diff)
+                        if need_flow:
+                            query_keys.append((ticker, 'flow'))
+                            query_list.append(apostgres_execute(apool, GEX_CONVEXITY_1DAY_QUERY, (ticker, dstamp)))
 
                     gathered_res = await asyncio.gather(*query_list)
 
                     timeb = time.time()
                     duration_time = timeb-timea
 
-                    spot_max_lim = np.inf
-                    spot_min_lim = 0
+                    # Build result_map keyed by (ticker, query_group)
+                    result_map = {}
+                    for i, key in enumerate(query_keys):
+                        result_map[key] = gathered_res[i]
 
-                    if gathered_res[0] is not None:
+                    # Process results per ticker
+                    for ticker in tickers:
+                        ticker_data = {}
 
-                        if len(gathered_res[0]) == 0:
-                            raise ValueError("found no data!")
-
-                        df = pd.DataFrame([dict(x) for x in gathered_res[0]])
-                        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                        df.ndx_close = df.ndx_close.round(decimals=2)
-                        df = df.replace({np.nan: None})
-                        lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]]
-                        ret_dict['prices'] = lst
-                        ret_dict['es_price'] = df.es_close.iloc[-1]
-                        ret_dict['spy_price'] = df.spy_close.iloc[-1]
-                        ret_dict['qqq_price'] = df.qqq_close.iloc[-1]
-
-                        vix_index = df.vix_close.last_valid_index()
-                        vix_price = df.vix_close[vix_index]
-
-                        vix_open = df.vix_close[df.vix_close.first_valid_index()]
-                        vem = vix_open/np.sqrt(252) # daily expected move using vix last
-                        spx_open = df.spx_close[df.spx_close.first_valid_index()]
-                        likey_close_price_list = np.array([-1*vem,1*vem])
-                        likey_close_price_list = spx_open+likey_close_price_list*0.01*spx_open
-                        likey_close_price_list = likey_close_price_list.astype(int).tolist()
-
-                        ret_dict['likey_close_price_list'] = likey_close_price_list
-
-                        ret_dict['vix_price'] = vix_price
-                        ret_dict['spx_price'] = df.spx_close.iloc[-1]
-                        ret_dict['ndx_price'] = df.ndx_close.iloc[-1]
-
-                        vix_max = df.vix_close.max()
-                        vmem = vix_max/np.sqrt(252) # daily expected move using vix max
-
-                        plus_prct = (1+vem*0.01*2.5)
-                        minus_prct = (1-vem*0.01*2.5)
-
-                        spx_mean = df.spx_close.mean()
-                        spot_max_lim = spx_mean*plus_prct
-                        spot_min_lim = spx_mean*minus_prct
-
-                        ret_dict['spot_max_lim'] = spot_max_lim # center at mean
-                        ret_dict['spot_min_lim'] = spot_min_lim
-
-                        misc_plus_prct = (1+vem*0.01*2)
-                        misc_minus_prct = (1-vem*0.01*2)
-
-                        spx_close = df.spx_close[df.spx_close.last_valid_index()]
-                        spx_max_lim = spx_close*misc_plus_prct
-                        spx_min_lim = spx_close*misc_minus_prct
-
-                        ret_dict['spx_max_lim'] = spx_max_lim # center at close
-                        ret_dict['spx_min_lim'] = spx_min_lim
-
-                        spy_close = df.spy_close[df.spy_close.last_valid_index()]
-                        spy_max_lim = spy_close*misc_plus_prct
-                        spy_min_lim = spy_close*misc_minus_prct
-
-                        qqq_close = df.qqq_close[df.qqq_close.last_valid_index()]
-                        qqq_max_lim = qqq_close*misc_plus_prct
-                        qqq_min_lim = qqq_close*misc_minus_prct
-
-                        ndx_close = df.ndx_close[df.ndx_close.last_valid_index()]
-                        ndx_max_lim = ndx_close*misc_plus_prct
-                        ndx_min_lim = ndx_close*misc_minus_prct
-
-                    if gathered_res[1] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[1]])
+                        # Price data (always needed)
                         try:
-                            if len(df) == 0:
-                                raise LookupError("null gex query!")
-
-                            df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
-                            df.gex = df.gex/1e9
-                            df['pos_gex'] = df.gex.where(df.gex>0)
-                            df['neg_gex'] = df.gex.where(df.gex<=0)
-                            df = df.replace({np.nan: None})
-
-                            gex_list = [df[i].tolist() for i in ['strike','pos_gex','neg_gex']]
-                            major_pos_gex_strike = df["strike"].iloc[df.gex.argmax(skipna=True)]
-                            major_neg_gex_strike = df["strike"].iloc[df.gex.argmin(skipna=True)]
-
-                            ret_dict['gex_list'] = gex_list
-                            ret_dict['major_pos_gex_strike'] = major_pos_gex_strike
-                            ret_dict['major_neg_gex_strike'] = major_neg_gex_strike
+                            price_result = process_price_data(result_map.get((ticker, 'price')), ticker)
+                            ticker_data['price'] = price_result
                         except:
-                            ret_dict['gex_list'] = [[],[],[]]
-                            ret_dict['major_pos_gex_strike'] = None
-                            ret_dict['major_neg_gex_strike'] = None
+                            ticker_data['price'] = {
+                                'prices': [], 'ticker_price': None, 'companion_price': None,
+                                'likey_close_price_list': [], 'min_lim': 0, 'max_lim': 0,
+                                'spot_min_lim': 0, 'spot_max_lim': np.inf,
+                            }
                             app.logger.error(traceback.format_exc())
 
-                    if gathered_res[2] is not None:
-                        df = pd.DataFrame([dict(x) for x in gathered_res[2]])
-                        try:
-                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                            df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
-                            df = df.dropna()
-                            #
-                            # NOTE: remember to update order_imbalance_bin_str
-                            # 
-                            # NOTE: selected from SPX order_imbalance 5min table on 2025-11-21
-                            #
-                            filter_list = [
-                                df.order_imbalance<-200,
-                                (df.order_imbalance>=-200)&(df.order_imbalance<-100),
-                                (df.order_imbalance>=-100)&(df.order_imbalance<-50),
-                                (df.order_imbalance>=-50)&(df.order_imbalance<-25),
-                                (df.order_imbalance>=-25)&(df.order_imbalance<-10),
-                                (df.order_imbalance>=-10)&(df.order_imbalance<0),
-                                (df.order_imbalance>=0)&(df.order_imbalance<10),
-                                (df.order_imbalance>=10)&(df.order_imbalance<25),
-                                (df.order_imbalance>=25)&(df.order_imbalance<50),
-                                (df.order_imbalance>=50)&(df.order_imbalance<100),
-                                (df.order_imbalance>=100)&(df.order_imbalance<200),
-                                df.order_imbalance>=200,
-                            ]
-                            call_order_imbalance_list = [[],]
-                            put_order_imbalance_list = [[],]
-                            for row_filter in filter_list:
-                                row_tstamp = df.tstamp[row_filter&(df.contract_type=="C")].to_list()
-                                row_strike = df.strike[row_filter&(df.contract_type=="C")].to_list()
-                                call_item = [row_tstamp,row_strike,[]]
-                                call_order_imbalance_list.append(call_item)
-                                row_tstamp = df.tstamp[row_filter&(df.contract_type=="P")].to_list()
-                                row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
-                                put_item = [row_tstamp,row_strike,[]]
-                                put_order_imbalance_list.append(put_item)
-                            # add spx price
-                            lst = ret_dict['prices']
-                            call_order_imbalance_list.append([ lst[0],lst[-1],[] ])
-                            put_order_imbalance_list.append([ lst[0],lst[-1],[] ])
+                        price_data = ticker_data['price']
+                        spot_min_lim = price_data['spot_min_lim']
+                        spot_max_lim = price_data['spot_max_lim']
+                        min_lim = price_data['min_lim']
+                        max_lim = price_data['max_lim']
+                        spot_price = price_data['ticker_price']
 
-                            ret_dict['call_order_imbalance'] = call_order_imbalance_list
-                            ret_dict['put_order_imbalance'] = put_order_imbalance_list
+                        # Expected move
+                        if (ticker, 'expected_move') in result_map:
+                            try:
+                                rows = result_map[(ticker, 'expected_move')]
+                                if rows is not None and spot_price is not None:
+                                    em_result = process_expected_move_data(rows, spot_price)
+                                    ticker_data['expected_move'] = em_result
+                                else:
+                                    ticker_data['expected_move'] = {'plus': None, 'minus': None}
+                            except:
+                                ticker_data['expected_move'] = {'plus': None, 'minus': None}
+                                app.logger.error(traceback.format_exc())
+
+                        # GEX
+                        if (ticker, 'gex') in result_map:
+                            try:
+                                rows = result_map[(ticker, 'gex')]
+                                if rows is not None:
+                                    ticker_data['gex'] = process_gex_data(rows, spot_min_lim, spot_max_lim)
+                                else:
+                                    ticker_data['gex'] = {'gex_list': [[],[],[]], 'major_pos_gex_strike': None, 'major_neg_gex_strike': None}
+                            except:
+                                ticker_data['gex'] = {'gex_list': [[],[],[]], 'major_pos_gex_strike': None, 'major_neg_gex_strike': None}
+                                app.logger.error(traceback.format_exc())
+
+                        # Convexity
+                        if (ticker, 'convexity') in result_map:
+                            try:
+                                rows = result_map[(ticker, 'convexity')]
+                                if rows is not None:
+                                    ticker_data['convexity'] = process_convexity_data(rows, min_lim, max_lim)
+                                else:
+                                    ticker_data['convexity'] = {'convexity_list': [], 'major_pos_convexity': None, 'major_neg_convexity': None}
+                            except:
+                                ticker_data['convexity'] = {'convexity_list': [], 'major_pos_convexity': None, 'major_neg_convexity': None}
+                                app.logger.error(traceback.format_exc())
+
+                        # Volatility
+                        if (ticker, 'volatility') in result_map:
+                            try:
+                                rows = result_map[(ticker, 'volatility')]
+                                if rows is not None and spot_price is not None:
+                                    ticker_data['volatility'] = process_volatility_data(rows, spot_min_lim, spot_max_lim, spot_price)
+                                else:
+                                    ticker_data['volatility'] = {'volatility_list': []}
+                            except:
+                                ticker_data['volatility'] = {'volatility_list': []}
+                                app.logger.error(traceback.format_exc())
+
+                        # Flow data (dex, gex diff, convexity diff)
+                        if (ticker, 'flow') in result_map:
+                            try:
+                                rows = result_map[(ticker, 'flow')]
+                                if rows is not None:
+                                    flow_result = process_flow_data(rows, market_open)
+                                    ticker_data['dexflow'] = {'data': flow_result['dex']}
+                                    ticker_data['gexflow'] = {'data': flow_result['gexdiff']}
+                                    ticker_data['convexityflow'] = {'data': flow_result['convexitydiff']}
+                                else:
+                                    ticker_data['dexflow'] = {'data': []}
+                                    ticker_data['gexflow'] = {'data': []}
+                                    ticker_data['convexityflow'] = {'data': []}
+                            except:
+                                ticker_data['dexflow'] = {'data': []}
+                                ticker_data['gexflow'] = {'data': []}
+                                ticker_data['convexityflow'] = {'data': []}
+                                app.logger.error(traceback.format_exc())
+
+                        # Order imbalance (full day)
+                        if (ticker, 'order_imbalance') in result_map:
+                            try:
+                                rows = result_map[(ticker, 'order_imbalance')]
+                                if rows is not None:
+                                    oi_result = process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, price_data['prices'])
+                                    ticker_data['call-order-imbalance'] = {'data': oi_result['call']}
+                                    ticker_data['put-order-imbalance'] = {'data': oi_result['put']}
+                                else:
+                                    ticker_data['call-order-imbalance'] = {'data': []}
+                                    ticker_data['put-order-imbalance'] = {'data': []}
+                            except:
+                                ticker_data['call-order-imbalance'] = {'data': []}
+                                ticker_data['put-order-imbalance'] = {'data': []}
+                                app.logger.error(traceback.format_exc())
+
+                        # Order imbalance zoom (last x min)
+                        if (ticker, 'order_imbalance_zoom') in result_map:
+                            try:
+                                rows = result_map[(ticker, 'order_imbalance_zoom')]
+                                if rows is not None:
+                                    oi_zoom_result = process_order_imbalance_zoom_data(rows, spot_min_lim, spot_max_lim, price_data['prices'])
+                                    ticker_data['call-last-x-min'] = {'data': oi_zoom_result['call']}
+                                    ticker_data['put-last-x-min'] = {'data': oi_zoom_result['put']}
+                                else:
+                                    ticker_data['call-last-x-min'] = {'data': []}
+                                    ticker_data['put-last-x-min'] = {'data': []}
+                            except:
+                                ticker_data['call-last-x-min'] = {'data': []}
+                                ticker_data['put-last-x-min'] = {'data': []}
+                                app.logger.error(traceback.format_exc())
+
+                        ret_dict['tickers'][ticker] = ticker_data
+
+                    # QC data (from first ticker)
+                    qc_key = (tickers[0], 'qc') if tickers else None
+                    if qc_key and qc_key in result_map:
+                        try:
+                            rows = result_map[qc_key]
+                            if rows is not None:
+                                qc_result = process_qc_data(rows, tstamp_utc)
+                                ret_dict['meta']['qc_comment'] = qc_result['qc_comment']
+                                ret_dict['meta']['data_tstamp'] = qc_result['data_tstamp']
+                            else:
+                                ret_dict['meta']['qc_comment'] = "***STALE TSTAMP!***"
+                                ret_dict['meta']['data_tstamp'] = "null"
                         except:
-                            ret_dict['call_order_imbalance'] = []
-                            ret_dict['put_order_imbalance'] = []
+                            ret_dict['meta']['qc_comment'] = "***STALE TSTAMP!***"
+                            ret_dict['meta']['data_tstamp'] = "null"
                             app.logger.error(traceback.format_exc())
 
-                    if gathered_res[3] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[3]])
-                            latest_data_tstamp = df.tstamp.min()
-                            latest_data_tstamp_str = latest_data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
-                            qc_comment = "***STALE TSTAMP!***" if (tstamp_utc.replace(tzinfo=None)-latest_data_tstamp).total_seconds() > 60 else ""
-                            ret_dict['qc_comment'] = qc_comment
-                            ret_dict['data_tstamp'] = latest_data_tstamp_str
-                        except:
-                            qc_comment = "***STALE TSTAMP!***"
-                            ret_dict['qc_comment'] = qc_comment
-                            ret_dict['data_tstamp'] = "null"
-                            app.logger.error(traceback.format_exc())
-
-                    if gathered_res[4] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[4]])
-                            if len(df) == 0:
-                                raise LookupError("null quote query!")
-                            spot_price = ret_dict['spx_price']
-                            df['mid_price'] = (df.last_bid_price+df.last_ask_price)/2.0
-                            cdf = df[(df.contract_type=="C")&(df.strike>=spot_price)].reset_index().iloc[:3].reset_index()
-                            pdf = df[(df.contract_type=="P")&(df.strike<=spot_price)].reset_index().iloc[-3:].reset_index()
-                            expected_move = ( \
-                                0.6*cdf.at[0,'mid_price']+0.3*cdf.at[1,'mid_price']*0.1*cdf.at[2,'mid_price'] + \
-                                0.6*pdf.at[2,'mid_price']+0.3*pdf.at[1,'mid_price']*0.1*pdf.at[0,'mid_price'] )
-                            ret_dict['plus_expected_move'] = spot_price+expected_move
-                            ret_dict['minus_expected_move'] = spot_price-expected_move
-                        except:
-                            ret_dict['plus_expected_move'] = None
-                            ret_dict['minus_expected_move'] = None
-                            app.logger.error(traceback.format_exc())
-
-                    if gathered_res[5] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[5]])
-                            df = df[(df.strike>spx_min_lim) & (df.strike<spx_max_lim)].reset_index()
-                            df['convexity'] = df.gamma*df.order_imbalance
-                            df['pos_convexity'] = df.convexity.where(df.convexity>0)
-                            df['neg_convexity'] = df.convexity.where(df.convexity<=0)
-
-                            major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)] # consider moving this up prior filter like ndx
-                            major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
-
-                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
-                            convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
-
-                            ret_dict['convexity_list'] = convexity_list
-                            ret_dict['major_pos_convexity'] = major_pos_convexity
-                            ret_dict['major_neg_convexity'] = major_neg_convexity
-                        except:
-                            ret_dict['convexity_list'] = []
-                            ret_dict['major_pos_convexity'] = None
-                            ret_dict['major_pos_convexity'] = None
-                            app.logger.error(traceback.format_exc())
-
-                    if gathered_res[6] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[6]])
-                            df = df[(df.strike>spot_min_lim) & (df.strike<spot_max_lim)].reset_index()
-
-                            df.loc[(df.contract_type == 'C')&(df.strike<spot_price), 'volatility'] = 0
-                            df.loc[(df.contract_type == 'P')&(df.strike>spot_price), 'volatility'] = 0
-                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
-
-                            cdf = df[df.contract_type=='C']
-                            pdf = df[df.contract_type=='P']
-                            dxdf = df[df.contract_type=='P']
-
-                            volatility_list = [cdf.strike.tolist(),dxdf.dx_volatility.tolist(),cdf.volatility.tolist(),pdf.volatility.tolist()]
-                            ret_dict['volatility_list'] = volatility_list
-                        except:
-                            ret_dict['volatility_list'] = []
-                            app.logger.error(traceback.format_exc())
-
-                    if gathered_res[7] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[7]])
-                            df = df[(df.strike>ndx_min_lim) & (df.strike<ndx_max_lim)].reset_index()
-                            df['convexity'] = df.gamma*df.order_imbalance
-
-                            major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
-                            major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
-
-                            df['pos_convexity'] = df.convexity.where(df.convexity>0)
-                            df['neg_convexity'] = df.convexity.where(df.convexity<=0)
-
-                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
-                            convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
-
-                            ret_dict['ndx_convexity_list'] = convexity_list
-                            ret_dict['ndx_major_pos_convexity'] = major_pos_convexity
-                            ret_dict['ndx_major_neg_convexity'] = major_neg_convexity
-                        except:
-                            ret_dict['ndx_convexity_list'] = []
-                            ret_dict['ndx_major_pos_convexity'] = None
-                            ret_dict['ndx_major_neg_convexity'] = None
-                            app.logger.error(traceback.format_exc())
-
-                    if gathered_res[8] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[8]])
-                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                            df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
-                            df = df.dropna()
-                            order_imbalance_zoomin_df = df.copy()
-
-                            filter_list = [
-                                df.order_imbalance<-200,
-                                (df.order_imbalance>=-200)&(df.order_imbalance<-100),
-                                (df.order_imbalance>=-100)&(df.order_imbalance<-50),
-                                (df.order_imbalance>=-50)&(df.order_imbalance<-25),
-                                (df.order_imbalance>=-25)&(df.order_imbalance<-10),
-                                (df.order_imbalance>=-10)&(df.order_imbalance<0),
-                                (df.order_imbalance>=0)&(df.order_imbalance<10),
-                                (df.order_imbalance>=10)&(df.order_imbalance<25),
-                                (df.order_imbalance>=25)&(df.order_imbalance<50),
-                                (df.order_imbalance>=50)&(df.order_imbalance<100),
-                                (df.order_imbalance>=100)&(df.order_imbalance<200),
-                                df.order_imbalance>=200,
-                            ]
-                            call_order_imbalance_list = [[],]
-                            put_order_imbalance_list = [[],]
-                            for row_filter in filter_list:
-                                row_tstamp = df.tstamp[row_filter&(df.contract_type=="C")].to_list()
-                                row_strike = df.strike[row_filter&(df.contract_type=="C")].to_list()
-                                call_item = [row_tstamp,row_strike,[]]
-                                call_order_imbalance_list.append(call_item)
-                                row_tstamp = df.tstamp[row_filter&(df.contract_type=="P")].to_list()
-                                row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
-                                put_item = [row_tstamp,row_strike,[]]
-                                put_order_imbalance_list.append(put_item)
-                            # add spx price for the past 10 min
-                            lst = ret_dict['prices']
-                            offset = -5
-                            call_order_imbalance_list.append([ lst[0][offset:],lst[-1][offset:],[] ])
-                            put_order_imbalance_list.append([ lst[0][offset:],lst[-1][offset:],[] ])
-
-                            ret_dict['call_order_imbalance_zoomin'] = call_order_imbalance_list
-                            ret_dict['put_order_imbalance_zoomin'] = put_order_imbalance_list
-                        except:
-                            ret_dict['call_order_imbalance_zoomin'] = []
-                            ret_dict['call_order_imbalance_zoomin'] = []
-                            app.logger.error(traceback.format_exc())
-
-                    if gathered_res[9] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[9]])
-
-                            if len(df) > 5:
-                                # ignore the first 2 minutes, as gex data fluctuates as events flow in.
-                                df = df[df.tstamp > market_open+datetime.timedelta(minutes=1)].reset_index()
-
-                            df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
-                            df.gex = df.gex/1e9
-                            df.dex = df.dex/1e9
-                            df.call_dex = df.call_dex/1e9
-                            df.put_dex = df.put_dex/1e9
-
-                            df['gex_diff'] = df.gex.diff()
-                            df['convexity_diff'] = df.convexity.diff()
-                            df = df.replace({np.nan: None})
-
-                            gex_lst = [df[i].tolist() for i in ['tstamp','gex_diff','gex']]
-                            ret_dict['gexdiff'] = gex_lst
-                            convexity_lst = [df[i].tolist() for i in ['tstamp','convexity','convexity_diff']]
-                            ret_dict['convexitydiff'] = convexity_lst
-
-                            dex_lst = [df[i].tolist() for i in ['tstamp','spot_price','dex','call_dex','put_dex']]
-                            ret_dict['dex'] = dex_lst
-                        except:
-                            ret_dict['gexdiff'] = []
-                            ret_dict['convexitydiff'] = []
-                            ret_dict['dex'] = []
-                            app.logger.error(traceback.format_exc())
-                    
-
-                    if gathered_res[10] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[10]])
-                            df = df[(df.strike>spy_min_lim) & (df.strike<spy_max_lim)].reset_index()
-                            df['convexity'] = df.gamma*df.order_imbalance
-
-                            major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
-                            major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
-                            
-                            df['pos_convexity'] = df.convexity.where(df.convexity>0)
-                            df['neg_convexity'] = df.convexity.where(df.convexity<=0)
-
-                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
-                            convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
-
-                            ret_dict['spy_convexity_list'] = convexity_list
-                            ret_dict['spy_major_pos_convexity'] = major_pos_convexity
-                            ret_dict['spy_major_neg_convexity'] = major_neg_convexity
-                        except:
-                            ret_dict['spy_convexity_list'] = []
-                            ret_dict['spy_major_pos_convexity'] = None
-                            ret_dict['spy_major_neg_convexity'] = None
-                            app.logger.error(traceback.format_exc())
-
-                    if gathered_res[11] is not None:
-                        try:
-                            df = pd.DataFrame([dict(x) for x in gathered_res[11]])
-                            df = df[(df.strike>qqq_min_lim) & (df.strike<qqq_max_lim)].reset_index()
-                            df['convexity'] = df.gamma*df.order_imbalance
-
-                            major_pos_convexity = df["strike"].iloc[df.convexity.argmax(skipna=True)]
-                            major_neg_convexity = df["strike"].iloc[df.convexity.argmin(skipna=True)]
-
-                            df['pos_convexity'] = df.convexity.where(df.convexity>0)
-                            df['neg_convexity'] = df.convexity.where(df.convexity<=0)
-
-                            df = df.replace({np.nan: 0}) # avoid uplot mouse hover jitter, we use 0
-                            convexity_list = [df[i].tolist() for i in ['strike','pos_convexity','neg_convexity']]
-
-                            ret_dict['qqq_convexity_list'] = convexity_list
-                            ret_dict['qqq_major_pos_convexity'] = major_pos_convexity
-                            ret_dict['qqq_major_neg_convexity'] = major_neg_convexity
-                        except:
-                            ret_dict['qqq_convexity_list'] = []
-                            ret_dict['qqq_major_pos_convexity'] = None
-                            ret_dict['qqq_major_neg_convexity'] = None
-                            app.logger.error(traceback.format_exc())
-
-
-                    commentary = ''
-                    #if vix_price > 19: commentary+= "vix > 19, good gamma scalping environment"
-                    # if gap up 0.5%, becare of negative gamma below spot, do not short put
-                    # if huge order_imblance order_imbalance_zoomin_df
-                    ret_dict['commentary'] = None
-
-                    ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                    ret_dict['duration_time'] = f"{duration_time:0.3f}sec"
-                    ret_dict['error_status'] = None
+                    ret_dict['meta']['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                    ret_dict['meta']['duration_time'] = f"{duration_time:0.3f}sec"
+                    ret_dict['meta']['error_status'] = None
                 except:
-                    ret_dict['qc_comment'] = "unexpected error!!! ffff likely missing data, services down!"
-                    ret_dict['duration_time'] = None
-                    ret_dict['data_tstamp'] = None
-                    ret_dict['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                    ret_dict['error_status'] = 'traceback:'+traceback.format_exc()
+                    ret_dict = {
+                        'tickers': {},
+                        'meta': {
+                            'qc_comment': "unexpected error!!! ffff likely missing data, services down!",
+                            'duration_time': None,
+                            'data_tstamp': None,
+                            'server_tstamp': datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                            'error_status': 'traceback:'+traceback.format_exc(),
+                        }
+                    }
                     app.logger.error(traceback.format_exc())
 
                 await websocket.send_json(ret_dict)

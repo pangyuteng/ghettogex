@@ -152,6 +152,22 @@ LEFT JOIN qqq_1min using (tstamp)
 ORDER BY tstamp
 """
 
+CANDLE_1MIN_SINGLE_QUERY = """
+WITH ticker_1min AS (
+    SELECT tstamp, close AS ticker_close
+    FROM candle_1min
+    WHERE tstamp::date = %s AND event_symbol = %s AND close != 0
+),
+companion_1min AS (
+    SELECT tstamp, close AS companion_close
+    FROM candle_1min
+    WHERE tstamp::date = %s AND event_symbol = %s AND close != 0
+)
+SELECT * FROM ticker_1min
+LEFT JOIN companion_1min USING (tstamp)
+ORDER BY tstamp
+"""
+
 LATEST_GEX_STRIKE_QUERY = """
 WITH last_tstamp AS (select tstamp from event_underlying where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp desc limit 1),
 last_gex_strike AS (select * from event_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike)
