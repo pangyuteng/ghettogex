@@ -61,6 +61,7 @@ from utils.pg_queries import (
     CANDLE_QC_QUERY,
     QUOTE_1MIN_QUERY,
     INTERVAL_CONVEXITY_QUERY,
+    CONVEXITYDX_QUERY,
     GREEKS_QUERY,
     GEX_CONVEXITY_1DAY_QUERY,
 )
@@ -545,7 +546,8 @@ async def ws_main_socket():
                         # Convexity data
                         if need_convexity:
                             query_keys.append((ticker, 'convexity'))
-                            query_list.append(apostgres_execute(apool, INTERVAL_CONVEXITY_QUERY, (options_ticker, dstamp, dstamp, tstamp_utc, options_ticker, dstamp, dstamp)))
+                            #query_list.append(apostgres_execute(apool, INTERVAL_CONVEXITY_QUERY, (options_ticker, dstamp, dstamp, tstamp_utc, options_ticker, dstamp, dstamp)))
+                            query_list.append(apostgres_execute(apool, CONVEXITYDX_QUERY, (options_ticker, dstamp, dstamp, options_ticker, dstamp, dstamp)))
 
                         # Volatility (greeks)
                         if need_volatility:

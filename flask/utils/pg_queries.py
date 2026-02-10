@@ -66,7 +66,7 @@ ORDER BY strike
 INTERVAL_CONVEXITY_QUERY = """
 WITH o_interval AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from order_imbalance where ticker = %s and expiration = %s and tstamp::date = %s and tstamp >= %s - interval '60 minute'
+from order_imbalance where ticker = %s and expiration = %s and tstamp::date = %s and tstamp >= %s - interval '240 minute'
 group by ticker,strike
 ), g_1day AS (
 select distinct ticker,strike,last(gamma,tstamp) as gamma
