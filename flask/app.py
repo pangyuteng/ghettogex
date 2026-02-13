@@ -280,7 +280,7 @@ async def ws_main_socket():
                         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
                         df.ndx_close = df.ndx_close.round(decimals=2)
                         df = df.replace({np.nan: None})
-                        lst = [df[i].tolist() for i in ['tstamp','vix_close','spx_close',]]
+                        lst = [df[i].tolist() for i in ['tstamp','spx_close','vix_close','vix9d_close','vix1d_close']]
                         ret_dict['prices'] = lst
                         ret_dict['es_price'] = df.es_close.iloc[-1]
                         ret_dict['spy_price'] = df.spy_close.iloc[-1]

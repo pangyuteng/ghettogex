@@ -39,18 +39,32 @@ function makeChartPrices() {
 		series: [
 			{},
 			{
-				label: "vix",
-				scale: "scale1",
-				value: (u, v) => v == null ? null : v.toFixed(2) + "",
-				stroke: "rgba(255,0,0,1)",
-				width: 2/devicePixelRatio,
-			},
-			{
 				label: "spx",
 				scale: "scale0",
 				value: (u, v) => v == null ? null : v.toFixed(2) + "",
 				width: 2/devicePixelRatio,
 				stroke: "rgba(255,255,255,1)",
+			},
+			{
+				label: "vix",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				stroke: "rgba(0,255,0,1)",
+				width: 2/devicePixelRatio,
+			},
+			{
+				label: "vix9d",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				stroke: "rgba(255,165,0,1)",
+				width: 2/devicePixelRatio,
+			},
+			{
+				label: "vix1d",
+				scale: "scale1",
+				value: (u, v) => v == null ? null : v.toFixed(2) + "",
+				stroke: "rgba(255,0,0,1)",
+				width: 2/devicePixelRatio,
 			},
 		],
 		plugins: [
@@ -90,8 +104,6 @@ function updateChartPrices(data){
 	mychartPrices.setScale('scale0', {min: data.spx_min_lim, max: data.spx_max_lim});
 	linesPrices[0] = [data.likey_close_price_list[0],'gray'];
 	linesPrices[1] = [data.likey_close_price_list[1],'gray'];
-	linesPrices[2] = [data.likey_close_price_list[2],'gray'];
-	linesPrices[3] = [data.likey_close_price_list[3],'gray'];
 
 	mychartPrices.setData(data.prices);
 }

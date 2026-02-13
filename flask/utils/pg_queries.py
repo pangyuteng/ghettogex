@@ -141,12 +141,16 @@ WITH spx_1min AS (select tstamp,close as spx_close from candle_1min where tstamp
 ndx_1min AS (select tstamp,close as ndx_close from candle_1min where tstamp::date = %s and event_symbol like 'NDX' and close != 0),
 es_1min AS (select tstamp,close as es_close from candle_1min where tstamp::date = %s and event_symbol like '/ES%%' and close != 0),
 vix_1min AS (select tstamp,close as vix_close from candle_1min where tstamp::date = %s and event_symbol = 'VIX' and close != 0),
+vix1d_1min AS (select tstamp,close as vix_close from candle_1min where tstamp::date = %s and event_symbol = 'VIX1D' and close != 0),
+vix9d_1min AS (select tstamp,close as vix_close from candle_1min where tstamp::date = %s and event_symbol = 'VIX9D' and close != 0),
 spy_1min AS (select tstamp,close as spy_close from candle_1min where tstamp::date = %s and event_symbol = 'SPY' and close != 0),
 qqq_1min AS (select tstamp,close as qqq_close from candle_1min where tstamp::date = %s and event_symbol = 'QQQ' and close != 0)
 SELECT * FROM spx_1min
 LEFT JOIN es_1min using (tstamp)
 LEFT JOIN ndx_1min using (tstamp)
 LEFT JOIN vix_1min using (tstamp)
+LEFT JOIN vix1d_1min using (tstamp)
+LEFT JOIN vix9d_1min using (tstamp)
 LEFT JOIN spy_1min using (tstamp)
 LEFT JOIN qqq_1min using (tstamp)
 ORDER BY tstamp
