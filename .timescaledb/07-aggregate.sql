@@ -76,7 +76,8 @@ ALTER MATERIALIZED VIEW candle_1min set (timescaledb.enable_columnstore = true);
 
 CREATE MATERIALIZED VIEW order_imbalance WITH (timescaledb.continuous) AS
 SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-sum(order_imbalance) as order_imbalance
+sum(order_imbalance) as order_imbalance,
+sum(ask_volume)+sum(bid_volume) as volume,
 FROM candle_1min
 GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
