@@ -10,6 +10,8 @@ INSERT INTO watchlist(ticker,compute_gex) VALUES('NDX',true);
 INSERT INTO watchlist(ticker,compute_gex) VALUES('SPY',true);
 INSERT INTO watchlist(ticker,compute_gex) VALUES('QQQ',true);
 INSERT INTO watchlist(ticker,compute_gex) VALUES('VIX',false);
+INSERT INTO watchlist(ticker,compute_gex) VALUES('VIX1D',false);
+INSERT INTO watchlist(ticker,compute_gex) VALUES('VIX9D',false);
 INSERT INTO watchlist(ticker,compute_gex) VALUES('UVXY',false);
 INSERT INTO watchlist(ticker,compute_gex) VALUES('ES',false);
 

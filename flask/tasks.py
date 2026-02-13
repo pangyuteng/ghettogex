@@ -19,7 +19,7 @@ from celery import Celery
 from tastytrade.instruments import get_option_chain
 
 from utils.postgres_utils import postgres_execute, vaccum_full_analyze
-from utils.data_tasty import background_subscribe, get_session_reuse
+from utils.data_tasty import background_subscribe, get_session_reuse, IGNORE_OPTIONS_TICKER_LIST
 from utils.misc import is_market_open, now_in_new_york, timedelta_from_market_open
 from utils.compute_intraday import compute_gex
 from utils.mytelegram import telegram_bot
@@ -95,8 +95,7 @@ class ManageSubscription(luigi.Task):
             for row in fetched:
                 ticker = row['ticker']
                 logger.info(f"trigger subscriptions apply_async {ticker}")
-                if ticker in ["VIX","VIX1D","ES","UVXY"]:
-
+                if ticker in IGNORE_OPTIONS_TICKER_LIST:
                     expirations_str = "None"
                     trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
 
