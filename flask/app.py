@@ -400,8 +400,8 @@ async def ws_main_socket():
                                 put_order_imbalance_list.append(put_item)
                             # add spx price
                             lst = ret_dict['prices']
-                            call_order_imbalance_list.append([ lst[0],lst[-1],[] ])
-                            put_order_imbalance_list.append([ lst[0],lst[-1],[] ])
+                            call_order_imbalance_list.append([ lst[0],lst[1],[] ])
+                            put_order_imbalance_list.append([ lst[0],lst[1],[] ])
 
                             ret_dict['call_order_imbalance'] = call_order_imbalance_list
                             ret_dict['put_order_imbalance'] = put_order_imbalance_list
@@ -545,8 +545,8 @@ async def ws_main_socket():
                             # add spx price for the past 10 min
                             lst = ret_dict['prices']
                             offset = -5
-                            call_order_imbalance_list.append([ lst[0][offset:],lst[-1][offset:],[] ])
-                            put_order_imbalance_list.append([ lst[0][offset:],lst[-1][offset:],[] ])
+                            call_order_imbalance_list.append([ lst[0][offset:],lst[1][offset:],[] ])
+                            put_order_imbalance_list.append([ lst[0][offset:],lst[1][offset:],[] ])
 
                             ret_dict['call_order_imbalance_zoomin'] = call_order_imbalance_list
                             ret_dict['put_order_imbalance_zoomin'] = put_order_imbalance_list
