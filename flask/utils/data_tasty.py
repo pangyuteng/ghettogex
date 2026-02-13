@@ -458,7 +458,7 @@ class MarketCloseException(Exception):
     pass
 
 IGNORE_OPTIONS_TICKER_LIST = ["VIX","ES","UVXY","VIX1D","VIX9D"] # ignore options for VIX and futures.
-NON_TICKER_LIST = ["VIX1D","VIX9D"]: # just use ticker as streamer_symbol
+NON_TICKER_LIST = ["VIX1D","VIX9D"] # just use ticker as streamer_symbol
 
 async def background_subscribe(ticker,expirations_str,save_to_postres=True):
     try:
