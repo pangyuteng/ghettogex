@@ -1,7 +1,7 @@
 <script>
-    const wsUrl = "/ws-main-socket-debug?dstamp={{ dstamp }}"
-        + "&tickers=" + TICKERS.join(",")
-        + "&charts=" + CHARTS.join(",");
+    const _allTickers = Object.keys(TICKER_CHARTS);
+
+    const wsUrl = WS_ENDPOINT + "?dstamp={{ dstamp }}" + WS_EXTRA_PARAMS;
     const ws = new WebSocket(wsUrl);
 
     let errorSpan = document.getElementById("errorSpan");
@@ -22,9 +22,9 @@
         queryTimeSpan.textContent = meta.duration_time || '';
         dataTstampSpan.textContent = meta.data_tstamp || '';
 
-        // Build title from first ticker price
+        // Build title from ticker prices
         let titleParts = [];
-        TICKERS.forEach(function(ticker) {
+        _allTickers.forEach(function(ticker) {
             let tickerData = (newdata.tickers || {})[ticker] || {};
             if (tickerData.price && tickerData.price.ticker_price != null) {
                 titleParts.push(ticker + ":" + tickerData.price.ticker_price);
@@ -35,7 +35,7 @@
         }
 
         // Update per-ticker price spans + dispatch to charts
-        TICKERS.forEach(function(ticker) {
+        _allTickers.forEach(function(ticker) {
             let tickerData = (newdata.tickers || {})[ticker] || {};
 
             // Update price span
@@ -50,8 +50,8 @@
                 companionSpan.textContent = tickerData.price.companion_price;
             }
 
-            // Dispatch to charts
-            CHARTS.forEach(function(chartType) {
+            // Dispatch to charts (per-ticker chart list)
+            TICKER_CHARTS[ticker].forEach(function(chartType) {
                 let config = CHART_CONFIGS[chartType];
                 let chartObj = (chartRegistry[ticker] || {})[chartType];
                 if (config && config.update && chartObj) {

@@ -16,15 +16,8 @@
     }
     .grid-container {
         display: grid;
-        grid-template-columns: repeat({{ tickers|length }}, 1fr);
+        grid-template-columns: repeat({{ grid_cols }}, 1fr);
         gap: 4px;
-    }
-    .grid-header {
-        text-align: center;
-        font-size: 16px;
-        font-weight: bold;
-        color: #bebebe;
-        padding: 4px;
     }
     </style>
 </head>
@@ -36,33 +29,30 @@
 data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <span id="dataQcSpan" style="font-size: 18px !important; color: #ff0000;"></span>
 <br>
-{% for ticker in tickers %}
+{% for ticker in all_tickers %}
 {{ ticker }}: <span id="price-{{ ticker }}" style="font-size: 20px !important; color: #ffffff;"></span>
 (<span id="companion-{{ ticker }}" style="font-size: 16px !important; color: #ff0000;"></span>)&nbsp;&nbsp;
 {% endfor %}
 <br>
 
 <script>
-    const TICKERS = {{ tickers | tojson }};
-    const CHARTS = {{ charts | tojson }};
-    const TICKER_CHARTS = {};
-    TICKERS.forEach(function(t) { TICKER_CHARTS[t] = CHARTS; });
-    const WS_ENDPOINT = "/ws-main-socket-debug";
-    const WS_EXTRA_PARAMS = "&tickers=" + TICKERS.join(",") + "&charts=" + CHARTS.join(",");
+    const TICKER_CHARTS = {{ ticker_charts | tojson }};
+    const WS_ENDPOINT = "/ws-main-socket";
+    const WS_EXTRA_PARAMS = "&main-ticker={{ main_ticker }}"
+        + "&main-charts={{ main_charts | join(',') }}"
+        + "&other-tickers={{ other_tickers | join(',') }}"
+        + "&other-charts={{ other_charts | join(',') }}";
 </script>
 
-<!-- Dynamic grid: columns=tickers, rows=charts -->
+<!-- All charts flow into a single grid -->
 <div class="grid-container">
-    <!-- Column headers -->
-    {% for ticker in tickers %}
-    <div class="grid-header">{{ ticker }}</div>
-    {% endfor %}
-
-    <!-- Chart cells: rows=charts, cols=tickers -->
-    {% for chart in charts %}
-        {% for ticker in tickers %}
+    {% for chart in other_charts %}
+        {% for ticker in other_tickers %}
         <div id="chart-{{ ticker }}-{{ chart }}"></div>
         {% endfor %}
+    {% endfor %}
+    {% for chart in main_charts %}
+    <div id="chart-{{ main_ticker }}-{{ chart }}"></div>
     {% endfor %}
 </div>
 

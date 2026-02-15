@@ -679,9 +679,9 @@ const CHART_CONFIGS = {
 
 // --- Chart registry initialization ---
 const chartRegistry = {};
-TICKERS.forEach(function(ticker) {
+Object.keys(TICKER_CHARTS).forEach(function(ticker) {
 	chartRegistry[ticker] = {};
-	CHARTS.forEach(function(chartType) {
+	TICKER_CHARTS[ticker].forEach(function(chartType) {
 		let elementId = "chart-" + ticker + "-" + chartType;
 		let config = CHART_CONFIGS[chartType];
 		if (config && config.make) {
