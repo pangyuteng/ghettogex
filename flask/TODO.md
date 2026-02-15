@@ -16,6 +16,9 @@
     `other-charts`:
         default value: `volatility,convexity`
 
+    + `grid`: this determines the chart layout `col x row` in the html.
+        default value: `6x8`
+
 + additional notes:
 
     + keep `/debug` as is!
