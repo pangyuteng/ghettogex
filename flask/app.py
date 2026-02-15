@@ -411,9 +411,9 @@ async def get_equity():
     except:
         return jsonify(traceback.format_exc()),401
 
-@app.route("/")
+@app.route("/debug")
 @login_required
-async def home():
+async def home_debug():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
     dstamp = request.args.get("dstamp",None)
@@ -461,7 +461,7 @@ async def home():
     charts = [c.strip().lower() for c in charts_param.split(",")] if charts_param else DEFAULT_CHARTS
     charts = [c for c in charts if c in VALID_CHARTS]
 
-    return await render_template("index.html",dstamp=dstamp,load_data=load_data,
+    return await render_template("index-debug.html",dstamp=dstamp,load_data=load_data,
         market_status=market_status,tickers=tickers,charts=charts)
 
 
@@ -483,9 +483,9 @@ def _needs_query_group(charts, group_charts):
     return any(c in charts for c in group_charts)
 
 
-@app.websocket('/ws-main-socket')
+@app.websocket('/ws-main-socket-debug')
 @login_required
-async def ws_main_socket():
+async def ws_main_socket_debug():
     try:
         message = None
         dstamp = websocket.args.get("dstamp")

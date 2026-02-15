@@ -1,5 +1,5 @@
 <script>
-    const wsUrl = "/ws-main-socket?dstamp={{ dstamp }}"
+    const wsUrl = "/ws-main-socket-debug?dstamp={{ dstamp }}"
         + "&tickers=" + TICKERS.join(",")
         + "&charts=" + CHARTS.join(",");
     const ws = new WebSocket(wsUrl);
