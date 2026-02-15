@@ -222,9 +222,7 @@ def process_volatility_data(rows, spot_min_lim, spot_max_lim, spot_price):
 
     cdf = df[df.contract_type=='C']
     pdf = df[df.contract_type=='P']
-    dxdf = df[df.contract_type=='P']
-
-    volatility_list = [cdf.strike.tolist(),dxdf.dx_volatility.tolist(),cdf.volatility.tolist(),pdf.volatility.tolist()]
+    volatility_list = [cdf.strike.tolist(),cdf.dx_volatility.tolist(),pdf.dx_volatility.tolist()]
     return {'volatility_list': volatility_list}
 
 
