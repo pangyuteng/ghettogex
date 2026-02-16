@@ -88,14 +88,13 @@ DEFAULT_CHARTS = VALID_CHARTS[:]
 
 DEFAULT_MAIN_TICKER = 'SPX'
 DEFAULT_MAIN_CHARTS = [
-    'price','volatility','dexflow','gexflow','gex',
-    'convexity',
+    'price','dexflow','gexflow','gex',
     'call-order-imbalance','put-order-imbalance',
     'call-last-x-min','put-last-x-min',
 ]
-DEFAULT_OTHER_TICKERS = []#['SPX','SPY','QQQ','NDX']
+DEFAULT_OTHER_TICKERS = ['SPX','SPY','QQQ','NDX']
 DEFAULT_OTHER_CHARTS = ['volatility','convexity']
-DEFAULT_GRID = '5x8'
+DEFAULT_GRID = '4x8'
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(THIS_DIR,"templates")
