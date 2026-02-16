@@ -56,6 +56,7 @@ from utils.pg_queries import (
     LATEST_GEX_STRIKE_QUERY,
     CANDLE_1MIN_QUERY,
     CANDLE_1MIN_SINGLE_QUERY,
+    CANDLE_1MIN_PRICE_QUERY,
     ORDER_IMBALANCE_QUERY,
     ORDER_IMBALANCE_LASTXMIN_QUERY,
     CANDLE_QC_QUERY,
@@ -86,12 +87,15 @@ DEFAULT_TICKERS = ['SPX','SPY','QQQ','NDX']
 DEFAULT_CHARTS = VALID_CHARTS[:]
 
 DEFAULT_MAIN_TICKER = 'SPX'
-DEFAULT_MAIN_CHARTS = ['price','dexflow','gexflow','gex',
-                       'call-order-imbalance','put-order-imbalance',
-                       'call-last-x-min','put-last-x-min',]
-DEFAULT_OTHER_TICKERS = ['SPX','SPY','QQQ','NDX']
+DEFAULT_MAIN_CHARTS = [
+    'price','volatility','dexflow','gexflow','gex',
+    'convexity',
+    'call-order-imbalance','put-order-imbalance',
+    'call-last-x-min','put-last-x-min',
+]
+DEFAULT_OTHER_TICKERS = []#['SPX','SPY','QQQ','NDX']
 DEFAULT_OTHER_CHARTS = ['volatility','convexity']
-DEFAULT_GRID = '4x8'
+DEFAULT_GRID = '5x8'
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(THIS_DIR,"templates")
@@ -116,7 +120,7 @@ auth_manager = QuartAuth(app)
 # --- Processing helper functions ---
 
 def process_price_data(rows, ticker):
-    """Process CANDLE_1MIN_SINGLE_QUERY results for a single ticker."""
+    """Process CANDLE_1MIN_PRICE_QUERY results for a single ticker."""
     if rows is None or len(rows) == 0:
         raise ValueError(f"found no price data for {ticker}!")
 
@@ -124,18 +128,18 @@ def process_price_data(rows, ticker):
     df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
     df = df.replace({np.nan: None})
 
-    lst = [df[i].tolist() for i in ['tstamp','companion_close','ticker_close']]
+    lst = [df[i].tolist() for i in ['tstamp','vix1d_close','vix9d_close','vix_close','ticker_close']]
 
     ticker_close_col = df.ticker_close
-    companion_close_col = df.companion_close
+    vix_close_col = df.vix_close
 
     ticker_price = ticker_close_col.iloc[-1]
-    companion_price_idx = companion_close_col.last_valid_index()
-    companion_price = companion_close_col[companion_price_idx] if companion_price_idx is not None else None
+    companion_price_idx = vix_close_col.last_valid_index()
+    companion_price = vix_close_col[companion_price_idx] if companion_price_idx is not None else None
 
-    companion_open_idx = companion_close_col.first_valid_index()
-    companion_open = companion_close_col[companion_open_idx] if companion_open_idx is not None else 0
-    vem = companion_open/np.sqrt(252) if companion_open else 0
+    vix_open_idx = vix_close_col.first_valid_index()
+    vix_open = vix_close_col[vix_open_idx] if vix_open_idx is not None else 0
+    vem = vix_open/np.sqrt(252) if vix_open else 0
 
     ticker_open_idx = ticker_close_col.first_valid_index()
     ticker_open = ticker_close_col[ticker_open_idx] if ticker_open_idx is not None else 0
@@ -620,11 +624,10 @@ async def ws_main_socket_debug():
                     for ticker in tickers:
                         reg = TICKER_REGISTRY[ticker]
                         options_ticker = reg['options_ticker']
-                        companion = reg['companion']
 
                         # Always fetch price data (needed for limits used by other charts)
                         query_keys.append((ticker, 'price'))
-                        query_list.append(apostgres_execute(apool, CANDLE_1MIN_SINGLE_QUERY, (dstamp, ticker, dstamp, companion)))
+                        query_list.append(apostgres_execute(apool, CANDLE_1MIN_PRICE_QUERY, (dstamp, ticker, dstamp, dstamp, dstamp)))
 
                         # QC data (always fetch for first ticker only, use SPX-like ticker)
                         if ticker == tickers[0]:
@@ -918,7 +921,6 @@ async def ws_main_socket():
                         charts = ticker_charts[ticker]
                         reg = TICKER_REGISTRY[ticker]
                         options_ticker = reg['options_ticker']
-                        companion = reg['companion']
 
                         need_flow = _needs_query_group(charts, ['dexflow','gexflow','convexityflow'])
                         need_ordim = _needs_query_group(charts, ['call-order-imbalance','put-order-imbalance'])
@@ -929,7 +931,7 @@ async def ws_main_socket():
 
                         # Always fetch price data (needed for limits used by other charts)
                         query_keys.append((ticker, 'price'))
-                        query_list.append(apostgres_execute(apool, CANDLE_1MIN_SINGLE_QUERY, (dstamp, ticker, dstamp, companion)))
+                        query_list.append(apostgres_execute(apool, CANDLE_1MIN_PRICE_QUERY, (dstamp, ticker, dstamp, dstamp, dstamp)))
 
                         # QC data (first ticker only)
                         if ticker == all_tickers[0]:

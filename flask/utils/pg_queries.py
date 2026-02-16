@@ -172,6 +172,30 @@ LEFT JOIN companion_1min USING (tstamp)
 ORDER BY tstamp
 """
 
+CANDLE_1MIN_PRICE_QUERY = """
+WITH ticker_1min AS (
+    SELECT tstamp, close AS ticker_close
+    FROM candle_1min WHERE tstamp::date = %s AND event_symbol = %s AND close != 0
+),
+vix_1min AS (
+    SELECT tstamp, close AS vix_close
+    FROM candle_1min WHERE tstamp::date = %s AND event_symbol = 'VIX' AND close != 0
+),
+vix1d_1min AS (
+    SELECT tstamp, close AS vix1d_close
+    FROM candle_1min WHERE tstamp::date = %s AND event_symbol = 'VIX1D' AND close != 0
+),
+vix9d_1min AS (
+    SELECT tstamp, close AS vix9d_close
+    FROM candle_1min WHERE tstamp::date = %s AND event_symbol = 'VIX9D' AND close != 0
+)
+SELECT * FROM ticker_1min
+LEFT JOIN vix_1min USING (tstamp)
+LEFT JOIN vix1d_1min USING (tstamp)
+LEFT JOIN vix9d_1min USING (tstamp)
+ORDER BY tstamp
+"""
+
 LATEST_GEX_STRIKE_QUERY = """
 WITH last_tstamp AS (select tstamp from event_underlying where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp desc limit 1),
 last_gex_strike AS (select * from event_strike where tstamp <= %s and tstamp >= %s - interval '1 minute' and ticker = %s order by tstamp,strike)

@@ -187,10 +187,24 @@ const CHART_CONFIGS = {
 				series: [
 					{},
 					{
-						label: "companion",
+						label: "VIX1D",
 						scale: "scale1",
 						value: (u, v) => v == null ? null : v.toFixed(2) + "",
 						stroke: "rgba(255,0,0,1)",
+						width: 2/devicePixelRatio,
+					},
+					{
+						label: "VIX9D",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						stroke: "rgba(255,165,0,1)",
+						width: 2/devicePixelRatio,
+					},
+					{
+						label: "VIX",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						stroke: "rgba(200,200,0,1)",
 						width: 2/devicePixelRatio,
 					},
 					{
