@@ -21,6 +21,8 @@ CALL refresh_continuous_aggregate('event_underlying_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW event_underlying_1min set (timescaledb.materialized_only = false);
 ALTER MATERIALIZED VIEW event_underlying_1min set (timescaledb.enable_columnstore = true);
 
+CREATE INDEX event_underlying_1min_index on event_underlying_1min using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
 -- DROP MATERIALIZED VIEW event_underlying_1min;
 -- SELECT remove_continuous_aggregate_policy('event_underlying_1min');
 
@@ -42,6 +44,8 @@ SELECT add_continuous_aggregate_policy('event_strike_1min',
 CALL refresh_continuous_aggregate('event_strike_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW event_strike_1min set (timescaledb.materialized_only = false);
 ALTER MATERIALIZED VIEW event_strike_1min set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX event_strike_1min_index on event_strike_1min using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 
 -- DROP MATERIALIZED VIEW event_strike_1min;
 -- SELECT remove_continuous_aggregate_policy('event_strike_1min');
@@ -68,6 +72,8 @@ CALL refresh_continuous_aggregate('candle_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW candle_1min set (timescaledb.materialized_only = false);
 ALTER MATERIALIZED VIEW candle_1min set (timescaledb.enable_columnstore = true);
 
+CREATE INDEX candle_1min_tstamp_event_symbol_index on candle_1min using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX candle_1min_index on candle_1min using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 
 -- DROP MATERIALIZED VIEW candle_1min;
 -- SELECT remove_continuous_aggregate_policy('candle_1min');
@@ -89,6 +95,10 @@ SELECT add_continuous_aggregate_policy('order_imbalance',
 CALL refresh_continuous_aggregate('order_imbalance', NULL, NULL);
 ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.materialized_only = false);
 ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX order_imbalance_tstamp_event_symbol_index on order_imbalance using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX order_imbalance_index on order_imbalance using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
 
 -- DROP MATERIALIZED VIEW order_imbalance
 -- SELECT remove_continuous_aggregate_policy('order_imbalance');
@@ -116,9 +126,12 @@ CALL refresh_continuous_aggregate('quote_1min', NULL, NULL);
 ALTER MATERIALIZED VIEW quote_1min set (timescaledb.materialized_only = false);
 ALTER MATERIALIZED VIEW quote_1min set (timescaledb.enable_columnstore = true);
 
+CREATE INDEX quote_1min_tstamp_event_symbol_index on quote_1min using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX quote_1min_index on quote_1min using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+
 -- DROP MATERIALIZED VIEW quote_1min
 -- SELECT remove_continuous_aggregate_policy('quote_1min');
-
 
 -- NOTE: below *_1day are meant to simplify query, maybe this is a bad idea, as it hides potential missing data
 
@@ -138,6 +151,10 @@ SELECT add_continuous_aggregate_policy('quote_1day',
 CALL refresh_continuous_aggregate('quote_1day', NULL, NULL);
 ALTER MATERIALIZED VIEW quote_1day set (timescaledb.materialized_only = false);
 ALTER MATERIALIZED VIEW quote_1day set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX quote_1day_tstamp_event_symbol_index on quote_1day using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX quote_1day_index on quote_1day using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
 
 -- DROP MATERIALIZED VIEW quote_1day
 -- SELECT remove_continuous_aggregate_policy('quote_1day');
@@ -159,6 +176,10 @@ SELECT add_continuous_aggregate_policy('order_imbalance_1day',
 CALL refresh_continuous_aggregate('order_imbalance_1day', NULL, NULL);
 ALTER MATERIALIZED VIEW order_imbalance_1day set (timescaledb.materialized_only = false);
 ALTER MATERIALIZED VIEW order_imbalance_1day set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX order_imbalance_1day_tstamp_event_symbol_index on order_imbalance_1day using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX order_imbalance_1day_index on order_imbalance_1day using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
 
 -- DROP MATERIALIZED VIEW order_imbalance_1day
 -- SELECT remove_continuous_aggregate_policy('order_imbalance_1day');
@@ -183,6 +204,9 @@ CALL refresh_continuous_aggregate('greeksdx_1day', NULL, NULL);
 ALTER MATERIALIZED VIEW greeksdx_1day set (timescaledb.materialized_only = false);
 ALTER MATERIALIZED VIEW greeksdx_1day set (timescaledb.enable_columnstore = true);
 
+CREATE INDEX greeksdx_1day_tstamp_event_symbol_index on greeksdx_1day using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX greeksdx_1day_index on greeksdx_1day using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
 -- DROP MATERIALIZED VIEW greeksdx_1day
 -- SELECT remove_continuous_aggregate_policy('greeksdx_1day');
 
@@ -204,6 +228,9 @@ SELECT add_continuous_aggregate_policy('greeks_1day',
 CALL refresh_continuous_aggregate('greeks_1day', NULL, NULL);
 ALTER MATERIALIZED VIEW greeks_1day set (timescaledb.materialized_only = false);
 ALTER MATERIALIZED VIEW greeks_1day set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX greeks_1day_tstamp_event_symbol_index on greeks_1day using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX greeks_1day_index on greeks_1day using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 
 -- DROP MATERIALIZED VIEW greeks_1day
 -- SELECT remove_continuous_aggregate_policy('greeks_1day');

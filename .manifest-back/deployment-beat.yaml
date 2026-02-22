@@ -40,7 +40,7 @@ spec:
         volumeMounts:
         - name: sm-volume
           mountPath: /mnt/sm-data
-        # used below lg-storage to nuke db data, need to shutdown postgres then kube delete&apply beat
+        # used below lg-storage to manage db data, since ReadWriteOnce, need to first shutdown postgres.
         #- name: lg-storage
         #  mountPath: /var/lib/postgresql/data
       volumes:
