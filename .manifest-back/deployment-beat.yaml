@@ -40,13 +40,13 @@ spec:
         volumeMounts:
         - name: sm-volume
           mountPath: /mnt/sm-data
-        # used below lg-storage to manage db data, if need to nuke, need to first shutdown postgres.
-        - name: lg-storage
-          mountPath: /var/lib/postgresql/data
+        # used below lg-storage to manage db data, since ReadWriteOnce, need to first shutdown postgres.
+        #- name: lg-storage
+        #  mountPath: /var/lib/postgresql/data
       volumes:
       - name: sm-volume
         persistentVolumeClaim:
           claimName: sm-longhorn-pvc
-      - name: lg-storage
-        persistentVolumeClaim:
-          claimName: db-longhorn-pvc
+      #- name: lg-storage
+      #  persistentVolumeClaim:
+      #    claimName: db-longhorn-pvc
