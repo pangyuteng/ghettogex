@@ -16,10 +16,10 @@ from .postgres_utils import apostgres_execute
 from .myplots import generate_volume_plot
 
 last_notified_tstamp = None
-VOLUME_THRESHOLD = 25000
-CHECK_INTERVAL_SECONDS = 1
+VOLUME_THRESHOLD = 1000
+CHECK_INTERVAL_SECONDS = 5
 
-async def get_last_1min_spx_volume():
+async def get_last_few_min_spx_volume():
     try:
         ticker_alt = "SPXW"
         day_stamp = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -28,28 +28,26 @@ async def get_last_1min_spx_volume():
 
         fetched = await apostgres_execute(
             None,
-            "select * from candle_1min where ticker = %s and expiration = %s and tstamp <= now() and tstamp >= now() - interval '2 minute'",
-            (ticker_alt,expiration)
+            """
+            select * from (
+            select tstamp, event_symbol, sum(ask_volume+bid_volume) as volume 
+            from candle_1min where ticker = %s
+            and expiration = %s and tstamp <= now() 
+            and tstamp >= now() - interval '5 minute'
+            group by tstamp, event_symbol
+            ) as foo
+            where volume > %s
+            """
+            (ticker_alt,expiration,VOLUME_THRESHOLD)
         )
-        cdf = pd.DataFrame([dict(x) for x in fetched])
-        if len(cdf) == 0:
+        vdf = pd.DataFrame([dict(x) for x in fetched])
+        if len(vdf) == 0:
             return None
-
-        cdf['tstamp_1min'] = cdf.tstamp.apply(lambda x: x.replace(second=0,microsecond=0))
-        cdf.ask_volume = cdf.ask_volume.fillna(0)
-        cdf.bid_volume = cdf.bid_volume.fillna(0)
-
-        ndf = cdf.groupby(['tstamp_1min','strike']).agg(
-            ask_volume=pd.NamedAgg(column="ask_volume", aggfunc="sum"),
-            bid_volume=pd.NamedAgg(column="bid_volume", aggfunc="sum"),
-        ).reset_index()
-        ndf['volume'] = ndf.ask_volume+ndf.bid_volume
-        last_volume = ndf.volume[ndf.volume.last_valid_index()]
     except:
         logger.error(traceback.format_exc())
         return None
 
-    return last_volume
+    return vdf
 
 async def volume_alert(context):
     global last_notified_tstamp
@@ -61,13 +59,13 @@ async def volume_alert(context):
     tstamp = datetime.datetime.now()
     
     if last_notified_tstamp is not None:
-        if tstamp - last_notified_tstamp < datetime.timedelta(seconds=5):
-            logger.warning("already notified 5 seconds ago")
+        if tstamp - last_notified_tstamp < datetime.timedelta(seconds=60):
+            logger.warning("already notified 1 min ago")
             return
 
-    volume = await get_last_1min_spx_volume()
+    vdf = await get_last_few_min_spx_volume()
     
-    if volume is None:
+    if vdf is None:
         logger.warning("volume is None???")
         return
     logger.warning(f"volume is {volume}")
@@ -75,8 +73,8 @@ async def volume_alert(context):
     now_str = tstamp.strftime("%Y-%m-%d %H:%M:%S")
     triggered = False
     msg = ""
-    if volume >= VOLUME_THRESHOLD:
-        msg += f"\n\n🚨 **SPXW 1-min volume exceeded {VOLUME_THRESHOLD}**!\nvolume is {volume} \n{now_str} "
+    if len(vdf) > 0
+        msg += f"\n\n🚨 **SPXW 1-min volume exceeded {VOLUME_THRESHOLD}**!\n"
         last_notified_tstamp = tstamp
         triggered = True
 
