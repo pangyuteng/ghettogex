@@ -16,8 +16,8 @@ from .postgres_utils import apostgres_execute
 from .myplots import generate_volume_plot
 
 last_notified_tstamp = None
-VOLUME_THRESHOLD = 20000
-CHECK_INTERVAL_SECONDS = 15
+VOLUME_THRESHOLD = 1000
+CHECK_INTERVAL_SECONDS = 5
 
 async def get_last_few_min_spx_volume():
     try:
@@ -29,21 +29,25 @@ async def get_last_few_min_spx_volume():
         fetched = await apostgres_execute(
             None,
             """
-            select distinct tstamp, sum(ask_volume+bid_volume) as volume from candle_1min where ticker = %s
-            and expiration = %s and tstamp <= now() and tstamp >= now() - interval '5 minute'
-            group by tstamp order by tstamp
+            select * from (
+            select tstamp, event_symbol, sum(ask_volume+bid_volume) as volume 
+            from candle_1min where ticker = %s
+            and expiration = %s and tstamp <= now() 
+            and tstamp >= now() - interval '5 minute'
+            group by tstamp, event_symbol
+            ) as foo
+            where volume > %s
             """
-            (ticker_alt,expiration)
+            (ticker_alt,expiration,VOLUME_THRESHOLD)
         )
-        cdf = pd.DataFrame([dict(x) for x in fetched])
+        vdf = pd.DataFrame([dict(x) for x in fetched])
         if len(cdf) == 0:
             return None
-        volume_list = cdf.volume.to_list()
     except:
         logger.error(traceback.format_exc())
         return None
 
-    return volume_list
+    return vdf
 
 async def volume_alert(context):
     global last_notified_tstamp
@@ -55,13 +59,13 @@ async def volume_alert(context):
     tstamp = datetime.datetime.now()
     
     if last_notified_tstamp is not None:
-        if tstamp - last_notified_tstamp < datetime.timedelta(seconds=300):
-            logger.warning("already notified 5 mins ago")
+        if tstamp - last_notified_tstamp < datetime.timedelta(seconds=60):
+            logger.warning("already notified 1 min ago")
             return
 
-    volume_list = await get_last_few_min_spx_volume()
+    vdf = await get_last_few_min_spx_volume()
     
-    if volume_list is None:
+    if vdf is None:
         logger.warning("volume is None???")
         return
     logger.warning(f"volume is {volume}")
@@ -69,8 +73,8 @@ async def volume_alert(context):
     now_str = tstamp.strftime("%Y-%m-%d %H:%M:%S")
     triggered = False
     msg = ""
-    if any([x >= VOLUME_THRESHOLD for x in volume_list]):
-        msg += f"\n\n🚨 **SPXW 1-min volume exceeded {VOLUME_THRESHOLD}**!\nvolume is {volume} \n{now_str} "
+    if len(vdf) > 0
+        msg += f"\n\n🚨 **SPXW 1-min volume exceeded {VOLUME_THRESHOLD}**!\n"
         last_notified_tstamp = tstamp
         triggered = True
 
