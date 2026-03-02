@@ -41,7 +41,7 @@ async def get_last_few_min_spx_volume():
             (ticker_alt,expiration,VOLUME_THRESHOLD)
         )
         vdf = pd.DataFrame([dict(x) for x in fetched])
-        if len(cdf) == 0:
+        if len(vdf) == 0:
             return None
     except:
         logger.error(traceback.format_exc())
