@@ -73,7 +73,7 @@ async def volume_alert(context):
     now_str = tstamp.strftime("%Y-%m-%d %H:%M:%S")
     triggered = False
     msg = ""
-    if len(vdf) > 0
+    if len(vdf) > 0:
         msg += f"\n\n🚨 **SPXW 1-min volume exceeded {VOLUME_THRESHOLD}**!\n"
         last_notified_tstamp = tstamp
         triggered = True
