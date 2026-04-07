@@ -83,7 +83,7 @@ CREATE INDEX candle_1min_index on candle_1min using brin (tstamp,ticker) WITH (t
 CREATE MATERIALIZED VIEW order_imbalance WITH (timescaledb.continuous) AS
 SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 sum(order_imbalance) as order_imbalance,
-sum(ask_volume)+sum(bid_volume) as volume,
+sum(ask_volume)+sum(bid_volume) as volume
 FROM candle_1min
 GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
@@ -164,7 +164,8 @@ CREATE INDEX quote_1day_index on quote_1day using brin (tstamp,ticker) WITH (tim
 
 CREATE MATERIALIZED VIEW order_imbalance_1day WITH (timescaledb.continuous) AS
 SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-sum(order_imbalance) as order_imbalance
+sum(order_imbalance) as order_imbalance,
+sum(bid_volume) as volume
 FROM order_imbalance
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 

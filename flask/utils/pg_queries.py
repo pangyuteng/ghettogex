@@ -134,6 +134,7 @@ left join grk using (event_symbol,ticker,expiration,contract_type,strike)
 left join qt using (event_symbol,ticker,expiration,contract_type,strike)
 FULL JOIN candle ON true
 FULL JOIN vix ON true
+ORDER BY contract_type,strike
 """
 
 CANDLE_1MIN_QUERY = """
