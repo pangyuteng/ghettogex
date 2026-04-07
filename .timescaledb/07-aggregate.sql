@@ -8,7 +8,8 @@ SELECT time_bucket('1m', tstamp) as tstamp, ticker,
   avg(cex) as cex,
   avg(convexity) as convexity,
   avg(call_dex) as call_dex,
-  avg(put_dex) as put_dex
+  avg(put_dex) as put_dex,
+  avg(expected_move) as expected_move
 FROM event_underlying
 GROUP BY time_bucket('1m', tstamp), ticker;
 
@@ -165,7 +166,7 @@ CREATE INDEX quote_1day_index on quote_1day using brin (tstamp,ticker) WITH (tim
 CREATE MATERIALIZED VIEW order_imbalance_1day WITH (timescaledb.continuous) AS
 SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 sum(order_imbalance) as order_imbalance,
-sum(bid_volume) as volume
+sum(volume) as volume
 FROM order_imbalance
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 

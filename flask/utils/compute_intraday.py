@@ -74,13 +74,14 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     df['mm_order_imbalance'] = -1 * df.order_imbalance # see above mm_order_imbalance note
 
     try:
-        cdf = df[(df.contract_type=="C")&(df.strike>=spot_price)].reset_index().iloc[:3].reset_index()
-        pdf = df[(df.contract_type=="P")&(df.strike<=spot_price)].reset_index().iloc[-3:].reset_index()
+        cdf = df[(df.contract_type=="C")&(df.strike>=df.spot_price)].reset_index().iloc[:3].reset_index()
+        pdf = df[(df.contract_type=="P")&(df.strike<=df.spot_price)].reset_index().iloc[-3:].reset_index()
         expected_move = ( \
             0.6*cdf.at[0,'price']+0.3*cdf.at[1,'price']*0.1*cdf.at[2,'price'] + \
             0.6*pdf.at[2,'price']+0.3*pdf.at[1,'price']*0.1*pdf.at[0,'price'] )
 
     except:
+        logger.error(traceback.format_exc())
         expected_move = None
 
     try:
