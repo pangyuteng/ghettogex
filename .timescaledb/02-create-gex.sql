@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS event_underlying (
     convexity double precision,
     call_dex double precision,
     put_dex double precision,
+    expected_move double precision,
     UNIQUE (ticker, tstamp)
 ) WITH (
   tsdb.hypertable=true,

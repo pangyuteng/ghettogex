@@ -74,6 +74,17 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     df['mm_order_imbalance'] = -1 * df.order_imbalance # see above mm_order_imbalance note
 
     try:
+        cdf = df[(df.contract_type=="C")&(df.strike>=df.spot_price)].reset_index().iloc[:3].reset_index()
+        pdf = df[(df.contract_type=="P")&(df.strike<=df.spot_price)].reset_index().iloc[-3:].reset_index()
+        expected_move = ( \
+            0.6*cdf.at[0,'price']+0.3*cdf.at[1,'price']*0.1*cdf.at[2,'price'] + \
+            0.6*pdf.at[2,'price']+0.3*pdf.at[1,'price']*0.1*pdf.at[0,'price'] )
+
+    except:
+        logger.error(traceback.format_exc())
+        expected_move = None
+
+    try:
 
         expiration_mapper = {x:get_expiry_tstamp(x.strftime("%Y-%m-%d")) for x in list(df.expiration.unique())}
         df['time_till_exp'] = df.apply(lambda x: (expiration_mapper[x.expiration]-x.tstamp).total_seconds()/TOTAL_SECONDS_ONE_YEAR, axis=1)
@@ -151,12 +162,13 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
         call_dex=pd.NamedAgg(column="call_dex", aggfunc="sum"),
         put_dex=pd.NamedAgg(column="put_dex", aggfunc="sum"),
     ).reset_index()
+    underlying_df['expected_move'] = expected_move
 
     event_underlying_query_str = """
-        COPY event_underlying (ticker,tstamp,spot_price,dex,gex,vex,cex,convexity,call_dex,put_dex) FROM STDIN
+        COPY event_underlying (ticker,tstamp,spot_price,dex,gex,vex,cex,convexity,call_dex,put_dex,expected_move) FROM STDIN
     """
     async def insert_underlying(row):
-        query_args = [row.ticker,row.tstamp,row.spot_price,row.dex,row.gex,row.vex,row.cex,row.convexity,row.call_dex,row.put_dex]
+        query_args = [row.ticker,row.tstamp,row.spot_price,row.dex,row.gex,row.vex,row.cex,row.convexity,row.call_dex,row.put_dex,row.expected_move]
         return query_args
 
     query_dict[event_underlying_query_str] = await asyncio.gather(*(insert_underlying(row) for n,row in underlying_df.iterrows()))
