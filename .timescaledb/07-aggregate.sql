@@ -319,10 +319,10 @@ CREATE INDEX volume_1min_index on volume_1min using brin (tstamp,ticker) WITH (t
 
 
 CREATE MATERIALIZED VIEW volume_5min WITH (timescaledb.continuous) AS
-SELECT time_bucket('1m', tstamp) as tstamp,ticker,expiration,strike,
+SELECT time_bucket('5m', tstamp) as tstamp,ticker,expiration,strike,
 sum(volume) as volume
 FROM volume_1min
-GROUP BY time_bucket('1m', tstamp), ticker,expiration,strike;
+GROUP BY time_bucket('5m', tstamp), ticker,expiration,strike;
 
 SELECT add_continuous_aggregate_policy('volume_5min',
   start_offset => INTERVAL '1 month',
