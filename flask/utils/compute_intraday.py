@@ -40,7 +40,7 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     mm_order_imbalance NOTE:
     In postgres tables `order_imbalance` we have:
     `sum(ask_volume)-sum(bid_volume) as order_imbalance`
-    and then we sum `order_imbalance` up in table `order_imbalance_1day`,
+    and then we sum `order_imbalance` up in table `candle_1day`,
     Since `order_imbalance` is customer perspective, 
     for market maker `mm_order_imbalance` we flip it via *-1.
 """

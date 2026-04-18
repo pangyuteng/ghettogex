@@ -60,6 +60,7 @@ max(high) as high,
 min(low) as low,
 sum(ask_volume) as ask_volume,
 sum(bid_volume) as bid_volume,
+sum(volume) as volume,
 sum(ask_volume)-sum(bid_volume) as order_imbalance
 FROM candle 
 GROUP BY time_bucket('1m', tstamp), event_symbol,ticker,expiration,contract_type,strike;
@@ -81,28 +82,32 @@ CREATE INDEX candle_1min_index on candle_1min using brin (tstamp,ticker) WITH (t
 -- https://gist.github.com/mathisve/3cf9fd3f97ba75ec4d20c483fd5016d2
 
 
-CREATE MATERIALIZED VIEW order_imbalance WITH (timescaledb.continuous) AS
+CREATE MATERIALIZED VIEW candle_5min WITH (timescaledb.continuous) AS
 SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-sum(order_imbalance) as order_imbalance,
-sum(ask_volume)+sum(bid_volume) as volume
+first(open,tstamp) as open,
+last(close,tstamp) as close,
+max(high) as high,
+min(low) as low,
+sum(volume) as volume,
+sum(order_imbalance) as order_imbalance
 FROM candle_1min
 GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
-SELECT add_continuous_aggregate_policy('order_imbalance',
+SELECT add_continuous_aggregate_policy('candle_5min',
   start_offset => INTERVAL '1 month',
   end_offset => NULL,
   schedule_interval => INTERVAL '1 sec');
 
-CALL refresh_continuous_aggregate('order_imbalance', NULL, NULL);
-ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.materialized_only = false);
-ALTER MATERIALIZED VIEW order_imbalance set (timescaledb.enable_columnstore = true);
+CALL refresh_continuous_aggregate('candle_5min', NULL, NULL);
+ALTER MATERIALIZED VIEW candle_5min set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW candle_5min set (timescaledb.enable_columnstore = true);
 
-CREATE INDEX order_imbalance_tstamp_event_symbol_index on order_imbalance using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
-CREATE INDEX order_imbalance_index on order_imbalance using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX candle_5min_tstamp_event_symbol_index on candle_5min using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX candle_5min_index on candle_5min using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 
 
--- DROP MATERIALIZED VIEW order_imbalance
--- SELECT remove_continuous_aggregate_policy('order_imbalance');
+-- DROP MATERIALIZED VIEW candle_5min
+-- SELECT remove_continuous_aggregate_policy('candle_5min');
 -- where (ticker in ('SPXW','NDXP','SPY','QQQ') or event_symbol like '/ES%' )
 
 CREATE MATERIALIZED VIEW quote_1min WITH (timescaledb.continuous) AS
@@ -163,28 +168,32 @@ CREATE INDEX quote_1day_index on quote_1day using brin (tstamp,ticker) WITH (tim
 
 --
 
-CREATE MATERIALIZED VIEW order_imbalance_1day WITH (timescaledb.continuous) AS
+CREATE MATERIALIZED VIEW candle_1day WITH (timescaledb.continuous) AS
 SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-sum(order_imbalance) as order_imbalance,
-sum(volume) as volume
-FROM order_imbalance
+first(open,tstamp) as open,
+last(close,tstamp) as close,
+max(high) as high,
+min(low) as low,
+sum(volume) as volume,
+sum(order_imbalance) as order_imbalance
+FROM candle_5min
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
-SELECT add_continuous_aggregate_policy('order_imbalance_1day',
+SELECT add_continuous_aggregate_policy('candle_1day',
   start_offset => INTERVAL '1 month',
   end_offset => NULL,
   schedule_interval => INTERVAL '1 sec');
 
-CALL refresh_continuous_aggregate('order_imbalance_1day', NULL, NULL);
-ALTER MATERIALIZED VIEW order_imbalance_1day set (timescaledb.materialized_only = false);
-ALTER MATERIALIZED VIEW order_imbalance_1day set (timescaledb.enable_columnstore = true);
+CALL refresh_continuous_aggregate('candle_1day', NULL, NULL);
+ALTER MATERIALIZED VIEW candle_1day set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW candle_1day set (timescaledb.enable_columnstore = true);
 
-CREATE INDEX order_imbalance_1day_tstamp_event_symbol_index on order_imbalance_1day using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
-CREATE INDEX order_imbalance_1day_index on order_imbalance_1day using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX candle_1day_tstamp_event_symbol_index on candle_1day using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX candle_1day_index on candle_1day using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 
 
--- DROP MATERIALIZED VIEW order_imbalance_1day
--- SELECT remove_continuous_aggregate_policy('order_imbalance_1day');
+-- DROP MATERIALIZED VIEW candle_1day
+-- SELECT remove_continuous_aggregate_policy('candle_1day');
 
 -- 
 
