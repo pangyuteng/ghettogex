@@ -247,3 +247,67 @@ CREATE INDEX greeks_1day_index on greeks_1day using brin (tstamp,ticker) WITH (t
 -- SELECT remove_continuous_aggregate_policy('greeks_1day');
 
 --
+
+CREATE MATERIALIZED VIEW volume_1sec WITH (timescaledb.continuous) AS
+SELECT time_bucket('1s', tstamp) as tstamp,ticker,expiration,strike,
+sum(volume) as volume
+FROM candle
+GROUP BY time_bucket('1s', tstamp), ticker,expiration,strike;
+
+SELECT add_continuous_aggregate_policy('volume_1sec',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('volume_1sec', NULL, NULL);
+ALTER MATERIALIZED VIEW volume_1sec set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW volume_1sec set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX volume_1sec_tstamp_strike_index on volume_1sec using brin (tstamp,strike) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX volume_1sec_index on volume_1sec using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+-- DROP MATERIALIZED VIEW volume_1sec
+
+
+CREATE MATERIALIZED VIEW volume_1min WITH (timescaledb.continuous) AS
+SELECT time_bucket('1m', tstamp) as tstamp,ticker,expiration,strike,
+sum(volume) as volume
+FROM candle
+GROUP BY time_bucket('1m', tstamp), ticker,expiration,strike;
+
+SELECT add_continuous_aggregate_policy('volume_1min',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('volume_1min', NULL, NULL);
+ALTER MATERIALIZED VIEW volume_1min set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW volume_1min set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX volume_1min_tstamp_strike_index on volume_1min using brin (tstamp,strike) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX volume_1min_index on volume_1min using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+-- DROP MATERIALIZED VIEW volume_1min
+
+
+CREATE MATERIALIZED VIEW volume_5min WITH (timescaledb.continuous) AS
+SELECT time_bucket('1m', tstamp) as tstamp,ticker,expiration,strike,
+sum(volume) as volume
+FROM volume_1min
+GROUP BY time_bucket('1m', tstamp), ticker,expiration,strike;
+
+SELECT add_continuous_aggregate_policy('volume_5min',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('volume_5min', NULL, NULL);
+ALTER MATERIALIZED VIEW volume_5min set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW volume_5min set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX volume_5min_tstamp_strike_index on volume_5min using brin (tstamp,strike) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX volume_5min_index on volume_5min using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+-- DROP MATERIALIZED VIEW volume_5min
+
+
