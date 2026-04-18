@@ -259,6 +259,98 @@ const CHART_CONFIGS = {
 		}
 	},
 
+	'expectedmove': {
+		make: function(elementId, ticker) {
+			let mylines = [];
+			const opts = {
+				title: ticker + "-prices",
+				width: 380,
+				height: 380,
+				series: [
+					{},
+					{
+						label: "VIX1D",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						stroke: "rgba(255,0,0,1)",
+						width: 2/devicePixelRatio,
+					},
+					{
+						label: "VIX9D",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						stroke: "rgba(255,165,0,1)",
+						width: 2/devicePixelRatio,
+					},
+					{
+						label: "VIX",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						stroke: "rgba(200,200,0,1)",
+						width: 2/devicePixelRatio,
+					},
+					{
+						label: "EM",
+						scale: "scale1",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						stroke: "rgba(128,0,128,1)",
+						width: 2/devicePixelRatio,
+					},
+					{
+						label: ticker,
+						scale: "scale0",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+						width: 2/devicePixelRatio,
+						stroke: "rgba(255,255,255,1)",
+					},
+				],
+				plugins: [
+					linesPricesPlugin(mylines)
+				],
+				axes: [
+					{
+						side: 0,
+						stroke: "#666666",
+						tick: {stroke: "#666666",width:1},
+						grid: {stroke: "#666666",width:1},
+					},
+					{
+						side: 3,
+						scale: "scale0",
+						stroke: "#666666",
+						grid: {stroke: "#666666",width:1},
+						tick: {stroke: "#666666",width:1},
+					},
+					{
+						side: 1,
+						scale: "scale1",
+						values: (u, vals, space) => vals.map(v => v.toFixed(2) + ""),
+						stroke: "#666666",
+						grid: {show: false},
+						tick: {stroke: "#666666",width:1},
+					},
+				],
+			};
+			let chart = new uPlot(opts, [], document.getElementById(elementId));
+			chart._mylines = mylines;
+			return chart;
+		},
+		update: function(chartObj, tickerData) {
+			let pd = tickerData.expectedmove;
+			if (!pd || !pd.prices || pd.prices.length === 0) return;
+			//chartObj.setScale('scale0', {min: pd.min_lim, max: pd.max_lim});
+			let lines = chartObj._mylines;
+			/*
+			if (pd.likey_close_price_list && pd.likey_close_price_list.length >= 2) {
+				lines[0] = [pd.likey_close_price_list[0],'gray'];
+				lines[1] = [pd.likey_close_price_list[1],'gray'];
+			}
+			*/
+			chartObj.setData(pd.prices);
+		}
+	},
+
+
 	'convexity': {
 		make: function(elementId, ticker) {
 			let mylines = [];

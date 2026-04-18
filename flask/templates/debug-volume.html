@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+
+    <meta charset="utf-8">
+    <title id="titleSpan">ghettogex</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="/static/uPlot.min.css">
+    <script src="/static/uPlot.iife.min.js"></script>
+    {% include 'index-uplot-style.html' %}
+    <style>
+    .myText {
+        font: sans-serif;
+        font-size: 14px;
+    }
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat({{ grid_cols }}, 1fr);
+        gap: 4px;
+    }
+    </style>
+</head>
+
+<body>
+
+
+<script>
+    const TICKER_CHARTS = {'SPX':['volume']};
+</script>
+
+<!-- All charts flow into a single grid -->
+<div class="grid-container">
+    <div id="chart-SPX-volume"></div>
+</div>
+
+{% include 'partials/chart-factory.html' %}
+
+<script>
+let ticker = 'SPX';
+
+let newdata = {{ ret_dict | tojson | safe }};
+TICKER_CHARTS[ticker].forEach(function(chartType) {
+    let tickerData = (newdata.tickers || {})[ticker] || {};
+    console.log(tickerData)
+    let config = CHART_CONFIGS[chartType];
+    let chartObj = (chartRegistry[ticker] || {})[chartType];
+    if (config && config.update && chartObj) {
+        config.update(chartObj, tickerData);
+    }
+
+});
+</script>
+
+hello<br>
+
+</body>
+</html>

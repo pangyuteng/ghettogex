@@ -1,7 +1,8 @@
 <script>
-    const _allTickers = Object.keys(TICKER_CHARTS);
+    //const _allTickers = Object.keys(TICKER_CHARTS);
 
-    const wsUrl = WS_ENDPOINT + "?dstamp={{ dstamp }}" + WS_EXTRA_PARAMS;
+    //const wsUrl = WS_ENDPOINT + "?dstamp={{ dstamp }}" + WS_EXTRA_PARAMS;
+    const wsUrl = WS_ENDPOINT + "?dstamp={{ dstamp }}"
     const ws = new WebSocket(wsUrl);
 
     let errorSpan = document.getElementById("errorSpan");
@@ -22,18 +23,20 @@
         queryTimeSpan.textContent = meta.duration_time || '';
         dataTstampSpan.textContent = meta.data_tstamp || '';
 
-        // Build title from ticker prices
-        let titleParts = [];
-        _allTickers.forEach(function(ticker) {
-            let tickerData = (newdata.tickers || {})[ticker] || {};
-            if (tickerData.price && tickerData.price.ticker_price != null) {
-                titleParts.push(ticker + ":" + tickerData.price.ticker_price);
-            }
-        });
-        if (titleParts.length > 0) {
-            titleSpan.textContent = titleParts.join(",");
-        }
+        titleSpan.textContent = "MYTITLE";
+        let ticker = 'SPX';
 
+        TICKER_CHARTS[ticker].forEach(function(chartType) {
+            let tickerData = (newdata.tickers || {})[ticker] || {};
+            let config = CHART_CONFIGS[chartType];
+            let chartObj = (chartRegistry[ticker] || {})[chartType];
+            if (config && config.update && chartObj) {
+                config.update(chartObj, tickerData);
+            }
+
+        });
+        
+        /*
         // Update per-ticker price spans + dispatch to charts
         _allTickers.forEach(function(ticker) {
             let tickerData = (newdata.tickers || {})[ticker] || {};
@@ -59,5 +62,6 @@
                 }
             });
         });
+        */
     };
 </script>

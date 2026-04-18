@@ -27,6 +27,34 @@ CREATE INDEX event_underlying_1min_index on event_underlying_1min using brin (ts
 -- DROP MATERIALIZED VIEW event_underlying_1min;
 -- SELECT remove_continuous_aggregate_policy('event_underlying_1min');
 
+CREATE MATERIALIZED VIEW event_underlying_5min WITH (timescaledb.continuous) AS
+SELECT time_bucket('5m', tstamp) as tstamp, ticker, 
+  avg(spot_price) as spot_price,
+  avg(gex) as gex,
+  avg(dex) as dex,
+  avg(vex) as vex,
+  avg(cex) as cex,
+  avg(convexity) as convexity,
+  avg(call_dex) as call_dex,
+  avg(put_dex) as put_dex,
+  avg(expected_move) as expected_move
+FROM event_underlying
+GROUP BY time_bucket('5m', tstamp), ticker;
+
+SELECT add_continuous_aggregate_policy('event_underlying_5min',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('event_underlying_5min', NULL, NULL);
+ALTER MATERIALIZED VIEW event_underlying_5min set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW event_underlying_5min set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX event_underlying_5min_index on event_underlying_5min using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+-- DROP MATERIALIZED VIEW event_underlying_5min;
+-- SELECT remove_continuous_aggregate_policy('event_underlying_5min');
+
 CREATE MATERIALIZED VIEW event_strike_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, ticker, strike,
   avg(gex) as gex,

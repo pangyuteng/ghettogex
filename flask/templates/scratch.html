@@ -47,7 +47,7 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
     const CHARTS = {{ charts | tojson }};
     const TICKER_CHARTS = {};
     TICKERS.forEach(function(t) { TICKER_CHARTS[t] = CHARTS; });
-    const WS_ENDPOINT = "/ws-main-socket-debug";
+    const WS_ENDPOINT = "/ws-scratch";
     const WS_EXTRA_PARAMS = "&tickers=" + TICKERS.join(",") + "&charts=" + CHARTS.join(",");
 </script>
 

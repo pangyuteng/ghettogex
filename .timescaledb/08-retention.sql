@@ -10,6 +10,7 @@
 -- SELECT remove_retention_policy('event_underlying');
 
 -- SELECT remove_retention_policy('event_underlying_1min');
+-- SELECT remove_retention_policy('event_underlying_5min');
 -- SELECT remove_retention_policy('event_strike_1min');
 -- SELECT remove_retention_policy('candle_1min');
 -- SELECT remove_retention_policy('candle_5min');
@@ -33,6 +34,7 @@ SELECT add_retention_policy('event_strike', INTERVAL '20 days');
 SELECT add_retention_policy('event_underlying', INTERVAL '20 days');
 
 SELECT add_retention_policy('event_underlying_1min', INTERVAL '20 days');
+SELECT add_retention_policy('event_underlying_5min', INTERVAL '20 days');
 SELECT add_retention_policy('event_strike_1min', INTERVAL '20 days');
 SELECT add_retention_policy('candle_1min', INTERVAL '20 days');
 SELECT add_retention_policy('candle_5min', INTERVAL '20 days');

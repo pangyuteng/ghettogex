@@ -37,22 +37,20 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
 
 <script>
     const TICKER_CHARTS = {{ ticker_charts | tojson }};
-    const WS_ENDPOINT = "/ws-main-socket";
+    const WS_ENDPOINT = "/ws-main";
+    /*
     const WS_EXTRA_PARAMS = "&main-ticker={{ main_ticker }}"
         + "&main-charts={{ main_charts | join(',') }}"
         + "&other-tickers={{ other_tickers | join(',') }}"
         + "&other-charts={{ other_charts | join(',') }}";
+    */
 </script>
 
 <!-- All charts flow into a single grid -->
 <div class="grid-container">
-    {% for chart in other_charts %}
-        {% for ticker in other_tickers %}
-        <div id="chart-{{ ticker }}-{{ chart }}"></div>
-        {% endfor %}
-    {% endfor %}
-    {% for chart in main_charts %}
-    <div id="chart-{{ main_ticker }}-{{ chart }}"></div>
+    <div id=""></div>
+    {% for div_name in div_id_list %}
+    <div id="{{div_name}}"></div>
     {% endfor %}
 </div>
 

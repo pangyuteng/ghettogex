@@ -215,3 +215,36 @@ select tstamp,spot_price,gex,convexity,dex,call_dex,put_dex from event_underlyin
 where ticker = %s and tstamp::date = %s
 ORDER BY tstamp
 """
+
+PRICE_1MIN_QUERY = """
+WITH candle AS (
+    SELECT tstamp, close AS ticker_close
+    FROM candle_1min WHERE tstamp::date = %s AND event_symbol = %s AND close != 0
+),
+em AS (
+    SELECT tstamp, expected_move
+    FROM event_underlying_1min WHERE tstamp::date = %s AND ticker = %s 
+),
+vix AS (
+    SELECT tstamp, close AS vix_close
+    FROM candle_1min WHERE tstamp::date = %s AND event_symbol = 'VIX' AND close != 0
+),
+vix1d AS (
+    SELECT tstamp, close AS vix1d_close
+    FROM candle_1min WHERE tstamp::date = %s AND event_symbol = 'VIX1D' AND close != 0
+),
+vix9d AS (
+    SELECT tstamp, close AS vix9d_close
+    FROM candle_1min WHERE tstamp::date = %s AND event_symbol = 'VIX9D' AND close != 0
+)
+SELECT * FROM candle
+LEFT JOIN em USING (tstamp)
+LEFT JOIN vix USING (tstamp)
+LEFT JOIN vix1d USING (tstamp)
+LEFT JOIN vix9d USING (tstamp)
+ORDER BY tstamp
+"""
+VOLUME_1MIN_QUERY = """
+SELECT * FROM volume_1min
+WHERE tstamp::date = %s AND ticker = %s
+"""

@@ -65,6 +65,8 @@ from utils.pg_queries import (
     CONVEXITYDX_QUERY,
     GREEKS_QUERY,
     GEX_CONVEXITY_1DAY_QUERY,
+    PRICE_1MIN_QUERY,
+    VOLUME_1MIN_QUERY,
 )
 
 from utils.data_tasty import (
@@ -82,7 +84,7 @@ TICKER_REGISTRY = {
 }
 VALID_CHARTS = ['price','convexity','volatility','gex','dexflow','gexflow',
                 'convexityflow','call-order-imbalance','put-order-imbalance',
-                'call-last-x-min','put-last-x-min']
+                'call-last-x-min','put-last-x-min','expectedmove']
 DEFAULT_TICKERS = ['SPX','SPY','QQQ','NDX']
 DEFAULT_CHARTS = VALID_CHARTS[:]
 
@@ -387,21 +389,6 @@ async def about():
     order_imbalance_bin_str = "[0,10,25,50,100,200]"
     return await render_template("about.html",order_imbalance_bin_str=order_imbalance_bin_str)
 
-@app.route("/links")
-@login_required
-async def links():
-    return await render_template("links.html")
-
-@app.route("/gexbots2cols")
-@login_required
-async def gexbots2cols():
-    return await render_template("gexbots-2cols.html")
-
-@app.route("/gexbots3cols")
-@login_required
-async def gexbots3cols():
-    return await render_template("gexbots-3cols.html")
-
 # used only for testing  tastytrade api token - only for docker compose with .env file specified
 @app.route("/equity")
 @login_required
@@ -420,96 +407,10 @@ async def get_equity():
     except:
         return jsonify(traceback.format_exc()),401
 
-@app.route("/")
+# scratch/exploratory, used to understand gex, gex-bot's convexity...
+@app.route("/scratch")
 @login_required
-async def home():
-    if not await current_user.is_authenticated:
-        return redirect(url_for("login"))
-    dstamp = request.args.get("dstamp",None)
-    market_status = None
-    load_data = True
-    try:
-        if dstamp is None:
-            tstamp_et = now_in_new_york()
-            tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC')).replace(tzinfo=None)
-            dstamp = tstamp_et.strftime("%Y-%m-%d")
-            nyse_schedule = nyse.schedule(start_date=dstamp, end_date=dstamp)
-            try:
-                market_open,market_close = get_market_open_close(dstamp,no_tzinfo=True)
-            except:
-                market_open,market_close = None, None
-            if len(nyse_schedule) == 0:
-                market_status = f"market is closed for specified day! {dstamp}"
-                load_data = False
-            elif tstamp_utc < market_open:
-                market_status = f"market not open yet today. please reload page once market opens. {dstamp}"
-                load_data = False
-            elif tstamp_utc > market_close:
-                market_status = f"market closed already today. {dstamp}"
-        else:
-            nyse_schedule = nyse.schedule(start_date=dstamp, end_date=dstamp)
-            if len(nyse_schedule) == 0:
-                market_status = f"market is closed for specified day! {dstamp}"
-                load_data = False
-    except:
-        app.logger.error(traceback.format_exc())
-        market_status = "unexepcted error!"
-        load_data = False
-
-    # Parse main-ticker
-    main_ticker_param = request.args.get("main-ticker", None)
-    main_ticker = main_ticker_param.strip().upper() if main_ticker_param else DEFAULT_MAIN_TICKER
-    if main_ticker not in TICKER_REGISTRY:
-        main_ticker = DEFAULT_MAIN_TICKER
-
-    # Parse main-charts
-    main_charts_param = request.args.get("main-charts", None)
-    main_charts = [c.strip().lower() for c in main_charts_param.split(",")] if main_charts_param else DEFAULT_MAIN_CHARTS[:]
-    main_charts = [c for c in main_charts if c in VALID_CHARTS]
-
-    # Parse other-tickers
-    other_tickers_param = request.args.get("other-tickers", None)
-    other_tickers = [t.strip().upper() for t in other_tickers_param.split(",")] if other_tickers_param else DEFAULT_OTHER_TICKERS[:]
-    other_tickers = [t for t in other_tickers if t in TICKER_REGISTRY]
-
-    # Parse other-charts
-    other_charts_param = request.args.get("other-charts", None)
-    other_charts = [c.strip().lower() for c in other_charts_param.split(",")] if other_charts_param else DEFAULT_OTHER_CHARTS[:]
-    other_charts = [c for c in other_charts if c in VALID_CHARTS]
-
-    # Parse grid (COLxROW)
-    grid_param = request.args.get("grid", DEFAULT_GRID)
-    try:
-        parts = grid_param.lower().split("x")
-        grid_cols = int(parts[0])
-        grid_rows = int(parts[1])
-    except:
-        grid_cols, grid_rows = 4, 8
-
-    # Build ticker_charts dict (merge if ticker appears in both)
-    ticker_charts = {main_ticker: main_charts[:]}
-    for t in other_tickers:
-        if t in ticker_charts:
-            # merge other_charts into existing list (no duplicates)
-            for c in other_charts:
-                if c not in ticker_charts[t]:
-                    ticker_charts[t].append(c)
-        else:
-            ticker_charts[t] = other_charts[:]
-
-    # all_tickers: unique, main first, then others in order
-    all_tickers = [main_ticker] + [t for t in other_tickers if t != main_ticker]
-
-    return await render_template("index.html", dstamp=dstamp, load_data=load_data,
-        market_status=market_status, main_ticker=main_ticker, main_charts=main_charts,
-        other_tickers=other_tickers, other_charts=other_charts,
-        ticker_charts=ticker_charts, all_tickers=all_tickers,
-        grid_cols=grid_cols, grid_rows=grid_rows)
-
-
-@app.route("/debug")
-@login_required
-async def home_debug():
+async def scratch():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
     dstamp = request.args.get("dstamp",None)
@@ -557,7 +458,7 @@ async def home_debug():
     charts = [c.strip().lower() for c in charts_param.split(",")] if charts_param else DEFAULT_CHARTS
     charts = [c for c in charts if c in VALID_CHARTS]
 
-    return await render_template("index-debug.html",dstamp=dstamp,load_data=load_data,
+    return await render_template("scratch.html",dstamp=dstamp,load_data=load_data,
         market_status=market_status,tickers=tickers,charts=charts)
 
 
@@ -578,10 +479,9 @@ def _needs_query_group(charts, group_charts):
     """Check if any of the group_charts are in the requested charts list."""
     return any(c in charts for c in group_charts)
 
-
-@app.websocket('/ws-main-socket-debug')
+@app.websocket('/ws-scratch')
 @login_required
-async def ws_main_socket_debug():
+async def ws_scratch():
     try:
         message = None
         dstamp = websocket.args.get("dstamp")
@@ -849,47 +749,170 @@ async def ws_main_socket_debug():
         app.logger.error('Client disconnected')
         raise
 
-
-def _parse_home_ticker_charts(args):
-    """Parse main-ticker/main-charts/other-tickers/other-charts from websocket args.
-    Returns (all_tickers, ticker_charts_map) where ticker_charts_map is {ticker: [charts]}."""
-    main_ticker_param = args.get("main-ticker", None)
-    main_ticker = main_ticker_param.strip().upper() if main_ticker_param else DEFAULT_MAIN_TICKER
-    if main_ticker not in TICKER_REGISTRY:
-        main_ticker = DEFAULT_MAIN_TICKER
-
-    main_charts_param = args.get("main-charts", None)
-    main_charts = [c.strip().lower() for c in main_charts_param.split(",")] if main_charts_param else DEFAULT_MAIN_CHARTS[:]
-    main_charts = [c for c in main_charts if c in VALID_CHARTS]
-
-    other_tickers_param = args.get("other-tickers", None)
-    other_tickers = [t.strip().upper() for t in other_tickers_param.split(",")] if other_tickers_param else DEFAULT_OTHER_TICKERS[:]
-    other_tickers = [t for t in other_tickers if t in TICKER_REGISTRY]
-
-    other_charts_param = args.get("other-charts", None)
-    other_charts = [c.strip().lower() for c in other_charts_param.split(",")] if other_charts_param else DEFAULT_OTHER_CHARTS[:]
-    other_charts = [c for c in other_charts if c in VALID_CHARTS]
-
-    ticker_charts = {main_ticker: main_charts[:]}
-    for t in other_tickers:
-        if t in ticker_charts:
-            for c in other_charts:
-                if c not in ticker_charts[t]:
-                    ticker_charts[t].append(c)
-        else:
-            ticker_charts[t] = other_charts[:]
-
-    all_tickers = [main_ticker] + [t for t in other_tickers if t != main_ticker]
-    return all_tickers, ticker_charts
-
-
-@app.websocket('/ws-main-socket')
+@app.route("/")
 @login_required
-async def ws_main_socket():
+async def home():
+    if not await current_user.is_authenticated:
+        return redirect(url_for("login"))
+    dstamp = request.args.get("dstamp",None)
+    market_status = None
+    load_data = True
+    try:
+        if dstamp is None:
+            tstamp_et = now_in_new_york()
+            tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC')).replace(tzinfo=None)
+            dstamp = tstamp_et.strftime("%Y-%m-%d")
+            nyse_schedule = nyse.schedule(start_date=dstamp, end_date=dstamp)
+            try:
+                market_open,market_close = get_market_open_close(dstamp,no_tzinfo=True)
+            except:
+                market_open,market_close = None, None
+            if len(nyse_schedule) == 0:
+                market_status = f"market is closed for specified day! {dstamp}"
+                load_data = False
+            elif tstamp_utc < market_open:
+                market_status = f"market not open yet today. please reload page once market opens. {dstamp}"
+                load_data = False
+            elif tstamp_utc > market_close:
+                market_status = f"market closed already today. {dstamp}"
+        else:
+            nyse_schedule = nyse.schedule(start_date=dstamp, end_date=dstamp)
+            if len(nyse_schedule) == 0:
+                market_status = f"market is closed for specified day! {dstamp}"
+                load_data = False
+
+    except:
+        app.logger.error(traceback.format_exc())
+        market_status = "unexepcted error!"
+        load_data = False
+
+    grid_cols, grid_rows = 4, 8
+    return await render_template("index.html", dstamp=dstamp, load_data=load_data,
+        market_status=market_status, grid_cols=grid_cols, grid_rows=grid_rows, 
+        div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume"],
+        ticker_charts={'SPX':['expectedmove','volume']})
+
+
+def process_price_data_with_expected_move(rows, ticker):
+    if rows is None or len(rows) == 0:
+        raise ValueError(f"found no price data for {ticker}!")
+
+    df = pd.DataFrame([dict(x) for x in rows])
+    df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+    df = df.replace({np.nan: None})
+
+    lst = [df[i].tolist() for i in ['tstamp','vix1d_close','vix9d_close','vix_close','expected_move','ticker_close']]
+
+    try:
+        ticker_price = df.ticker_close[df.ticker_close.last_valid_index()]
+    except:
+        ticker_price = None
+
+    try:
+        vix_price = df.vix_close[df.vix_close.last_valid_index()]
+    except:
+        vix_price = None
+
+    try:
+        vix_open_idx = df.vix_close.first_valid_index()
+        vix_open = df.vix_close[vix_open_idx] if vix_open_idx is not None else 0
+        vix_expected_move = vix_open/np.sqrt(252) if vix_open else 0
+    except:
+        vix_expected_move = 100
+
+    plus_prct = (1+vix_expected_move*0.01*2.5)
+    minus_prct = (1-vix_expected_move*0.01*2.5)
+    ticker_mean = df.ticker_close.mean()
+    spot_max_lim = ticker_mean*plus_prct # used by gex plot
+    spot_min_lim = ticker_mean*minus_prct
+
+    return {
+        'prices': lst,
+        'ticker_price':ticker_price,
+        'vix_price':vix_price,
+        'min_lim': spot_min_lim,
+        'max_lim': spot_max_lim,
+    }
+
+
+def process_volume_data(rows, spot_min_lim, spot_max_lim, prices_lst):
+    df = pd.DataFrame([dict(x) for x in rows])
+    df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+    df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
+    row_tstamp = df.tstamp.to_list()
+    row_strike = df.strike.to_list()
+    row_volume = df.volume.to_list()
+    mylist = [[row_tstamp,row_strike,row_volume]]
+    return mylist
+
+
+@app.route("/debug")
+@login_required
+async def debug():
+    dstamp = "2026-04-17"
+    ticker = "SPX"
+    regi = TICKER_REGISTRY[ticker]
+    options_ticker = regi['options_ticker']
+    query_keys = []
+    query_list = []
+    chart_type = 'volume'
+    if chart_type == 'expectedmove':
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
+            query_keys.append((ticker, 'expectedmove'))
+            query_list.append(apostgres_execute(apool, PRICE_1MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
+            gathered_res = await asyncio.gather(*query_list)
+        result_map = {}
+        for i, key in enumerate(query_keys):
+            result_map[key] = gathered_res[i]
+
+        ret_dict = {}
+        ticker_data = {}
+        try:
+            source_data = result_map.get((ticker, 'expectedmove'))
+            ticker_data['expectedmove'] = process_price_data_with_expected_move(source_data, ticker)
+        except:
+            ticker_data['expectedmove'] = {
+                'prices': [],
+                'ticker_price': None,
+                'vix_price': None,
+                'min_lim': 0,
+                'max_lim': np.inf,
+            }
+            app.logger.error(traceback.format_exc())
+        ret_dict['tickers']={ticker:ticker_data}
+        return await render_template("debug-expectedmove.html", dstamp=dstamp, ret_dict=ret_dict)
+
+    if chart_type == 'volume':
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
+            query_keys.append((ticker, 'volume'))
+            query_list.append(apostgres_execute(apool, VOLUME_1MIN_QUERY, (dstamp, options_ticker)))
+            gathered_res = await asyncio.gather(*query_list)
+        result_map = {}
+        for i, key in enumerate(query_keys):
+            result_map[key] = gathered_res[i]
+
+        ret_dict = {}
+        ticker_data = {}
+        try:
+            source_data = result_map[(ticker, 'volume')]
+            volume_result = process_volume_data(source_data, ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim'], ticker_data['expectedmove'])
+            ticker_data['volume'] = {'data': volume_result}
+        except:
+            ticker_data['volume'] = {'data': []}
+            app.logger.error(traceback.format_exc())
+
+        ret_dict['tickers']={ticker:ticker_data}
+        return await render_template("debug-volume.html", dstamp=dstamp, ret_dict=ret_dict)
+
+
+@app.websocket('/ws-main')
+@login_required
+async def ws_main():
     try:
         message = None
         dstamp = websocket.args.get("dstamp")
-        all_tickers, ticker_charts = _parse_home_ticker_charts(websocket.args)
+        ticker = websocket.args.get("ticker","SPX")
+        interval = websocket.args.get("interval","1min") # 1sec, 1min, 5min
 
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
             while True:
@@ -913,57 +936,26 @@ async def ws_main_socket():
 
                     timea = time.time()
 
+                    regi = TICKER_REGISTRY[ticker]
+                    options_ticker = regi['options_ticker']
+
                     query_keys = []
                     query_list = []
 
-                    for ticker in all_tickers:
-                        charts = ticker_charts[ticker]
-                        reg = TICKER_REGISTRY[ticker]
-                        options_ticker = reg['options_ticker']
+                    query_keys.append((ticker, 'qc'))
+                    query_list.append(apostgres_execute(apool, CANDLE_QC_QUERY, (ticker, tstamp_utc, options_ticker, tstamp_utc)))
 
-                        need_flow = _needs_query_group(charts, ['dexflow','gexflow','convexityflow'])
-                        need_ordim = _needs_query_group(charts, ['call-order-imbalance','put-order-imbalance'])
-                        need_ordim_zoom = _needs_query_group(charts, ['call-last-x-min','put-last-x-min'])
-                        need_gex = 'gex' in charts
-                        need_convexity = 'convexity' in charts
-                        need_volatility = 'volatility' in charts
-
-                        # Always fetch price data (needed for limits used by other charts)
-                        query_keys.append((ticker, 'price'))
-                        query_list.append(apostgres_execute(apool, CANDLE_1MIN_PRICE_QUERY, (dstamp, ticker, dstamp, dstamp, dstamp)))
-
-                        # QC data (first ticker only)
-                        if ticker == all_tickers[0]:
-                            query_keys.append((ticker, 'qc'))
-                            query_list.append(apostgres_execute(apool, CANDLE_QC_QUERY, (ticker, tstamp_utc, options_ticker, tstamp_utc)))
-
-                        if need_gex:
-                            query_keys.append((ticker, 'gex'))
-                            query_list.append(apostgres_execute(apool, LATEST_GEX_STRIKE_QUERY, (tstamp_utc, tstamp_utc, ticker, tstamp_utc, tstamp_utc, ticker)))
-
-                        if need_convexity:
-                            query_keys.append((ticker, 'convexity'))
-                            query_list.append(apostgres_execute(apool, CONVEXITYDX_QUERY, (options_ticker, dstamp, dstamp, options_ticker, dstamp, dstamp)))
-
-                        if need_volatility:
-                            query_keys.append((ticker, 'volatility'))
-                            query_list.append(apostgres_execute(apool, GREEKS_QUERY, (options_ticker, dstamp, dstamp)))
-
-                        if need_convexity or need_gex or need_volatility:
-                            query_keys.append((ticker, 'expected_move'))
-                            query_list.append(apostgres_execute(apool, QUOTE_1MIN_QUERY, (dstamp, options_ticker, tstamp_utc)))
-
-                        if need_ordim:
-                            query_keys.append((ticker, 'order_imbalance'))
-                            query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_QUERY, (dstamp, options_ticker)))
-
-                        if need_ordim_zoom:
-                            query_keys.append((ticker, 'order_imbalance_zoom'))
-                            query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_LASTXMIN_QUERY, (options_ticker, dstamp, tstamp_utc)))
-
-                        if need_flow:
-                            query_keys.append((ticker, 'flow'))
-                            query_list.append(apostgres_execute(apool, GEX_CONVEXITY_1DAY_QUERY, (ticker, dstamp)))
+                    if interval == "1sec":
+                        pass
+                    elif interval == "1min":
+                        query_keys.append((ticker, 'expectedmove'))
+                        query_list.append(apostgres_execute(apool, PRICE_1MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
+                        query_keys.append((ticker, 'volume'))
+                        query_list.append(apostgres_execute(apool, VOLUME_1MIN_QUERY, (dstamp, options_ticker)))
+                    elif interval == "5min":
+                        pass
+                    else:
+                        raise NotImplementedError()
 
                     gathered_res = await asyncio.gather(*query_list)
 
@@ -973,138 +965,44 @@ async def ws_main_socket():
                     result_map = {}
                     for i, key in enumerate(query_keys):
                         result_map[key] = gathered_res[i]
+                    
+                    ticker_data = {}
+                    try:
+                        source_data = result_map.get((ticker, 'expectedmove'))
+                        ticker_data['expectedmove'] = process_price_data_with_expected_move(source_data, ticker)
+                    except:
+                        ticker_data['expectedmove'] = {
+                            'prices': [],
+                            'ticker_price': None,
+                            'vix_price': None,
+                            'min_lim': 0,
+                            'max_lim': np.inf,
+                        }
+                        app.logger.error(traceback.format_exc())
 
-                    for ticker in all_tickers:
-                        ticker_data = {}
-
+                    if (ticker, 'volume') in result_map:
                         try:
-                            price_result = process_price_data(result_map.get((ticker, 'price')), ticker)
-                            ticker_data['price'] = price_result
+                            source_data = result_map[(ticker, 'volume')]
+                            volume_result = process_volume_data(source_data, ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim'], ticker_data['expectedmove'])
+                            ticker_data['volume'] = {'data': volume_result}
                         except:
-                            ticker_data['price'] = {
-                                'prices': [], 'ticker_price': None, 'companion_price': None,
-                                'likey_close_price_list': [], 'min_lim': 0, 'max_lim': 0,
-                                'spot_min_lim': 0, 'spot_max_lim': np.inf,
-                            }
+                            ticker_data['volume'] = {'data': []}
                             app.logger.error(traceback.format_exc())
 
-                        price_data = ticker_data['price']
-                        spot_min_lim = price_data['spot_min_lim']
-                        spot_max_lim = price_data['spot_max_lim']
-                        min_lim = price_data['min_lim']
-                        max_lim = price_data['max_lim']
-                        spot_price = price_data['ticker_price']
-
-                        if (ticker, 'expected_move') in result_map:
-                            try:
-                                rows = result_map[(ticker, 'expected_move')]
-                                if rows is not None and spot_price is not None:
-                                    em_result = process_expected_move_data(rows, spot_price)
-                                    ticker_data['expected_move'] = em_result
-                                else:
-                                    ticker_data['expected_move'] = {'plus': None, 'minus': None}
-                            except:
-                                ticker_data['expected_move'] = {'plus': None, 'minus': None}
-                                app.logger.error(traceback.format_exc())
-
-                        if (ticker, 'gex') in result_map:
-                            try:
-                                rows = result_map[(ticker, 'gex')]
-                                if rows is not None:
-                                    ticker_data['gex'] = process_gex_data(rows, spot_min_lim, spot_max_lim)
-                                else:
-                                    ticker_data['gex'] = {'gex_list': [[],[],[]], 'major_pos_gex_strike': None, 'major_neg_gex_strike': None}
-                            except:
-                                ticker_data['gex'] = {'gex_list': [[],[],[]], 'major_pos_gex_strike': None, 'major_neg_gex_strike': None}
-                                app.logger.error(traceback.format_exc())
-
-                        if (ticker, 'convexity') in result_map:
-                            try:
-                                rows = result_map[(ticker, 'convexity')]
-                                if rows is not None:
-                                    ticker_data['convexity'] = process_convexity_data(rows, min_lim, max_lim)
-                                else:
-                                    ticker_data['convexity'] = {'convexity_list': [], 'major_pos_convexity': None, 'major_neg_convexity': None}
-                            except:
-                                ticker_data['convexity'] = {'convexity_list': [], 'major_pos_convexity': None, 'major_neg_convexity': None}
-                                app.logger.error(traceback.format_exc())
-
-                        if (ticker, 'volatility') in result_map:
-                            try:
-                                rows = result_map[(ticker, 'volatility')]
-                                if rows is not None and spot_price is not None:
-                                    ticker_data['volatility'] = process_volatility_data(rows, spot_min_lim, spot_max_lim, spot_price)
-                                else:
-                                    ticker_data['volatility'] = {'volatility_list': []}
-                            except:
-                                ticker_data['volatility'] = {'volatility_list': []}
-                                app.logger.error(traceback.format_exc())
-
-                        if (ticker, 'flow') in result_map:
-                            try:
-                                rows = result_map[(ticker, 'flow')]
-                                if rows is not None:
-                                    flow_result = process_flow_data(rows, market_open)
-                                    ticker_data['dexflow'] = {'data': flow_result['dex']}
-                                    ticker_data['gexflow'] = {'data': flow_result['gexdiff']}
-                                    ticker_data['convexityflow'] = {'data': flow_result['convexitydiff']}
-                                else:
-                                    ticker_data['dexflow'] = {'data': []}
-                                    ticker_data['gexflow'] = {'data': []}
-                                    ticker_data['convexityflow'] = {'data': []}
-                            except:
-                                ticker_data['dexflow'] = {'data': []}
-                                ticker_data['gexflow'] = {'data': []}
-                                ticker_data['convexityflow'] = {'data': []}
-                                app.logger.error(traceback.format_exc())
-
-                        if (ticker, 'order_imbalance') in result_map:
-                            try:
-                                rows = result_map[(ticker, 'order_imbalance')]
-                                if rows is not None:
-                                    oi_result = process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, price_data['prices'])
-                                    ticker_data['call-order-imbalance'] = {'data': oi_result['call']}
-                                    ticker_data['put-order-imbalance'] = {'data': oi_result['put']}
-                                else:
-                                    ticker_data['call-order-imbalance'] = {'data': []}
-                                    ticker_data['put-order-imbalance'] = {'data': []}
-                            except:
-                                ticker_data['call-order-imbalance'] = {'data': []}
-                                ticker_data['put-order-imbalance'] = {'data': []}
-                                app.logger.error(traceback.format_exc())
-
-                        if (ticker, 'order_imbalance_zoom') in result_map:
-                            try:
-                                rows = result_map[(ticker, 'order_imbalance_zoom')]
-                                if rows is not None:
-                                    oi_zoom_result = process_order_imbalance_zoom_data(rows, spot_min_lim, spot_max_lim, price_data['prices'])
-                                    ticker_data['call-last-x-min'] = {'data': oi_zoom_result['call']}
-                                    ticker_data['put-last-x-min'] = {'data': oi_zoom_result['put']}
-                                else:
-                                    ticker_data['call-last-x-min'] = {'data': []}
-                                    ticker_data['put-last-x-min'] = {'data': []}
-                            except:
-                                ticker_data['call-last-x-min'] = {'data': []}
-                                ticker_data['put-last-x-min'] = {'data': []}
-                                app.logger.error(traceback.format_exc())
-
-                        ret_dict['tickers'][ticker] = ticker_data
-
-                    qc_key = (all_tickers[0], 'qc') if all_tickers else None
-                    if qc_key and qc_key in result_map:
-                        try:
-                            rows = result_map[qc_key]
-                            if rows is not None:
-                                qc_result = process_qc_data(rows, tstamp_utc)
-                                ret_dict['meta']['qc_comment'] = qc_result['qc_comment']
-                                ret_dict['meta']['data_tstamp'] = qc_result['data_tstamp']
-                            else:
-                                ret_dict['meta']['qc_comment'] = "***STALE TSTAMP!***"
-                                ret_dict['meta']['data_tstamp'] = "null"
-                        except:
-                            ret_dict['meta']['qc_comment'] = "***STALE TSTAMP!***"
-                            ret_dict['meta']['data_tstamp'] = "null"
-                            app.logger.error(traceback.format_exc())
+                    ret_dict['tickers']={ticker:ticker_data}
+                    qc_key = (ticker, 'qc')
+                    try:
+                        rows = result_map[qc_key]
+                        if rows is not None:
+                            qc_result = process_qc_data(rows, tstamp_utc)
+                            ret_dict['meta']['qc_comment'] = qc_result['qc_comment']
+                            ret_dict['meta']['data_tstamp'] = qc_result['data_tstamp']
+                        else:
+                            raise ValueError("no data!?")
+                    except:
+                        ret_dict['meta']['qc_comment'] = "***STALE TSTAMP!***"
+                        ret_dict['meta']['data_tstamp'] = "null"
+                        app.logger.error(traceback.format_exc())
 
                     ret_dict['meta']['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['meta']['duration_time'] = f"{duration_time:0.3f}sec"
