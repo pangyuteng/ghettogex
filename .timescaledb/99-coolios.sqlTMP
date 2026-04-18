@@ -1,0 +1,42 @@
+with spx as (
+select DATE_TRUNC('second',tstamp) as tstamp,spot_price as spx,expected_move
+from event_underlying where ticker ='SPX' and tstamp::date = now()::date
+),
+vix1d as (
+select DATE_TRUNC('second',tstamp) as tstamp,close as vix1d
+from candle where event_symbol ='VIX1D' and tstamp::date = now()::date
+),
+vix9d as (
+select DATE_TRUNC('second',tstamp) as tstamp,close as vix9d
+from candle where event_symbol ='VIX9D' and tstamp::date = now()::date
+),
+vix as (
+select DATE_TRUNC('second',tstamp) as tstamp,close as vix
+from candle where event_symbol ='VIX' and tstamp::date = now()::date
+)
+
+select * from spx
+left join vix1d using (tstamp)
+left join vix9d using (tstamp)
+left join vix using (tstamp)
+where vix is not null
+order by tstamp desc
+limit 10
+
+
+
+
+
+with foo as (
+select tstamp,event_symbol,strike,contract_type,(bid_volume+ask_volume) as volume, 'SPX' as ticker
+from candle_1min 
+where (bid_volume+ask_volume) > 1000 
+and tstamp::date  = now()::date
+and ticker = 'SPXW'),
+bar as (
+select * from event_underlying_1min
+where tstamp::date  = now()::date
+and ticker = 'SPX')
+select tstamp,event_symbol,strike,contract_type,volume,spot_price,expected_move from foo
+left join bar using (tstamp,ticker)
+order by tstamp,event_symbol
