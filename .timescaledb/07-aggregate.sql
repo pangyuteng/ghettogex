@@ -60,6 +60,7 @@ max(high) as high,
 min(low) as low,
 sum(ask_volume) as ask_volume,
 sum(bid_volume) as bid_volume,
+sum(ask_volume)+sum(bid_volume) as volume,
 sum(ask_volume)-sum(bid_volume) as order_imbalance
 FROM candle 
 GROUP BY time_bucket('1m', tstamp), event_symbol,ticker,expiration,contract_type,strike;
@@ -83,8 +84,8 @@ CREATE INDEX candle_1min_index on candle_1min using brin (tstamp,ticker) WITH (t
 
 CREATE MATERIALIZED VIEW order_imbalance WITH (timescaledb.continuous) AS
 SELECT time_bucket('5m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-sum(order_imbalance) as order_imbalance,
-sum(ask_volume)+sum(bid_volume) as volume
+sum(volume) as volume,
+sum(order_imbalance) as order_imbalance
 FROM candle_1min
 GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
