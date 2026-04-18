@@ -22,7 +22,7 @@ ORDER BY contract_type,strike
 """
 
 ORDER_IMBALANCE_QUERY = """
-select * from order_imbalance where tstamp::date = %s and ticker = %s
+select * from candle_5min where tstamp::date = %s and ticker = %s
 """
 
 ORDER_IMBALANCE_LASTXMIN_QUERY = """
@@ -33,32 +33,32 @@ where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
 # maybe this is wrong does not match with gexbot. end of day convexity is always extremely negative.
 # while that could be fine for gex???? 
 CONVEXITY_QUERY = """
-WITH o_1day AS (
+WITH v_1day AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from order_imbalance_1day where ticker = %s and expiration = %s and tstamp::date = %s
+from candle_1day where ticker = %s and expiration = %s and tstamp::date = %s
 group by ticker,strike
 ), g_1day AS (
 select distinct ticker,strike,last(gamma,tstamp) as gamma
 from greeks_1day where ticker = %s and expiration = %s and tstamp::date = %s
 group by ticker,strike
 )
-SELECT ticker,strike,gamma,order_imbalance from o_1day
+SELECT ticker,strike,gamma,order_imbalance from v_1day
 LEFT JOIN g_1day using (ticker,strike)
 ORDER BY strike
 """
 
 # CONVEXITYDX_QUERY does not match gexbot. maybe they are doing rolling 1 hr?
 CONVEXITYDX_QUERY = """
-WITH o_1day AS (
+WITH v_1day AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from order_imbalance_1day where ticker = %s and expiration = %s and tstamp::date = %s
+from candle_1day where ticker = %s and expiration = %s and tstamp::date = %s
 group by ticker,strike
 ), g_1day AS (
 select distinct ticker,strike,last(gamma,tstamp) as gamma
 from greeksdx_1day where ticker = %s and expiration = %s and tstamp::date = %s
 group by ticker,strike
 )
-SELECT ticker,strike,gamma,order_imbalance from o_1day
+SELECT ticker,strike,gamma,order_imbalance from v_1day
 LEFT JOIN g_1day using (ticker,strike)
 ORDER BY strike
 """
@@ -66,7 +66,7 @@ ORDER BY strike
 INTERVAL_CONVEXITY_QUERY = """
 WITH o_interval AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from order_imbalance where ticker = %s and expiration = %s and tstamp::date = %s and tstamp >= %s - interval '60 minute'
+from candle_5min where ticker = %s and expiration = %s and tstamp::date = %s and tstamp >= %s - interval '60 minute'
 group by ticker,strike
 ), g_1day AS (
 select distinct ticker,strike,last(gamma,tstamp) as gamma
@@ -82,7 +82,7 @@ ORDER BY strike
 CONVEXITY_1HOUR_QUERY = """
 WITH o_1hr AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from order_imbalance where ticker = %s and expiration = %s and tstamp::date = %s
+from candle_5min where ticker = %s and expiration = %s and tstamp::date = %s
 and tstamp > %s - interval '1 hour' and tstamp < %s
 group by ticker,strike
 ), g_1day AS (
@@ -110,7 +110,7 @@ ORDER_IMBALANCE_GEX_QUERY = """
 WITH oi AS (
 SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike, 
 last(order_imbalance,tstamp) as order_imbalance
-FROM order_imbalance_1day WHERE ticker = %s and expiration = %s and tstamp::date = %s
+FROM candle_1day WHERE ticker = %s and expiration = %s and tstamp::date = %s
 group by event_symbol,ticker,expiration,contract_type,strike
 ), grk as (
 SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike,
