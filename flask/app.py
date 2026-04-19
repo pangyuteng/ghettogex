@@ -876,7 +876,7 @@ def process_volume_data(rows, spot_min_lim, spot_max_lim,interval):
     df = df.pivot(columns='strike',index='tstamp',values='volume')
     df = df.replace({np.nan: 0})
     for col in df.columns:
-        df[col]=df[col].apply(lambda x: [col,getrgba(x,minval,maxval,alpha,volumecmap)])
+        df[col]=df[col].apply(lambda x: [col,x,getrgba(x,minval,maxval,alpha,volumecmap)])
     tstamp_list = df.index.to_list()
     data = df.to_numpy()
     start_list = [x[0] for x in data[:,0].tolist()]

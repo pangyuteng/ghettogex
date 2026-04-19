@@ -50,7 +50,8 @@ function heatmapPlugin() {
 						//let yPos = Math.round(u.valToPos(yVal, 'y', true));
 						//ctx.fillStyle = "rgba(255,0,0,0.4)";
 						let yPos = Math.round(u.valToPos(yVal[0], 'y', true));
-						ctx.fillStyle = yVal[1];
+						let zVal = yVal[1]
+						ctx.fillStyle = yVal[2];
 						ctx.fillRect(
 							xPos - 4,
 							yPos - 4,//yPos,
@@ -396,16 +397,34 @@ const CHART_CONFIGS = {
 				plugins: [
 					heatmapPlugin()
 				],
+				cursor: {
+					drag: {
+						y: true,
+					},
+					points: {
+						show: false
+					}
+				},
 				series: [
 					{},
 					{
+						// label: "ok",
 						paths: () => null,
 						points: {show: false},
+						value: () => null,
+						// value: (u, v) => v == null ? null : v.toFixed(2) + "",
 					},
 					{
 						paths: () => null,
 						points: {show: false},
+						value: () => null,
+						// value: (u, v) => v == null ? null : v.toFixed(2) + "",
 					},
+					// {
+					// 	paths: () => null,
+					// 	points: {show: false},
+					// 	value: (u, v, w) => v == null ? null : v,
+					// },
 				],
 				scales: {
 					x: { time: true },
@@ -432,13 +451,12 @@ const CHART_CONFIGS = {
 				[1,1,1],
 				[3,3,3],
 				[
-					[[1,rgbastr],[2,rgbastr],[3,rgbastr]],
-					[[1,rgbastr],[2,rgbastr],[3,rgbastr]],
-				 	[[1,rgbastr],[2,rgbastr],[3,rgbastr]],
+					[[1,1,rgbastr],[2,1,rgbastr],[3,1,rgbastr]],
+					[[1,1,rgbastr],[2,1,rgbastr],[3,1,rgbastr]],
+				 	[[1,1,rgbastr],[2,1,rgbastr],[3,1,rgbastr]],
 				]
 			]
 			let chart = new uPlot(opts, blank, document.getElementById(elementId));
-			
 			return chart;
 		},
 		update: function(chartObj, tickerData) {
