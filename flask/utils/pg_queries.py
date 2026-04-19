@@ -285,3 +285,19 @@ SELECT * FROM volume_5min
 WHERE tstamp::date = %s AND ticker = %s
 ORDER BY tstamp, strike
 """
+
+CONTRACT_VOLUME_1MIN_QUERY = """
+with foo as (
+select tstamp,event_symbol,strike,contract_type,(bid_volume+ask_volume) as volume, 'SPX' as ticker
+from candle_1min 
+where (bid_volume+ask_volume) > 1000 
+and tstamp::date = %s
+and ticker = %s),
+bar as (
+select * from event_underlying_1min
+where tstamp::date  = %s
+and ticker = %s)
+select tstamp,event_symbol,strike,contract_type,volume,spot_price,expected_move from foo
+left join bar using (tstamp,ticker)
+order by tstamp desc,event_symbol
+"""

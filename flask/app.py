@@ -71,6 +71,7 @@ from utils.pg_queries import (
     VOLUME_1MIN_QUERY,
     PRICE_5MIN_QUERY,
     VOLUME_5MIN_QUERY,
+    CONTRACT_VOLUME_1MIN_QUERY,
 )
 
 from utils.data_tasty import (
@@ -796,6 +797,12 @@ async def home():
         div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume"],
         ticker_charts={'SPX':['expectedmove','volume']})
 
+def process_contractvolume(rows):
+    try:
+        df = pd.DataFrame([dict(x) for x in rows])
+    except:
+        df = pd.DataFrame([])
+    return df
 
 def process_price_data_with_expected_move(rows, ticker):
     if rows is None or len(rows) == 0:
@@ -818,6 +825,22 @@ def process_price_data_with_expected_move(rows, ticker):
         vix_price = None
 
     try:
+        vix9d_price = df.vix9d_close[df.vix9d_close.last_valid_index()]
+    except:
+        vix9d_price = None
+
+    try:
+        vix1d_price = df.vix1d_close[df.vix1d_close.last_valid_index()]
+    except:
+        vix1d_price = None
+
+    try:
+        expected_move = df.expected_move[df.expected_move.last_valid_index()]
+        expected_move = np.round(expected_move,2)
+    except:
+        expected_move = None
+
+    try:
         vix_open_idx = df.vix_close.first_valid_index()
         vix_open = df.vix_close[vix_open_idx] if vix_open_idx is not None else 0
         vix_expected_move = vix_open/np.sqrt(252) if vix_open else 0
@@ -834,6 +857,9 @@ def process_price_data_with_expected_move(rows, ticker):
         'prices': lst,
         'ticker_price':ticker_price,
         'vix_price':vix_price,
+        'vix9d_price': vix9d_price,
+        'vix1d_price': vix1d_price,
+        'expected_move': expected_move,
         'min_lim': spot_min_lim,
         'max_lim': spot_max_lim,
     }
@@ -954,6 +980,9 @@ async def debug():
                 'prices': [],
                 'ticker_price': None,
                 'vix_price': None,
+                'vix9d_price': None,
+                'vix1d_price': None,
+                'expected_move': None,
                 'min_lim': 0,
                 'max_lim': np.inf,
             }
@@ -1031,6 +1060,10 @@ async def ws_main():
                     else:
                         raise NotImplementedError()
 
+                    query_keys.append((ticker, 'contractvolume'))
+                    query_list.append(apostgres_execute(apool, CONTRACT_VOLUME_1MIN_QUERY, (dstamp, options_ticker, dstamp, ticker)))
+
+
                     gathered_res = await asyncio.gather(*query_list)
 
                     timeb = time.time()
@@ -1041,6 +1074,11 @@ async def ws_main():
                         result_map[key] = gathered_res[i]
                     
                     ticker_data = {}
+                    try:
+                        source_data = result_map.get((ticker, 'contractvolume'))
+                        ticker_data['contractvolume'] = process_contractvolume(source_data).to_html()
+                    except:
+                        ticker_data['contractvolume'] = ""
                     try:
                         source_data = result_map.get((ticker, 'expectedmove'))
                         ticker_data['expectedmove'] = process_price_data_with_expected_move(source_data, ticker)

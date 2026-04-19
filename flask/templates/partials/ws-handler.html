@@ -11,6 +11,8 @@
     let queryTimeSpan = document.getElementById("queryTimeSpan");
     let dataTstampSpan = document.getElementById("dataTstampSpan");
     let titleSpan = document.getElementById("titleSpan");
+    let pricesSpan = document.getElementById("pricesSpan");
+    let contractvolumeSpan = document.getElementById("contractvolumeSpan");
 
     ws.onmessage = function(event) {
         let newdata = JSON.parse(event.data);
@@ -26,7 +28,12 @@
         let ticker = 'SPX';
         let ticker_price = newdata.tickers[ticker]['expectedmove']['ticker_price'];
         let vix_price = newdata.tickers[ticker]['expectedmove']['vix_price'];
+        let vix9d_price = newdata.tickers[ticker]['expectedmove']['vix9d_price'];
+        let vix1d_price = newdata.tickers[ticker]['expectedmove']['vix1d_price'];
+        let expected_move = newdata.tickers[ticker]['expectedmove']['expected_move'];
         titleSpan.textContent = 'spx:' + ticker_price + ',vix:' + vix_price;
+
+        pricesSpan.textContent = 'spx:' + ticker_price + ', vix:' + vix_price + ', vid9d:' + vix9d_price + ', vix1d:'+vix1d_price+', expected_move:'+ expected_move;
 
         TICKER_CHARTS[ticker].forEach(function(chartType) {
             let tickerData = (newdata.tickers || {})[ticker] || {};
@@ -38,32 +45,7 @@
 
         });
         
-        /*
-        // Update per-ticker price spans + dispatch to charts
-        _allTickers.forEach(function(ticker) {
-            let tickerData = (newdata.tickers || {})[ticker] || {};
+        contractvolumeSpan.innerHTML = newdata.tickers[ticker]['contractvolume'];
 
-            // Update price span
-            let priceSpan = document.getElementById("price-" + ticker);
-            if (priceSpan && tickerData.price && tickerData.price.ticker_price != null) {
-                priceSpan.textContent = tickerData.price.ticker_price;
-            }
-
-            // Update companion span
-            let companionSpan = document.getElementById("companion-" + ticker);
-            if (companionSpan && tickerData.price && tickerData.price.companion_price != null) {
-                companionSpan.textContent = tickerData.price.companion_price;
-            }
-
-            // Dispatch to charts (per-ticker chart list)
-            TICKER_CHARTS[ticker].forEach(function(chartType) {
-                let config = CHART_CONFIGS[chartType];
-                let chartObj = (chartRegistry[ticker] || {})[chartType];
-                if (config && config.update && chartObj) {
-                    config.update(chartObj, tickerData);
-                }
-            });
-        });
-        */
     };
 </script>

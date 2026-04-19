@@ -29,10 +29,9 @@
 data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <span id="dataQcSpan" style="font-size: 18px !important; color: #ff0000;"></span>
 <br>
-{% for ticker in all_tickers %}
-{{ ticker }}: <span id="price-{{ ticker }}" style="font-size: 20px !important; color: #ffffff;"></span>
-(<span id="companion-{{ ticker }}" style="font-size: 16px !important; color: #ff0000;"></span>)&nbsp;&nbsp;
-{% endfor %}
+
+<span id="pricesSpan" style="font-size: 20px !important; color: #ffffff;"></span>
+
 <br>
 
 <script>
@@ -57,6 +56,10 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
 <br>
 server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 , query_time: <span id="queryTimeSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
+<br>
+<span style="font-size: 18px !important; color: #ffffff;">PM0DTE total contract volume >1000 by minute:</span>
+<span id="contractvolumeSpan" style="font-size: 18px !important; color: #ffffff;"></span>
+
 <br>
 
 {% include 'partials/chart-factory.html' %}
