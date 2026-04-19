@@ -862,7 +862,7 @@ def getrgba(value,minval,maxval,alpha,cmap):
     #app.logger.error(rgba_str)
     return rgba_str
 
-def process_volume_data(rows, spot_min_lim, spot_max_lim,interval):
+def process_volume_data(rows, expectedmove_data, spot_min_lim, spot_max_lim,interval):
     if interval == '5min':
         minval,maxval,alpha = 0.,2000*5.,0.5
     elif interval == '1min':
@@ -876,13 +876,23 @@ def process_volume_data(rows, spot_min_lim, spot_max_lim,interval):
     df = df.pivot(columns='strike',index='tstamp',values='volume')
     df = df.replace({np.nan: 0})
     for col in df.columns:
-        df[col]=df[col].apply(lambda x: [col,x,getrgba(x,minval,maxval,alpha,volumecmap)])
+       df[col]=df[col].apply(lambda x: [-1,col,x,getrgba(x,minval,maxval,alpha,volumecmap)])
+    # NOTE: `-1` # placehold to get time so you get (time,strike,volume,color)
+
     tstamp_list = df.index.to_list()
     data = df.to_numpy()
-    start_list = [x[0] for x in data[:,0].tolist()]
-    end_list = [x[0] for x in data[:,-1].tolist()]
+
+    start_list = [x[1] for x in data[:,0].tolist()] # grab array of min spot price
+    end_list = [x[1] for x in data[:,-1].tolist()] # grab array of max spot price
+    # NOTE: start_list,end_list ensures double click zooms back to Y min&max range.
+
     data_list = data.tolist()
     mylist = [tstamp_list,start_list,end_list,data_list]
+    
+    price_tstamp_list = expectedmove_data['prices'][0]
+    price_list = expectedmove_data['prices'][-1]
+    assert(len(tstamp_list)==len(price_tstamp_list))
+    mylist = [tstamp_list,start_list,end_list,price_list,data_list]
     return {
         'data': mylist,
     }
@@ -951,7 +961,12 @@ async def debug():
         app.logger.error(f"{ticker_data['expectedmove']['min_lim']},{ticker_data['expectedmove']['max_lim']}")
         try:
             source_data = result_map[(ticker, 'volume')]
-            volume_result = process_volume_data(source_data, ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim'],interval)
+            volume_result = process_volume_data(
+                source_data,
+                ticker_data['expectedmove'],
+                ticker_data['expectedmove']['min_lim'],
+                ticker_data['expectedmove']['max_lim'],
+                interval)
             ticker_data['volume'] = {'data': volume_result['data']}
         except:
             ticker_data['volume'] = {'data': []}
@@ -1009,7 +1024,10 @@ async def ws_main():
                         query_keys.append((ticker, 'volume'))
                         query_list.append(apostgres_execute(apool, VOLUME_1MIN_QUERY, (dstamp, options_ticker)))
                     elif interval == "5min":
-                        pass
+                        query_keys.append((ticker, 'expectedmove'))
+                        query_list.append(apostgres_execute(apool, PRICE_5MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
+                        query_keys.append((ticker, 'volume'))
+                        query_list.append(apostgres_execute(apool, VOLUME_5MIN_QUERY, (dstamp, options_ticker)))
                     else:
                         raise NotImplementedError()
 
@@ -1039,7 +1057,10 @@ async def ws_main():
                     if (ticker, 'volume') in result_map:
                         try:
                             source_data = result_map[(ticker, 'volume')]
-                            volume_result = process_volume_data(source_data, ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim'], interval)
+                            volume_result = process_volume_data(
+                                source_data,
+                                ticker_data['expectedmove'],
+                                ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim'], interval)
                             ticker_data['volume'] = volume_result
                         except:
                             ticker_data['volume'] = {'data': []}
