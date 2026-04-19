@@ -45,15 +45,15 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
         + "&other-charts={{ other_charts | join(',') }}";
     */
 </script>
-
 <!-- All charts flow into a single grid -->
 <div class="grid-container">
-    <div id=""></div>
     {% for div_name in div_id_list %}
     <div id="{{div_name}}"></div>
     {% endfor %}
 </div>
-
+<div>
+<img src="/static/colorbar_volume_1min.png" width="500px">
+</div>
 <br>
 server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 , query_time: <span id="queryTimeSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>

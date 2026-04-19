@@ -40,9 +40,9 @@
 let ticker = 'SPX';
 
 let newdata = {{ ret_dict | tojson | safe }};
+
 TICKER_CHARTS[ticker].forEach(function(chartType) {
     let tickerData = (newdata.tickers || {})[ticker] || {};
-    console.log(tickerData)
     let config = CHART_CONFIGS[chartType];
     let chartObj = (chartRegistry[ticker] || {})[chartType];
     if (config && config.update && chartObj) {

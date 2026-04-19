@@ -9,7 +9,9 @@ import datetime
 import tempfile
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib import cm
 import seaborn as sns
 import matplotlib.dates as mdates
 import base64
@@ -67,6 +69,8 @@ from utils.pg_queries import (
     GEX_CONVEXITY_1DAY_QUERY,
     PRICE_1MIN_QUERY,
     VOLUME_1MIN_QUERY,
+    PRICE_5MIN_QUERY,
+    VOLUME_5MIN_QUERY,
 )
 
 from utils.data_tasty import (
@@ -825,7 +829,7 @@ def process_price_data_with_expected_move(rows, ticker):
     ticker_mean = df.ticker_close.mean()
     spot_max_lim = ticker_mean*plus_prct # used by gex plot
     spot_min_lim = ticker_mean*minus_prct
-
+    app.logger.error(f"{spot_min_lim} {ticker_mean} {spot_max_lim}")
     return {
         'prices': lst,
         'ticker_price':ticker_price,
@@ -835,16 +839,58 @@ def process_price_data_with_expected_move(rows, ticker):
     }
 
 
-def process_volume_data(rows, spot_min_lim, spot_max_lim, prices_lst):
+volumecmap = cm.get_cmap('hot')
+volume_colobar_file = os.path.join('static','colorbar_volume_1min.png')
+if not os.path.exists(volume_colobar_file):
+    fig = plt.figure()
+    ax = fig.add_axes([0.05, 0.80, 0.9, 0.1])
+    ticks = np.linspace(0,2000,5)
+    norm = mpl.colors.Normalize(vmin=0, vmax=2000)
+    cbar = mpl.colorbar.ColorbarBase(ax,orientation='horizontal',
+        cmap=volumecmap,
+        norm=mpl.colors.Normalize(0, 2000),
+        ticks=ticks
+    )
+    ax.tick_params(colors='gray',grid_color='gray', grid_alpha=0.5)
+    plt.savefig(volume_colobar_file,bbox_inches='tight',transparent=True)
+
+def getrgba(value,minval,maxval,alpha,cmap):
+    norm_val = np.clip( ((float(value)-minval)/(maxval-minval)) ,0,1)
+    r,g,b,_ = [int(x*255) for x in volumecmap(norm_val)]
+    alpha = 0.5
+    rgba_str = f"rgba({r},{g},{b},{alpha})"
+    #app.logger.error(rgba_str)
+    return rgba_str
+
+def process_volume_data(rows, spot_min_lim, spot_max_lim,interval):
+    if interval == '5min':
+        minval,maxval,alpha = 0.,2000*5.,0.5
+    elif interval == '1min':
+        minval,maxval,alpha = 0.,2000.,0.5
+    else:
+        raise NotImplementedError()
     df = pd.DataFrame([dict(x) for x in rows])
     df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
     df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
-    row_tstamp = df.tstamp.to_list()
-    row_strike = df.strike.to_list()
-    row_volume = df.volume.to_list()
-    mylist = [[row_tstamp,row_strike,row_volume]]
-    return mylist
+    df = df[['tstamp','strike','volume']]
+    df = df.pivot(columns='strike',index='tstamp',values='volume')
+    df = df.replace({np.nan: 0})
+    for col in df.columns:
+        df[col]=df[col].apply(lambda x: [col,getrgba(x,minval,maxval,alpha,volumecmap)])
+    tstamp_list = df.index.to_list()
+    data = df.to_numpy()
+    start_list = [x[0] for x in data[:,0].tolist()]
+    end_list = [x[0] for x in data[:,-1].tolist()]
+    data_list = data.tolist()
+    mylist = [tstamp_list,start_list,end_list,data_list]
+    return {
+        'data': mylist,
+    }
 
+@app.route("/foobar")
+@login_required
+async def foobar():
+    return await render_template("foobar.html")
 
 @app.route("/debug")
 @login_required
@@ -855,16 +901,20 @@ async def debug():
     options_ticker = regi['options_ticker']
     query_keys = []
     query_list = []
+    interval = '5min'
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
+        query_keys.append((ticker, 'expectedmove'))
+        query_list.append(apostgres_execute(apool, PRICE_5MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
+        query_keys.append((ticker, 'volume'))
+        query_list.append(apostgres_execute(apool, VOLUME_5MIN_QUERY, (dstamp, options_ticker)))
+        gathered_res = await asyncio.gather(*query_list)
+    result_map = {}
+    for i, key in enumerate(query_keys):
+        result_map[key] = gathered_res[i]
+
+
     chart_type = 'volume'
     if chart_type == 'expectedmove':
-        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
-            query_keys.append((ticker, 'expectedmove'))
-            query_list.append(apostgres_execute(apool, PRICE_1MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
-            gathered_res = await asyncio.gather(*query_list)
-        result_map = {}
-        for i, key in enumerate(query_keys):
-            result_map[key] = gathered_res[i]
-
         ret_dict = {}
         ticker_data = {}
         try:
@@ -883,20 +933,26 @@ async def debug():
         return await render_template("debug-expectedmove.html", dstamp=dstamp, ret_dict=ret_dict)
 
     if chart_type == 'volume':
-        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
-            query_keys.append((ticker, 'volume'))
-            query_list.append(apostgres_execute(apool, VOLUME_1MIN_QUERY, (dstamp, options_ticker)))
-            gathered_res = await asyncio.gather(*query_list)
-        result_map = {}
-        for i, key in enumerate(query_keys):
-            result_map[key] = gathered_res[i]
 
         ret_dict = {}
         ticker_data = {}
         try:
+            source_data = result_map.get((ticker, 'expectedmove'))
+            ticker_data['expectedmove'] = process_price_data_with_expected_move(source_data, ticker)
+        except:
+            ticker_data['expectedmove'] = {
+                'prices': [],
+                'ticker_price': None,
+                'vix_price': None,
+                'min_lim': 0,
+                'max_lim': np.inf,
+            }
+            app.logger.error(traceback.format_exc())
+        app.logger.error(f"{ticker_data['expectedmove']['min_lim']},{ticker_data['expectedmove']['max_lim']}")
+        try:
             source_data = result_map[(ticker, 'volume')]
-            volume_result = process_volume_data(source_data, ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim'], ticker_data['expectedmove'])
-            ticker_data['volume'] = {'data': volume_result}
+            volume_result = process_volume_data(source_data, ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim'],interval)
+            ticker_data['volume'] = {'data': volume_result['data']}
         except:
             ticker_data['volume'] = {'data': []}
             app.logger.error(traceback.format_exc())
@@ -983,8 +1039,8 @@ async def ws_main():
                     if (ticker, 'volume') in result_map:
                         try:
                             source_data = result_map[(ticker, 'volume')]
-                            volume_result = process_volume_data(source_data, ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim'], ticker_data['expectedmove'])
-                            ticker_data['volume'] = {'data': volume_result}
+                            volume_result = process_volume_data(source_data, ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim'], interval)
+                            ticker_data['volume'] = volume_result
                         except:
                             ticker_data['volume'] = {'data': []}
                             app.logger.error(traceback.format_exc())
