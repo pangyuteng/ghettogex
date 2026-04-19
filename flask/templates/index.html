@@ -23,7 +23,11 @@
 </head>
 
 <body>
-
+<select>
+  <option value="1sec">1sec</option>
+  <option value="1min" selected>1min</option>
+  <option value="5min">5min</option>
+</select>
 {% if load_data %}
 <span id="errorSpan" style="font-size: 20px !important; color: #ff0000;"></span>
 data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>

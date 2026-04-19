@@ -89,7 +89,7 @@ TICKER_REGISTRY = {
 }
 VALID_CHARTS = ['price','convexity','volatility','gex','dexflow','gexflow',
                 'convexityflow','call-order-imbalance','put-order-imbalance',
-                'call-last-x-min','put-last-x-min','expectedmove']
+                'call-last-x-min','put-last-x-min']
 DEFAULT_TICKERS = ['SPX','SPY','QQQ','NDX']
 DEFAULT_CHARTS = VALID_CHARTS[:]
 

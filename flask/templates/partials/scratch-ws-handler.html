@@ -1,0 +1,63 @@
+<script>
+    const _allTickers = Object.keys(TICKER_CHARTS);
+
+    const wsUrl = WS_ENDPOINT + "?dstamp={{ dstamp }}" + WS_EXTRA_PARAMS;
+    const ws = new WebSocket(wsUrl);
+
+    let errorSpan = document.getElementById("errorSpan");
+    let dataQcSpan = document.getElementById("dataQcSpan");
+    let serverTstampSpan = document.getElementById("serverTstampSpan");
+    let queryTimeSpan = document.getElementById("queryTimeSpan");
+    let dataTstampSpan = document.getElementById("dataTstampSpan");
+    let titleSpan = document.getElementById("titleSpan");
+
+    ws.onmessage = function(event) {
+        let newdata = JSON.parse(event.data);
+        let meta = newdata.meta || {};
+
+        // Update meta spans
+        errorSpan.textContent = meta.error_status || '';
+        dataQcSpan.textContent = meta.qc_comment || '';
+        serverTstampSpan.textContent = meta.server_tstamp || '';
+        queryTimeSpan.textContent = meta.duration_time || '';
+        dataTstampSpan.textContent = meta.data_tstamp || '';
+
+        // Build title from ticker prices
+        let titleParts = [];
+        _allTickers.forEach(function(ticker) {
+            let tickerData = (newdata.tickers || {})[ticker] || {};
+            if (tickerData.price && tickerData.price.ticker_price != null) {
+                titleParts.push(ticker + ":" + tickerData.price.ticker_price);
+            }
+        });
+        if (titleParts.length > 0) {
+            titleSpan.textContent = titleParts.join(",");
+        }
+
+        // Update per-ticker price spans + dispatch to charts
+        _allTickers.forEach(function(ticker) {
+            let tickerData = (newdata.tickers || {})[ticker] || {};
+
+            // Update price span
+            let priceSpan = document.getElementById("price-" + ticker);
+            if (priceSpan && tickerData.price && tickerData.price.ticker_price != null) {
+                priceSpan.textContent = tickerData.price.ticker_price;
+            }
+
+            // Update companion span
+            let companionSpan = document.getElementById("companion-" + ticker);
+            if (companionSpan && tickerData.price && tickerData.price.companion_price != null) {
+                companionSpan.textContent = tickerData.price.companion_price;
+            }
+
+            // Dispatch to charts (per-ticker chart list)
+            TICKER_CHARTS[ticker].forEach(function(chartType) {
+                let config = CHART_CONFIGS[chartType];
+                let chartObj = (chartRegistry[ticker] || {})[chartType];
+                if (config && config.update && chartObj) {
+                    config.update(chartObj, tickerData);
+                }
+            });
+        });
+    };
+</script>
