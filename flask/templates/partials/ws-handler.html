@@ -23,8 +23,10 @@
         queryTimeSpan.textContent = meta.duration_time || '';
         dataTstampSpan.textContent = meta.data_tstamp || '';
 
-        titleSpan.textContent = "MYTITLE";
         let ticker = 'SPX';
+        let ticker_price = newdata.tickers[ticker]['expectedmove']['ticker_price'];
+        let vix_price = newdata.tickers[ticker]['expectedmove']['vix_price'];
+        titleSpan.textContent = 'spx:' + ticker_price + ',vix:' + vix_price;
 
         TICKER_CHARTS[ticker].forEach(function(chartType) {
             let tickerData = (newdata.tickers || {})[ticker] || {};
