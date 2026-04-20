@@ -342,7 +342,7 @@ def process_qc_data(rows, tstamp_utc):
     """Process CANDLE_QC_QUERY results."""
     df = pd.DataFrame([dict(x) for x in rows])
     latest_data_tstamp = df.tstamp.min()
-    latest_data_tstamp_str = latest_data_tstamp.strftime("%Y-%m-%d %H:%M:%S")
+    latest_data_tstamp_str = latest_data_tstamp.replace(tzinfo=pytz.timezone("UTC")).astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et")
     qc_comment = "***STALE TSTAMP!***" if (tstamp_utc.replace(tzinfo=None)-latest_data_tstamp).total_seconds() > 60 else ""
     return {
         'qc_comment': qc_comment,
@@ -729,7 +729,7 @@ async def ws_scratch():
                             ret_dict['meta']['data_tstamp'] = "null"
                             app.logger.error(traceback.format_exc())
 
-                    ret_dict['meta']['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                    ret_dict['meta']['server_tstamp'] = datetime.datetime.utcnow().astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et")
                     ret_dict['meta']['duration_time'] = f"{duration_time:0.3f}sec"
                     ret_dict['meta']['error_status'] = None
                 except:
@@ -739,7 +739,7 @@ async def ws_scratch():
                             'qc_comment': "unexpected error!!! ffff likely missing data, services down!",
                             'duration_time': None,
                             'data_tstamp': None,
-                            'server_tstamp': datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                            'server_tstamp': datetime.datetime.utcnow().astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et"),
                             'error_status': 'traceback:'+traceback.format_exc(),
                         }
                     }
@@ -814,6 +814,7 @@ async def home():
 def process_contractvolume(rows):
     try:
         df = pd.DataFrame([dict(x) for x in rows])
+        df.tstamp = df.tstamp.apply(lambda x: x.replace(tzinfo=pytz.timezone("UTC")).astimezone(tz=pytz.timezone(et_tz)))
     except:
         df = pd.DataFrame([])
     return df
@@ -1176,7 +1177,7 @@ async def ws_main():
                         ret_dict['meta']['data_tstamp'] = "null"
                         app.logger.error(traceback.format_exc())
 
-                    ret_dict['meta']['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                    ret_dict['meta']['server_tstamp'] = datetime.datetime.utcnow().astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et")
                     ret_dict['meta']['duration_time'] = f"{duration_time:0.3f}sec"
                     ret_dict['meta']['error_status'] = None
                     ret_dict['meta']['is_market_open'] = is_market_open
@@ -1188,7 +1189,7 @@ async def ws_main():
                             'qc_comment': "unexpected error!!! ffff likely missing data, services down!",
                             'duration_time': None,
                             'data_tstamp': None,
-                            'server_tstamp': datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                            'server_tstamp': datetime.datetime.utcnow().astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et"),
                             'error_status': 'traceback:'+traceback.format_exc(),
                             'is_market_open': False,
                         }
