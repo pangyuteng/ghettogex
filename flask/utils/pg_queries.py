@@ -283,42 +283,42 @@ ORDER BY bucket
 
 PRICE_1SEC_QUERY = """
 WITH price AS (
-    SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+    SELECT time_bucket_gapfill('1 sec', tstamp, %(starttime)s::timestamp, %(endtime)s::timestamp) AS bucket,
     LOCF(avg(close)) AS ticker_close
     FROM candle_1sec
-    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(starttime)s::timestamp
     AND event_symbol = %(ticker)s AND close != 0
     GROUP BY bucket ORDER BY bucket
 ),
 em AS (
-    SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+    SELECT time_bucket_gapfill('1 sec', tstamp, %(starttime)s::timestamp, %(endtime)s::timestamp) AS bucket,
     LOCF(avg(expected_move)) AS expected_move
     FROM event_underlying_1sec
-    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(starttime)s::timestamp
     AND ticker = %(ticker)s
     GROUP BY bucket ORDER BY bucket
 ),
 vix AS (
-    SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+    SELECT time_bucket_gapfill('1 sec', tstamp, %(starttime)s::timestamp, %(endtime)s::timestamp) AS bucket,
     LOCF(avg(close)) AS vix_close
     FROM candle_1sec
-    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(starttime)s::timestamp
     AND event_symbol = 'VIX' AND close != 0
     GROUP BY bucket ORDER BY bucket
 ),
 vix1d AS (
-    SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+    SELECT time_bucket_gapfill('1 sec', tstamp, %(starttime)s::timestamp, %(endtime)s::timestamp) AS bucket,
     LOCF(avg(close)) AS vix1d_close
     FROM candle_1sec
-    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(starttime)s::timestamp
     AND event_symbol = 'VIX1D' AND close != 0
     GROUP BY bucket ORDER BY bucket
 ),
 vix9d AS (
-    SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+    SELECT time_bucket_gapfill('1 sec', tstamp, %(starttime)s::timestamp, %(endtime)s::timestamp) AS bucket,
     LOCF(avg(close)) AS vix9d_close
     FROM candle_1sec
-    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(starttime)s::timestamp
     AND event_symbol = 'VIX9D' AND close != 0
     GROUP BY bucket ORDER BY bucket
 )
@@ -334,9 +334,9 @@ ORDER BY bucket
 
 VOLUME_1SEC_QUERY = """
 WITH volume AS (
-SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+SELECT time_bucket_gapfill('1 sec', tstamp, %(starttime)s::timestamp, %(endtime)s::timestamp) AS bucket,
 strike,avg(volume) as volume FROM volume_1sec
-WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(starttime)s::timestamp
 AND ticker = %(ticker)s
 GROUP BY bucket, strike
 ORDER BY bucket, strike

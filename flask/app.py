@@ -1099,10 +1099,11 @@ async def ws_main():
                     query_list.append(apostgres_execute(apool, CANDLE_QC_QUERY, (ticker, tstamp_utc, options_ticker, tstamp_utc)))
 
                     if interval == "1sec":
+                        starttime = tstamp_utc - datetime.timedelta(minutes=5)
                         query_keys.append((ticker, 'expectedmove'))
-                        query_list.append(apostgres_execute(apool, PRICE_1SEC_QUERY, {"ticker":ticker,"endtime":tstamp_utc}))
+                        query_list.append(apostgres_execute(apool, PRICE_1SEC_QUERY, {"ticker":ticker,"endtime":tstamp_utc,"starttime":starttime}))
                         query_keys.append((ticker, 'volume'))
-                        query_list.append(apostgres_execute(apool, VOLUME_1SEC_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc}))
+                        query_list.append(apostgres_execute(apool, VOLUME_1SEC_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc,"starttime":starttime}))
                     elif interval == "1min":
                         query_keys.append((ticker, 'expectedmove'))
                         query_list.append(apostgres_execute(apool, PRICE_1MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
