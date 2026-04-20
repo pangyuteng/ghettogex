@@ -808,8 +808,8 @@ async def home():
         dstamp=dstamp, interval=interval, load_data=load_data,
         colorbar_png_file=colorbar_png_file,
         market_status=market_status, grid_cols=grid_cols, grid_rows=grid_rows, 
-        div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume"],
-        ticker_charts={'SPX':['expectedmove','volume']})
+        div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume","chart-SPX-volatility"],
+        ticker_charts={'SPX':['expectedmove','volume','volatility']})
 
 def process_contractvolume(rows):
     try:
@@ -1099,7 +1099,8 @@ async def ws_main():
 
                     query_keys.append((ticker, 'qc'))
                     query_list.append(apostgres_execute(apool, CANDLE_QC_QUERY, (ticker, tstamp_utc, options_ticker, tstamp_utc)))
-
+                    query_keys.append((ticker, 'volatility'))
+                    query_list.append(apostgres_execute(apool, GREEKS_QUERY, (options_ticker, dstamp, dstamp)))
                     if interval == "1sec":
                         starttime = tstamp_utc - datetime.timedelta(minutes=5)
                         query_keys.append((ticker, 'expectedmove'))
@@ -1138,6 +1139,8 @@ async def ws_main():
                         ticker_data['contractvolume'] = process_contractvolume(source_data).to_html()
                     except:
                         ticker_data['contractvolume'] = ""
+
+                    # process price and expectedmove
                     try:
                         source_data = result_map.get((ticker, 'expectedmove'))
                         ticker_data['expectedmove'] = process_price_data_with_expected_move(source_data, ticker)
@@ -1151,6 +1154,7 @@ async def ws_main():
                         }
                         app.logger.error(traceback.format_exc())
 
+                    # process option contract volume
                     if (ticker, 'volume') in result_map:
                         try:
                             source_data = result_map[(ticker, 'volume')]
@@ -1161,6 +1165,20 @@ async def ws_main():
                             ticker_data['volume'] = volume_result
                         except:
                             ticker_data['volume'] = {'data': []}
+                            app.logger.error(traceback.format_exc())
+
+                    # process Volatility
+                    if (ticker, 'volatility') in result_map:
+                        try:
+                            source_data = result_map[(ticker, 'volatility')]
+                            ticker_data['volatility'] = process_volatility_data(
+                                source_data, 
+                                ticker_data['expectedmove']['min_lim'],
+                                ticker_data['expectedmove']['max_lim'],
+                                ticker_data['expectedmove']['ticker_price']
+                            )
+                        except:
+                            ticker_data['volatility'] = {'volatility_list': []}
                             app.logger.error(traceback.format_exc())
 
                     ret_dict['tickers']={ticker:ticker_data}

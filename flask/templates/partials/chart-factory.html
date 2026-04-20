@@ -390,7 +390,7 @@ const CHART_CONFIGS = {
 	'volume': {
 		make: function(elementId, ticker) {
 			const opts = {
-				title: ticker + "-volume",
+				title: "volume",
 				tzDate: ts => uPlot.tzDate(new Date(ts*1e3), TIME_ZONE),
 				width: 512,//width: 380,
 				height: 512,//height: 380,
@@ -536,9 +536,11 @@ const CHART_CONFIGS = {
 			let mylines = [];
 			let points = uPlot.paths.points();
 			let opts = {
-				width: 240,
-				height: 380,
-				title: ticker + "-volatility*",
+				//width: 240,
+				//height: 380,
+				width: 270,
+				height: 512,
+				title: "volatility",
 				scales: {
 					x: { time: false, dir: 1, ori: 1 },
 					y: { dir: 1, ori: 0 }
@@ -551,9 +553,24 @@ const CHART_CONFIGS = {
 					focus: { prox: 30 }
 				},
 				series: [
-					{},
-					{ stroke: null, fill: "rgba(0,255,0,0.5)", paths: points },
-					{ stroke: null, fill: "rgba(255,0,0,0.5)", paths: points },
+					{
+						label: "strike",
+						value: (u, v) => v == null ? null : v,
+					},
+					{
+						stroke: null,
+						fill: "rgba(0,255,0,0.5)", 
+						paths: points,
+						label: "call",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+					},
+					{
+						stroke: null, 
+						fill: "rgba(255,0,0,0.5)", 
+						paths: points,
+						label: "put",
+						value: (u, v) => v == null ? null : v.toFixed(2) + "",
+					},
 				],
 				plugins: [
 					linesPlugin(mylines)
@@ -566,7 +583,7 @@ const CHART_CONFIGS = {
 						grid: {stroke: "#666666",width:1},
 					},
 					{
-						side: 0,
+						side: 2,
 						stroke: "#666666",
 						grid: {stroke: "#666666",width:1},
 						tick: {stroke: "#666666",width:1},
@@ -579,7 +596,8 @@ const CHART_CONFIGS = {
 		},
 		update: function(chartObj, tickerData) {
 			let vd = tickerData.volatility;
-			let pd = tickerData.price || {};
+			//let pd = tickerData.price || {};
+			let pd = tickerData.expectedmove || {};
 			let em = tickerData.expected_move || {};
 			let gd = tickerData.gex || {};
 			let cd = tickerData.convexity || {};
