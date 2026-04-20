@@ -457,7 +457,8 @@ async def scratch():
         market_status = "unexepcted error!"
         load_data = False
 
-    tickers_param = request.args.get("tickers", None)
+    #tickers_param = request.args.get("tickers", None)
+    tickers_param = request.args.get("tickers", "SPX")
     tickers = [t.strip().upper() for t in tickers_param.split(",")] if tickers_param else DEFAULT_TICKERS
     tickers = [t for t in tickers if t in TICKER_REGISTRY]
 

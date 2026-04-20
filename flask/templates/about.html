@@ -33,7 +33,7 @@
 
 + call and put order imbalance are sum of 0DTE SPXW candle bid and ask volume every 5min, more selling (red), more buying (green), bins: {{ order_imbalance_bin_str }}.<br>
 
-+ in this doc we are defining "order imbalance" as sum of candle bid and ask volume, which is also referred to as "cumulative volume delta" - definately not true buy&sell. but maybe could be a poor man's guesstimate of order imbalance given a set duration.
++ in this doc we are defining "order imbalance" as sum of candle bid and ask volume, which is also referred to as "cumulative volume delta" - definately not true buy&sell. but maybe could be a poor man's guesstimate of order imbalance given a set duration.<br>
 
 <br># gamma exposure (gex)<br><br>
 
@@ -41,7 +41,7 @@
 
 + horizontal dashed lines: spot: white, expected moves: gray, major positive gex strike: green, major negative gex strike: red.<br>
 
-<br># convexity<br><br>
+<br><br># convexity<br><br>
 
 + 0DTE SPXW order imbalance (of past 1hr) multiplied by current gamma, no put or call distinction. see gexbot document for more info, gexbot uses likely entire day order imbalance.<br>
 
@@ -63,7 +63,8 @@
 
 + net-gex, net-convexity are shown as lines, and the diff are shown as bars. could be useful to confirm large orders but could be noisy.
 
-<br>
+<br><br><br>
+*** ENTER GHETTOGEX <a href="{{ url_for('scratch') }}">HERE</a> ***
 <br>
 
 </body>
