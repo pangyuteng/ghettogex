@@ -831,8 +831,10 @@ def process_price_data_with_expected_move(rows, ticker):
 
     try:
         ticker_price = df.ticker_close[df.ticker_close.last_valid_index()]
+        ticker_mean = df.ticker_close.mean()
     except:
         ticker_price = None
+        ticker_mean = 0
 
     try:
         vix_price = df.vix_close[df.vix_close.last_valid_index()]
@@ -864,10 +866,9 @@ def process_price_data_with_expected_move(rows, ticker):
 
     plus_prct = (1+vix_expected_move*0.01*2.5)
     minus_prct = (1-vix_expected_move*0.01*2.5)
-    ticker_mean = df.ticker_close.mean()
     spot_max_lim = ticker_mean*plus_prct # used by gex plot
     spot_min_lim = ticker_mean*minus_prct
-    app.logger.error(f"{spot_min_lim} {ticker_mean} {spot_max_lim}")
+
     return {
         'prices': lst,
         'ticker_price':ticker_price,
