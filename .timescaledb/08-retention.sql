@@ -33,9 +33,11 @@ SELECT add_retention_policy('event_contract', INTERVAL '20 days');
 SELECT add_retention_policy('event_strike', INTERVAL '20 days');
 SELECT add_retention_policy('event_underlying', INTERVAL '20 days');
 
+SELECT add_retention_policy('event_underlying_1sec', INTERVAL '7 days');
 SELECT add_retention_policy('event_underlying_1min', INTERVAL '20 days');
 SELECT add_retention_policy('event_underlying_5min', INTERVAL '20 days');
 SELECT add_retention_policy('event_strike_1min', INTERVAL '20 days');
+SELECT add_retention_policy('candle_1sec', INTERVAL '7 days');
 SELECT add_retention_policy('candle_1min', INTERVAL '20 days');
 SELECT add_retention_policy('candle_5min', INTERVAL '20 days');
 SELECT add_retention_policy('quote_1min', INTERVAL '20 days');
@@ -44,7 +46,7 @@ SELECT add_retention_policy('candle_1day', INTERVAL '20 days');
 SELECT add_retention_policy('greeks_1day', INTERVAL '20 days');
 SELECT add_retention_policy('greeksdx_1day', INTERVAL '20 days');
 
-SELECT add_retention_policy('volume_1sec', INTERVAL '20 days');
+SELECT add_retention_policy('volume_1sec', INTERVAL '7 days');
 SELECT add_retention_policy('volume_1min', INTERVAL '20 days');
 SELECT add_retention_policy('volume_5min', INTERVAL '20 days');
 

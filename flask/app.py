@@ -67,6 +67,8 @@ from utils.pg_queries import (
     CONVEXITYDX_QUERY,
     GREEKS_QUERY,
     GEX_CONVEXITY_1DAY_QUERY,
+    PRICE_1SEC_QUERY,
+    VOLUME_1SEC_QUERY,
     PRICE_1MIN_QUERY,
     VOLUME_1MIN_QUERY,
     PRICE_5MIN_QUERY,
@@ -760,6 +762,7 @@ async def home():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
     dstamp = request.args.get("dstamp",None)
+    interval = request.args.get("interval","1min")
     market_status = None
     load_data = True
     try:
@@ -792,7 +795,17 @@ async def home():
         load_data = False
 
     grid_cols, grid_rows = 4, 8
-    return await render_template("index.html", dstamp=dstamp, load_data=load_data,
+    if interval == "1sec":
+        colorbar_png_file = volume_colorbar_1sec_file
+    elif interval == "1min":
+        colorbar_png_file = volume_colorbar_1min_file
+    elif interval == "5min":
+        colorbar_png_file = volume_colorbar_5min_file
+    else:
+        raise NotImplementedError()
+    return await render_template("index.html", 
+        dstamp=dstamp, interval=interval, load_data=load_data,
+        colorbar_png_file=colorbar_png_file,
         market_status=market_status, grid_cols=grid_cols, grid_rows=grid_rows, 
         div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume"],
         ticker_charts={'SPX':['expectedmove','volume']})
@@ -866,19 +879,49 @@ def process_price_data_with_expected_move(rows, ticker):
 
 
 volumecmap = cm.get_cmap('hot')
-volume_colobar_file = os.path.join('static','colorbar_volume_1min.png')
-if not os.path.exists(volume_colobar_file):
+volume_colorbar_1sec_file = os.path.join('static','colorbar_volume_1sec.png')
+if not os.path.exists(volume_colorbar_1sec_file):
     fig = plt.figure()
     ax = fig.add_axes([0.05, 0.80, 0.9, 0.1])
-    ticks = np.linspace(0,2000,5)
-    norm = mpl.colors.Normalize(vmin=0, vmax=2000)
+    maxval = 100
+    ticks = np.linspace(0,maxval,5)
+    norm = mpl.colors.Normalize(vmin=0, vmax=maxval)
     cbar = mpl.colorbar.ColorbarBase(ax,orientation='horizontal',
         cmap=volumecmap,
-        norm=mpl.colors.Normalize(0, 2000),
+        norm=mpl.colors.Normalize(0, maxval),
         ticks=ticks
     )
     ax.tick_params(colors='gray',grid_color='gray', grid_alpha=0.5)
-    plt.savefig(volume_colobar_file,bbox_inches='tight',transparent=True)
+    plt.savefig(volume_colorbar_1sec_file,bbox_inches='tight',transparent=True)
+volume_colorbar_1min_file = os.path.join('static','colorbar_volume_1min.png')
+if not os.path.exists(volume_colorbar_1min_file):
+    fig = plt.figure()
+    ax = fig.add_axes([0.05, 0.80, 0.9, 0.1])
+    maxval = 2000
+    ticks = np.linspace(0,maxval,5)
+    norm = mpl.colors.Normalize(vmin=0, vmax=maxval)
+    cbar = mpl.colorbar.ColorbarBase(ax,orientation='horizontal',
+        cmap=volumecmap,
+        norm=mpl.colors.Normalize(0, maxval),
+        ticks=ticks
+    )
+    ax.tick_params(colors='gray',grid_color='gray', grid_alpha=0.5)
+    plt.savefig(volume_colorbar_1min_file,bbox_inches='tight',transparent=True)
+volume_colorbar_5min_file = os.path.join('static','colorbar_volume_5min.png')
+if not os.path.exists(volume_colorbar_5min_file):
+    fig = plt.figure()
+    maxval = 2000*5
+    ax = fig.add_axes([0.05, 0.80, 0.9, 0.1])
+    ticks = np.linspace(0,maxval,5)
+    norm = mpl.colors.Normalize(vmin=0, vmax=maxval)
+    cbar = mpl.colorbar.ColorbarBase(ax,orientation='horizontal',
+        cmap=volumecmap,
+        norm=mpl.colors.Normalize(0, maxval),
+        ticks=ticks
+    )
+    ax.tick_params(colors='gray',grid_color='gray', grid_alpha=0.5)
+    plt.savefig(volume_colorbar_5min_file,bbox_inches='tight',transparent=True)
+
 
 def getrgba(value,minval,maxval,alpha,cmap):
     norm_val = np.clip( ((float(value)-minval)/(maxval-minval)) ,0,1)
@@ -889,10 +932,12 @@ def getrgba(value,minval,maxval,alpha,cmap):
     return rgba_str
 
 def process_volume_data(rows, expectedmove_data, spot_min_lim, spot_max_lim,interval):
-    if interval == '5min':
-        minval,maxval,alpha = 0.,2000*5.,0.5
+    if interval == '1sec':
+        minval,maxval,alpha = 0.,100.,0.5
     elif interval == '1min':
         minval,maxval,alpha = 0.,2000.,0.5
+    elif interval == '5min':
+        minval,maxval,alpha = 0.,2000*5.,0.5
     else:
         raise NotImplementedError()
     df = pd.DataFrame([dict(x) for x in rows])
@@ -917,8 +962,12 @@ def process_volume_data(rows, expectedmove_data, spot_min_lim, spot_max_lim,inte
     
     price_tstamp_list = expectedmove_data['prices'][0]
     price_list = expectedmove_data['prices'][-1]
-    assert(len(tstamp_list)==len(price_tstamp_list))
-    mylist = [tstamp_list,start_list,end_list,price_list,data_list]
+    try:
+        assert(len(tstamp_list)==len(price_tstamp_list))
+        mylist = [tstamp_list,start_list,end_list,price_list,data_list]
+    except:
+        app.logger.error(f"{len(tstamp_list)} {len(price_tstamp_list)}")
+        mylist = [tstamp_list,start_list,end_list,end_list,data_list]
     return {
         'data': mylist,
     }
@@ -1027,11 +1076,14 @@ async def ws_main():
                     tstamp_et = now_in_new_york()
                     tstamp_utc = tstamp_et.astimezone(tz=pytz.timezone('UTC')).replace(tzinfo=None)
                     market_open,market_close = get_market_open_close(dstamp,no_tzinfo=True)
-
+                    
+                    is_market_open = True
                     if tstamp_utc < market_open:
                         message = "break-while-loop"
+                        is_market_open = False
                     if tstamp_utc > market_close:
                         message = "break-while-loop"
+                        is_market_open = False
                         tstamp_utc = market_close
 
                     timea = time.time()
@@ -1046,7 +1098,10 @@ async def ws_main():
                     query_list.append(apostgres_execute(apool, CANDLE_QC_QUERY, (ticker, tstamp_utc, options_ticker, tstamp_utc)))
 
                     if interval == "1sec":
-                        pass
+                        query_keys.append((ticker, 'expectedmove'))
+                        query_list.append(apostgres_execute(apool, PRICE_1SEC_QUERY, {"ticker":ticker,"endtime":tstamp_utc}))
+                        query_keys.append((ticker, 'volume'))
+                        query_list.append(apostgres_execute(apool, VOLUME_1SEC_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc}))
                     elif interval == "1min":
                         query_keys.append((ticker, 'expectedmove'))
                         query_list.append(apostgres_execute(apool, PRICE_1MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
@@ -1122,6 +1177,8 @@ async def ws_main():
                     ret_dict['meta']['server_tstamp'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     ret_dict['meta']['duration_time'] = f"{duration_time:0.3f}sec"
                     ret_dict['meta']['error_status'] = None
+                    ret_dict['meta']['is_market_open'] = is_market_open
+                    
                 except:
                     ret_dict = {
                         'tickers': {},
@@ -1131,6 +1188,7 @@ async def ws_main():
                             'data_tstamp': None,
                             'server_tstamp': datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
                             'error_status': 'traceback:'+traceback.format_exc(),
+                            'is_market_open': False,
                         }
                     }
                     app.logger.error(traceback.format_exc())

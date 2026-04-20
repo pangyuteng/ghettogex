@@ -1,4 +1,33 @@
 
+CREATE MATERIALIZED VIEW event_underlying_1sec WITH (timescaledb.continuous) AS
+SELECT time_bucket('1sec', tstamp) as tstamp, ticker, 
+  avg(spot_price) as spot_price,
+  avg(gex) as gex,
+  avg(dex) as dex,
+  avg(vex) as vex,
+  avg(cex) as cex,
+  avg(convexity) as convexity,
+  avg(call_dex) as call_dex,
+  avg(put_dex) as put_dex,
+  avg(expected_move) as expected_move
+FROM event_underlying
+GROUP BY time_bucket('1sec', tstamp), ticker;
+
+SELECT add_continuous_aggregate_policy('event_underlying_1sec',
+  start_offset => INTERVAL '1 week',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('event_underlying_1sec', NULL, NULL);
+ALTER MATERIALIZED VIEW event_underlying_1sec set (timescaledb.materialized_only = true);
+ALTER MATERIALIZED VIEW event_underlying_1sec set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX event_underlying_1sec_index on event_underlying_1sec using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+
+-- DROP MATERIALIZED VIEW event_underlying_1sec;
+
+
 CREATE MATERIALIZED VIEW event_underlying_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, ticker, 
   avg(spot_price) as spot_price,
@@ -79,6 +108,34 @@ CREATE INDEX event_strike_1min_index on event_strike_1min using brin (tstamp,tic
 -- DROP MATERIALIZED VIEW event_strike_1min;
 -- SELECT remove_continuous_aggregate_policy('event_strike_1min');
 
+
+CREATE MATERIALIZED VIEW candle_1sec WITH (timescaledb.continuous) AS
+SELECT time_bucket('1sec', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+first(open,tstamp) as open,
+last(close,tstamp) as close,
+max(high) as high,
+min(low) as low,
+sum(ask_volume) as ask_volume,
+sum(bid_volume) as bid_volume,
+sum(volume) as volume,
+sum(ask_volume)-sum(bid_volume) as order_imbalance
+FROM candle 
+GROUP BY time_bucket('1sec', tstamp), event_symbol,ticker,expiration,contract_type,strike;
+
+SELECT add_continuous_aggregate_policy('candle_1sec',
+  start_offset => INTERVAL '1 week',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('candle_1sec', NULL, NULL);
+ALTER MATERIALIZED VIEW candle_1sec set (timescaledb.materialized_only = true);
+ALTER MATERIALIZED VIEW candle_1sec set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX candle_1sec_tstamp_event_symbol_index on candle_1sec using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX candle_1sec_index on candle_1sec using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+-- DROP MATERIALIZED VIEW candle_1sec;
+-- SELECT remove_continuous_aggregate_policy('candle_1sec');
 
 CREATE MATERIALIZED VIEW candle_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,

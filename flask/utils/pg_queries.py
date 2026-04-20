@@ -66,7 +66,7 @@ ORDER BY strike
 INTERVAL_CONVEXITY_QUERY = """
 WITH o_interval AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from candle_5min where ticker = %s and expiration = %s and tstamp::date = %s and tstamp >= %s - interval '60 minute'
+from candle_5min where ticker = %s and expiration = %s and tstamp::date = %s and tstamp >= %s - interval '15 minute'
 group by ticker,strike
 ), g_1day AS (
 select distinct ticker,strike,last(gamma,tstamp) as gamma
@@ -216,8 +216,138 @@ where ticker = %s and tstamp::date = %s
 ORDER BY tstamp
 """
 
+"""
+SELECT tstamp,close
+FROM candle_1sec
+WHERE tstamp >= '2026-04-17 19:59:00'::timestamp AND tstamp < '2026-04-17 20:00:00'::timestamp
+AND event_symbol = 'SPX' 
+ORDER BY tstamp
+
+
+SELECT 
+    time_bucket_gapfill('1 sec', tstamp, '2026-04-17 19:59:00', '2026-04-17 20:00:00') AS bucket,
+    LOCF(avg(close)) AS close
+FROM candle_1sec
+WHERE tstamp >= '2026-04-17 19:59:00'::timestamp AND tstamp < '2026-04-17 20:00:00'::timestamp
+AND event_symbol = 'SPX' 
+GROUP BY bucket
+ORDER BY bucket
+
+
+WITH price AS (
+    SELECT time_bucket_gapfill('1 sec', tstamp, '2026-04-17 20:00:00'::timestamp - interval '15 minute' , '2026-04-17 20:00:00'::timestamp) AS bucket,
+    LOCF(avg(close)) AS ticker_close
+    FROM candle_1sec WHERE tstamp <= '2026-04-17 20:00:00'::timestamp AND tstamp >= '2026-04-17 20:00:00'::timestamp - interval '15 minute'
+    AND event_symbol = 'SPX' AND close != 0
+    GROUP BY bucket ORDER BY bucket
+),
+em AS (
+    SELECT time_bucket_gapfill('1 sec', tstamp, '2026-04-17 20:00:00'::timestamp - interval '15 minute' , '2026-04-17 20:00:00'::timestamp) AS bucket,
+    LOCF(avg(expected_move)) AS expected_move
+    FROM event_underlying_1sec WHERE tstamp <= '2026-04-17 20:00:00'::timestamp AND tstamp >= '2026-04-17 20:00:00'::timestamp- interval '15 minute' 
+    AND ticker = 'SPX'
+    GROUP BY bucket ORDER BY bucket
+),
+vix AS (
+    SELECT time_bucket_gapfill('1 sec', tstamp, '2026-04-17 20:00:00'::timestamp - interval '15 minute' , '2026-04-17 20:00:00'::timestamp) AS bucket,
+    LOCF(avg(close)) AS vix_close
+    FROM candle_1sec WHERE tstamp <= '2026-04-17 20:00:00'::timestamp AND tstamp >= '2026-04-17 20:00:00'::timestamp- interval '15 minute' 
+    AND event_symbol = 'VIX' AND close != 0
+    GROUP BY bucket ORDER BY bucket
+),
+vix1d AS (
+    SELECT time_bucket_gapfill('1 sec', tstamp, '2026-04-17 20:00:00'::timestamp - interval '15 minute' , '2026-04-17 20:00:00'::timestamp) AS bucket,
+    LOCF(avg(close)) AS vix1d_close
+    FROM candle_1sec WHERE tstamp <= '2026-04-17 20:00:00'::timestamp AND tstamp >= '2026-04-17 20:00:00'::timestamp - interval '15 minute' 
+    AND event_symbol = 'VIX1D' AND close != 0
+    GROUP BY bucket ORDER BY bucket
+),
+vix9d AS (
+    SELECT time_bucket_gapfill('1 sec', tstamp, '2026-04-17 20:00:00'::timestamp - interval '15 minute' , '2026-04-17 20:00:00'::timestamp) AS bucket,
+    LOCF(avg(close)) AS vix9d_close
+    FROM candle_1sec WHERE tstamp <= '2026-04-17 20:00:00'::timestamp AND tstamp >= '2026-04-17 20:00:00'::timestamp - interval '15 minute' 
+    AND event_symbol = 'VIX9D' AND close != 0
+    GROUP BY bucket ORDER BY bucket
+)
+SELECT bucket as tstamp, *
+FROM price
+LEFT JOIN vix USING (bucket)
+LEFT JOIN vix1d USING (bucket)
+LEFT JOIN vix9d USING (bucket)
+LEFT JOIN em USING (bucket)
+ORDER BY bucket
+
+"""
+
+
+
+PRICE_1SEC_QUERY = """
+WITH price AS (
+    SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+    LOCF(avg(close)) AS ticker_close
+    FROM candle_1sec
+    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+    AND event_symbol = %(ticker)s AND close != 0
+    GROUP BY bucket ORDER BY bucket
+),
+em AS (
+    SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+    LOCF(avg(expected_move)) AS expected_move
+    FROM event_underlying_1sec
+    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+    AND ticker = %(ticker)s
+    GROUP BY bucket ORDER BY bucket
+),
+vix AS (
+    SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+    LOCF(avg(close)) AS vix_close
+    FROM candle_1sec
+    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+    AND event_symbol = 'VIX' AND close != 0
+    GROUP BY bucket ORDER BY bucket
+),
+vix1d AS (
+    SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+    LOCF(avg(close)) AS vix1d_close
+    FROM candle_1sec
+    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+    AND event_symbol = 'VIX1D' AND close != 0
+    GROUP BY bucket ORDER BY bucket
+),
+vix9d AS (
+    SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+    LOCF(avg(close)) AS vix9d_close
+    FROM candle_1sec
+    WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+    AND event_symbol = 'VIX9D' AND close != 0
+    GROUP BY bucket ORDER BY bucket
+)
+
+SELECT bucket as tstamp, * FROM price
+LEFT JOIN vix USING (bucket)
+LEFT JOIN vix1d USING (bucket)
+LEFT JOIN vix9d USING (bucket)
+LEFT JOIN em USING (bucket)
+ORDER BY bucket
+
+"""
+
+VOLUME_1SEC_QUERY = """
+WITH volume AS (
+SELECT time_bucket_gapfill('1 sec', tstamp, %(endtime)s::timestamp - interval '15 minute', %(endtime)s::timestamp) AS bucket,
+strike,avg(volume) as volume FROM volume_1sec
+WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(endtime)s::timestamp - interval '15 minute'
+AND ticker = %(ticker)s
+GROUP BY bucket, strike
+ORDER BY bucket, strike
+)
+SELECT bucket as tstamp, * from volume
+ORDER BY bucket
+"""
+
+
 PRICE_1MIN_QUERY = """
-WITH candle AS (
+WITH price AS (
     SELECT tstamp, close AS ticker_close
     FROM candle_1min WHERE tstamp::date = %s AND event_symbol = %s AND close != 0
 ),
@@ -237,11 +367,11 @@ vix9d AS (
     SELECT tstamp, close AS vix9d_close
     FROM candle_1min WHERE tstamp::date = %s AND event_symbol = 'VIX9D' AND close != 0
 )
-SELECT * FROM candle
-LEFT JOIN em USING (tstamp)
+SELECT * FROM price
 LEFT JOIN vix USING (tstamp)
 LEFT JOIN vix1d USING (tstamp)
 LEFT JOIN vix9d USING (tstamp)
+LEFT JOIN em USING (tstamp)
 ORDER BY tstamp
 """
 
@@ -252,7 +382,7 @@ ORDER BY tstamp, strike
 """
 
 PRICE_5MIN_QUERY = """
-WITH candle AS (
+WITH price AS (
     SELECT tstamp, close AS ticker_close
     FROM candle_5min WHERE tstamp::date = %s AND event_symbol = %s AND close != 0
 ),
@@ -272,11 +402,11 @@ vix9d AS (
     SELECT tstamp, close AS vix9d_close
     FROM candle_5min WHERE tstamp::date = %s AND event_symbol = 'VIX9D' AND close != 0
 )
-SELECT * FROM candle
-LEFT JOIN em USING (tstamp)
+SELECT * FROM price
 LEFT JOIN vix USING (tstamp)
 LEFT JOIN vix1d USING (tstamp)
 LEFT JOIN vix9d USING (tstamp)
+LEFT JOIN em USING (tstamp)
 ORDER BY tstamp
 """
 

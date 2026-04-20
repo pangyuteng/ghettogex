@@ -23,11 +23,6 @@
 </head>
 
 <body>
-<select>
-  <option value="1sec">1sec</option>
-  <option value="1min" selected>1min</option>
-  <option value="5min">5min</option>
-</select>
 {% if load_data %}
 <span id="errorSpan" style="font-size: 20px !important; color: #ff0000;"></span>
 data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
@@ -40,13 +35,6 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
 
 <script>
     const TICKER_CHARTS = {{ ticker_charts | tojson }};
-    const WS_ENDPOINT = "/ws-main";
-    /*
-    const WS_EXTRA_PARAMS = "&main-ticker={{ main_ticker }}"
-        + "&main-charts={{ main_charts | join(',') }}"
-        + "&other-tickers={{ other_tickers | join(',') }}"
-        + "&other-charts={{ other_charts | join(',') }}";
-    */
 </script>
 <!-- All charts flow into a single grid -->
 <div class="grid-container">
@@ -55,7 +43,7 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
     {% endfor %}
 </div>
 <div>
-<img src="/static/colorbar_volume_1min.png" width="500px">
+<img src={{colorbar_png_file}} width="500px">
 </div>
 <br>
 server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>

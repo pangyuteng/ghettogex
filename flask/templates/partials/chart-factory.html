@@ -208,8 +208,8 @@ function makeChartScatter(elementId, mytitle, chartWidth, showLegend) {
 	];
 	return new uPlot(opts, ogdata, document.getElementById(elementId));
 }
-
-
+let ms = 1e-3;
+TIME_ZONE = 'America/New_York';
 // --- CHART_CONFIGS: maps chart type to {make, update} ---
 const CHART_CONFIGS = {
 
@@ -294,12 +294,13 @@ const CHART_CONFIGS = {
 			chartObj.setData(pd.prices);
 		}
 	},
-
+	
 	'expectedmove': {
 		make: function(elementId, ticker) {
 			let mylines = [];
 			const opts = {
 				title: ticker,
+				tzDate: ts => uPlot.tzDate(new Date(ts*1e3), TIME_ZONE),
 				width: 512,
 				height: 512,
 				series: [
@@ -390,6 +391,7 @@ const CHART_CONFIGS = {
 		make: function(elementId, ticker) {
 			const opts = {
 				title: ticker + "-volume",
+				tzDate: ts => uPlot.tzDate(new Date(ts*1e3), TIME_ZONE),
 				width: 512,//width: 380,
 				height: 512,//height: 380,
 				plugins: [

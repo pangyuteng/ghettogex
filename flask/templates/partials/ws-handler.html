@@ -1,9 +1,4 @@
 <script>
-    //const _allTickers = Object.keys(TICKER_CHARTS);
-
-    //const wsUrl = WS_ENDPOINT + "?dstamp={{ dstamp }}" + WS_EXTRA_PARAMS;
-    const wsUrl = WS_ENDPOINT + "?dstamp={{ dstamp }}"
-    const ws = new WebSocket(wsUrl);
 
     let errorSpan = document.getElementById("errorSpan");
     let dataQcSpan = document.getElementById("dataQcSpan");
@@ -14,38 +9,77 @@
     let pricesSpan = document.getElementById("pricesSpan");
     let contractvolumeSpan = document.getElementById("contractvolumeSpan");
 
-    ws.onmessage = function(event) {
-        let newdata = JSON.parse(event.data);
-        let meta = newdata.meta || {};
+    const WS_ENDPOINT = "/ws-main";
+    let WS_EXTRA_PARAMS = "?dstamp={{ dstamp }}&interval={{ interval }}";
+    let wsUrl = WS_ENDPOINT + WS_EXTRA_PARAMS;
+    let enableReconnect = true;
+    function connect() {
+        var ws = new WebSocket(wsUrl);
 
-        // Update meta spans
-        errorSpan.textContent = meta.error_status || '';
-        dataQcSpan.textContent = meta.qc_comment || '';
-        serverTstampSpan.textContent = meta.server_tstamp || '';
-        queryTimeSpan.textContent = meta.duration_time || '';
-        dataTstampSpan.textContent = meta.data_tstamp || '';
-
-        let ticker = 'SPX';
-        let ticker_price = newdata.tickers[ticker]['expectedmove']['ticker_price'];
-        let vix_price = newdata.tickers[ticker]['expectedmove']['vix_price'];
-        let vix9d_price = newdata.tickers[ticker]['expectedmove']['vix9d_price'];
-        let vix1d_price = newdata.tickers[ticker]['expectedmove']['vix1d_price'];
-        let expected_move = newdata.tickers[ticker]['expectedmove']['expected_move'];
-        titleSpan.textContent = 'spx:' + ticker_price + ',vix:' + vix_price;
-
-        pricesSpan.textContent = 'spx:' + ticker_price + ', vix:' + vix_price + ', vid9d:' + vix9d_price + ', vix1d:'+vix1d_price+', expected_move:'+ expected_move;
-
-        TICKER_CHARTS[ticker].forEach(function(chartType) {
-            let tickerData = (newdata.tickers || {})[ticker] || {};
-            let config = CHART_CONFIGS[chartType];
-            let chartObj = (chartRegistry[ticker] || {})[chartType];
-            if (config && config.update && chartObj) {
-                config.update(chartObj, tickerData);
+        ws.onclose = function(e) {
+            if (enableReconnect){
+                console.log('socket closed try again'); 
+                setTimeout(function() {
+                connect();
+                }, 1000);
+            }{
+                console.log('socket closed, but market closed, so will not retry'); 
             }
+        }
 
-        });
-        
-        contractvolumeSpan.innerHTML = newdata.tickers[ticker]['contractvolume'];
+        ws.onmessage = function(event) {
+            let newdata = JSON.parse(event.data);
+            let meta = newdata.meta || {};
+            enableReconnect = meta.is_market_open || false;
+            // Update meta spans
+            errorSpan.textContent = meta.error_status || '';
+            dataQcSpan.textContent = meta.qc_comment || '';
+            serverTstampSpan.textContent = meta.server_tstamp || '';
+            queryTimeSpan.textContent = meta.duration_time || '';
+            dataTstampSpan.textContent = meta.data_tstamp || '';
 
-    };
+            let ticker = 'SPX';
+            let ticker_price = newdata.tickers[ticker]['expectedmove']['ticker_price'];
+            let vix_price = newdata.tickers[ticker]['expectedmove']['vix_price'];
+            let vix9d_price = newdata.tickers[ticker]['expectedmove']['vix9d_price'];
+            let vix1d_price = newdata.tickers[ticker]['expectedmove']['vix1d_price'];
+            let expected_move = newdata.tickers[ticker]['expectedmove']['expected_move'];
+            titleSpan.textContent = 'spx:' + ticker_price + ',vix:' + vix_price;
+
+            pricesSpan.textContent = 'spx:' + ticker_price + ', vix:' + vix_price + ', vid9d:' + vix9d_price + ', vix1d:'+vix1d_price+', expected_move:'+ expected_move;
+
+            TICKER_CHARTS[ticker].forEach(function(chartType) {
+                let tickerData = (newdata.tickers || {})[ticker] || {};
+                let config = CHART_CONFIGS[chartType];
+                let chartObj = (chartRegistry[ticker] || {})[chartType];
+                if (config && config.update && chartObj) {
+                    config.update(chartObj, tickerData);
+                }
+
+            });
+
+            contractvolumeSpan.innerHTML = newdata.tickers[ticker]['contractvolume'];
+
+        };
+        return ws;
+    } // connect
+    let ws = connect();
+    
+    function onIntervalChange() {
+        enableReconnect = true;
+        interval=document.getElementById("intervalId").value;
+        WS_EXTRA_PARAMS = "?dstamp={{ dstamp }}&interval={{ interval }}";
+        console.log(interval);
+        wsUrl = WS_ENDPOINT + WS_EXTRA_PARAMS;
+        ws.close();
+    }
+
 </script>
+
+<select id="intervalId" onchange="onIntervalChange()">
+  <option value="1sec" {% if interval == '1sec' %}selected{% endif %}>1sec</option>
+  <option value="1min" {% if interval == '1min' %}selected{% endif %}>1min</option>
+  <option value="5min" {% if interval == '5min' %}selected{% endif %}>5min</option>
+</select>
+</body>
+</html>
