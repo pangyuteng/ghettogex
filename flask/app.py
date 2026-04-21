@@ -121,7 +121,7 @@ app = Quart(__name__,
 app.config["QUART_AUTH_MODE"]="cookie"
 app.config["QUART_AUTH_COOKIE_SECURE"]=False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
-app.secret_key = "dLxWOjuwlk2z0n2I4NgxaQ" # import secrets ; secrets.token_urlsafe(16)
+app.secret_key = EXPECTED_HASH # import secrets ; secrets.token_urlsafe(16)
 auth_manager = QuartAuth(app)
 
 
