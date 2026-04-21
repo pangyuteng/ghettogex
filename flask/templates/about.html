@@ -23,33 +23,33 @@
 
 <br>
 
-<br># * disclaimer<br><br>
+<br># * disclaimer *** everything provided here is unreliable ***<br><br>
 
 + candle volume cannot accurately determine dealer directional open interest (DDOI), thus one can argue the derived gex is pretty much garbage. but hey, it's free garbage!<br>
 
 + volatilty and greeks for SPX computed with vollib, with ~1sec lag. Greeks for NDX is from data vendor updated once per minute.<br>
 
-<br># order imbalance plots<br><br>
+<br># order imbalance plots ***unreliable***<br><br>
 
 + call and put order imbalance are sum of 0DTE SPXW candle bid and ask volume every 5min, more selling (red), more buying (green), bins: {{ order_imbalance_bin_str }}.<br>
 
 + in this doc we are defining "order imbalance" as sum of candle bid and ask volume, which is also referred to as "cumulative volume delta" - definately not true buy&sell. but maybe could be a poor man's guesstimate of order imbalance given a set duration.<br>
 
-<br># gamma exposure (gex)<br><br>
+<br># gamma exposure (gex) ***unreliable***<br><br>
 
 + gex is a guesstimate using 0DTE SPXW order imbalance (of entire day) from only the current day (akin @gexbot Classic, or @unusual_whales spot gex volume - not as accurate as @optionsdepth, @spotgamma Trace, @gexbot State) <br>
 
 + horizontal dashed lines: spot: white, expected moves: gray, major positive gex strike: green, major negative gex strike: red.<br>
 
-<br><br># convexity<br><br>
+<br><br># convexity ***unreliable***<br><br>
 
 + 0DTE SPXW order imbalance (of past 1hr) multiplied by current gamma, no put or call distinction. see gexbot document for more info, gexbot uses likely entire day order imbalance.<br>
 
 + horizontal dashed lines: major positive convexity: cyan, major negative convexity: purple.<br>
 
-<br># volatility<br><br>
+<br># volatility ***unreliable***<br><br>
 
-+ [exploratory] pyvollib, this is the most basic lib, definitely not ideal ? ***unreliable***<br>
++ [exploratory] pyvollib, this is the most basic lib, definitely not ideal ?<br>
 
 <br># delta exposure (dex)<br><br>
 
@@ -57,9 +57,9 @@
 
 + combined-dex (blue), call-dex (green), put-dex (red)<br>
 
-<br># net gex, net convexity <br><br>
+<br># net gex, net convexity ***unreliable***<br><br>
 
-+ [exploratory], attempt to replicate gexbot orderflow feature ? ***unreliable***.<br>
++ [exploratory], attempt to replicate gexbot orderflow feature ?<br>
 
 + net-gex, net-convexity are shown as lines, and the diff are shown as bars. could be useful to confirm large orders but could be noisy.
 

@@ -1,6 +1,27 @@
 
 # hola ghettogex
 
+```
+
+this is a repo used by me to understand option greeks exposure.
+
++ main page `/` shows you SPX price, volatility, VIX, and pm 0dte contract volume.
+
++ spx pm 0dte gex,dex is displayed in `/scratch`. this is ** garbage and unreliable **
+
+*** DISCLAIMER ***
+
++ other than price and volume streamed from the data vendor, treat everything else computed by this repo as garbage and unreliable.
+
++ repo content is provided for educational purposes only.
+
++ for more disclaimer & info see `/about`.
+
++ i reserve all right to not respond to any issues.
+
+```
+
+
 ## obtain tastytrade OAuth client secret and refesh token
 
 + refer to instructions here: https://tastyworks-api.readthedocs.io/en/latest/sessions.html#creating-an-oauth-application
@@ -31,7 +52,7 @@ docker compose build
 docker compose --env-file .env up -d
 ```
 
-#### via kube
+#### via kube (ignore this, for personal use... )
 
 For devops folks these are shitty notes, likely okay to follow. For non-devops folks, these will look like garbage.
 
