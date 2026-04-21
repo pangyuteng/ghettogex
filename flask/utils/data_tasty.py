@@ -326,13 +326,14 @@ async def _subscribe(streamer, streamer_symbols, expiration):
         await streamer.subscribe(Underlying, streamer_symbols)
 
     logger.debug(f"_subscribe {streamer_symbols[0]}")
-    # TODO: delete later after confirming reconnection working.
-    #########
-    tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
-    logfile = os.path.join("/mnt/sm-data",f"{streamer_symbols[0]}-{tstamp}.txt")
-    with open(logfile,'w') as f:
-        f.write(str(streamer_symbols))
-    #########
+    if False:
+        # TODO: delete later after confirming reconnection working.
+        #########
+        tstamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
+        logfile = os.path.join("/mnt/sm-data",f"{streamer_symbols[0]}-{tstamp}.txt")
+        with open(logfile,'w') as f:
+            f.write(str(streamer_symbols))
+        #########
 
 @dataclass
 class LivePrices:
