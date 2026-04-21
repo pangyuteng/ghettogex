@@ -30,7 +30,7 @@
 ## screenshot of exposure page `/scratch`
 
 
-## references
+# references
 
 + SqueezeMetrics, The Implied Order Book, https://squeezemetrics.com/download/The_Implied_Order_Book.pdf
 
