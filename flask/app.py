@@ -937,7 +937,6 @@ def getrgba(value,minval,maxval,alpha,cmap):
     r,g,b,_ = [int(x*255) for x in volumecmap(norm_val)]
     alpha = 0.5
     rgba_str = f"rgba({r},{g},{b},{alpha})"
-    #app.logger.error(rgba_str)
     return rgba_str
 
 def process_volume_data(rows, expectedmove_data, spot_min_lim, spot_max_lim,interval):
@@ -1045,7 +1044,7 @@ async def debug():
                 'max_lim': np.inf,
             }
             app.logger.error(traceback.format_exc())
-        app.logger.error(f"{ticker_data['expectedmove']['min_lim']},{ticker_data['expectedmove']['max_lim']}")
+
         try:
             source_data = result_map[(ticker, 'volume')]
             volume_result = process_volume_data(
