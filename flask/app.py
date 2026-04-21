@@ -89,9 +89,9 @@ TICKER_REGISTRY = {
     'SPY':  {'options_ticker': 'SPY',  'companion': 'VIX'},
     'QQQ':  {'options_ticker': 'QQQ',  'companion': 'VIX'},
 }
-VALID_CHARTS = ['price','convexity','volatility','gex','dexflow','gexflow',
+VALID_CHARTS = ['price','gex','convexity','dexflow','gexflow',
                 'convexityflow','call-order-imbalance','put-order-imbalance',
-                'call-last-x-min','put-last-x-min']
+                'volatility','call-last-x-min','put-last-x-min',]
 DEFAULT_TICKERS = ['SPX','SPY','QQQ','NDX']
 DEFAULT_CHARTS = VALID_CHARTS[:]
 

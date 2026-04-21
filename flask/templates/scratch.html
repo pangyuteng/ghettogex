@@ -16,7 +16,8 @@
     }
     .grid-container {
         display: grid;
-        grid-template-columns: repeat({{ tickers|length }}, 1fr);
+        /*grid-template-columns: repeat({{ tickers|length }}, 1fr);*/
+        grid-template-columns: repeat(3, 1fr);
         gap: 4px;
     }
     .grid-header {
@@ -53,11 +54,11 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
 
 <!-- Dynamic grid: columns=tickers, rows=charts -->
 <div class="grid-container">
-    <!-- Column headers -->
+    <!-- Column headers 
     {% for ticker in tickers %}
-    <div class="grid-header">{{ ticker }}</div>
+    <div class="grid-header"></div>
     {% endfor %}
-
+    -->
     <!-- Chart cells: rows=charts, cols=tickers -->
     {% for chart in charts %}
         {% for ticker in tickers %}

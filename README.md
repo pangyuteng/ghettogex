@@ -21,6 +21,12 @@ this is a repo used by me to understand option greeks exposure.
 
 ```
 
+## screenshot of  main page `/`
+
+
+## screenshot of exposure page `/scratch`
+
+
 
 ## obtain tastytrade OAuth client secret and refesh token
 
@@ -28,7 +34,7 @@ this is a repo used by me to understand option greeks exposure.
 
 ## deployment
 
-#### via docker compose
+#### via docker compose (not yet tested)
 
 + build containers
 
