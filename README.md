@@ -26,9 +26,11 @@
 
 ## screenshot of  main page `/`
 
+![alt text](./flask/static/main-page.png)
 
 ## screenshot of exposure page `/scratch`
 
+![alt text](./flask/static/scratch-path.png)
 
 # references, reading materials
 
