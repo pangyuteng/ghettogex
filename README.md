@@ -38,9 +38,9 @@
 
 + Sergei Perfiliev, How Options Gamma, Vanna and Charm Flows Move the Markets, https://www.youtube.com/watch?v=0oJqC9QK-I0&
 
-+ great library https://github.com/tastyware/tastytrade , excellent work by @Graeme22 !!
++ excellent library https://github.com/tastyware/tastytrade , great work by @Graeme22 !
 
-+ another great library: https://github.com/leeoniya/uplot
++ great library: https://github.com/leeoniya/uplot
 
 + another great library: https://github.com/bigskysoftware/htmx
 
