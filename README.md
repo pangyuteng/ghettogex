@@ -8,7 +8,7 @@
 
 + this is a repo used by me to understand option greeks exposure.
 
-+ main page `/` shows you SPX price, volatility, VIX, and pm 0dte contract volume.
++ main page `/` shows you SPX price, volatility, VIX, and pm 0dte contract volume updated every sec or so.
 
 + spx pm 0dte gex,dex is displayed in `/scratch`. this is ** garbage and unreliable **
 
@@ -30,7 +30,7 @@
 ## screenshot of exposure page `/scratch`
 
 
-# references
+# references, reading materials
 
 + SqueezeMetrics, The Implied Order Book, https://squeezemetrics.com/download/The_Implied_Order_Book.pdf
 
