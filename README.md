@@ -47,7 +47,7 @@
 + tech stack: timescaledb, celery, quart
 
 
-# steps to spin up this shit
+# steps to spin this shit up
 
 ## obtain tastytrade OAuth client secret and refesh token
 
