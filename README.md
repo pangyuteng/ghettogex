@@ -36,6 +36,8 @@
 
 + Sergei Perfiliev, How to Calculate Gamma Exposure (GEX) and Zero Gamma Level, https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
 
++ Sergei Perfiliev, How Options Gamma, Vanna and Charm Flows Move the Markets, https://www.youtube.com/watch?v=0oJqC9QK-I0&
+
 + great library https://github.com/tastyware/tastytrade , excellent work by @Graeme22 !!
 
 + another great library: https://github.com/leeoniya/uplot
