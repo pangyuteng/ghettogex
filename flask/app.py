@@ -390,8 +390,9 @@ async def logout():
 async def redirect_to_login(*_):
     return redirect(url_for("login"))
 
+#@app.route("/about")
+#@login_required
 @app.route("/about")
-@login_required
 async def about():
     order_imbalance_bin_str = "[0,10,25,50,100,200]"
     return await render_template("about.html",order_imbalance_bin_str=order_imbalance_bin_str)
@@ -415,8 +416,9 @@ async def get_equity():
         return jsonify(traceback.format_exc()),401
 
 # scratch/exploratory, used to understand gex, gex-bot's convexity...
+#@app.route("/scratch")
+#@login_required
 @app.route("/scratch")
-@login_required
 async def scratch():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
@@ -487,8 +489,9 @@ def _needs_query_group(charts, group_charts):
     """Check if any of the group_charts are in the requested charts list."""
     return any(c in charts for c in group_charts)
 
+# @app.websocket('/ws-scratch')
+# @login_required
 @app.websocket('/ws-scratch')
-@login_required
 async def ws_scratch():
     try:
         message = None
@@ -757,8 +760,9 @@ async def ws_scratch():
         app.logger.error('Client disconnected')
         raise
 
+#@app.route("/")
+#@login_required
 @app.route("/")
-@login_required
 async def home():
     if not await current_user.is_authenticated:
         return redirect(url_for("login"))
@@ -1057,8 +1061,9 @@ async def debug():
         return await render_template("debug-volume.html", dstamp=dstamp, ret_dict=ret_dict)
 
 
+#@app.websocket('/ws-main')
+#@login_required
 @app.websocket('/ws-main')
-@login_required
 async def ws_main():
     try:
         message = None
