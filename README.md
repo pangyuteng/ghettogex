@@ -1,9 +1,12 @@
 
 # hola ghettogex
 
+
+## about
+
 ```
 
-this is a repo used by me to understand option greeks exposure.
++ this is a repo used by me to understand option greeks exposure.
 
 + main page `/` shows you SPX price, volatility, VIX, and pm 0dte contract volume.
 
@@ -27,6 +30,22 @@ this is a repo used by me to understand option greeks exposure.
 ## screenshot of exposure page `/scratch`
 
 
+## references
+
++ SqueezeMetrics, The Implied Order Book, https://squeezemetrics.com/download/The_Implied_Order_Book.pdf
+
++ Sergei Perfiliev, How to Calculate Gamma Exposure (GEX) and Zero Gamma Level, https://perfiliev.com/blog/how-to-calculate-gamma-exposure-and-zero-gamma-level
+
++ great library https://github.com/tastyware/tastytrade , excellent work by @Graeme22 !!
+
++ another great library: https://github.com/leeoniya/uplot
+
++ another great library: https://github.com/bigskysoftware/htmx
+
++ tech stack: timescaledb, celery, quart
+
+
+# steps to spin up this shit
 
 ## obtain tastytrade OAuth client secret and refesh token
 
