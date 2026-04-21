@@ -416,12 +416,13 @@ async def get_equity():
         return jsonify(traceback.format_exc()),401
 
 # scratch/exploratory, used to understand gex, gex-bot's convexity...
-#@app.route("/scratch")
-#@login_required
+# @app.route("/scratch")
+# @login_required
+# async def scratch():
+#     if not await current_user.is_authenticated:
+#        return redirect(url_for("login"))
 @app.route("/scratch")
 async def scratch():
-    if not await current_user.is_authenticated:
-        return redirect(url_for("login"))
     dstamp = request.args.get("dstamp",None)
     market_status = None
     load_data = True
@@ -760,12 +761,13 @@ async def ws_scratch():
         app.logger.error('Client disconnected')
         raise
 
-#@app.route("/")
-#@login_required
+# @app.route("/")
+# @login_required
+# async def home():
+#     if not await current_user.is_authenticated:
+#        return redirect(url_for("login"))
 @app.route("/")
 async def home():
-    if not await current_user.is_authenticated:
-        return redirect(url_for("login"))
     dstamp = request.args.get("dstamp",None)
     interval = request.args.get("interval","1min")
     market_status = None
