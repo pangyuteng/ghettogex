@@ -8,7 +8,8 @@ celery -A tasks worker -Q $QUEUENAME \
     --hostname=$WORKERNAME \
     --pidfile /tmp/celeryworker.pid \
     --pool=prefork --concurrency=10 \
-    --prefetch-multiplier=1 --without-gossip --loglevel=INFO
+    --prefetch-multiplier=1 --loglevel=INFO \
+    --without-mingle --without-gossip
 
 # -Ofair --pool=solo --concurrency=1 --max-tasks-per-child=1 \
 #    --logfile=$LOGFILE \
