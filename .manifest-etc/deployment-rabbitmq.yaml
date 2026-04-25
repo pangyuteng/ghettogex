@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: rabbitmq
-        image: rabbitmq:management
+        image: docker.io/pangyuteng/ghettogex-rabbitmq
         imagePullPolicy: Always
         ports:
         - containerPort: 5672
