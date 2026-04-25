@@ -21,7 +21,7 @@ services:
         volumes:
            - db_volume:/var/lib/postgresql/data
     redis:
-        image: redis:latest
+        image: redis:8.4.2-alpine
         hostname: redis
         ports:
             - 6379:6379
@@ -32,7 +32,7 @@ services:
             timeout: 10s
             retries: 5
     rabbitmq:
-        image: rabbitmq:management
+        image: rabbitmq:4.2.6-management-alpine
         hostname: rabbitmq
         ports:
             - 5672:5672
