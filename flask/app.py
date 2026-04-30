@@ -965,6 +965,11 @@ def process_volume_data(rows, expectedmove_data, spot_min_lim, spot_max_lim,inte
     price_tstamp_list = expectedmove_data['prices'][0]
     price_list = expectedmove_data['prices'][-1]
     try:
+        pdf = pd.DataFrame({"tstamp":price_tstamp_list,"price":price_list})
+        tdf = pd.DataFrame({"tstamp":tstamp_list}
+        mdf = tdf.merge(pdf,how='left',on=['tstamp']).replace({np.nan: None})
+        price_tstamp_list = mdf.tstamp.to_list()
+        price_list = mdf.price.to_list()
         assert(len(tstamp_list)==len(price_tstamp_list))
         mylist = [tstamp_list,start_list,end_list,price_list,data_list]
     except:
