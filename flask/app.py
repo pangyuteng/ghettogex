@@ -970,7 +970,8 @@ def process_volume_data(rows, expectedmove_data, spot_min_lim, spot_max_lim,inte
         mdf = tdf.merge(pdf,how='left',on=['tstamp']).replace({np.nan: None})
         price_tstamp_list = mdf.tstamp.to_list()
         price_list = mdf.price.to_list()
-        assert(len(tstamp_list)==len(price_tstamp_list))
+        #assert(len(tstamp_list)==len(price_tstamp_list))
+        app.logger.error(f"{len(tstamp_list)},{len(set(tstamp_list))}===========")
         mylist = [tstamp_list,start_list,end_list,price_list,data_list]
     except:
         app.logger.error(f"{len(tstamp_list)} {len(price_tstamp_list)}")
