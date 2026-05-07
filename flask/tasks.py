@@ -94,6 +94,7 @@ class ManageSubscription(luigi.Task):
             fetched = [dict(x) for x in fetched]
             for row in fetched:
                 ticker = row['ticker']
+                expiration_count = row['expiration_count']
                 logger.info(f"trigger subscriptions apply_async {ticker}")
                 if ticker in IGNORE_OPTIONS_TICKER_LIST:
                     expirations_str = "None"
@@ -122,7 +123,7 @@ class ManageSubscription(luigi.Task):
 
                     for n,expirations_str in enumerate(expiration_list):
                         trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
-                        if n == 1:
+                        if n == expiration_count:
                             break
 
             if is_market_open():

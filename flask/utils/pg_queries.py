@@ -416,7 +416,7 @@ WHERE tstamp::date = %s AND ticker = %s
 ORDER BY tstamp, strike
 """
 
-CONTRACT_VOLUME_1MIN_QUERY = """
+TOP_CONTRACT_VOLUME_QUERY = """
 with foo as (
 select tstamp,event_symbol,strike,contract_type,volume,open,high,low,close, 'SPX' as ticker
 from candle_1min 

@@ -73,7 +73,7 @@ from utils.pg_queries import (
     VOLUME_1MIN_QUERY,
     PRICE_5MIN_QUERY,
     VOLUME_5MIN_QUERY,
-    CONTRACT_VOLUME_1MIN_QUERY,
+    TOP_CONTRACT_VOLUME_QUERY,
 )
 
 from utils.data_tasty import (
@@ -1125,7 +1125,7 @@ async def ws_main():
                         raise NotImplementedError()
 
                     query_keys.append((ticker, 'contractvolume'))
-                    query_list.append(apostgres_execute(apool, CONTRACT_VOLUME_1MIN_QUERY, (dstamp, options_ticker, dstamp, ticker)))
+                    query_list.append(apostgres_execute(apool, TOP_CONTRACT_VOLUME_QUERY, (dstamp, options_ticker, dstamp, ticker)))
 
 
                     gathered_res = await asyncio.gather(*query_list)

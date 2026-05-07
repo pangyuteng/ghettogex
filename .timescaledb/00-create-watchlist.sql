@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS watchlist (
     watchlist_id SERIAL PRIMARY KEY,
     ticker text UNIQUE,
+    expiration_count integer, 
     compute_gex bool
 );
 
