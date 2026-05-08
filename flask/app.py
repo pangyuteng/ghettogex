@@ -539,7 +539,7 @@ async def ws_scratch():
                         # QC data (always fetch for first ticker only, use SPX-like ticker)
                         if ticker == tickers[0]:
                             query_keys.append((ticker, 'qc'))
-                            query_list.append(apostgres_execute(apool, CANDLE_QC_QUERY, (ticker, tstamp_utc, options_ticker, tstamp_utc)))
+                            query_list.append(apostgres_execute(apool, CANDLE_QC_QUERY, (ticker, tstamp_utc, dstamp, options_ticker, tstamp_utc)))
 
                         # GEX strike data
                         if need_gex:
@@ -1102,7 +1102,7 @@ async def ws_main():
                     query_list = []
 
                     query_keys.append((ticker, 'qc'))
-                    query_list.append(apostgres_execute(apool, CANDLE_QC_QUERY, (ticker, tstamp_utc, options_ticker, tstamp_utc)))
+                    query_list.append(apostgres_execute(apool, CANDLE_QC_QUERY, (ticker, tstamp_utc, dstamp, options_ticker, tstamp_utc)))
                     query_keys.append((ticker, 'volatility'))
                     query_list.append(apostgres_execute(apool, GREEKS_QUERY, (options_ticker, dstamp, dstamp)))
                     if interval == "1sec":

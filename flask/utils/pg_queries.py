@@ -7,7 +7,7 @@ WHERE event_symbol = %s AND tstamp > %s - interval '10 minute'
 GROUP BY event_symbol
 ) union all (
 SELECT DISTINCT ticker, expiration, max(tstamp) as tstamp FROM candle 
-WHERE ticker = %s AND tstamp > %s - interval '10 minute' 
+WHERE expiration = %s AND ticker = %s AND tstamp > %s - interval '10 minute'
 GROUP BY ticker, expiration
 ) 
 """

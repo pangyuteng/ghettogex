@@ -25,6 +25,8 @@
 <body>
 {% if load_data %}
 <span id="errorSpan" style="font-size: 20px !important; color: #ff0000;"></span>
+server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
+, query_time: <span id="queryTimeSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <span id="dataQcSpan" style="font-size: 18px !important; color: #ff0000;"></span>
 <br>
@@ -45,9 +47,6 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
 <div>
 <img src={{colorbar_png_file}} width="500px">
 </div>
-<br>
-server_tstamp: <span id="serverTstampSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
-, query_time: <span id="queryTimeSpan" style="font-size: 18px !important; color: #5a5a5a;"></span>
 <br>
 <span style="font-size: 18px !important; color: #ffffff;">PM0DTE total contract volume >1000 by minute:</span>
 <span id="contractvolumeSpan" style="font-size: 18px !important; color: #ffffff;"></span>
