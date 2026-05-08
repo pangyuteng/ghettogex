@@ -1110,17 +1110,17 @@ async def ws_main():
                         query_keys.append((ticker, 'expectedmove'))
                         query_list.append(apostgres_execute(apool, PRICE_1SEC_QUERY, {"ticker":ticker,"endtime":tstamp_utc,"starttime":starttime}))
                         query_keys.append((ticker, 'volume'))
-                        query_list.append(apostgres_execute(apool, VOLUME_1SEC_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc,"starttime":starttime}))
+                        query_list.append(apostgres_execute(apool, VOLUME_1SEC_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc,"starttime":starttime,"dstamp":dstamp}))
                     elif interval == "1min":
                         query_keys.append((ticker, 'expectedmove'))
                         query_list.append(apostgres_execute(apool, PRICE_1MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
                         query_keys.append((ticker, 'volume'))
-                        query_list.append(apostgres_execute(apool, VOLUME_1MIN_QUERY, (dstamp, options_ticker)))
+                        query_list.append(apostgres_execute(apool, VOLUME_1MIN_QUERY, (dstamp, dstamp, options_ticker)))
                     elif interval == "5min":
                         query_keys.append((ticker, 'expectedmove'))
                         query_list.append(apostgres_execute(apool, PRICE_5MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
                         query_keys.append((ticker, 'volume'))
-                        query_list.append(apostgres_execute(apool, VOLUME_5MIN_QUERY, (dstamp, options_ticker)))
+                        query_list.append(apostgres_execute(apool, VOLUME_5MIN_QUERY, (dstamp, dstamp, options_ticker)))
                     else:
                         raise NotImplementedError()
 

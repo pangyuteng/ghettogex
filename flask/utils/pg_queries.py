@@ -338,6 +338,7 @@ SELECT time_bucket_gapfill('1 sec', tstamp, %(starttime)s::timestamp, %(endtime)
 strike,avg(volume) as volume FROM volume_1sec
 WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(starttime)s::timestamp
 AND ticker = %(ticker)s
+AND expiration = %(dstamp)s::timestamp
 GROUP BY bucket, strike
 ORDER BY bucket, strike
 )
@@ -377,7 +378,7 @@ ORDER BY tstamp
 
 VOLUME_1MIN_QUERY = """
 SELECT * FROM volume_1min
-WHERE tstamp::date = %s AND ticker = %s
+WHERE tstamp::date = %s AND expiration = %s AND ticker = %s
 ORDER BY tstamp, strike
 """
 
@@ -412,7 +413,7 @@ ORDER BY tstamp
 
 VOLUME_5MIN_QUERY = """
 SELECT * FROM volume_5min
-WHERE tstamp::date = %s AND ticker = %s
+WHERE tstamp::date = %s AND expiration = %s AND ticker = %s
 ORDER BY tstamp, strike
 """
 
