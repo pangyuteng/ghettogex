@@ -280,6 +280,36 @@ CREATE INDEX candle_1day_index on candle_1day using brin (tstamp,ticker) WITH (t
 -- DROP MATERIALIZED VIEW candle_1day
 -- SELECT remove_continuous_aggregate_policy('candle_1day');
 
+
+--
+
+CREATE MATERIALIZED VIEW candle_1month WITH (timescaledb.continuous) AS
+SELECT time_bucket('1 month', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+first(open,tstamp) as open,
+last(close,tstamp) as close,
+max(high) as high,
+min(low) as low,
+sum(volume) as volume,
+sum(order_imbalance) as order_imbalance
+FROM candle_1day
+GROUP BY time_bucket('1 month', tstamp), event_symbol, ticker,expiration,contract_type,strike;
+
+SELECT add_continuous_aggregate_policy('candle_1month',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('candle_1month', NULL, NULL);
+ALTER MATERIALIZED VIEW candle_1month set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW candle_1month set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX candle_1month_tstamp_event_symbol_index on candle_1month using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX candle_1month_index on candle_1month using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+
+-- DROP MATERIALIZED VIEW candle_1month
+-- SELECT remove_continuous_aggregate_policy('candle_1month');
+
 -- 
 
 CREATE MATERIALIZED VIEW greeksdx_1day WITH (timescaledb.continuous) AS

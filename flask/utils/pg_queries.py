@@ -35,7 +35,7 @@ where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
 CONVEXITY_QUERY = """
 WITH v_1day AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from candle_1day where ticker = %s and expiration = %s and tstamp::date = %s
+from candle_1month where ticker = %s and expiration = %s 
 group by ticker,strike
 ), g_1day AS (
 select distinct ticker,strike,last(gamma,tstamp) as gamma
@@ -51,7 +51,7 @@ ORDER BY strike
 CONVEXITYDX_QUERY = """
 WITH v_1day AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from candle_1day where ticker = %s and expiration = %s and tstamp::date = %s
+from candle_1day where ticker = %s and expiration = %s 
 group by ticker,strike
 ), g_1day AS (
 select distinct ticker,strike,last(gamma,tstamp) as gamma

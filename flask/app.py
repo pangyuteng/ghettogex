@@ -550,7 +550,7 @@ async def ws_scratch():
                         if need_convexity:
                             query_keys.append((ticker, 'convexity'))
                             #query_list.append(apostgres_execute(apool, INTERVAL_CONVEXITY_QUERY, (options_ticker, dstamp, dstamp, tstamp_utc, options_ticker, dstamp, dstamp)))
-                            query_list.append(apostgres_execute(apool, CONVEXITYDX_QUERY, (options_ticker, dstamp, dstamp, options_ticker, dstamp, dstamp)))
+                            query_list.append(apostgres_execute(apool, CONVEXITYDX_QUERY, (options_ticker, dstamp, options_ticker, dstamp, dstamp)))
 
                         # Volatility (greeks)
                         if need_volatility:
