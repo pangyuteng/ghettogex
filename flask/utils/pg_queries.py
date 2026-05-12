@@ -51,7 +51,7 @@ ORDER BY strike
 CONVEXITYDX_QUERY = """
 WITH v_1day AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from candle_1day where ticker = %s and expiration = %s 
+from candle_expiration where ticker = %s and expiration = %s 
 group by ticker,strike
 ), g_1day AS (
 select distinct ticker,strike,last(gamma,tstamp) as gamma
@@ -107,12 +107,13 @@ ORDER BY contract_type,strike
 """
 
 # -- FROM candle_1day WHERE ticker = %s and expiration = %s and tstamp::date = %s
+# -- last(order_imbalance,tstamp) as order_imbalance
+# -- group by event_symbol,ticker,expiration,contract_type,strike
 ORDER_IMBALANCE_GEX_QUERY = """
 WITH oi AS (
 SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike, 
-last(order_imbalance,tstamp) as order_imbalance
+order_imbalance
 FROM candle_expiration WHERE ticker = %s and expiration = %s 
-group by event_symbol,ticker,expiration,contract_type,strike
 ), grk as (
 SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike,
 last(gamma,tstamp) as gamma
