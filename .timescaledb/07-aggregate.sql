@@ -274,6 +274,7 @@ ALTER MATERIALIZED VIEW candle_1day set (timescaledb.materialized_only = false);
 ALTER MATERIALIZED VIEW candle_1day set (timescaledb.enable_columnstore = true);
 
 CREATE INDEX candle_1day_tstamp_event_symbol_index on candle_1day using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX candle_1day_ticker_expiration_index on candle_1day using brin (ticker,expiration) WITH (timescaledb.transaction_per_chunk);
 CREATE INDEX candle_1day_index on candle_1day using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 
 
@@ -283,32 +284,23 @@ CREATE INDEX candle_1day_index on candle_1day using brin (tstamp,ticker) WITH (t
 
 --
 
-CREATE MATERIALIZED VIEW candle_1month WITH (timescaledb.continuous) AS
-SELECT time_bucket('1 month', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-first(open,tstamp) as open,
-last(close,tstamp) as close,
+/* TODO:  need to remove dimension */
+SELECT add_dimension('candle', by_range('expiration',INTERVAL '1 day'));
+
+CREATE MATERIALIZED VIEW candle_expiration AS
+SELECT expiration, event_symbol,ticker,contract_type,strike,
+first(open,expiration) as open,
+last(close,expiration) as close,
 max(high) as high,
 min(low) as low,
 sum(volume) as volume,
 sum(order_imbalance) as order_imbalance
 FROM candle_1day
-GROUP BY time_bucket('1 month', tstamp), event_symbol, ticker,expiration,contract_type,strike;
+GROUP BY expiration, event_symbol, ticker,contract_type,strike
 
-SELECT add_continuous_aggregate_policy('candle_1month',
-  start_offset => INTERVAL '1 month',
-  end_offset => NULL,
-  schedule_interval => INTERVAL '1 sec');
+CREATE INDEX candle_expiration_tstamp_event_symbol_index on candle_expiration using brin (expiration,event_symbol);
+CREATE INDEX candle_expiration_index on candle_expiration using brin (expiration,ticker);
 
-CALL refresh_continuous_aggregate('candle_1month', NULL, NULL);
-ALTER MATERIALIZED VIEW candle_1month set (timescaledb.materialized_only = false);
-ALTER MATERIALIZED VIEW candle_1month set (timescaledb.enable_columnstore = true);
-
-CREATE INDEX candle_1month_tstamp_event_symbol_index on candle_1month using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
-CREATE INDEX candle_1month_index on candle_1month using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
-
-
--- DROP MATERIALIZED VIEW candle_1month
--- SELECT remove_continuous_aggregate_policy('candle_1month');
 
 -- 
 

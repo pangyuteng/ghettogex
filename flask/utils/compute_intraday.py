@@ -16,6 +16,7 @@ import asyncio
 
 from .pg_queries import ORDER_IMBALANCE_GEX_QUERY
 from .postgres_utils import (
+    apostgres_execute,
     cpostgres_execute, cpostgres_copy,
     psycopg_pool,postgres_uri,
 )
@@ -40,7 +41,7 @@ async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
     mm_order_imbalance NOTE:
     In postgres tables `order_imbalance` we have:
     `sum(ask_volume)-sum(bid_volume) as order_imbalance`
-    and then we sum `order_imbalance` up in table `candle_1month`,
+    and then we sum `order_imbalance` up in table `candle_expiration`,
     Since `order_imbalance` is customer perspective, 
     for market maker `mm_order_imbalance` we flip it via *-1.
 """
@@ -62,7 +63,7 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     expiration = utc_tstamp.date()
     
     # note we hard code a VIX here
-    query_args = (ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker,expiration,'VIX',expiration)
+    query_args = (ticker_alt,expiration,ticker_alt,expiration,expiration,ticker_alt,expiration,expiration,ticker,expiration,'VIX',expiration)
     fetched = await cpostgres_execute(aconn,ORDER_IMBALANCE_GEX_QUERY,query_args)
     
     df = pd.DataFrame([dict(x) for x in fetched])

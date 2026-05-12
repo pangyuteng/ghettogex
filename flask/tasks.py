@@ -180,6 +180,10 @@ def trigger_gex_cache(*args,**kwargs):
         pass
     else:
         fetched = postgres_execute(query_str,query_args,is_commit=False)
+
+        REFRESH_CANDLE_EXPIRATION = """REFRESH MATERIALIZED VIEW candle_expiration"""
+        postgres_execute(REFRESH_CANDLE_EXPIRATION,(),is_commit=True)
+
         if fetched is None:
             return
         fetched = [dict(x) for x in fetched]
