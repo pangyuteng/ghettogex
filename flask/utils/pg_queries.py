@@ -106,11 +106,12 @@ group by event_symbol,ticker,expiration,strike,contract_type
 ORDER BY contract_type,strike
 """
 
+# -- FROM candle_1day WHERE ticker = %s and expiration = %s and tstamp::date = %s
 ORDER_IMBALANCE_GEX_QUERY = """
 WITH oi AS (
 SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike, 
 last(order_imbalance,tstamp) as order_imbalance
-FROM candle_1day WHERE ticker = %s and expiration = %s and tstamp::date = %s
+FROM candle_1month WHERE ticker = %s and expiration = %s and tstamp::date >= %s - interval '1 month'
 group by event_symbol,ticker,expiration,contract_type,strike
 ), grk as (
 SELECT DISTINCT event_symbol,ticker,expiration,contract_type,strike,
