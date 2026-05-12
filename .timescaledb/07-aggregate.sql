@@ -108,6 +108,7 @@ CREATE INDEX event_strike_1min_index on event_strike_1min using brin (tstamp,tic
 -- DROP MATERIALIZED VIEW event_strike_1min;
 -- SELECT remove_continuous_aggregate_policy('event_strike_1min');
 
+/*
 
 CREATE MATERIALIZED VIEW candle_1sec WITH (timescaledb.continuous) AS
 SELECT time_bucket('1sec', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
@@ -136,6 +137,8 @@ CREATE INDEX candle_1sec_index on candle_1sec using brin (tstamp,ticker) WITH (t
 
 -- DROP MATERIALIZED VIEW candle_1sec;
 -- SELECT remove_continuous_aggregate_policy('candle_1sec');
+
+*/
 
 CREATE MATERIALIZED VIEW candle_1min WITH (timescaledb.continuous) AS
 SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
@@ -283,9 +286,6 @@ CREATE INDEX candle_1day_index on candle_1day using brin (tstamp,ticker) WITH (t
 
 
 --
-
-/* TODO:  need to remove dimension */
-SELECT add_dimension('candle', by_range('expiration',INTERVAL '1 day'));
 
 CREATE MATERIALIZED VIEW candle_expiration AS
 SELECT expiration, event_symbol,ticker,contract_type,strike,
