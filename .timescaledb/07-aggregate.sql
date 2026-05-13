@@ -296,6 +296,7 @@ min(low) as low,
 sum(volume) as volume,
 sum(order_imbalance) as order_imbalance
 FROM candle_1day
+WHERE tstamp > now() - interval '30 days'
 GROUP BY expiration, event_symbol, ticker,contract_type,strike
 
 CREATE INDEX candle_expiration_tstamp_event_symbol_index on candle_expiration using brin (expiration,event_symbol);
