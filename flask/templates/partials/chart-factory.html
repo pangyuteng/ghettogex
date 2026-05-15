@@ -43,6 +43,11 @@ function heatmapPlugin() {
 				ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
 				ctx.clip();
 
+				let radius = 4;
+				if (window.screen.availWidth < 1000){
+					radius = 10;
+				}
+
 				yData.forEach((yVals, xi) => {
 					let xPos = Math.round(u.valToPos(data[0][xi], 'x', true));
 					yVals.forEach(yVal => {
@@ -51,10 +56,10 @@ function heatmapPlugin() {
 						let zVal = yVal[2]
 						ctx.fillStyle = yVal[3];
 						ctx.fillRect(
-							xPos - 4,
-							yPos - 4,//yPos,
-							4,//10,
-							4,//1,
+							xPos - radius,
+							yPos - radius,
+							radius,
+							radius,
 						);
 					});
 				});
@@ -310,34 +315,34 @@ const CHART_CONFIGS = {
 						scale: "scale1",
 						value: (u, v) => v == null ? null : v.toFixed(2) + "",
 						stroke: "rgba(255,0,0,1)",
-						width: 2/devicePixelRatio,
+						width: 4/devicePixelRatio,
 					},
 					{
 						label: "VIX9D",
 						scale: "scale1",
 						value: (u, v) => v == null ? null : v.toFixed(2) + "",
 						stroke: "rgba(255,165,0,1)",
-						width: 2/devicePixelRatio,
+						width: 4/devicePixelRatio,
 					},
 					{
 						label: "VIX",
 						scale: "scale1",
 						value: (u, v) => v == null ? null : v.toFixed(2) + "",
 						stroke: "rgba(200,200,0,1)",
-						width: 2/devicePixelRatio,
+						width: 4/devicePixelRatio,
 					},
 					{
 						label: "expected-move",
 						scale: "scale1",
 						value: (u, v) => v == null ? null : v.toFixed(2) + "",
-						stroke: "rgba(128,0,128,1)",
-						width: 2/devicePixelRatio,
+						stroke: "rgba(200,0,200,1)",
+						width: 4/devicePixelRatio,
 					},
 					{
 						label: ticker,
 						scale: "scale0",
 						value: (u, v) => v == null ? null : v.toFixed(2) + "",
-						width: 2/devicePixelRatio,
+						width: 4/devicePixelRatio,
 						stroke: "rgba(255,255,255,1)",
 					},
 				],
@@ -421,8 +426,8 @@ const CHART_CONFIGS = {
 						// value: (u, v) => v == null ? null : v.toFixed(2) + "",
 					},
 					{
-						stroke: "rgba(0,255,0,1)",
-						width: 3/devicePixelRatio,
+						stroke: "rgba(0,255,0,0.5)",
+						width: 4/devicePixelRatio,
 						points: {show: false},
 						value: () => null,
 					},
