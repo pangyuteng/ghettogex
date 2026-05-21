@@ -29,11 +29,14 @@ function linesPlugin(linesArray) {
 	};
 }
 
+// the hooks in heatmapPlugin: replaced `draw:` with `drawAxes:` to render below lines
+// https://github.com/leeoniya/uPlot/issues/953#issuecomment-2132267685
+
 // heatmap for volume
 function heatmapPlugin() {
 	return {
 		hooks: {
-			draw: u => {
+			drawAxes: u => {
 				const { ctx, data } = u;
 
 				let yData = data[4];
