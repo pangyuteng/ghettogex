@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__file__)
+
 import os
 import json
 import argparse
@@ -833,6 +836,8 @@ def process_price_data_with_expected_move(rows, ticker):
         ticker_price = df.ticker_close[df.ticker_close.last_valid_index()]
         ticker_mean = df.ticker_close.mean()
     except:
+        logger.error(traceback.format_exc())
+        logger.error("failed to obtain ticker price!")
         ticker_price = None
         ticker_mean = 0
 
@@ -942,6 +947,7 @@ def process_volume_data(rows, expectedmove_data, spot_min_lim, spot_max_lim,inte
         minval,maxval,alpha = 0.,2000*5.,0.5
     else:
         raise NotImplementedError()
+
     df = pd.DataFrame([dict(x) for x in rows])
     df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
     df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim)]
@@ -949,21 +955,19 @@ def process_volume_data(rows, expectedmove_data, spot_min_lim, spot_max_lim,inte
     df = df.pivot(columns='strike',index='tstamp',values='volume')
     df = df.replace({np.nan: 0})
     for col in df.columns:
-       df[col]=df[col].apply(lambda x: [-1,col,x,getrgba(x,minval,maxval,alpha,volumecmap)])
-    # NOTE: `-1` # placehold to get time so you get (time,strike,volume,color)
+        df[col]=df[col].apply(lambda x: [-1,col,x,getrgba(x,minval,maxval,alpha,volumecmap)])
+    # NOTE: `-1` is not used in uplot (-1,strike,volume,color), for time, we grab item from `tstamp_list` in `mylist`
 
     tstamp_list = df.index.to_list()
     data = df.to_numpy()
-
     start_list = [x[1] for x in data[:,0].tolist()] # grab array of min spot price
     end_list = [x[1] for x in data[:,-1].tolist()] # grab array of max spot price
     # NOTE: start_list,end_list ensures double click zooms back to Y min&max range.
 
     data_list = data.tolist()
-    mylist = [tstamp_list,start_list,end_list,data_list]
-    
     price_tstamp_list = expectedmove_data['prices'][0]
     price_list = expectedmove_data['prices'][-1]
+
     try:
         pdf = pd.DataFrame({"tstamp":price_tstamp_list,"price":price_list})
         tdf = pd.DataFrame({"tstamp":tstamp_list})
@@ -975,6 +979,7 @@ def process_volume_data(rows, expectedmove_data, spot_min_lim, spot_max_lim,inte
     except:
         app.logger.error(f"{len(tstamp_list)} {len(price_tstamp_list)}")
         mylist = [tstamp_list,start_list,end_list,end_list,data_list]
+
     return {
         'data': mylist,
     }
