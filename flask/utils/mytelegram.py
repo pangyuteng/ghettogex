@@ -25,10 +25,7 @@ async def get_last_few_min_spx_volume():
         day_stamp = datetime.datetime.now().strftime("%Y-%m-%d")
         market_open,market_close = get_market_open_close(day_stamp,no_tzinfo=True)
         expiration = market_open.strftime("%Y-%m-%d")
-
-        fetched = await apostgres_execute(
-            None,
-            """
+        querystr = """
             select * from (
             select tstamp, event_symbol, sum(ask_volume+bid_volume) as volume 
             from candle_1min where ticker = %s
@@ -37,7 +34,9 @@ async def get_last_few_min_spx_volume():
             group by tstamp, event_symbol
             ) as foo
             where volume > %s
-            """
+        """
+        fetched = await apostgres_execute(
+            None,querystr,
             (ticker_alt,expiration,VOLUME_THRESHOLD)
         )
         vdf = pd.DataFrame([dict(x) for x in fetched])
