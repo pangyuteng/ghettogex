@@ -30,7 +30,7 @@ async def get_last_few_min_spx_volume():
             select tstamp, event_symbol, sum(ask_volume+bid_volume) as volume 
             from candle_1min where ticker = %s
             and expiration = %s and tstamp <= now() 
-            and tstamp >= now() - interval '5 minute'
+            and tstamp >= now() - interval '2 minute'
             group by tstamp, event_symbol
             ) as foo
             where volume > %s
@@ -67,13 +67,12 @@ async def volume_alert(context):
     if vdf is None:
         logger.warning("volume is None???")
         return
-    logger.warning(f"volume is {volume}")
     
     now_str = tstamp.strftime("%Y-%m-%d %H:%M:%S")
     triggered = False
     msg = ""
-    if len(vdf) > 0:
-        msg += f"\n\n🚨 **SPXW 1-min volume exceeded {VOLUME_THRESHOLD}**!\n"
+    if len(vdf) > 5:
+        msg += f"\n\n🚨 **SPXW 1-min volume exceeded {VOLUME_THRESHOLD} for {len(vdf)} contracts **!\n"
         last_notified_tstamp = tstamp
         triggered = True
 
