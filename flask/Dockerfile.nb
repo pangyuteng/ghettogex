@@ -1,6 +1,5 @@
 
-
-FROM python:3.10-bullseye AS fi-base
+FROM python:3.12-bookworm AS fi-base
 
 # for moveipy
 RUN apt-get update && apt-get install ffmpeg vim curl wget jq -yq
