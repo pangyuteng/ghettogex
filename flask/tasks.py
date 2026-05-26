@@ -67,69 +67,67 @@ class Subscription(luigi.Task):
         asyncio.run(background_subscribe(self.ticker,self.expirations_str,save_to_postres=True))
         logger.info("background_subscribe exit success!")
 
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+async def a_manage_subscriptions():
+    query_str = "select * from watchlist"
+    query_args = ()
+    mydict = {}
 
-class ManageSubscription(luigi.Task):
+    if is_market_open() is False:
+        return
+
+    # refresh serialized session
+    session = get_session_reuse(refresh_serialized=True)
+
+    while True:
+        fetched = postgres_execute(query_str,query_args,is_commit=False)
+        if fetched is None:
+            return
+        et_tstamp = now_in_new_york()
+        fetched = [dict(x) for x in fetched]
+        for row in fetched:
+            ticker = row['ticker']
+            expiration_count = row['expiration_count']
+            logger.info(f"trigger subscriptions apply_async {ticker}")
+            if ticker in IGNORE_OPTIONS_TICKER_LIST:
+                expirations_str = "None"
+                trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
+
+            else:
+                if ticker not in mydict.keys():
+                    session = get_session_reuse()
+                    if ticker == 'SPX':
+                        ticker_alt = 'SPXW'
+                    elif ticker == 'NDX':
+                        ticker_alt = 'NDXP'
+                    elif ticker == 'VIX':
+                        ticker_alt = 'VIXW'
+                    else:
+                        ticker_alt = ticker
+                    chain = await get_option_chain(session, ticker)
+
+                    # there were a few incidents where i saw expired contracts
+                    expiration_list = ["None"]
+                    expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items() if k >= et_tstamp.date()])
+                    mydict[ticker] = expiration_list
+
+                else:
+                    expiration_list = mydict[ticker]
+
+                for n,expirations_str in enumerate(expiration_list):
+                    trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
+                    if n == expiration_count:
+                        break
+
+        if is_market_open():
+            time.sleep(60)
+        else:
+            break
+
+class ManageSubscriptions(luigi.Task):
     def output(self):
         return AlwaysRunTarget()
     def run(self):
-        query_str = "select * from watchlist"
-        query_args = ()
-        mydict = {}
-
-        if is_market_open() is False:
-            return
-
-        # refresh serialized session
-        session = get_session_reuse(refresh_serialized=True)
-
-        while True:
-            fetched = postgres_execute(query_str,query_args,is_commit=False)
-            if fetched is None:
-                return
-            et_tstamp = now_in_new_york()
-            fetched = [dict(x) for x in fetched]
-            for row in fetched:
-                ticker = row['ticker']
-                expiration_count = row['expiration_count']
-                logger.info(f"trigger subscriptions apply_async {ticker}")
-                if ticker in IGNORE_OPTIONS_TICKER_LIST:
-                    expirations_str = "None"
-                    trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
-
-                else:
-                    if ticker not in mydict.keys():
-                        session = get_session_reuse()
-                        if ticker == 'SPX':
-                            ticker_alt = 'SPXW'
-                        elif ticker == 'NDX':
-                            ticker_alt = 'NDXP'
-                        elif ticker == 'VIX':
-                            ticker_alt = 'VIXW'
-                        else:
-                            ticker_alt = ticker
-                        chain = get_option_chain(session, ticker)
-
-                        # there were a few incidents where i saw expired contracts
-                        expiration_list = ["None"]
-                        expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items() if k >= et_tstamp.date()])
-                        mydict[ticker] = expiration_list
-
-                    else:
-                        expiration_list = mydict[ticker]
-
-                    for n,expirations_str in enumerate(expiration_list):
-                        trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
-                        if n == expiration_count:
-                            break
-
-            if is_market_open():
-                time.sleep(60)
-            else:
-                break
+        asyncio.run(a_manage_subscriptions())
 
 class TelegramBot(luigi.Task):
     def output(self): # an output that never exists
@@ -158,7 +156,7 @@ def task_foo(*args,**kwargs):
 
 @celery_app.task
 def manage_subscriptions(*args,**kwargs):
-    task = ManageSubscription()
+    task = ManageSubscriptions()
     ret_code = luigi.build([task])
 
 @celery_app.task

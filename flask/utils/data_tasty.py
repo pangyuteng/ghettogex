@@ -20,6 +20,8 @@ import pandas as pd
 import numpy as np
 
 import uuid
+from anyio import sleep
+from httpx_ws import HTTPXWSException
 import aiofiles
 import aiofiles.os
 import asyncio
@@ -34,9 +36,8 @@ from tastytrade.dxfeed import (
 )
 from tastytrade.instruments import Equity, Option, Future, FutureOption, OptionType, InstrumentType
 from tastytrade.session import Session
-from tastytrade.streamer import EventType
 from tastytrade.utils import today_in_new_york
-from tastytrade.market_data import a_get_market_data
+from tastytrade.market_data import get_market_data
 
 from .misc import (
     now_in_new_york,
@@ -63,13 +64,13 @@ def get_session():
     session = Session(client_secret,refresh_token,is_test=is_test)
     return session
 
-async def a_get_equity_data(ticker):
+async def get_equity_data(ticker):
     session = get_session()
-    return await a_get_market_data(session,ticker,InstrumentType.EQUITY)
+    return await get_market_data(session,ticker,InstrumentType.EQUITY)
 
-async def a_get_equity_data_session_reuse(ticker):
+async def get_equity_data_session_reuse(ticker):
     session = get_session_reuse()
-    return await a_get_market_data(session,ticker,InstrumentType.EQUITY)
+    return await get_market_data(session,ticker,InstrumentType.EQUITY)
 
 def get_session_reuse(refresh_serialized=False):
     is_test = is_test_func()
@@ -88,13 +89,6 @@ def get_session_reuse(refresh_serialized=False):
         logger.debug("no existing session found, will create new session")
     else:
         serialized_session = fetched[0]['serialized_session']
-        streamer_expiration = json.loads(serialized_session)['streamer_expiration']
-        expiration_tstamp = datetime.datetime.strptime(streamer_expiration,'%Y-%m-%d %H:%M:%S%z')
-        if datetime.datetime.utcnow() > expiration_tstamp.replace(tzinfo=None):
-            logger.debug("session expired, will create new session")
-            serialized_session = None
-        else:
-            logger.debug("session found will use existing session")
 
     if serialized_session:
         session = Session.deserialize(serialized_session)
@@ -109,8 +103,6 @@ def get_session_reuse(refresh_serialized=False):
         postgres_execute(query_str,query_args,is_commit=True)
         logger.debug("persisting new session to postgres")
 
-    if now_in_new_york() > session.session_expiration:
-        session.refresh()
     return session
 
 from decimal import Decimal
@@ -261,8 +253,10 @@ async def flusher(myqueue,flusher_key):
         await apool.check()
         async with apool.connection() as aconn:
             while True:
+                task1 = asyncio.create_task(myqueue.flush_event_dict[flusher_key].wait())
+                task2 = asyncio.create_task(asyncio.sleep(myqueue.interval))
                 done, pending = await asyncio.wait(
-                    [myqueue.flush_event_dict[flusher_key].wait(), asyncio.sleep(myqueue.interval)],
+                    [task1, task2],
                     return_when=asyncio.FIRST_COMPLETED
                 )
 
@@ -300,6 +294,10 @@ def parse_symbol(event_symbol):
     strike = float(matched.group(4))
     return ticker,expiration,contract_type,strike
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
 #
 # below are copy pastas authored by Graeme22
@@ -311,7 +309,8 @@ CANDLE_TYPE = 's'
 async def _subscribe(streamer, streamer_symbols, expiration):
     # subscribe to quotes and greeks for all options on that date
     start_time = now_in_new_york() # start from now
-    await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time,refresh_interval=1.0)
+    for mylist in chunks(streamer_symbols, 20):
+        await streamer.subscribe_candle(mylist, CANDLE_TYPE, start_time,refresh_interval=1.0)
     await streamer.subscribe(Quote,streamer_symbols,refresh_interval=1.0)
 
     if expiration is not None:
@@ -356,14 +355,13 @@ class LivePrices:
     async def create(
         cls,
         myqueue: PgInsertQueue,
-        session: Session,
+        streamer: DXLinkStreamer,
         ticker: str,
         streamer_symbols: list,
         expiration: None,
         save_to_postres: bool = False,
         ):
 
-        streamer = await DXLinkStreamer(session,reconnect_fn=_subscribe, reconnect_args=(streamer_symbols,expiration))
         await _subscribe(streamer,streamer_symbols,expiration)
 
         self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
@@ -429,7 +427,6 @@ class LivePrices:
             await self.streamer.unsubscribe(TheoPrice, self.streamer_symbols)
             await self.streamer.unsubscribe(Underlying, self.streamer_symbols)
 
-        await self.streamer.close()
         logger.info(f"streamer closed...{self.streamer_symbols}")
 
         logger.info(f"cancel tasks...{self.ticker}")
@@ -477,16 +474,16 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
             ticker_alt = ticker
 
         if ticker in ["ES"]: # futures with options
-            future_list = await Future.a_get(session,product_codes=ticker)
+            future_list = await Future.get(session,product_codes=ticker)
             future_list = sorted(future_list,key=lambda x: x.expires_at,reverse=False)
-            equity = await Future.a_get(session, future_list[0].symbol)
-            chain = get_future_option_chain(session, ticker)
+            equity = await Future.get(session, future_list[0].symbol)
+            chain = await get_future_option_chain(session, ticker)
         elif ticker in NON_TICKER_LIST:
             equity= None
             chain = {}
         else: # equity with options
-            equity = await Equity.a_get(session, ticker)
-            chain = get_option_chain(session, ticker)
+            equity = await Equity.get(session, ticker)
+            chain = await get_option_chain(session, ticker)
 
         expirations = sorted(list(chain.keys()))
         live_prices_list = []
@@ -495,61 +492,68 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
         flusher_task_list = [asyncio.create_task(flusher(myqueue,event_type)) for event_type in event_type_list]
         asyncio.gather(*flusher_task_list)
 
-        # underlying
-        if "None" in expiration_list:
-            if ticker in NON_TICKER_LIST:
-                underlying_streamer_symbols = [ticker]
-            else:
-                underlying_streamer_symbols = [equity.streamer_symbol]
-            live_prices = await LivePrices.create(myqueue,session,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres)
-            live_prices_list.append(live_prices)
-
-        for expiration in expirations:
-            if ticker in IGNORE_OPTIONS_TICKER_LIST: # ignore options for VIX and futures.
-                continue 
-            if expiration.strftime("%Y-%m-%d") not in expiration_list:
-                continue
-            options_list = [o for o in chain[expiration]]
-            streamer_symbols = [o.streamer_symbol for o in options_list]
-
-            live_prices = await LivePrices.create(myqueue,session,ticker,streamer_symbols,expiration=expiration,save_to_postres=save_to_postres)
-            live_prices_list.append(live_prices)
-
-        while True:
-            et_tstamp = now_in_new_york()
+        tries, max_tries = 0, 10
+        while (tries := tries + 1) <= max_tries:
             try:
-                marketopendelta, _ = timedelta_from_market_open(et_tstamp)
-            except:
-                traceback.print_exc()
-                warnings.warn('market likely not open today')
-                marketopendelta = datetime.timedelta(minutes=1)
+                async with DXLinkStreamer(session) as streamer:
+                    # underlying
+                    if "None" in expiration_list:
+                        if ticker in NON_TICKER_LIST:
+                            underlying_streamer_symbols = [ticker]
+                        else:
+                            underlying_streamer_symbols = [equity.streamer_symbol]
+                        live_prices = await LivePrices.create(myqueue,streamer,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres)
+                        live_prices_list.append(live_prices)
 
-            if not is_market_open() and marketopendelta.total_seconds() > 0:
-                logger.info("market closing -------------------------------")
-                await asyncio.sleep(10)
-                for lp in live_prices_list:
-                    logger.info("shutdown...")
-                    await lp.shutdown()
+                    for expiration in expirations:
+                        if ticker in IGNORE_OPTIONS_TICKER_LIST: # ignore options for VIX and futures.
+                            continue 
+                        if expiration.strftime("%Y-%m-%d") not in expiration_list:
+                            continue
+                        options_list = [o for o in chain[expiration]]
+                        streamer_symbols = [o.streamer_symbol for o in options_list]
+                        streamer_symbols = streamer_symbols[:20]
+                        live_prices = await LivePrices.create(myqueue,streamer,ticker,streamer_symbols,expiration=expiration,save_to_postres=save_to_postres)
+                        live_prices_list.append(live_prices)
 
-                # clean up
-                for flusher_task in flusher_task_list:
-                    flusher_task.cancel()
-                    try:
-                        await flusher_task
-                    except asyncio.CancelledError:
-                        logger.info(f"cancel done.{flusher_task}")
+                    while True:
+                        et_tstamp = now_in_new_york()
+                        try:
+                            marketopendelta, _ = timedelta_from_market_open(et_tstamp)
+                        except:
+                            traceback.print_exc()
+                            warnings.warn('market likely not open today')
+                            marketopendelta = datetime.timedelta(minutes=1)
 
-                logger.info("pool close...")
-                raise MarketCloseException("market closed!")
-            else:
-                logger.info("market open -------------------------------")
+                        if not is_market_open() and marketopendelta.total_seconds() > 0:
+                            logger.info("market closing -------------------------------")
+                            await asyncio.sleep(10)
+                            for lp in live_prices_list:
+                                logger.info("shutdown...")
+                                await lp.shutdown()
 
-                # print quotes
-                if len(live_prices_list)>0:
-                    tmp_candle = list(live_prices_list[0].candle.values())[0]
-                    logger.info(f"Current candle: {tmp_candle}")
+                            # clean up
+                            for flusher_task in flusher_task_list:
+                                flusher_task.cancel()
+                                try:
+                                    await flusher_task
+                                except asyncio.CancelledError:
+                                    logger.info(f"cancel done.{flusher_task}")
 
-                await asyncio.sleep(5)
+                            logger.info("pool close...")
+                            raise MarketCloseException("market closed!")
+                        else:
+                            logger.info("market open -------------------------------")
+
+                            # print quotes
+                            if len(live_prices_list)>0:
+                                tmp_candle = list(live_prices_list[0].candle.values())[0]
+                                logger.info(f"Current candle: {tmp_candle}")
+
+                            await asyncio.sleep(5)
+            except* HTTPXWSException:
+                logger.error("Oh no! Disconnected!")
+                await sleep(tries ** 2)
 
     except MarketCloseException:
         logger.error("MarketCloseException...")

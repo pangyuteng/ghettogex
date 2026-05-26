@@ -18,4 +18,5 @@ FROM fi-base
 
 COPY --chmod=777 . /opt/fi/flask
 
+ENV PYTHONPATH=/opt/fi/flask
 WORKDIR /opt/fi/flask

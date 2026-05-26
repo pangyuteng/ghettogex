@@ -80,8 +80,8 @@ from utils.pg_queries import (
 )
 
 from utils.data_tasty import (
-    a_get_equity_data,
-    a_get_equity_data_session_reuse
+    get_equity_data,
+    get_equity_data_session_reuse
 )
 
 et_tz = "America/New_york"
@@ -410,9 +410,9 @@ async def get_equity():
         if ticker is None:
             raise ValueError("ticker can't be None!")
         if session_reuse:
-            data = await a_get_equity_data_session_reuse(ticker)
+            data = await get_equity_data_session_reuse(ticker)
         else:
-            data = await a_get_equity_data(ticker)
+            data = await get_equity_data(ticker)
         return jsonify(dict(data))
     except:
         return jsonify(traceback.format_exc()),401
