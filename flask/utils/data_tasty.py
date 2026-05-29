@@ -294,11 +294,6 @@ def parse_symbol(event_symbol):
     strike = float(matched.group(4))
     return ticker,expiration,contract_type,strike
 
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
-
 #
 # below are copy pastas authored by Graeme22
 # amazing stuff!!!
@@ -306,19 +301,19 @@ def chunks(lst, n):
 # commit https://github.com/tastyware/tastytrade/blob/97e1bc6632cfd4a15721da816085eb906a02bcb0/docs/data-streamer.rst#L76
 # # interval '5s' '15s', '5m', '1h', '3d',
 CANDLE_TYPE = 's'
-async def _subscribe(streamer, streamer_symbols, expiration):
+async def _subscribe(streamer, streamer_symbols, is_option):
     # subscribe to quotes and greeks for all options on that date
     start_time = now_in_new_york() # start from now
-    for mylist in chunks(streamer_symbols, 20):
-        await streamer.subscribe_candle(mylist, CANDLE_TYPE, start_time,refresh_interval=1.0)
+
+    await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time,refresh_interval=1.0)
     await streamer.subscribe(Quote,streamer_symbols,refresh_interval=1.0)
 
-    if expiration is not None:
+    if is_option:
         await streamer.subscribe(Greeks, streamer_symbols)
         await streamer.subscribe(Summary, streamer_symbols)
-        await streamer.subscribe(TimeAndSale, streamer_symbols)
-
+        
     if False:
+        await streamer.subscribe(TimeAndSale, streamer_symbols)
         await streamer.subscribe(Trade, streamer_symbols)
         await streamer.subscribe(Profile, streamer_symbols)
         await streamer.subscribe(TheoPrice, streamer_symbols)
@@ -349,7 +344,7 @@ class LivePrices:
     streamer_symbols: list[str]
     task_list: list[str]
     ticker: str
-    expiration: datetime.date
+    is_option: bool
     save_to_postres: bool=False
     @classmethod
     async def create(
@@ -358,24 +353,24 @@ class LivePrices:
         streamer: DXLinkStreamer,
         ticker: str,
         streamer_symbols: list,
-        expiration: None,
+        is_option: bool,
         save_to_postres: bool = False,
         ):
 
-        await _subscribe(streamer,streamer_symbols,expiration)
+        await _subscribe(streamer,streamer_symbols,is_option)
 
         self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
-                   streamer, streamer_symbols,[],ticker,expiration,save_to_postres=save_to_postres)
+                   streamer, streamer_symbols,[],ticker,is_option,save_to_postres=save_to_postres)
 
         t_listen_candles = asyncio.create_task(self._update_candle(myqueue))
         t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",myqueue))
 
-        if expiration is not None:
+        if self.is_option:
             t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",myqueue))
             t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary",myqueue))
-            t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",myqueue))
 
         if False:
+            t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",myqueue))
             t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile",myqueue))
             t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice",myqueue))
             t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying",myqueue))
@@ -385,11 +380,10 @@ class LivePrices:
             t_listen_candles,
             t_listen_quote,
         ]
-        if expiration is not None:
+        if self.is_option:
             self.task_list.extend([
                 t_listen_greeks,
                 t_listen_summary,
-                t_listen_time_and_sale,
             ])
 
         if False:
@@ -398,6 +392,7 @@ class LivePrices:
                 t_listen_theo_price,
                 t_listen_underlying,
                 t_listen_trade,
+                t_listen_time_and_sale,
             ])
 
         asyncio.gather(*self.task_list)
@@ -405,7 +400,7 @@ class LivePrices:
         # wait we have quotes and greeks for each option
         while len(self.candle) < 1:
             await asyncio.sleep(0.1)
-        if expiration is not None:
+        if self.is_option:
             while len(self.quote) < 1 or len(self.greeks) < 1 or len(self.summary) < 1:
                 await asyncio.sleep(0.1)
         return self
@@ -416,12 +411,12 @@ class LivePrices:
         await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
         await self.streamer.unsubscribe(Quote,self.streamer_symbols)
 
-        if self.expiration is not None:
+        if self.is_option:
             await self.streamer.unsubscribe(Greeks, self.streamer_symbols)
             await self.streamer.unsubscribe(Summary, self.streamer_symbols)
-            await self.streamer.unsubscribe(TimeAndSale, self.streamer_symbols)
 
         if False:
+            await self.streamer.unsubscribe(TimeAndSale, self.streamer_symbols)
             await self.streamer.unsubscribe(Trade, self.streamer_symbols)
             await self.streamer.unsubscribe(Profile, self.streamer_symbols)
             await self.streamer.unsubscribe(TheoPrice, self.streamer_symbols)
@@ -455,38 +450,11 @@ class LivePrices:
 class MarketCloseException(Exception):
     pass
 
-IGNORE_OPTIONS_TICKER_LIST = ["VIX","ES","UVXY","VIX1D","VIX9D"] # ignore options for VIX and futures.
-NON_TICKER_LIST = ["VIX1D","VIX9D"] # just use ticker as streamer_symbol
-
-async def background_subscribe(ticker,expirations_str,save_to_postres=True):
+async def background_subscribe(ticker,streamer_symbols,is_option,save_to_postres=True):
     try:
-        expiration_list = expirations_str.split(",")
-        
+
         session = get_session_reuse()
-        
-        if ticker == 'SPX':
-            ticker_alt = 'SPXW'
-        elif ticker == 'NDX':
-            ticker_alt = 'NDXP'
-        elif ticker == 'VIX':
-            ticker_alt = 'VIXW'
-        else:
-            ticker_alt = ticker
 
-        if ticker in ["ES"]: # futures with options
-            future_list = await Future.get(session,product_codes=ticker)
-            future_list = sorted(future_list,key=lambda x: x.expires_at,reverse=False)
-            equity = await Future.get(session, future_list[0].symbol)
-            chain = await get_future_option_chain(session, ticker)
-        elif ticker in NON_TICKER_LIST:
-            equity= None
-            chain = {}
-        else: # equity with options
-            equity = await Equity.get(session, ticker)
-            chain = await get_option_chain(session, ticker)
-
-        expirations = sorted(list(chain.keys()))
-        live_prices_list = []
         myqueue = await PgInsertQueue.create()
         event_type_list = ['candle_underlying','quote_underlying','candle','quote','greeks','summary','timeandsale']
         flusher_task_list = [asyncio.create_task(flusher(myqueue,event_type)) for event_type in event_type_list]
@@ -496,25 +464,8 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
         while (tries := tries + 1) <= max_tries:
             try:
                 async with DXLinkStreamer(session) as streamer:
-                    # underlying
-                    if "None" in expiration_list:
-                        if ticker in NON_TICKER_LIST:
-                            underlying_streamer_symbols = [ticker]
-                        else:
-                            underlying_streamer_symbols = [equity.streamer_symbol]
-                        live_prices = await LivePrices.create(myqueue,streamer,ticker,underlying_streamer_symbols,expiration=None,save_to_postres=save_to_postres)
-                        live_prices_list.append(live_prices)
 
-                    for expiration in expirations:
-                        if ticker in IGNORE_OPTIONS_TICKER_LIST: # ignore options for VIX and futures.
-                            continue 
-                        if expiration.strftime("%Y-%m-%d") not in expiration_list:
-                            continue
-                        options_list = [o for o in chain[expiration]]
-                        streamer_symbols = [o.streamer_symbol for o in options_list]
-                        streamer_symbols = streamer_symbols[:20]
-                        live_prices = await LivePrices.create(myqueue,streamer,ticker,streamer_symbols,expiration=expiration,save_to_postres=save_to_postres)
-                        live_prices_list.append(live_prices)
+                    live_prices = await LivePrices.create(myqueue,streamer,ticker,streamer_symbols,is_option,save_to_postres=save_to_postres)
 
                     while True:
                         et_tstamp = now_in_new_york()
@@ -528,9 +479,8 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
                         if not is_market_open() and marketopendelta.total_seconds() > 0:
                             logger.info("market closing -------------------------------")
                             await asyncio.sleep(10)
-                            for lp in live_prices_list:
-                                logger.info("shutdown...")
-                                await lp.shutdown()
+                            logger.info("shutdown...")
+                            await live_prices.shutdown()
 
                             # clean up
                             for flusher_task in flusher_task_list:
@@ -545,10 +495,9 @@ async def background_subscribe(ticker,expirations_str,save_to_postres=True):
                         else:
                             logger.info("market open -------------------------------")
 
-                            # print quotes
-                            if len(live_prices_list)>0:
-                                tmp_candle = list(live_prices_list[0].candle.values())[0]
-                                logger.info(f"Current candle: {tmp_candle}")
+                            # print candle info
+                            tmp_candle = list(live_prices.candle.values())[0]
+                            logger.info(f"Current candle: {tmp_candle}")
 
                             await asyncio.sleep(5)
             except* HTTPXWSException:
@@ -575,8 +524,9 @@ if __name__ == "__main__":
         datefmt='%Y-%m-%d %H:%M:%S',
     )
     ticker = sys.argv[1]
-    expirations_str = sys.argv[2]
-    output = asyncio.run(background_subscribe(ticker,expirations_str,save_to_postres=True))
+    streamer_symbols = sys.argv[2]
+    is_option = ast.literal(sys.argv[3])
+    output = asyncio.run(background_subscribe(ticker,streamer_symbols,is_option,save_to_postres=True))
 
 """
 

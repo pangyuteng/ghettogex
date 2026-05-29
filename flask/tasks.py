@@ -19,7 +19,7 @@ from celery import Celery
 from tastytrade.instruments import get_option_chain
 
 from utils.postgres_utils import postgres_execute, vaccum_full_analyze
-from utils.data_tasty import background_subscribe, get_session_reuse, IGNORE_OPTIONS_TICKER_LIST
+from utils.data_tasty import background_subscribe, get_session_reuse
 from utils.misc import is_market_open, now_in_new_york, timedelta_from_market_open
 from utils.compute_intraday import compute_gex
 from utils.mytelegram import telegram_bot
@@ -30,6 +30,9 @@ celery_app = Celery('tasks')
 import celeryconfig
 celery_app.config_from_object(celeryconfig)
 
+IGNORE_OPTIONS_TICKER_LIST = ["VIX","ES","UVXY","VIX1D","VIX9D"] # ignore options for VIX and futures.
+NON_TICKER_LIST = ["VIX1D","VIX9D"] # just use ticker as streamer_symbol
+
 
 class AlwaysRunTarget(luigi.Target):
     def __init__(self,):
@@ -38,10 +41,13 @@ class AlwaysRunTarget(luigi.Target):
         return False
 
 class Subscription(luigi.Task):
-    ticker = luigi.parameter.Parameter()
-    expirations_str = luigi.parameter.Parameter()
+    ticker = luigi.parameter.StrParameter()
+    streamer_symbols_str = luigi.parameter.StrParameter()
+    is_option = luigi.parameter.BoolParameter()
+
     def output(self): # an output that never exists
         return AlwaysRunTarget()
+
     def run(self):
         et_tstamp = now_in_new_york()
 
@@ -64,8 +70,23 @@ class Subscription(luigi.Task):
             return
 
         tastytrade.logger.setLevel(logging.INFO)
-        asyncio.run(background_subscribe(self.ticker,self.expirations_str,save_to_postres=True))
+        asyncio.run(background_subscribe(self.ticker,self.streamer_symbols_str.split(","),self.is_option,save_to_postres=True))
         logger.info("background_subscribe exit success!")
+
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+# if ticker == 'SPX': # ?
+#     ticker_alt = 'SPXW'
+# elif ticker == 'NDX':
+#     ticker_alt = 'NDXP'
+# elif ticker == 'VIX':
+#     ticker_alt = 'VIXW'
+# else:
+#     ticker_alt = ticker
 
 async def a_manage_subscriptions():
     query_str = "select * from watchlist"
@@ -88,35 +109,55 @@ async def a_manage_subscriptions():
             ticker = row['ticker']
             expiration_count = row['expiration_count']
             logger.info(f"trigger subscriptions apply_async {ticker}")
-            if ticker in IGNORE_OPTIONS_TICKER_LIST:
-                expirations_str = "None"
-                trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
 
-            else:
-                if ticker not in mydict.keys():
-                    session = get_session_reuse()
-                    if ticker == 'SPX':
-                        ticker_alt = 'SPXW'
-                    elif ticker == 'NDX':
-                        ticker_alt = 'NDXP'
-                    elif ticker == 'VIX':
-                        ticker_alt = 'VIXW'
-                    else:
-                        ticker_alt = ticker
+            if ticker in ["ES"]: # futures with options
+                future_list = await Future.get(session,product_codes=ticker)
+                future_list = sorted(future_list,key=lambda x: x.expires_at,reverse=False)
+                equity = await Future.get(session, future_list[0].symbol)
+                
+            elif ticker in NON_TICKER_LIST:
+                equity= None
+                chain = {}
+            else: # equity with options
+                equity = await Equity.get(session, ticker)
+
+            if True:
+
+                if ticker in NON_TICKER_LIST:
+                    streamer_symbols_str = ticker
+                else:
+                    streamer_symbols_str = equity.streamer_symbol
+
+                is_option = False
+                trigger_subscription.apply_async(args=[ticker,streamer_symbols_str,is_option],queue="stream")
+
+            if ticker in IGNORE_OPTIONS_TICKER_LIST:
+                continue
+
+            if ticker not in mydict.keys():
+                session = get_session_reuse()
+                if ticker in ["ES"]:
+                    chain = await get_future_option_chain(session, ticker)
+                else:
                     chain = await get_option_chain(session, ticker)
 
+                options_list = []
+                exp_counter = 0
+                for k,v in chain.items():
                     # there were a few incidents where i saw expired contracts
-                    expiration_list = ["None"]
-                    expiration_list.extend([k.strftime("%Y-%m-%d") for k,v in chain.items() if k >= et_tstamp.date()])
-                    mydict[ticker] = expiration_list
-
-                else:
-                    expiration_list = mydict[ticker]
-
-                for n,expirations_str in enumerate(expiration_list):
-                    trigger_subscription.apply_async(args=[ticker,expirations_str],queue="stream")
-                    if n == expiration_count:
+                    if k >= et_tstamp.date():
+                        options_list.extend(v)
+                    exp_counter+=1
+                    if exp_counter == expiration_count:
                         break
+                streamer_symbols = [o.streamer_symbol for o in options_list]
+                mydict[ticker] = streamer_symbols
+
+            streamer_symbols = mydict[ticker]
+            for chunked in chunks(streamer_symbols,20):
+                is_option = True
+                streamer_symbols_str = ",".join(chunked)
+                trigger_subscription.apply_async(args=(ticker,streamer_symbols_str,is_option),queue="stream")            
 
         if is_market_open():
             time.sleep(60)
@@ -142,11 +183,9 @@ def trigger_telegram_bot(*args,**kwargs):
     ret_code = luigi.build([task])
 
 @celery_app.task
-def trigger_subscription(*args,**kwargs):
-    ticker = args[0]
-    expirations_str = args[1]
+def trigger_subscription(ticker,streamer_symbols_str,is_option):
     logger.info(f"trigger_subscription! {ticker}")
-    task = Subscription(ticker=ticker,expirations_str=expirations_str)
+    task = Subscription(ticker=ticker,streamer_symbols_str=streamer_symbols_str,is_option=is_option)
     ret_code = luigi.build([task])
 
 # for fast jobs don't bother with luigi
@@ -205,12 +244,14 @@ def trigger_gex_cache(*args,**kwargs):
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
-    expirations_str = sys.argv[2] # None,2025-09-03,2025-09-04
-    trigger_subscription(ticker,expirations_str)
+    streamer_symbols_str = sys.argv[2] # None,2025-09-03,2025-09-04
+    is_option = ast.literal_eval(sys.argv[3])
+    trigger_subscription(ticker,streamer_symbols_str,is_option)
 
 """ 
 
-python -m luigi --module tasks Subscription --ticker SPX --local-scheduler
+python -m luigi --module tasks Subscription --ticker SPX --streamer-symbols-str .SPXW260529P7600,.SPXW260529C7600 --is-option --local-scheduler
+python -m luigi --module tasks Subscription --ticker SPX --streamer-symbols-str SPX --local-scheduler
 
 celery_app.control.broadcast('shutdown') ??
 
