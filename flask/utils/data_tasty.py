@@ -460,7 +460,7 @@ async def background_subscribe(ticker,streamer_symbols,is_option,save_to_postres
         flusher_task_list = [asyncio.create_task(flusher(myqueue,event_type)) for event_type in event_type_list]
         asyncio.gather(*flusher_task_list)
 
-        tries, max_tries = 0, 10
+        tries, max_tries = 0, 3000
         while (tries := tries + 1) <= max_tries:
             try:
                 async with DXLinkStreamer(session) as streamer:
@@ -501,8 +501,8 @@ async def background_subscribe(ticker,streamer_symbols,is_option,save_to_postres
 
                             await asyncio.sleep(5)
             except* HTTPXWSException:
-                logger.error("Oh no! Disconnected!")
-                await sleep(tries ** 2)
+                logger.error(f"streamer disconnected {tries}")
+                await sleep(1)
 
     except MarketCloseException:
         logger.error("MarketCloseException...")

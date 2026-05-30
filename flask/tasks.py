@@ -16,7 +16,8 @@ import threading
 import luigi
 from celery import Celery
 
-from tastytrade.instruments import get_option_chain
+from tastytrade.instruments import get_option_chain, get_future_option_chain
+from tastytrade.instruments import Equity, Future
 
 from utils.postgres_utils import postgres_execute, vaccum_full_analyze
 from utils.data_tasty import background_subscribe, get_session_reuse
