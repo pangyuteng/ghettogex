@@ -460,7 +460,7 @@ async def background_subscribe(ticker,streamer_symbols,is_option,save_to_postres
         flusher_task_list = [asyncio.create_task(flusher(myqueue,event_type)) for event_type in event_type_list]
         asyncio.gather(*flusher_task_list)
 
-        tries, max_tries = 0, 3000
+        tries, max_tries = 0, 10
         while (tries := tries + 1) <= max_tries:
             try:
                 async with DXLinkStreamer(session) as streamer:
