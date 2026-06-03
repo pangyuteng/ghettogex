@@ -249,7 +249,7 @@ class PgInsertQueue:
 
 async def flusher(myqueue,flusher_key):
     max_lifetime = 25200
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False,max_lifetime=max_lifetime) as apool:
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=2,open=False,max_lifetime=max_lifetime) as apool:
         await apool.check()
         async with apool.connection() as aconn:
             while True:

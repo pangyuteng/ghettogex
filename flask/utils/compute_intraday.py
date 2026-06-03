@@ -30,7 +30,7 @@ from .iv_utils import (
 )
 
 async def compute_gex(ticker,et_tstamp,persist_to_postgres=True):
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=4,open=False) as apool:
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=2,open=False) as apool:
         async with apool.connection() as aconn:
             try:
                 return await _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=persist_to_postgres)

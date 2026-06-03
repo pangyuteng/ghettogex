@@ -498,7 +498,7 @@ async def ws_scratch():
         dstamp = websocket.args.get("dstamp")
         tickers, charts = _parse_tickers_charts(websocket.args)
 
-        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=1,open=False) as apool:
             while True:
                 try:
                     ret_dict = {'tickers': {}, 'meta': {}}
@@ -999,7 +999,7 @@ async def debug():
     query_keys = []
     query_list = []
     interval = '5min'
-    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
+    async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=1,open=False) as apool:
         query_keys.append((ticker, 'expectedmove'))
         query_list.append(apostgres_execute(apool, PRICE_5MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
         query_keys.append((ticker, 'volume'))
@@ -1075,7 +1075,7 @@ async def ws_main():
         ticker = websocket.args.get("ticker","SPX")
         interval = websocket.args.get("interval","1min") # 1sec, 1min, 5min
 
-        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=5,open=False) as apool:
+        async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=1,open=False) as apool:
             while True:
                 try:
                     ret_dict = {'tickers': {}, 'meta': {}}
