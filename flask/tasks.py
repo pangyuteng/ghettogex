@@ -189,11 +189,6 @@ def trigger_subscription(ticker,streamer_symbols_str,is_option):
     task = Subscription(ticker=ticker,streamer_symbols_str=streamer_symbols_str,is_option=is_option)
     ret_code = luigi.build([task])
 
-# for fast jobs don't bother with luigi
-@celery_app.task
-def task_foo(*args,**kwargs):
-    print(args)
-
 @celery_app.task
 def manage_subscriptions(*args,**kwargs):
     task = ManageSubscriptions()

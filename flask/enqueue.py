@@ -14,7 +14,7 @@ import json
 import time
 import celery
 
-from tasks import task_foo
+
 LISTEM_TABLE_LIST = ["watchlist","quotes","summary","greeks","timeandsale"]
 LISTEN_TABLE_LIST = ["watchlist"]
 
@@ -96,10 +96,10 @@ class Enqueue():
             logger.info('pid: %r \n channel: %r \n payload: %r \n' % (notify.pid,notify.channel,notify.payload))
         try:
             payload = json.loads(json.dumps(payload, indent=4, sort_keys=True, default=str))
-            task_foo.apply_async(args=(payload,),
-                queue=None,routing_key=None,
-                priority=None,countdown=None
-            )
+            # task_foo.apply_async(args=(payload,),
+            #     queue=None,routing_key=None,
+            #     priority=None,countdown=None
+            # )
         except:
             traceback.print_exc()
             logger.error(f'{traceback.format_exc()}')
