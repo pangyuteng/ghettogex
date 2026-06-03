@@ -7,7 +7,7 @@ echo -n $WORKERNAME > /tmp/workername.txt
 celery -A tasks worker -Q $QUEUENAME \
     --hostname=$WORKERNAME \
     --pidfile /tmp/celeryworker.pid \
-    --pool=prefork --concurrency=10 \
+    --pool=prefork --concurrency=20 \
     --prefetch-multiplier=1 --loglevel=INFO \
     --without-mingle --without-gossip
 
