@@ -241,7 +241,7 @@ sum(volume) as volume,
 sum(order_imbalance) as order_imbalance
 FROM candle_1day
 WHERE tstamp > now() - interval '30 days'
-GROUP BY expiration, event_symbol, ticker,contract_type,strike
+GROUP BY expiration, event_symbol, ticker,contract_type,strike;
 
 CREATE INDEX candle_expiration_tstamp_event_symbol_index on candle_expiration using brin (expiration,event_symbol);
 CREATE INDEX candle_expiration_index on candle_expiration using brin (expiration,ticker);
@@ -417,5 +417,5 @@ CREATE INDEX volume_5min_tstamp_strike_index on volume_5min using brin (tstamp,s
 CREATE INDEX volume_5min_index on volume_5min using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
 
 -- DROP MATERIALIZED VIEW volume_5min
-
+-- SELECT remove_continuous_aggregate_policy('volume_5min');
 
