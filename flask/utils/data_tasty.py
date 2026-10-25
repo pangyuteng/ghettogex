@@ -21,7 +21,6 @@ import numpy as np
 
 import uuid
 from anyio import sleep
-from httpx_ws import HTTPXWSException
 import aiofiles
 import aiofiles.os
 import asyncio
