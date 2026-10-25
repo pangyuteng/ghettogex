@@ -165,6 +165,20 @@ async def a_manage_subscriptions():
         else:
             break
 
+"""
+
+NOTE ON TASTY DXFEED Streaming rate limits
+ 
+Limit	Value
+Total concurrent sessions	5
+Subscriptions per session	25,000
+Per-event subscription cap, Candle / Order / Series	100 each
+Subscription change rate	10,000 / minute
+
+source https://developer.tastytrade.com/docs/guides/rate-limits-and-backoff/
+
+"""
+
 class ManageSubscriptions(luigi.Task):
     def output(self):
         return AlwaysRunTarget()
