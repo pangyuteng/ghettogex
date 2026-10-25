@@ -500,8 +500,15 @@ async def background_subscribe(ticker,streamer_symbols,is_option,save_to_postres
                             logger.info(f"Current candle: {tmp_candle}")
 
                             await asyncio.sleep(5)
+
             except* HTTPXWSException:
-                logger.error(f"streamer disconnected {tries}")
+                traceback.print_exc()
+                logger.error(f"streamer disconnected, background_subscribe, retry {tries}")
+                await sleep(1)
+
+            except:
+                traceback.print_exc()
+                logger.error(f"background_subscribe, retry {tries}")
                 await sleep(1)
 
     except MarketCloseException:
