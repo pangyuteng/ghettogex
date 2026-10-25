@@ -40,7 +40,7 @@ scipy==1.17.1
 seaborn==0.13.2
 statsmodels==0.14.6
 TA-Lib==0.6.8
-tastytrade==12.4.1
+tastytrade==13.2.3
 tqdm==4.67.3
 vollib==1.0.7
 yfinance==1.4.0
