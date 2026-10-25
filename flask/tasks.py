@@ -155,7 +155,7 @@ async def a_manage_subscriptions():
                 mydict[ticker] = streamer_symbols
 
             streamer_symbols = mydict[ticker]
-            for chunked in chunks(streamer_symbols,20):
+            for chunked in chunks(streamer_symbols,100):
                 is_option = True
                 streamer_symbols_str = ",".join(chunked)
                 trigger_subscription.apply_async(args=(ticker,streamer_symbols_str,is_option),queue="stream")            
@@ -167,6 +167,19 @@ async def a_manage_subscriptions():
 
 """
 
+say you have 600 contract symbols per expiration
+
+we make 6 chunks, each chunk have 100 symbols
+
+each symbol we subscribe to 4 events Candle,Quote,Greeks,Summary
+
+so each Streamer will subscribe to 400 events
+
+we have a hand full of equity candle subscriptions, say 10
+
+400*6 + 10 = 2410, this is well under tasty/dxfeed 25K limit.
+
+
 NOTE ON TASTY DXFEED Streaming rate limits
  
 Limit	Value
@@ -174,6 +187,11 @@ Total concurrent sessions	5
 Subscriptions per session	25,000
 Per-event subscription cap, Candle / Order / Series	100 each
 Subscription change rate	10,000 / minute
+
+The 5-session limit is per set of credentials, so a client that opens 
+a session per browser tab or per worker will hit it before 
+it hits anything else. 
+Share one streamer connection and fan out internally.
 
 source https://developer.tastytrade.com/docs/guides/rate-limits-and-backoff/
 
