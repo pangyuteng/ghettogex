@@ -329,7 +329,10 @@ SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol, ticker, expiration,
 last(price,tstamp) as price,
 last(volatility,tstamp) as volatility,	
 last(delta,tstamp) as delta,
-last(gamma,tstamp) as gamma
+last(gamma,tstamp) as gamma,
+last(theta,tstamp) as theta,
+last(rho,tstamp) as rho,
+last(vega,tstamp) as vega
 FROM greeks where ticker is not null
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker, expiration, contract_type, strike;
 
