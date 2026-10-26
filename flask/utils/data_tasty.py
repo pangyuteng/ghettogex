@@ -300,19 +300,20 @@ def parse_symbol(event_symbol):
 # commit https://github.com/tastyware/tastytrade/blob/97e1bc6632cfd4a15721da816085eb906a02bcb0/docs/data-streamer.rst#L76
 # # interval '5s' '15s', '5m', '1h', '3d',
 CANDLE_TYPE = 's'
-async def _subscribe(streamer, streamer_symbols, is_option):
+async def _subscribe(streamer, streamer_symbols, is_option, is_candle):
     # subscribe to quotes and greeks for all options on that date
     start_time = now_in_new_york() # start from now
 
-    await streamer.subscribe(Quote,streamer_symbols,refresh_interval=1.0)
+    if is_candle:
+        await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time,refresh_interval=1.0)
 
     if is_option:
+        await streamer.subscribe(Quote,streamer_symbols,refresh_interval=1.0)
         await streamer.subscribe(TimeAndSale, streamer_symbols)
         await streamer.subscribe(Greeks, streamer_symbols)
         await streamer.subscribe(Summary, streamer_symbols)
-        
+
     if False:
-        await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time,refresh_interval=1.0)
         await streamer.subscribe(Trade, streamer_symbols)
         await streamer.subscribe(Profile, streamer_symbols)
         await streamer.subscribe(TheoPrice, streamer_symbols)
@@ -344,6 +345,7 @@ class LivePrices:
     task_list: list[str]
     ticker: str
     is_option: bool
+    is_candle: bool
     save_to_postres: bool=False
     @classmethod
     async def create(
@@ -353,33 +355,38 @@ class LivePrices:
         ticker: str,
         streamer_symbols: list,
         is_option: bool,
+        is_candle: bool,
         save_to_postres: bool = False,
         ):
 
-        await _subscribe(streamer,streamer_symbols,is_option)
+        await _subscribe(streamer,streamer_symbols,is_option,is_candle)
 
         self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
                    streamer, streamer_symbols,[],ticker,is_option,save_to_postres=save_to_postres)
 
-        t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",myqueue))
+        if self.is_candle:
+            t_listen_candles = asyncio.create_task(self._update_candle(myqueue))
 
         if self.is_option:
+            t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",myqueue))
             t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",myqueue))
             t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",myqueue))
             t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary",myqueue))
 
         if False:
-            t_listen_candles = asyncio.create_task(self._update_candle(myqueue))
             t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile",myqueue))
             t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice",myqueue))
             t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying",myqueue))
             t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade",myqueue))
 
-        self.task_list = [
-            t_listen_quote,
-        ]
+        self.task_list = []
+        
+        if self.is_candle:
+            self.task_list.append(t_listen_candles)
+
         if self.is_option:
             self.task_list.extend([
+                t_listen_quote,
                 t_listen_time_and_sale,
                 t_listen_greeks,
                 t_listen_summary,
@@ -407,15 +414,16 @@ class LivePrices:
     async def shutdown(self):
         logger.info(f"streamer.unsubscribe...{self.ticker}")
 
-        await self.streamer.unsubscribe(Quote,self.streamer_symbols)
+        if self.is_candle:
+            await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
 
         if self.is_option:
+            await self.streamer.unsubscribe(Quote,self.streamer_symbols)
             await self.streamer.unsubscribe(TimeAndSale, self.streamer_symbols)
             await self.streamer.unsubscribe(Greeks, self.streamer_symbols)
             await self.streamer.unsubscribe(Summary, self.streamer_symbols)
 
         if False:
-            await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
             await self.streamer.unsubscribe(Trade, self.streamer_symbols)
             await self.streamer.unsubscribe(Profile, self.streamer_symbols)
             await self.streamer.unsubscribe(TheoPrice, self.streamer_symbols)
@@ -449,7 +457,7 @@ class LivePrices:
 class MarketCloseException(Exception):
     pass
 
-async def background_subscribe(ticker,streamer_symbols,is_option,save_to_postres=True):
+async def background_subscribe(ticker,streamer_symbols,is_option,is_candle=False,save_to_postres=True):
     try:
 
         session = get_session_reuse()
@@ -464,7 +472,7 @@ async def background_subscribe(ticker,streamer_symbols,is_option,save_to_postres
             try:
                 async with DXLinkStreamer(session) as streamer:
 
-                    live_prices = await LivePrices.create(myqueue,streamer,ticker,streamer_symbols,is_option,save_to_postres=save_to_postres)
+                    live_prices = await LivePrices.create(myqueue,streamer,ticker,streamer_symbols,is_option,is_candle,save_to_postres=save_to_postres)
 
                     while True:
                         et_tstamp = now_in_new_york()
@@ -527,7 +535,8 @@ if __name__ == "__main__":
     ticker = sys.argv[1]
     streamer_symbols = sys.argv[2]
     is_option = ast.literal(sys.argv[3])
-    output = asyncio.run(background_subscribe(ticker,streamer_symbols,is_option,save_to_postres=True))
+    is_candle = ast.literal(sys.argv[4])
+    output = asyncio.run(background_subscribe(ticker,streamer_symbols,is_option,is_candle,save_to_postres=True))
 
 """
 

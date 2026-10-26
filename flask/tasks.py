@@ -45,6 +45,7 @@ class Subscription(luigi.Task):
     ticker = luigi.parameter.StrParameter()
     streamer_symbols_str = luigi.parameter.StrParameter()
     is_option = luigi.parameter.BoolParameter()
+    is_candle = luigi.parameter.BoolParameter()
 
     def output(self): # an output that never exists
         return AlwaysRunTarget()
@@ -71,7 +72,7 @@ class Subscription(luigi.Task):
             return
 
         tastytrade.logger.setLevel(logging.INFO)
-        asyncio.run(background_subscribe(self.ticker,self.streamer_symbols_str.split(","),self.is_option,save_to_postres=True))
+        asyncio.run(background_subscribe(self.ticker,self.streamer_symbols_str.split(","),self.is_option,self.is_candle,save_to_postres=True))
         logger.info("background_subscribe exit success!")
 
 
@@ -90,8 +91,7 @@ def chunks(lst, n):
 #     ticker_alt = ticker
 
 async def a_manage_subscriptions():
-    query_str = "select * from watchlist"
-    query_args = ()
+    
     mydict = {}
 
     if is_market_open() is False:
@@ -101,9 +101,28 @@ async def a_manage_subscriptions():
     session = get_session_reuse(refresh_serialized=True)
 
     while True:
+
+        query_str = "select * from watchlist where candle_sub is true order by ticker"
+        query_args = ()
         fetched = postgres_execute(query_str,query_args,is_commit=False)
-        if fetched is None:
-            return
+        fetched = [dict(x) for x in fetched]
+        streamer_symbols_str = []
+        for row in fetched:
+            ticker = row['ticker']
+            if ticker in NON_TICKER_LIST:
+                streamer_symbols_str.append(ticker)
+            else:
+                equity = await Equity.get(session, ticker)
+                streamer_symbols_str.append(equity.streamer_symbol)
+
+        is_option = False
+        is_candle = True
+        streamer_symbols_str = ','.join(streamer_symbols_str)
+        trigger_subscription.apply_async(args=[None,streamer_symbols_str,is_option,is_candle],queue="stream")
+
+        query_str = "select * from watchlist where expiration_count > 0 and order by ticker"
+        query_args = ()
+        fetched = postgres_execute(query_str,query_args,is_commit=False)
         et_tstamp = now_in_new_york()
         fetched = [dict(x) for x in fetched]
         for row in fetched:
@@ -115,24 +134,12 @@ async def a_manage_subscriptions():
                 future_list = await Future.get(session,product_codes=ticker)
                 future_list = sorted(future_list,key=lambda x: x.expires_at,reverse=False)
                 equity = await Future.get(session, future_list[0].symbol)
-                
-            elif ticker in NON_TICKER_LIST:
-                equity= None
-                chain = {}
             else: # equity with options
                 equity = await Equity.get(session, ticker)
 
-            if True:
-
-                if ticker in NON_TICKER_LIST:
-                    streamer_symbols_str = ticker
-                else:
-                    streamer_symbols_str = equity.streamer_symbol
-
-                is_option = False
-                trigger_subscription.apply_async(args=[ticker,streamer_symbols_str,is_option],queue="stream")
-
             if ticker in IGNORE_OPTIONS_TICKER_LIST:
+                continue
+            if ticker in NON_TICKER_LIST:
                 continue
 
             if ticker not in mydict.keys():
@@ -157,8 +164,9 @@ async def a_manage_subscriptions():
             streamer_symbols = mydict[ticker]
             for chunked in chunks(streamer_symbols,100):
                 is_option = True
+                is_candle = False
                 streamer_symbols_str = ",".join(chunked)
-                trigger_subscription.apply_async(args=(ticker,streamer_symbols_str,is_option),queue="stream")            
+                trigger_subscription.apply_async(args=(ticker,streamer_symbols_str,is_option,is_candle),queue="stream")
 
         if is_market_open():
             time.sleep(60)
@@ -216,9 +224,9 @@ def trigger_telegram_bot(*args,**kwargs):
     ret_code = luigi.build([task])
 
 @celery_app.task
-def trigger_subscription(ticker,streamer_symbols_str,is_option):
+def trigger_subscription(ticker,streamer_symbols_str,is_option,is_candle):
     logger.info(f"trigger_subscription! {ticker}")
-    task = Subscription(ticker=ticker,streamer_symbols_str=streamer_symbols_str,is_option=is_option)
+    task = Subscription(ticker=ticker,streamer_symbols_str=streamer_symbols_str,is_option=is_option,is_candle=is_candle)
     ret_code = luigi.build([task])
 
 @celery_app.task
