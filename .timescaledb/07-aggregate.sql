@@ -149,8 +149,8 @@ min(low) as low,
 sum(ask_volume) as ask_volume,
 sum(bid_volume) as bid_volume,
 sum(volume) as volume,
-sum(ask_volume)-sum(bid_volume) as order_imbalance
-FROM candle 
+sum(order_imbalance) as order_imbalance
+FROM candle_1sec
 GROUP BY time_bucket('1m', tstamp), event_symbol,ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('candle_1min',
@@ -228,23 +228,6 @@ CREATE INDEX candle_1day_index on candle_1day using brin (tstamp,ticker) WITH (t
 -- DROP MATERIALIZED VIEW candle_1day
 -- SELECT remove_continuous_aggregate_policy('candle_1day');
 
-
---
-
-CREATE MATERIALIZED VIEW candle_expiration AS
-SELECT expiration, event_symbol,ticker,contract_type,strike,
-first(open,expiration) as open,
-last(close,expiration) as close,
-max(high) as high,
-min(low) as low,
-sum(volume) as volume,
-sum(order_imbalance) as order_imbalance
-FROM candle_1day
-WHERE tstamp > now() - interval '30 days'
-GROUP BY expiration, event_symbol, ticker,contract_type,strike;
-
-CREATE INDEX candle_expiration_tstamp_event_symbol_index on candle_expiration using brin (expiration,event_symbol);
-CREATE INDEX candle_expiration_index on candle_expiration using brin (expiration,ticker);
 
 --
 

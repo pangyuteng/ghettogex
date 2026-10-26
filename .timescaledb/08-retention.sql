@@ -19,7 +19,6 @@
 -- SELECT remove_retention_policy('quote_1min');
 -- SELECT remove_retention_policy('quote_1day');
 -- SELECT remove_retention_policy('candle_1day');
--- SELECT remove_retention_policy('candle_expiration');
 -- SELECT remove_retention_policy('greeks_1day');
 -- SELECT remove_retention_policy('greeksdx_1day');
 -- SELECT remove_retention_policy('volume_1sec');
