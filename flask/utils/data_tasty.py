@@ -304,15 +304,15 @@ async def _subscribe(streamer, streamer_symbols, is_option):
     # subscribe to quotes and greeks for all options on that date
     start_time = now_in_new_york() # start from now
 
-    await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time,refresh_interval=1.0)
     await streamer.subscribe(Quote,streamer_symbols,refresh_interval=1.0)
 
     if is_option:
+        await streamer.subscribe(TimeAndSale, streamer_symbols)
         await streamer.subscribe(Greeks, streamer_symbols)
         await streamer.subscribe(Summary, streamer_symbols)
         
     if False:
-        await streamer.subscribe(TimeAndSale, streamer_symbols)
+        await streamer.subscribe_candle(streamer_symbols, CANDLE_TYPE, start_time,refresh_interval=1.0)
         await streamer.subscribe(Trade, streamer_symbols)
         await streamer.subscribe(Profile, streamer_symbols)
         await streamer.subscribe(TheoPrice, streamer_symbols)
@@ -361,37 +361,37 @@ class LivePrices:
         self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
                    streamer, streamer_symbols,[],ticker,is_option,save_to_postres=save_to_postres)
 
-        t_listen_candles = asyncio.create_task(self._update_candle(myqueue))
         t_listen_quote = asyncio.create_task(self._update_event(Quote,"quote",myqueue))
 
         if self.is_option:
+            t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",myqueue))
             t_listen_greeks = asyncio.create_task(self._update_event(Greeks,"greeks",myqueue))
             t_listen_summary = asyncio.create_task(self._update_event(Summary,"summary",myqueue))
 
         if False:
-            t_listen_time_and_sale = asyncio.create_task(self._update_event(TimeAndSale,"timeandsale",myqueue))
+            t_listen_candles = asyncio.create_task(self._update_candle(myqueue))
             t_listen_profile = asyncio.create_task(self._update_event(Profile,"profile",myqueue))
             t_listen_theo_price = asyncio.create_task(self._update_event(TheoPrice,"thoeprice",myqueue))
             t_listen_underlying = asyncio.create_task(self._update_event(Underlying,"underlying",myqueue))
             t_listen_trade = asyncio.create_task(self._update_event(Trade,"trade",myqueue))
 
         self.task_list = [
-            t_listen_candles,
             t_listen_quote,
         ]
         if self.is_option:
             self.task_list.extend([
+                t_listen_time_and_sale,
                 t_listen_greeks,
                 t_listen_summary,
             ])
 
         if False:
             self.task_list.extend([
+                t_listen_candles,
                 t_listen_profile,
                 t_listen_theo_price,
                 t_listen_underlying,
                 t_listen_trade,
-                t_listen_time_and_sale,
             ])
 
         asyncio.gather(*self.task_list)
@@ -407,15 +407,15 @@ class LivePrices:
     async def shutdown(self):
         logger.info(f"streamer.unsubscribe...{self.ticker}")
 
-        await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
         await self.streamer.unsubscribe(Quote,self.streamer_symbols)
 
         if self.is_option:
+            await self.streamer.unsubscribe(TimeAndSale, self.streamer_symbols)
             await self.streamer.unsubscribe(Greeks, self.streamer_symbols)
             await self.streamer.unsubscribe(Summary, self.streamer_symbols)
 
         if False:
-            await self.streamer.unsubscribe(TimeAndSale, self.streamer_symbols)
+            await self.streamer.unsubscribe_candle(self.streamer_symbols,CANDLE_TYPE)
             await self.streamer.unsubscribe(Trade, self.streamer_symbols)
             await self.streamer.unsubscribe(Profile, self.streamer_symbols)
             await self.streamer.unsubscribe(TheoPrice, self.streamer_symbols)
