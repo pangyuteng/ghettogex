@@ -22,7 +22,7 @@ ORDER BY contract_type,strike
 """
 
 ORDER_IMBALANCE_QUERY = """
-select * from candle_5min where tstamp::date = %s and ticker = %s
+select * from cpandle_5min where tstamp::date = %s and ticker = %s
 """
 
 ORDER_IMBALANCE_LASTXMIN_QUERY = """
@@ -66,7 +66,7 @@ ORDER BY strike
 INTERVAL_CONVEXITY_QUERY = """
 WITH o_interval AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from candle_5min where ticker = %s and expiration = %s and tstamp::date = %s and tstamp >= %s - interval '15 minute'
+from cpandle_5min where ticker = %s and expiration = %s and tstamp::date = %s and tstamp >= %s - interval '15 minute'
 group by ticker,strike
 ), g_1day AS (
 select distinct ticker,strike,last(gamma,tstamp) as gamma
@@ -82,7 +82,7 @@ ORDER BY strike
 CONVEXITY_1HOUR_QUERY = """
 WITH o_1hr AS (
 select distinct ticker,strike,sum(order_imbalance) as order_imbalance
-from candle_5min where ticker = %s and expiration = %s and tstamp::date = %s
+from cpandle_5min where ticker = %s and expiration = %s and tstamp::date = %s
 and tstamp > %s - interval '1 hour' and tstamp < %s
 group by ticker,strike
 ), g_1day AS (
