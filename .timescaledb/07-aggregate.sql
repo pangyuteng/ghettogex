@@ -394,8 +394,8 @@ CREATE INDEX greeks_1day_index on greeks_1day using brin (tstamp,ticker) WITH (t
 
 CREATE MATERIALIZED VIEW volume_1sec WITH (timescaledb.continuous) AS
 SELECT time_bucket('1s', tstamp) as tstamp,ticker,expiration,strike,
-sum(volume) as volume
-FROM candle
+sum(size) as volume
+FROM timeandsale
 GROUP BY time_bucket('1s', tstamp), ticker,expiration,strike;
 
 SELECT add_continuous_aggregate_policy('volume_1sec',
