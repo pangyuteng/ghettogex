@@ -248,8 +248,8 @@ CREATE INDEX candle_expiration_index on candle_expiration using brin (expiration
 
 --
 
-CREATE MATERIALIZED VIEW quote_1min WITH (timescaledb.continuous) AS
-SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+CREATE MATERIALIZED VIEW quote_1sec WITH (timescaledb.continuous) AS
+SELECT time_bucket('1s', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
 first(bid_price,tstamp) as open_bid_price,
 max(bid_price) as high_bid_price,
 min(bid_price) as low_bid_price,
@@ -259,6 +259,35 @@ max(ask_price) as high_ask_price,
 min(ask_price) as low_ask_price,
 last(ask_price,tstamp) as close_ask_price
 FROM quote
+GROUP BY time_bucket('1s', tstamp), event_symbol, ticker,expiration,contract_type,strike;
+
+SELECT add_continuous_aggregate_policy('quote_1sec',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('quote_1sec', NULL, NULL);
+ALTER MATERIALIZED VIEW quote_1sec set (timescaledb.materialized_only = true);
+ALTER MATERIALIZED VIEW quote_1sec set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX quote_1sec_tstamp_event_symbol_index on quote_1sec using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX quote_1sec_index on quote_1sec using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+-- DROP MATERIALIZED VIEW quote_1sec
+-- SELECT remove_continuous_aggregate_policy('quote_1sec');
+
+
+CREATE MATERIALIZED VIEW quote_1min WITH (timescaledb.continuous) AS
+SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+first(open_bid_price,tstamp) as open_bid_price,
+max(high_bid_price) as high_bid_price,
+min(low_bid_price) as low_bid_price,
+last(close_bid_price,tstamp) as close_bid_price,
+first(open_ask_price,tstamp) as open_ask_price,
+max(high_ask_price) as high_ask_price,
+min(low_ask_price) as low_ask_price,
+last(close_ask_price,tstamp) as close_ask_price
+FROM quote_1sec
 GROUP BY time_bucket('1m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('quote_1min',
@@ -283,7 +312,14 @@ CREATE INDEX quote_1min_index on quote_1min using brin (tstamp,ticker) WITH (tim
 
 CREATE MATERIALIZED VIEW quote_1day WITH (timescaledb.continuous) AS
 SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
-last(close_bid_price,tstamp) as last_bid_price,last(close_ask_price,tstamp) as last_ask_price 
+first(open_bid_price,tstamp) as open_bid_price,
+max(high_bid_price) as high_bid_price,
+min(low_bid_price) as low_bid_price,
+last(close_bid_price,tstamp) as close_bid_price,
+first(open_ask_price,tstamp) as open_ask_price,
+max(high_ask_price) as high_ask_price,
+min(low_ask_price) as low_ask_price,
+last(close_ask_price,tstamp) as close_ask_price
 FROM quote_1min
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 

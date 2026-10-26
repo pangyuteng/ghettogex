@@ -15,6 +15,7 @@
 -- SELECT remove_retention_policy('candle_1sec');
 -- SELECT remove_retention_policy('candle_1min');
 -- SELECT remove_retention_policy('candle_5min');
+-- SELECT remove_retention_policy('quote_1sec');
 -- SELECT remove_retention_policy('quote_1min');
 -- SELECT remove_retention_policy('quote_1day');
 -- SELECT remove_retention_policy('candle_1day');
@@ -47,6 +48,7 @@ SELECT add_retention_policy('candle_5min', INTERVAL '7 days');
 SELECT add_retention_policy('candle_1day', INTERVAL '7 days');
 SELECT add_retention_policy('candle_expiration', INTERVAL '7 days');
 
+SELECT add_retention_policy('quote_1sec', INTERVAL '7 days');
 SELECT add_retention_policy('quote_1min', INTERVAL '7 days');
 SELECT add_retention_policy('quote_1day', INTERVAL '7 days');
 
