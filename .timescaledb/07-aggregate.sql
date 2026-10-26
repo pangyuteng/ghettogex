@@ -455,3 +455,63 @@ CREATE INDEX volume_5min_index on volume_5min using brin (tstamp,ticker) WITH (t
 -- DROP MATERIALIZED VIEW volume_5min
 -- SELECT remove_continuous_aggregate_policy('volume_5min');
 
+CREATE MATERIALIZED VIEW cpandle_1sec WITH (timescaledb.continuous) AS
+SELECT time_bucket('1sec', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+SUM(
+    CASE 
+        WHEN aggressor_side = 'BUY' THEN size
+        ELSE 0 
+    END
+) AS ask_volume,
+SUM(
+    CASE 
+        WHEN aggressor_side = 'SELL' THEN size
+        ELSE 0 
+    END
+) AS bid_volume,
+SUM(size) as volume,
+SUM(
+    CASE 
+        WHEN aggressor_side = 'BUY' THEN 1*size
+        WHEN aggressor_side = 'SELL' THEN -1*size
+        ELSE 0 
+    END
+) AS order_imbalance
+FROM timeandsale
+GROUP BY time_bucket('1sec', tstamp), event_symbol,ticker,expiration,contract_type,strike;
+
+SELECT add_continuous_aggregate_policy('cpandle_1sec',
+  start_offset => INTERVAL '1 week',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('cpandle_1sec', NULL, NULL);
+ALTER MATERIALIZED VIEW cpandle_1sec set (timescaledb.materialized_only = true);
+ALTER MATERIALIZED VIEW cpandle_1sec set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX cpandle_1sec_tstamp_event_symbol_index on cpandle_1sec using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX cpandle_1sec_index on cpandle_1sec using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+---
+
+CREATE MATERIALIZED VIEW cpandle_1min WITH (timescaledb.continuous) AS
+SELECT time_bucket('1m', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+sum(ask_volume) as ask_volume,
+sum(bid_volume) as bid_volume,
+sum(volume) as volume,
+sum(order_imbalance) as order_imbalance
+FROM cpandle_1sec 
+GROUP BY time_bucket('1m', tstamp), event_symbol,ticker,expiration,contract_type,strike;
+
+SELECT add_continuous_aggregate_policy('cpandle_1min',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('cpandle_1min', NULL, NULL);
+ALTER MATERIALIZED VIEW cpandle_1min set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW cpandle_1min set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX cpandle_1min_tstamp_event_symbol_index on cpandle_1min using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX cpandle_1min_index on cpandle_1min using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
