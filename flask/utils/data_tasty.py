@@ -504,9 +504,12 @@ async def background_subscribe(ticker,streamer_symbols,is_option,is_candle=False
                         else:
                             logger.info("market open -------------------------------")
 
-                            # print candle info
-                            tmp_candle = list(live_prices.candle.values())[0]
-                            logger.info(f"Current candle: {tmp_candle}")
+                            if live_prices.is_candle:
+                                tmp_event = list(live_prices.candle.values())[0]
+                                logger.info(f"Current candle: {tmp_event}")
+                            if live_prices.is_option:
+                                tmp_event = list(live_prices.quote.values())[0]
+                                logger.info(f"Current quote: {tmp_event}")
 
                             await asyncio.sleep(5)
 
