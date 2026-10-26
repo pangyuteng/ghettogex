@@ -3,13 +3,14 @@ CREATE TABLE IF NOT EXISTS watchlist (
     watchlist_id SERIAL PRIMARY KEY,
     ticker text UNIQUE,
     expiration_count integer, 
-    compute_gex bool
+    compute_gex bool,
+    candle_sub bool
 );
 
-INSERT INTO watchlist(ticker,compute_gex,expiration_count) VALUES('SPX',true,1);
-INSERT INTO watchlist(ticker,compute_gex) VALUES('VIX',false);
-INSERT INTO watchlist(ticker,compute_gex) VALUES('VIX1D',false);
-INSERT INTO watchlist(ticker,compute_gex) VALUES('VIX9D',false);
+INSERT INTO watchlist(ticker,compute_gex,expiration_count,candle_sub) VALUES('SPX',true,1,true);
+INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX',false,true);
+INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX1D',false,true);
+INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX9D',false,true);
 -- INSERT INTO watchlist(ticker,compute_gex) VALUES('UVXY',false);
 -- INSERT INTO watchlist(ticker,compute_gex) VALUES('ES',false);
 
