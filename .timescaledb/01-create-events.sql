@@ -222,7 +222,7 @@ CREATE TABLE IF NOT EXISTS timeandsale (
     aggressor_side text,
     spread_leg boolean,
     extended_trading_hours boolean,
-    valid_tick boolean,
+    valid_tick text,
     type text,
     buyer text,
     seller text,

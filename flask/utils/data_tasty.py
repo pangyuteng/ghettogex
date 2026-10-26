@@ -108,6 +108,8 @@ from decimal import Decimal
 def postgres_friendly(value):
     if type(value) == Decimal:
         return float(value)
+    if value == '\x00':
+        return None
     else:
         return value
 
@@ -362,7 +364,7 @@ class LivePrices:
         await _subscribe(streamer,streamer_symbols,is_option,is_candle)
 
         self = cls({}, {}, {}, {}, {}, {}, {}, {}, {},
-                   streamer, streamer_symbols,[],ticker,is_option,save_to_postres=save_to_postres)
+                   streamer, streamer_symbols,[],ticker,is_option,is_candle,save_to_postres=save_to_postres)
 
         if self.is_candle:
             t_listen_candles = asyncio.create_task(self._update_candle(myqueue))

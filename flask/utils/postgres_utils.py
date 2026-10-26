@@ -37,16 +37,12 @@ async def cpostgres_execute_many(aconn,query_dict):
     return response
                 
 async def cpostgres_copy(aconn,query_dict):
-    if True:
-    #try:
-        async with aconn.cursor() as curs:
-            for query_str,query_list in query_dict.items():
-                async with curs.copy(query_str) as copy:
-                    for row in query_list:
-                        await copy.write_row(row)
-            await aconn.commit()
-    # except:
-    #     traceback.print_exc()
+    async with aconn.cursor() as curs:
+        for query_str,query_list in query_dict.items():
+            async with curs.copy(query_str) as copy:
+                for row in query_list:
+                    await copy.write_row(row)
+        await aconn.commit()
 
 async def apostgres_execute(apool,query_str,query_args,is_commit=False):
     response = None
