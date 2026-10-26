@@ -120,7 +120,7 @@ async def a_manage_subscriptions():
         streamer_symbols_str = ','.join(streamer_symbols_str)
         trigger_subscription.apply_async(args=[None,streamer_symbols_str,is_option,is_candle],queue="stream")
 
-        query_str = "select * from watchlist where expiration_count > 0 and order by ticker"
+        query_str = "select * from watchlist where expiration_count > 0 order by ticker"
         query_args = ()
         fetched = postgres_execute(query_str,query_args,is_commit=False)
         et_tstamp = now_in_new_york()
