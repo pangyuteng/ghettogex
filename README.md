@@ -85,7 +85,7 @@ docker compose --env-file .env up -d
 
 For devops folks these are shitty notes, likely okay to follow. For non-devops folks, these will look like garbage.
 
-+ compute resource setup notes see `.manifest-infra/README.md`
++ compute resource setup notes see `.manifest-storage/README.md`
 
 + setup kube secrets for pulling from docker hub, and tasty api authentication, see `.manifest-back/README.md`
 

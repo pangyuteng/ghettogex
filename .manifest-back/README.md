@@ -66,8 +66,8 @@ kubectl label nodes host6 disktype=ssd
 ```
 
 cd ..
-kubectl apply -f .manifest-volume
-kubectl apply -f .manifest-etc
+kubectl apply -f .manifest-storage
+kubectl apply -f .manifest-svc
 kubectl apply -f .manifest-back
 
 ```
