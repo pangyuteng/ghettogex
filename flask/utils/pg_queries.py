@@ -136,26 +136,6 @@ FULL JOIN vix ON true
 ORDER BY contract_type,strike
 """
 
-CANDLE_1MIN_QUERY = """
-WITH spx_1min AS (select tstamp,close as spx_close from candle_1min where tstamp::date = %s and event_symbol = 'SPX' and close != 0),
-ndx_1min AS (select tstamp,close as ndx_close from candle_1min where tstamp::date = %s and event_symbol like 'NDX' and close != 0),
-es_1min AS (select tstamp,close as es_close from candle_1min where tstamp::date = %s and event_symbol like '/ES%%' and close != 0),
-vix_1min AS (select tstamp,close as vix_close from candle_1min where tstamp::date = %s and event_symbol = 'VIX' and close != 0),
-vix1d_1min AS (select tstamp,close as vix1d_close from candle_1min where tstamp::date = %s and event_symbol = 'VIX1D' and close != 0),
-vix9d_1min AS (select tstamp,close as vix9d_close from candle_1min where tstamp::date = %s and event_symbol = 'VIX9D' and close != 0),
-spy_1min AS (select tstamp,close as spy_close from candle_1min where tstamp::date = %s and event_symbol = 'SPY' and close != 0),
-qqq_1min AS (select tstamp,close as qqq_close from candle_1min where tstamp::date = %s and event_symbol = 'QQQ' and close != 0)
-SELECT * FROM spx_1min
-LEFT JOIN es_1min using (tstamp)
-LEFT JOIN ndx_1min using (tstamp)
-LEFT JOIN spy_1min using (tstamp)
-LEFT JOIN qqq_1min using (tstamp)
-LEFT JOIN vix_1min using (tstamp)
-LEFT JOIN vix9d_1min using (tstamp)
-LEFT JOIN vix1d_1min using (tstamp)
-ORDER BY tstamp
-"""
-
 CANDLE_1MIN_SINGLE_QUERY = """
 WITH ticker_1min AS (
     SELECT tstamp, close AS ticker_close
@@ -354,8 +334,8 @@ ORDER BY tstamp, strike
 TOP_CONTRACT_VOLUME_QUERY = """
 with foo as (
 select tstamp,event_symbol,strike,contract_type,volume,open,high,low,close, 'SPX' as ticker
-from candle_1min 
-where (bid_volume+ask_volume) > 1000 
+from cpandle_1min 
+where volume > 1000 
 and tstamp::date = %s
 and ticker = %s),
 bar as (

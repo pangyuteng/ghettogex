@@ -26,14 +26,14 @@ async def generate_volume_plot(workdir):
 
     fetched = await apostgres_execute(
         None,
-        "select * from candle_1min where event_symbol= %s and tstamp::date = %s",
+        "select * from cpandle_1min where event_symbol= %s and tstamp::date = %s",
         (ticker,expiration,)
     )
     sdf = pd.DataFrame([dict(x) for x in fetched])
 
     fetched = await apostgres_execute(
         None,
-        "select * from candle_1min where ticker = %s and expiration = %s and tstamp::date = %s",
+        "select * from cpandle_1min where ticker = %s and expiration = %s and tstamp::date = %s",
         (ticker_alt,expiration,expiration)
     )
     cdf = pd.DataFrame([dict(x) for x in fetched])

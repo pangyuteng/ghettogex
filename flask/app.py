@@ -59,7 +59,6 @@ from utils.postgres_utils import (
 
 from utils.pg_queries import (
     LATEST_GEX_STRIKE_QUERY,
-    CANDLE_1MIN_QUERY,
     CANDLE_1MIN_SINGLE_QUERY,
     CANDLE_1MIN_PRICE_QUERY,
     ORDER_IMBALANCE_QUERY,

@@ -27,8 +27,8 @@ async def get_last_few_min_spx_volume():
         expiration = market_open.strftime("%Y-%m-%d")
         querystr = """
             select * from (
-            select tstamp, event_symbol, sum(ask_volume+bid_volume) as volume 
-            from candle_1min where ticker = %s
+            select tstamp, event_symbol, volume 
+            from cpandle_1min where ticker = %s
             and expiration = %s and tstamp <= now() 
             and tstamp >= now() - interval '2 minute'
             group by tstamp, event_symbol
