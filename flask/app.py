@@ -208,6 +208,7 @@ def process_convexity_data(rows, min_lim, max_lim):
     """Process INTERVAL_CONVEXITY_QUERY results."""
     df = pd.DataFrame([dict(x) for x in rows])
     df = df[(df.strike>min_lim) & (df.strike<max_lim)].reset_index()
+    df.order_imbalance = df.order_imbalance.astype(float).fillna(0)
     df['convexity'] = df.gamma*df.order_imbalance
     df['pos_convexity'] = df.convexity.where(df.convexity>0)
     df['neg_convexity'] = df.convexity.where(df.convexity<=0)
