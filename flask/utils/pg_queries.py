@@ -128,9 +128,9 @@ FROM candle_1min WHERE event_symbol = %s and tstamp::date = %s
 SELECT DISTINCT last(close,tstamp) as spot_volatility
 FROM candle_1min WHERE event_symbol = %s and tstamp::date = %s
 ) 
-SELECT * FROM oi 
+SELECT * FROM qt 
 left join grk using (event_symbol,ticker,expiration,contract_type,strike)
-left join qt using (event_symbol,ticker,expiration,contract_type,strike)
+left join oi using (event_symbol,ticker,expiration,contract_type,strike)
 FULL JOIN candle ON true
 FULL JOIN vix ON true
 ORDER BY contract_type,strike

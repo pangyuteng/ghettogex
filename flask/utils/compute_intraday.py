@@ -72,6 +72,7 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
     df['ticker_alt'] = ticker_alt
     df['tstamp'] = utc_tstamp.replace(tzinfo=None) # postgres tsamp have no tzinfo
     df['price'] = (df.ask_price+df.bid_price)/2
+    df['order_imbalance'] = df.order_imbalance.astype(float).fillna(0)
     df['mm_order_imbalance'] = -1 * df.order_imbalance # see above mm_order_imbalance note
 
     try:
@@ -103,7 +104,7 @@ async def _compute_gex(aconn,ticker,et_tstamp,persist_to_postgres=True):
 
     except:
         logger.error(traceback.format_exc())
-        raise ValueError("time_till_exp error")
+        raise ValueError("_compute_gex error")
 
     query_dict = {}
 
