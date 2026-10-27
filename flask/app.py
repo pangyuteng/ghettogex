@@ -328,7 +328,7 @@ def process_expected_move_data(rows, spot_price):
     df = pd.DataFrame([dict(x) for x in rows])
     if len(df) == 0:
         raise LookupError("null quote query!")
-    df['mid_price'] = (df.last_bid_price+df.last_ask_price)/2.0
+    df['mid_price'] = (df.close_bid_price+df.close_ask_price)/2.0
     cdf = df[(df.contract_type=="C")&(df.strike>=spot_price)].reset_index().iloc[:3].reset_index()
     pdf = df[(df.contract_type=="P")&(df.strike<=spot_price)].reset_index().iloc[-3:].reset_index()
     expected_move = ( \
