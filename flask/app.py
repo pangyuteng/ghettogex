@@ -818,6 +818,7 @@ def process_contractvolume(rows):
         df = pd.DataFrame([dict(x) for x in rows])
         df.tstamp = df.tstamp.apply(lambda x: x.replace(tzinfo=pytz.timezone("UTC")).astimezone(tz=pytz.timezone(et_tz)))
     except:
+        logger.error(traceback.format_exc())
         df = pd.DataFrame([])
     return df
 
@@ -1129,8 +1130,7 @@ async def ws_main():
                         raise NotImplementedError()
 
                     query_keys.append((ticker, 'contractvolume'))
-                    query_list.append(apostgres_execute(apool, TOP_CONTRACT_VOLUME_QUERY, (dstamp, options_ticker, dstamp, ticker)))
-
+                    query_list.append(apostgres_execute(apool, TOP_CONTRACT_VOLUME_QUERY, (dstamp, options_ticker)))
 
                     gathered_res = await asyncio.gather(*query_list)
 

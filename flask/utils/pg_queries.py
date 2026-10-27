@@ -99,8 +99,8 @@ GREEKS_QUERY = """
 select distinct event_symbol,ticker,expiration,strike,contract_type,
 last(greeks_1day.gamma,tstamp) as gamma,last(greeks_1day.volatility,tstamp) as volatility,
 last(greeksdx_1day.gamma,tstamp) as dx_gamma,last(greeksdx_1day.volatility,tstamp) as dx_volatility
-from greeks_1day 
-left join greeksdx_1day using (event_symbol,ticker,expiration,strike,contract_type,tstamp)
+from greeksdx_1day
+left join greeks_1day using (event_symbol,ticker,expiration,strike,contract_type,tstamp)
 where ticker = %s and expiration = %s and tstamp::date = %s
 group by event_symbol,ticker,expiration,strike,contract_type
 ORDER BY contract_type,strike
@@ -333,16 +333,11 @@ ORDER BY tstamp, strike
 
 TOP_CONTRACT_VOLUME_QUERY = """
 with foo as (
-select tstamp,event_symbol,strike,contract_type,volume,open,high,low,close, 'SPX' as ticker
+select tstamp,event_symbol,strike,contract_type,volume, 'SPX' as ticker
 from cpandle_1min 
 where volume > 1000 
 and tstamp::date = %s
-and ticker = %s),
-bar as (
-select * from event_underlying_1min
-where tstamp::date  = %s
 and ticker = %s)
-select tstamp,event_symbol,strike,contract_type,volume,open,high,low,close,spot_price,expected_move from foo
-left join bar using (tstamp,ticker)
+select tstamp,event_symbol,strike,contract_type,volume from foo
 order by tstamp desc,event_symbol
 """
