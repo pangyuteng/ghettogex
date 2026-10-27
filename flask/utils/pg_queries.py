@@ -6,7 +6,7 @@ SELECT DISTINCT event_symbol as ticker, null::date as expiration ,max(tstamp) as
 WHERE event_symbol = %s AND tstamp > %s - interval '10 minute'
 GROUP BY event_symbol
 ) union all (
-SELECT DISTINCT ticker, expiration, max(tstamp) as tstamp FROM candle 
+SELECT DISTINCT ticker, expiration, max(tstamp) as tstamp FROM cpandle_1sec
 WHERE expiration = %s AND ticker = %s AND tstamp > %s - interval '10 minute'
 GROUP BY ticker, expiration
 ) 
@@ -26,7 +26,7 @@ select * from cpandle_5min where tstamp::date = %s and ticker = %s
 """
 
 ORDER_IMBALANCE_LASTXMIN_QUERY = """
-select tstamp,event_symbol,strike,contract_type,(ask_volume-bid_volume) as order_imbalance from candle 
+select tstamp,event_symbol,strike,contract_type,(ask_volume-bid_volume) as order_imbalance from cpandle_1sec
 where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
 """
 
