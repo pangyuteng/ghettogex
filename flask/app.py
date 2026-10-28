@@ -831,7 +831,7 @@ def process_price_data_with_expected_move(rows, ticker):
     df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
     df = df.replace({np.nan: None})
 
-    lst = [df[i].tolist() for i in ['tstamp','ticker_close','vix1d_close','vix9d_close','vix_close','expected_move']]
+    lst = [df[i].tolist() for i in ['tstamp','ticker_close','vix_close','vix1d_close','vix9d_close','expected_move']]
 
     try:
         ticker_price = df.ticker_close[df.ticker_close.last_valid_index()]
