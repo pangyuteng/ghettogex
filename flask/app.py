@@ -296,8 +296,8 @@ def _build_order_imbalance_lists(df, prices_lst):
         row_strike = df.strike[row_filter&(df.contract_type=="P")].to_list()
         put_list.append([row_tstamp,row_strike,[]])
     # add ticker price line
-    call_list.append([ prices_lst[0], prices_lst[-1], [] ])
-    put_list.append([ prices_lst[0], prices_lst[-1], [] ])
+    call_list.append([ prices_lst[0], prices_lst[1], [] ])
+    put_list.append([ prices_lst[0], prices_lst[1], [] ])
     return call_list, put_list
 
 
@@ -319,7 +319,7 @@ def process_order_imbalance_zoom_data(rows, spot_min_lim, spot_max_lim, prices_l
     df = df.dropna()
     # use last 5 price points for the zoom view
     offset = -5
-    zoom_prices = [ prices_lst[0][offset:], prices_lst[-1][offset:], [] ]
+    zoom_prices = [ prices_lst[0][offset:], prices_lst[1][offset:], [] ]
     call_list, put_list = _build_order_imbalance_lists(df, [zoom_prices[0], zoom_prices[1]])
     return {'call': call_list, 'put': put_list}
 
@@ -831,7 +831,7 @@ def process_price_data_with_expected_move(rows, ticker):
     df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
     df = df.replace({np.nan: None})
 
-    lst = [df[i].tolist() for i in ['tstamp','vix1d_close','vix9d_close','vix_close','expected_move','ticker_close']]
+    lst = [df[i].tolist() for i in ['tstamp','ticker_close','vix1d_close','vix9d_close','vix_close','expected_move']]
 
     try:
         ticker_price = df.ticker_close[df.ticker_close.last_valid_index()]
@@ -967,7 +967,7 @@ def process_volume_data(rows, expectedmove_data, spot_min_lim, spot_max_lim,inte
 
     data_list = data.tolist()
     price_tstamp_list = expectedmove_data['prices'][0]
-    price_list = expectedmove_data['prices'][-1]
+    price_list = expectedmove_data['prices'][1]
 
     try:
         pdf = pd.DataFrame({"tstamp":price_tstamp_list,"price":price_list})
