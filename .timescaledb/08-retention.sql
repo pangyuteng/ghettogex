@@ -30,6 +30,7 @@ SELECT add_retention_policy('greeks', INTERVAL '7 days');
 SELECT add_retention_policy('summary', INTERVAL '7 days');
 SELECT add_retention_policy('timeandsale', INTERVAL '7 days');
 SELECT add_retention_policy('quote', INTERVAL '7 days');
+SELECT add_retention_policy('event', INTERVAL '7 days');
 
 SELECT add_retention_policy('event_contract', INTERVAL '7 days');
 SELECT add_retention_policy('event_strike', INTERVAL '7 days');
@@ -61,4 +62,5 @@ SELECT add_retention_policy('cpandle_1sec', INTERVAL '7 days');
 SELECT add_retention_policy('cpandle_1min', INTERVAL '7 days');
 SELECT add_retention_policy('cpandle_5min', INTERVAL '7 days');
 SELECT add_retention_policy('cpandle_1day', INTERVAL '7 days');
+
 
