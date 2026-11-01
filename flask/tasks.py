@@ -31,9 +31,8 @@ celery_app = Celery('tasks')
 import celeryconfig
 celery_app.config_from_object(celeryconfig)
 
-IGNORE_OPTIONS_TICKER_LIST = ["VIX","ES","UVXY","VIX1D","VIX9D"] # ignore options for VIX and futures.
-NON_TICKER_LIST = ["VIX1D","VIX9D"] # just use ticker as streamer_symbol
-
+NON_TICKER_LIST = ["VIX1D","VIX9D"]
+FUTURES_LIST = ["ES","NQ","VX","CL","ZN","GC","NG","BTC"]
 
 class AlwaysRunTarget(luigi.Target):
     def __init__(self,):
@@ -81,15 +80,6 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
-# if ticker == 'SPX': # ?
-#     ticker_alt = 'SPXW'
-# elif ticker == 'NDX':
-#     ticker_alt = 'NDXP'
-# elif ticker == 'VIX':
-#     ticker_alt = 'VIXW'
-# else:
-#     ticker_alt = ticker
-
 async def a_manage_subscriptions():
     
     mydict = {}
@@ -110,10 +100,17 @@ async def a_manage_subscriptions():
         for row in fetched:
             ticker = row['ticker']
             if ticker in NON_TICKER_LIST:
-                streamer_symbols_str.append(ticker)
+                # just use ticker as streamer_symbol
+                streamer_symbol = ticker
+            elif ticker in FUTURES_LIST:
+                future_list = await Future.get(session,product_codes=ticker)
+                future_list = sorted(future_list,key=lambda x: x.expires_at,reverse=False)
+                equity = await Future.get(session, future_list[0].symbol)
+                streamer_symbol = equity.streamer_symbol
             else:
                 equity = await Equity.get(session, ticker)
-                streamer_symbols_str.append(equity.streamer_symbol)
+                streamer_symbol = equity.streamer_symbol
+            streamer_symbols_str.append(streamer_symbol)
 
         is_option = False
         is_candle = True
@@ -130,21 +127,16 @@ async def a_manage_subscriptions():
             expiration_count = row['expiration_count']
             logger.info(f"trigger subscriptions apply_async {ticker}")
 
-            if ticker in ["ES"]: # futures with options
+            if ticker in FUTURES_LIST:
                 future_list = await Future.get(session,product_codes=ticker)
                 future_list = sorted(future_list,key=lambda x: x.expires_at,reverse=False)
                 equity = await Future.get(session, future_list[0].symbol)
             else: # equity with options
                 equity = await Equity.get(session, ticker)
 
-            if ticker in IGNORE_OPTIONS_TICKER_LIST:
-                continue
-            if ticker in NON_TICKER_LIST:
-                continue
-
             if ticker not in mydict.keys():
                 session = get_session_reuse()
-                if ticker in ["ES"]:
+                if ticker in FUTURES_LIST:
                     chain = await get_future_option_chain(session, ticker)
                 else:
                     chain = await get_option_chain(session, ticker)
