@@ -11,8 +11,10 @@ INSERT INTO watchlist(ticker,compute_gex,expiration_count,candle_sub) VALUES('SP
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX',false,true);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX1D',false,true);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX9D',false,true);
--- INSERT INTO watchlist(ticker,compute_gex) VALUES('UVXY',false);
--- INSERT INTO watchlist(ticker,compute_gex) VALUES('ES',false);
+INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('UVXY',false,true);
+INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('ES',false,true);
+INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('NQ',false,true);
+INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VX',false,true);
 
 CREATE TABLE IF NOT EXISTS session (
     session_id SERIAL PRIMARY KEY,

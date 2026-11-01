@@ -1,3 +1,63 @@
+FUTURES_LIST = [ # FUTURES_LIST generate by grok
+    "VX","VXM",
+    # Equity Indices 
+    "ES", "MES",      # E-mini / Micro S&P 500
+    "NQ", "MNQ",      # E-mini / Micro Nasdaq-100
+    "YM", "MYM",      # E-mini / Micro Dow
+    "RTY", "M2K",     # E-mini / Micro Russell 2000
+    "EMD",            # E-mini S&P MidCap 400
+    "NKD",            # Nikkei 225 (USD)
+
+    # Energy (NYMEX)
+    "CL", "MCL",      # WTI Crude Oil / Micro
+    "NG", "MNG",      # Natural Gas / Micro
+    "HO",             # Heating Oil (ULSD)
+    "RB",             # RBOB Gasoline
+    "BZ",             # Brent Crude (financial)
+
+    # Metals (COMEX)
+    "GC", "MGC",      # Gold / Micro
+    "SI", "SIL",      # Silver / Micro (or 1,000 oz)
+    "HG", "MHG",      # Copper / Micro
+    "PL",             # Platinum
+    "PA",             # Palladium
+
+    # Agriculture / Grains & Oilseeds (CBOT)
+    "ZC", "MZC",      # Corn / Micro
+    "ZW", "MZW",      # Wheat / Micro
+    "ZS",             # Soybeans
+    "ZL", "MZL",      # Soybean Oil / Micro
+    "ZM", "MZM",      # Soybean Meal / Micro
+
+    # Livestock (CME)
+    "LE",             # Live Cattle
+    "HE",             # Lean Hogs
+    "GF",             # Feeder Cattle
+
+    # FX / Currencies (CME)
+    "6E", "M6E",      # Euro FX / Micro
+    "6J", "MJY",      # Japanese Yen / Micro
+    "6B", "M6B",      # British Pound / Micro
+    "6A", "M6A",      # Australian Dollar / Micro
+    "6C", "MCD",      # Canadian Dollar / Micro
+    "6S", "MSF",      # Swiss Franc / Micro
+    "6N",             # New Zealand Dollar
+    "6M",             # Mexican Peso
+
+    # Interest Rates (CBOT / CME)
+    "ZN",             # 10-Year T-Note
+    "ZB",             # 30-Year T-Bond
+    "ZF",             # 5-Year T-Note
+    "ZT",             # 2-Year T-Note
+    "TN",             # Ultra 10-Year Note
+    "UB",             # Ultra T-Bond
+    "SR3",            # 3-Month SOFR
+
+    # Crypto
+    "BTC", "MBT",     # Bitcoin / Micro
+    "ETH", "MET",     # Ether / Micro
+]
+
 import logging
 logger = logging.getLogger(__file__)
 
@@ -32,7 +92,6 @@ import celeryconfig
 celery_app.config_from_object(celeryconfig)
 
 NON_TICKER_LIST = ["VIX1D","VIX9D"]
-FUTURES_LIST = ["ES","NQ","VX","CL","ZN","GC","NG","BTC"]
 
 class AlwaysRunTarget(luigi.Target):
     def __init__(self,):
