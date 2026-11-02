@@ -273,18 +273,18 @@ def process_flow_data(rows, market_open):
 def _build_order_imbalance_lists(df, prices_lst):
     """Shared binning logic for order imbalance data."""
     filter_list = [
-        df.order_imbalance<-200,
+        df.order_imbalance<-500,
+        (df.order_imbalance>=-500)&(df.order_imbalance<-400),
+        (df.order_imbalance>=-400)&(df.order_imbalance<-300),
+        (df.order_imbalance>=-300)&(df.order_imbalance<-200),
         (df.order_imbalance>=-200)&(df.order_imbalance<-100),
-        (df.order_imbalance>=-100)&(df.order_imbalance<-50),
-        (df.order_imbalance>=-50)&(df.order_imbalance<-25),
-        (df.order_imbalance>=-25)&(df.order_imbalance<-10),
-        (df.order_imbalance>=-10)&(df.order_imbalance<0),
-        (df.order_imbalance>=0)&(df.order_imbalance<10),
-        (df.order_imbalance>=10)&(df.order_imbalance<25),
-        (df.order_imbalance>=25)&(df.order_imbalance<50),
-        (df.order_imbalance>=50)&(df.order_imbalance<100),
+        (df.order_imbalance>=-100)&(df.order_imbalance<0),
+        (df.order_imbalance>=0)&(df.order_imbalance<100),
         (df.order_imbalance>=100)&(df.order_imbalance<200),
-        df.order_imbalance>=200,
+        (df.order_imbalance>=200)&(df.order_imbalance<300),
+        (df.order_imbalance>=300)&(df.order_imbalance<400),
+        (df.order_imbalance>=400)&(df.order_imbalance<500),
+        df.order_imbalance>=500,
     ]
     call_list = [[],]
     put_list = [[],]

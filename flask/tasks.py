@@ -91,7 +91,8 @@ celery_app = Celery('tasks')
 import celeryconfig
 celery_app.config_from_object(celeryconfig)
 
-NON_TICKER_LIST = ["VIX1D","VIX9D"]
+NON_TICKER_LIST = ["VIX1D","VIX9D","VIX3M","VIX6M","VIX1Y","COR1M","DSPX"]
+# DSPX not available
 
 class AlwaysRunTarget(luigi.Target):
     def __init__(self,):
