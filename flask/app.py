@@ -61,7 +61,8 @@ from utils.pg_queries import (
     LATEST_GEX_STRIKE_QUERY,
     CANDLE_1MIN_SINGLE_QUERY,
     CANDLE_1MIN_PRICE_QUERY,
-    ORDER_IMBALANCE_QUERY,
+    ORDER_IMBALANCE_5MIN_QUERY,
+    ORDER_IMBALANCE_1MIN_QUERY,
     ORDER_IMBALANCE_LASTXMIN_QUERY,
     CANDLE_QC_QUERY,
     QUOTE_1MIN_QUERY,
@@ -325,9 +326,12 @@ order_imbalance_cmap = colors.LinearSegmentedColormap.from_list(cmap_name, cmap_
 if cmap_name not in [x for x in mpl.colormaps.keys()]:
     mpl.colormaps.register(cmap=order_imbalance_cmap, name=cmap_name)
 
-def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst):
+def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst,interval):
+    if interval == '1min':
+        minval,maxval,alpha = -250,250,0.5
+    else: # 5 min
+        minval,maxval,alpha = -500,500,0.5
 
-    minval,maxval,alpha = -500,500,0.5
     mydict = {'C':None,'P':None}
     for contract_type in mydict.keys():
     
@@ -480,6 +484,7 @@ async def scratch():
     if not await current_user.is_authenticated:
        return redirect(url_for("login"))
     dstamp = request.args.get("dstamp",None)
+    interval = request.args.get("interval","5min")
     market_status = None
     load_data = True
     try:
@@ -526,7 +531,7 @@ async def scratch():
     charts = [c for c in charts if c in VALID_CHARTS]
 
     return await render_template("scratch.html",dstamp=dstamp,load_data=load_data,
-        market_status=market_status,tickers=tickers,charts=charts)
+        market_status=market_status,tickers=tickers,charts=charts,interval=interval)
 
 
 def _parse_tickers_charts(args):
@@ -552,6 +557,7 @@ async def ws_scratch():
     try:
         message = None
         dstamp = websocket.args.get("dstamp")
+        interval = websocket.args.get("interval","5min")
         tickers, charts = _parse_tickers_charts(websocket.args)
 
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=1,open=False) as apool:
@@ -623,6 +629,10 @@ async def ws_scratch():
 
                         # Order imbalance (full day)
                         if need_ordim:
+                            if interval == '1min':
+                                ORDER_IMBALANCE_QUERY = ORDER_IMBALANCE_1MIN_QUERY
+                            else:
+                                ORDER_IMBALANCE_QUERY = ORDER_IMBALANCE_5MIN_QUERY
                             query_keys.append((ticker, 'order_imbalance'))
                             query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_QUERY, (dstamp, options_ticker)))
 
@@ -743,7 +753,7 @@ async def ws_scratch():
 
                                 rows = result_map[(ticker, 'order_imbalance')]
                                 if rows is not None:
-                                    oi_result = process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, price_data['prices'])
+                                    oi_result = process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, price_data['prices'], interval)
                                     ticker_data['call-order-imbalance'] = {'data': oi_result['C']}
                                     ticker_data['put-order-imbalance'] = {'data': oi_result['P']}
                                 else:
@@ -1064,7 +1074,7 @@ async def debug():
         query_keys.append((ticker, 'volume'))
         query_list.append(apostgres_execute(apool, VOLUME_5MIN_QUERY, (dstamp, dstamp, options_ticker)))
         query_keys.append((ticker, 'order_imbalance'))
-        query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_QUERY, (dstamp, options_ticker)))
+        query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_5MIN_QUERY, (dstamp, options_ticker)))
 
         gathered_res = await asyncio.gather(*query_list)
 
@@ -1141,7 +1151,7 @@ async def debug():
             prices = ticker_data['expectedmove']['prices']
 
             source_data = result_map.get((ticker, 'order_imbalance'))
-            oi_result = process_order_imbalance_data(source_data, spot_min_lim, spot_max_lim, prices)
+            oi_result = process_order_imbalance_data(source_data, spot_min_lim, spot_max_lim, prices, interval)
             ticker_data['call-order-imbalance'] = {'data': oi_result['C']}
             ticker_data['put-order-imbalance'] = {'data': oi_result['P']}
         except:

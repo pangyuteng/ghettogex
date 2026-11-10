@@ -1,7 +1,6 @@
 <script>
     const _allTickers = Object.keys(TICKER_CHARTS);
-
-    const wsUrl = WS_ENDPOINT + "?dstamp={{ dstamp }}" + WS_EXTRA_PARAMS;
+    const wsUrl = WS_ENDPOINT + WS_EXTRA_PARAMS;
     const ws = new WebSocket(wsUrl);
 
     let errorSpan = document.getElementById("errorSpan");

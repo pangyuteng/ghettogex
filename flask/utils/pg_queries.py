@@ -21,8 +21,12 @@ GROUP BY event_symbol,strike,contract_type
 ORDER BY contract_type,strike
 """
 
-ORDER_IMBALANCE_QUERY = """
+ORDER_IMBALANCE_5MIN_QUERY = """
 select * from cpandle_5min where tstamp::date = %s and ticker = %s
+"""
+
+ORDER_IMBALANCE_1MIN_QUERY = """
+select * from cpandle_1min where tstamp::date = %s and ticker = %s
 """
 
 ORDER_IMBALANCE_LASTXMIN_QUERY = """
