@@ -26,12 +26,13 @@
 
 
 <script>
-    const TICKER_CHARTS = {'SPX':['orderimbalance']};
+    const TICKER_CHARTS = {'SPX':['call-order-imbalance','put-order-imbalance']};
 </script>
 
 <!-- All charts flow into a single grid -->
 <div class="grid-container">
-    <div id="chart-SPX-orderimbalance"></div>
+    <div id="chart-SPX-call-order-imbalance"></div>
+    <div id="chart-SPX-put-order-imbalance"></div>
 </div>
 
 {% include 'partials/chart-factory.html' %}
@@ -50,6 +51,8 @@ TICKER_CHARTS[ticker].forEach(function(chartType) {
     }
 
 });
+
+
 </script>
 
 hello<br>

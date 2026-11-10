@@ -138,7 +138,7 @@ def process_price_data(rows, ticker):
     df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
     df = df.replace({np.nan: None})
 
-    lst = [df[i].tolist() for i in ['tstamp','vix1d_close','vix9d_close','vix_close','ticker_close']]
+    lst = [df[i].tolist() for i in ['tstamp','ticker_close','vix_close','vix9d_close','vix1d_close']]
 
     ticker_close_col = df.ticker_close
     vix_close_col = df.vix_close
@@ -334,8 +334,8 @@ def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst):
         df = pd.DataFrame([dict(x) for x in rows])
         df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
         df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim) & (df.contract_type==contract_type)]
-        df = df[['tstamp','strike','volume']]
-        df = df.pivot(columns='strike',index='tstamp',values='volume')
+        df = df[['tstamp','strike','order_imbalance']]
+        df = df.pivot(columns='strike',index='tstamp',values='order_imbalance')
         df = df.replace({np.nan: 0})
         for col in df.columns:
             df[col]=df[col].apply(lambda x: [-1,col,x,getrgba(x,minval,maxval,alpha,order_imbalance_cmap)])
@@ -364,7 +364,7 @@ def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst):
             mylist = [tstamp_list,start_list,end_list,end_list,data_list]
 
         mydict[contract_type] = mylist
-        app.logger.error(mylist)
+
     return mydict
 
 def process_order_imbalance_zoom_data(rows, spot_min_lim, spot_max_lim, prices_lst):
@@ -740,11 +740,12 @@ async def ws_scratch():
                         # Order imbalance (full day)
                         if (ticker, 'order_imbalance') in result_map:
                             try:
+
                                 rows = result_map[(ticker, 'order_imbalance')]
                                 if rows is not None:
                                     oi_result = process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, price_data['prices'])
-                                    ticker_data['call-order-imbalance'] = {'data': oi_result['call']}
-                                    ticker_data['put-order-imbalance'] = {'data': oi_result['put']}
+                                    ticker_data['call-order-imbalance'] = {'data': oi_result['C']}
+                                    ticker_data['put-order-imbalance'] = {'data': oi_result['P']}
                                 else:
                                     ticker_data['call-order-imbalance'] = {'data': []}
                                     ticker_data['put-order-imbalance'] = {'data': []}
@@ -887,7 +888,8 @@ def process_price_data_with_expected_move(rows, ticker):
     df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
     df = df.replace({np.nan: None})
 
-    lst = [df[i].tolist() for i in ['tstamp','ticker_close','vix_close','vix9d_close','vix1d_close','expected_move']]
+    #lst = [df[i].tolist() for i in ['tstamp','ticker_close','vix_close','vix9d_close','vix1d_close','expected_move']]
+    lst = [df[i].tolist() for i in ['tstamp','ticker_close','vix_close','vix9d_close','vix1d_close']]
 
     try:
         ticker_price = df.ticker_close[df.ticker_close.last_valid_index()]
@@ -990,7 +992,7 @@ if not os.path.exists(volume_colorbar_5min_file):
 
 def getrgba(value,minval,maxval,alpha,cmap):
     norm_val = np.clip( ((float(value)-minval)/(maxval-minval)) ,0,1)
-    r,g,b,_ = [int(x*255) for x in volumecmap(norm_val)]
+    r,g,b,_ = [int(x*255) for x in cmap(norm_val)]
     alpha = 0.5
     rgba_str = f"rgba({r},{g},{b},{alpha})"
     return rgba_str
@@ -1070,7 +1072,7 @@ async def debug():
     for i, key in enumerate(query_keys):
         result_map[key] = gathered_res[i]
 
-    chart_type = 'orderimbalance' # 'orderimbalance'
+    chart_type = 'orderimbalance'
     if chart_type == 'expectedmove':
         ret_dict = {}
         ticker_data = {}
@@ -1131,15 +1133,20 @@ async def debug():
 
         try:
             source_data = result_map.get((ticker, 'expectedmove'))
+
             ticker_data['expectedmove'] = process_price_data_with_expected_move(source_data, ticker)
             source_data = result_map[(ticker, 'order_imbalance')]
             spot_min_lim = ticker_data['expectedmove']['min_lim']
             spot_max_lim = ticker_data['expectedmove']['max_lim']
             prices = ticker_data['expectedmove']['prices']
+
+            source_data = result_map.get((ticker, 'order_imbalance'))
             oi_result = process_order_imbalance_data(source_data, spot_min_lim, spot_max_lim, prices)
-            ticker_data['orderimbalance'] = {'data': oi_result['C']}
+            ticker_data['call-order-imbalance'] = {'data': oi_result['C']}
+            ticker_data['put-order-imbalance'] = {'data': oi_result['P']}
         except:
-            ticker_data['orderimbalance'] = {'data': []}
+            ticker_data['call-order-imbalance'] = {'data': []}
+            ticker_data['put-order-imbalance'] = {'data': []}
             app.logger.error(traceback.format_exc())
 
         ret_dict['tickers']={ticker:ticker_data}
