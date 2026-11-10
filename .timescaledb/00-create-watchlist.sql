@@ -7,8 +7,9 @@ CREATE TABLE IF NOT EXISTS watchlist (
     candle_sub bool
 );
 
-INSERT INTO watchlist(ticker,compute_gex,expiration_count,candle_sub) VALUES('SPX',true,1,true);
+INSERT INTO watchlist(ticker,compute_gex,candle_sub,expiration_count) VALUES('SPX',true,true,1);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX',false,true);
+INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VXV',false,true);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX1D',false,true);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX9D',false,true);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('UVXY',false,true);
@@ -16,6 +17,7 @@ INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('ES',false,true);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('NQ',false,true);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VX',false,true);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('COR1M',false,true);
+INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('DSPX',false,true);
 
 CREATE TABLE IF NOT EXISTS session (
     session_id SERIAL PRIMARY KEY,
