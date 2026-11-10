@@ -116,11 +116,11 @@ first(open,tstamp) as open,
 last(close,tstamp) as close,
 max(high) as high,
 min(low) as low,
-sum(ask_volume) as ask_volume,
-sum(bid_volume) as bid_volume,
-sum(volume) as volume,
-sum(ask_volume)-sum(bid_volume) as order_imbalance
-FROM candle 
+COALESCE(sum(ask_volume),0) as ask_volume,
+COALESCE(sum(bid_volume),0) as bid_volume,
+COALESCE(sum(volume),0) as volume,
+COALESCE(sum(ask_volume),0)-COALESCE(sum(bid_volume),0) as order_imbalance
+FROM candle  WHERE close != 0
 GROUP BY time_bucket('1sec', tstamp), event_symbol,ticker,expiration,contract_type,strike;
 
 SELECT add_continuous_aggregate_policy('candle_1sec',
@@ -146,10 +146,10 @@ first(open,tstamp) as open,
 last(close,tstamp) as close,
 max(high) as high,
 min(low) as low,
-sum(ask_volume) as ask_volume,
-sum(bid_volume) as bid_volume,
-sum(volume) as volume,
-sum(order_imbalance) as order_imbalance
+COALESCE(sum(ask_volume),0) as ask_volume,
+COALESCE(sum(bid_volume),0) as bid_volume,
+COALESCE(sum(volume),0) as volume,
+COALESCE(sum(order_imbalance),0) as order_imbalance
 FROM candle_1sec
 GROUP BY time_bucket('1m', tstamp), event_symbol,ticker,expiration,contract_type,strike;
 
@@ -176,8 +176,10 @@ first(open,tstamp) as open,
 last(close,tstamp) as close,
 max(high) as high,
 min(low) as low,
-sum(volume) as volume,
-sum(order_imbalance) as order_imbalance
+COALESCE(sum(ask_volume),0) as ask_volume,
+COALESCE(sum(bid_volume),0) as bid_volume,
+COALESCE(sum(volume),0) as volume,
+COALESCE(sum(order_imbalance),0) as order_imbalance
 FROM candle_1min
 GROUP BY time_bucket('5m', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 
@@ -206,8 +208,10 @@ first(open,tstamp) as open,
 last(close,tstamp) as close,
 max(high) as high,
 min(low) as low,
-sum(volume) as volume,
-sum(order_imbalance) as order_imbalance
+COALESCE(sum(ask_volume),0) as ask_volume,
+COALESCE(sum(bid_volume),0) as bid_volume,
+COALESCE(sum(volume),0) as volume,
+COALESCE(sum(order_imbalance),0) as order_imbalance
 FROM candle_5min
 GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
 

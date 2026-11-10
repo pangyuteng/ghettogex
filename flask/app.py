@@ -301,7 +301,7 @@ def _build_order_imbalance_lists(df, prices_lst):
     return call_list, put_list
 
 
-def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst):
+def BAKprocess_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst):
     """Process ORDER_IMBALANCE_QUERY results."""
     df = pd.DataFrame([dict(x) for x in rows])
     df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
@@ -310,6 +310,62 @@ def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst):
     call_list, put_list = _build_order_imbalance_lists(df, prices_lst)
     return {'call': call_list, 'put': put_list}
 
+
+import matplotlib.colors as colors
+import matplotlib as mpl
+
+palette = 'RdBlkGn'
+cmap_name, cmap_data = 'RdBlkGn', (
+    (1,0,0),
+    (0,0,0),
+    (0,1,0),
+)
+
+order_imbalance_cmap = colors.LinearSegmentedColormap.from_list(cmap_name, cmap_data, 256)
+if cmap_name not in [x for x in mpl.colormaps.keys()]:
+    mpl.colormaps.register(cmap=order_imbalance_cmap, name=cmap_name)
+
+def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst):
+
+    minval,maxval,alpha = -500,500,0.5
+    mydict = {'C':None,'P':None}
+    for contract_type in mydict.keys():
+    
+        df = pd.DataFrame([dict(x) for x in rows])
+        df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+        df = df[(df.strike>=spot_min_lim) & (df.strike<=spot_max_lim) & (df.contract_type==contract_type)]
+        df = df[['tstamp','strike','volume']]
+        df = df.pivot(columns='strike',index='tstamp',values='volume')
+        df = df.replace({np.nan: 0})
+        for col in df.columns:
+            df[col]=df[col].apply(lambda x: [-1,col,x,getrgba(x,minval,maxval,alpha,order_imbalance_cmap)])
+        # NOTE: `-1` is not used in uplot (-1,strike,volume,color), for time, we grab item from `tstamp_list` in `mylist`
+
+        tstamp_list = df.index.to_list()
+        data = df.to_numpy()
+        start_list = [x[1] for x in data[:,0].tolist()] # grab array of min spot price
+        end_list = [x[1] for x in data[:,-1].tolist()] # grab array of max spot price
+        # NOTE: start_list,end_list ensures double click zooms back to Y min&max range.
+
+        data_list = data.tolist()
+        price_tstamp_list = prices_lst[0]
+        price_list = prices_lst[1]
+
+        try:
+            pdf = pd.DataFrame({"tstamp":price_tstamp_list,"price":price_list})
+            tdf = pd.DataFrame({"tstamp":tstamp_list})
+            mdf = tdf.merge(pdf,how='left',on=['tstamp']).replace({np.nan: None})
+            price_tstamp_list = mdf.tstamp.to_list()
+            price_list = mdf.price.to_list()
+            #assert(len(tstamp_list)==len(price_tstamp_list))
+            mylist = [tstamp_list,start_list,end_list,price_list,data_list]
+        except:
+            app.logger.error(f"{len(tstamp_list)} {len(price_tstamp_list)}")
+            mylist = [tstamp_list,start_list,end_list,end_list,data_list]
+
+        mydict[contract_type] = mylist
+        app.logger.error(mylist)
+    return mydict
 
 def process_order_imbalance_zoom_data(rows, spot_min_lim, spot_max_lim, prices_lst):
     """Process ORDER_IMBALANCE_LASTXMIN_QUERY results."""
@@ -993,7 +1049,7 @@ async def foobar():
 @app.route("/debug")
 @login_required
 async def debug():
-    dstamp = "2026-04-17"
+    dstamp = "2026-11-09"
     ticker = "SPX"
     regi = TICKER_REGISTRY[ticker]
     options_ticker = regi['options_ticker']
@@ -1004,14 +1060,17 @@ async def debug():
         query_keys.append((ticker, 'expectedmove'))
         query_list.append(apostgres_execute(apool, PRICE_5MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
         query_keys.append((ticker, 'volume'))
-        query_list.append(apostgres_execute(apool, VOLUME_5MIN_QUERY, (dstamp, options_ticker)))
+        query_list.append(apostgres_execute(apool, VOLUME_5MIN_QUERY, (dstamp, dstamp, options_ticker)))
+        query_keys.append((ticker, 'order_imbalance'))
+        query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_QUERY, (dstamp, options_ticker)))
+
         gathered_res = await asyncio.gather(*query_list)
+
     result_map = {}
     for i, key in enumerate(query_keys):
         result_map[key] = gathered_res[i]
 
-
-    chart_type = 'volume'
+    chart_type = 'orderimbalance' # 'orderimbalance'
     if chart_type == 'expectedmove':
         ret_dict = {}
         ticker_data = {}
@@ -1065,6 +1124,26 @@ async def debug():
 
         ret_dict['tickers']={ticker:ticker_data}
         return await render_template("debug-volume.html", dstamp=dstamp, ret_dict=ret_dict)
+
+    if chart_type == 'orderimbalance':
+        ret_dict = {}
+        ticker_data = {}
+
+        try:
+            source_data = result_map.get((ticker, 'expectedmove'))
+            ticker_data['expectedmove'] = process_price_data_with_expected_move(source_data, ticker)
+            source_data = result_map[(ticker, 'order_imbalance')]
+            spot_min_lim = ticker_data['expectedmove']['min_lim']
+            spot_max_lim = ticker_data['expectedmove']['max_lim']
+            prices = ticker_data['expectedmove']['prices']
+            oi_result = process_order_imbalance_data(source_data, spot_min_lim, spot_max_lim, prices)
+            ticker_data['orderimbalance'] = {'data': oi_result['C']}
+        except:
+            ticker_data['orderimbalance'] = {'data': []}
+            app.logger.error(traceback.format_exc())
+
+        ret_dict['tickers']={ticker:ticker_data}
+        return await render_template("debug-orderimbalance.html", dstamp=dstamp, ret_dict=ret_dict)
 
 
 @app.websocket('/ws-main')
