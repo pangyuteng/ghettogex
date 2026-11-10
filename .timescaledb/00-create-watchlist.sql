@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS watchlist (
 
 INSERT INTO watchlist(ticker,compute_gex,candle_sub,expiration_count) VALUES('SPX',true,true,1);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX',false,true);
-INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VXV',false,true);
+-- INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VXV',false,true); /* NO SUCH TICKER? */
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX1D',false,true);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('VIX9D',false,true);
 INSERT INTO watchlist(ticker,compute_gex,candle_sub) VALUES('UVXY',false,true);

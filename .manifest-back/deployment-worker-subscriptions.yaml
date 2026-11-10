@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: gg
+  name: worker-subs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker-subs
+  template:
+    metadata:
+      labels:
+        app: worker-subs
+    spec:
+      imagePullSecrets:
+      - name: registry-credentials
+      containers:
+      - name: worker-subs
+        image: docker.io/pangyuteng/private:fi-flask-edge
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "10Gi"
+        command: ["bash"]
+        args: ["worker.sh","subscriptions"]
+        env:
+        - name: CACHE_FOLDER
+          value: /mnt/sm-data/fi
+        - name: AMQP_URI
+          value: amqp://rabbitmq:5672
+        - name: REDIS_URI
+          value: redis://redis:6379/1
+        - name: REDIS2_URI
+          value: redis://redis:6379/2
+        - name: POSTGRES_URI
+          value: postgres://postgres:postgres@postgres:5432/postgres
+        - name: C_FORCE_ROOT
+          value: "true"
+        - name: IS_TEST
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: IS_TEST
+        - name: TASTYTRADE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: TASTYTRADE_CLIENT_SECRET
+        - name: TASTYTRADE_REFRESH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: TASTYTRADE_REFRESH_TOKEN
+        - name: TELEGRAM_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: tasty-env
+              key: TELEGRAM_BOT_TOKEN
+        volumeMounts:
+        - name: sm-volume
+          mountPath: /mnt/sm-data
+      volumes:
+      - name: sm-volume
+        persistentVolumeClaim:
+          claimName: sm-longhorn-pvc

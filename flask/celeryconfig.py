@@ -35,7 +35,7 @@ beat_schedule = {
         'task': 'tasks.manage_subscriptions',
         'schedule': crontab(minute='*/5'),
         'relative': True,
-        'options': {'queue': 'default'},
+        'options': {'queue': 'subscriptions'},
         'args': [],
     },
    'trigger_gex_cache': {
