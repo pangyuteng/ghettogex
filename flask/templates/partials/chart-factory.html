@@ -255,8 +255,8 @@ function makeOrderImbalanceHeatmap(elementId, mytitle, chartWidth, showLegend) {
 				// value: (u, v) => v == null ? null : v.toFixed(2) + "",
 			},
 			{
-				stroke: "rgba(250,250,250,0.4)",
-				width: 4/devicePixelRatio,
+				stroke: "rgba(200,200,200,0.8)",
+				width: 2*devicePixelRatio,
 				points: {show: false},
 				value: () => null,
 			},
@@ -574,6 +574,32 @@ const CHART_CONFIGS = {
 		},
 		update: function(chartObj, tickerData) {
 			let oi = tickerData['put-order-imbalance'];
+			let pd = tickerData.price || {};
+			if (!oi || !oi.data || oi.data.length === 0) return;
+			chartObj.setScale('y', {min: pd.spot_min_lim, max: pd.spot_max_lim});
+			chartObj.setData(oi.data);
+		}
+	},
+
+	'call-last-x-min': {
+		make: function(elementId, ticker) {
+			return makeOrderImbalanceHeatmap(elementId, ticker + "-call-ordim,last-x-min", 240, false);
+		},
+		update: function(chartObj, tickerData) {
+			let oi = tickerData['call-last-x-min'];
+			let pd = tickerData.price || {};
+			if (!oi || !oi.data || oi.data.length === 0) return;
+			chartObj.setScale('y', {min: pd.spot_min_lim, max: pd.spot_max_lim});
+			chartObj.setData(oi.data);
+		}
+	},
+
+	'put-last-x-min': {
+		make: function(elementId, ticker) {
+			return makeOrderImbalanceHeatmap(elementId, ticker + "-put-ordim,last-x-min", 240, false);
+		},
+		update: function(chartObj, tickerData) {
+			let oi = tickerData['put-last-x-min'];
 			let pd = tickerData.price || {};
 			if (!oi || !oi.data || oi.data.length === 0) return;
 			chartObj.setScale('y', {min: pd.spot_min_lim, max: pd.spot_max_lim});
@@ -976,7 +1002,7 @@ const CHART_CONFIGS = {
 		}
 	},
 
-	'bak-call-order-imbalance': {
+	'NOTUSED-call-order-imbalance': {
 		make: function(elementId, ticker) {
 			return makeChartScatter(elementId, ticker + "-call-ordim", 380, false);
 		},
@@ -989,7 +1015,7 @@ const CHART_CONFIGS = {
 		}
 	},
 
-	'bak-put-order-imbalance': {
+	'NOTUSED-put-order-imbalance': {
 		make: function(elementId, ticker) {
 			return makeChartScatter(elementId, ticker + "-put-ordim", 380, false);
 		},
@@ -1002,7 +1028,7 @@ const CHART_CONFIGS = {
 		}
 	},
 
-	'call-last-x-min': {
+	'NOTUSED-call-last-x-min': {
 		make: function(elementId, ticker) {
 			return makeChartScatter(elementId, ticker + "-call-ordim,last-x-min", 240, false);
 		},
@@ -1015,7 +1041,7 @@ const CHART_CONFIGS = {
 		}
 	},
 
-	'put-last-x-min': {
+	'NOTUSED=put-last-x-min': {
 		make: function(elementId, ticker) {
 			return makeChartScatter(elementId, ticker + "-put-ordim,last-x-min", 240, false);
 		},

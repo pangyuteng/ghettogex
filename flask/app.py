@@ -61,6 +61,7 @@ from utils.pg_queries import (
     LATEST_GEX_STRIKE_QUERY,
     CANDLE_1MIN_SINGLE_QUERY,
     CANDLE_1MIN_PRICE_QUERY,
+    CANDLE_1SEC_PRICE_QUERY,
     ORDER_IMBALANCE_5MIN_QUERY,
     ORDER_IMBALANCE_1MIN_QUERY,
     ORDER_IMBALANCE_LASTXMIN_QUERY,
@@ -129,6 +130,18 @@ auth_manager = QuartAuth(app)
 
 
 # --- Processing helper functions ---
+def process_price_data_1sec(rows, ticker):
+    """Process CANDLE_1MIN_PRICE_QUERY results for a single ticker."""
+    if rows is None or len(rows) == 0:
+        raise ValueError(f"found no price data for {ticker}!")
+
+    df = pd.DataFrame([dict(x) for x in rows])
+    df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
+    df = df.replace({np.nan: None})
+
+    lst = [df[i].tolist() for i in ['tstamp','ticker_close']]
+    return lst
+
 
 def process_price_data(rows, ticker):
     """Process CANDLE_1MIN_PRICE_QUERY results for a single ticker."""
@@ -302,7 +315,7 @@ def _build_order_imbalance_lists(df, prices_lst):
     return call_list, put_list
 
 
-def BAKprocess_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst):
+def NOTUSED_process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst):
     """Process ORDER_IMBALANCE_QUERY results."""
     df = pd.DataFrame([dict(x) for x in rows])
     df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
@@ -326,11 +339,15 @@ order_imbalance_cmap = colors.LinearSegmentedColormap.from_list(cmap_name, cmap_
 if cmap_name not in [x for x in mpl.colormaps.keys()]:
     mpl.colormaps.register(cmap=order_imbalance_cmap, name=cmap_name)
 
-def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst,interval):
-    if interval == '1min':
-        minval,maxval,alpha = -250,250,0.5
-    else: # 5 min
+def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst, interval):
+    if interval == '1sec':
+        minval,maxval,alpha = -100,100,0.5
+    elif interval == '1min':
+        minval,maxval,alpha = -100,100,0.5
+    elif interval == '5min':
         minval,maxval,alpha = -500,500,0.5
+    else:
+        raise NotImplementedError()
 
     mydict = {'C':None,'P':None}
     for contract_type in mydict.keys():
@@ -356,14 +373,19 @@ def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst,in
         price_list = prices_lst[1]
 
         try:
+            if interval == '1sec':
+                app.logger.error(f"{price_list[-5:]} {price_tstamp_list[-5:]} {tstamp_list[-5:]}")
+                app.logger.error(f"{len(price_tstamp_list)} {len(tstamp_list)}")
+
             pdf = pd.DataFrame({"tstamp":price_tstamp_list,"price":price_list})
             tdf = pd.DataFrame({"tstamp":tstamp_list})
             mdf = tdf.merge(pdf,how='left',on=['tstamp']).replace({np.nan: None})
             price_tstamp_list = mdf.tstamp.to_list()
             price_list = mdf.price.to_list()
-            #assert(len(tstamp_list)==len(price_tstamp_list))
+            assert(len(tstamp_list)==len(price_tstamp_list))
             mylist = [tstamp_list,start_list,end_list,price_list,data_list]
         except:
+            app.logger.error(traceback.format_exc())
             app.logger.error(f"{len(tstamp_list)} {len(price_tstamp_list)}")
             mylist = [tstamp_list,start_list,end_list,end_list,data_list]
 
@@ -371,7 +393,7 @@ def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst,in
 
     return mydict
 
-def process_order_imbalance_zoom_data(rows, spot_min_lim, spot_max_lim, prices_lst):
+def NOTUSED_process_order_imbalance_zoom_data(rows, spot_min_lim, spot_max_lim, prices_lst):
     """Process ORDER_IMBALANCE_LASTXMIN_QUERY results."""
     df = pd.DataFrame([dict(x) for x in rows])
     df.tstamp = df.tstamp.apply(lambda x: x.timestamp())
@@ -631,13 +653,18 @@ async def ws_scratch():
                         if need_ordim:
                             if interval == '1min':
                                 ORDER_IMBALANCE_QUERY = ORDER_IMBALANCE_1MIN_QUERY
-                            else:
+                            elif interval == '5min':
                                 ORDER_IMBALANCE_QUERY = ORDER_IMBALANCE_5MIN_QUERY
+                            else:
+                                raise NotImplementedError()
+
                             query_keys.append((ticker, 'order_imbalance'))
                             query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_QUERY, (dstamp, options_ticker)))
 
                         # Order imbalance zoom (last x min)
                         if need_ordim_zoom:
+                            query_keys.append((ticker, 'price1sec'))
+                            query_list.append(apostgres_execute(apool, CANDLE_1SEC_PRICE_QUERY, (ticker, tstamp_utc)))
                             query_keys.append((ticker, 'order_imbalance_zoom'))
                             query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_LASTXMIN_QUERY, (options_ticker, dstamp, tstamp_utc)))
 
@@ -769,9 +796,10 @@ async def ws_scratch():
                             try:
                                 rows = result_map[(ticker, 'order_imbalance_zoom')]
                                 if rows is not None:
-                                    oi_zoom_result = process_order_imbalance_zoom_data(rows, spot_min_lim, spot_max_lim, price_data['prices'])
-                                    ticker_data['call-last-x-min'] = {'data': oi_zoom_result['call']}
-                                    ticker_data['put-last-x-min'] = {'data': oi_zoom_result['put']}
+                                    price1sec_list = process_price_data_1sec(result_map.get((ticker, 'price1sec')), ticker)
+                                    oi_result = process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, price1sec_list, '1sec')
+                                    ticker_data['call-last-x-min'] = {'data': oi_result['C']}
+                                    ticker_data['put-last-x-min'] = {'data': oi_result['P']}
                                 else:
                                     ticker_data['call-last-x-min'] = {'data': []}
                                     ticker_data['put-last-x-min'] = {'data': []}
