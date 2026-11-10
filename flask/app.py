@@ -789,7 +789,7 @@ async def ws_scratch():
                             ret_dict['meta']['data_tstamp'] = "null"
                             app.logger.error(traceback.format_exc())
 
-                    ret_dict['meta']['server_tstamp'] = datetime.datetime.utcnow().astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et")
+                    ret_dict['meta']['server_tstamp'] = datetime.datetime.now(datetime.UTC).astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et")
                     ret_dict['meta']['duration_time'] = f"{duration_time:0.3f}sec"
                     ret_dict['meta']['error_status'] = None
                 except:
@@ -799,7 +799,7 @@ async def ws_scratch():
                             'qc_comment': "unexpected error!!! ffff likely missing data, services down!",
                             'duration_time': None,
                             'data_tstamp': None,
-                            'server_tstamp': datetime.datetime.utcnow().astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et"),
+                            'server_tstamp': datetime.datetime.now(datetime.UTC).astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et"),
                             'error_status': 'traceback:'+traceback.format_exc(),
                         }
                     }
@@ -1291,7 +1291,7 @@ async def ws_main():
                         ret_dict['meta']['data_tstamp'] = "null"
                         app.logger.error(traceback.format_exc())
 
-                    ret_dict['meta']['server_tstamp'] = datetime.datetime.utcnow().astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et")
+                    ret_dict['meta']['server_tstamp'] = datetime.datetime.now(datetime.UTC).astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et")
                     ret_dict['meta']['duration_time'] = f"{duration_time:0.3f}sec"
                     ret_dict['meta']['error_status'] = None
                     ret_dict['meta']['is_market_open'] = is_market_open
@@ -1303,7 +1303,7 @@ async def ws_main():
                             'qc_comment': "unexpected error!!! ffff likely missing data, services down!",
                             'duration_time': None,
                             'data_tstamp': None,
-                            'server_tstamp': datetime.datetime.utcnow().astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et"),
+                            'server_tstamp': datetime.datetime.now(datetime.UTC).astimezone(tz=pytz.timezone(et_tz)).strftime("%Y-%m-%d %H:%M:%S et"),
                             'error_status': 'traceback:'+traceback.format_exc(),
                             'is_market_open': False,
                         }
