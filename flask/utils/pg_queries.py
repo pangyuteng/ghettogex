@@ -31,16 +31,9 @@ select * from cpandle_1min where tstamp::date = %s and ticker = %s
 
 ORDER_IMBALANCE_LASTXMIN_QUERY = """
 select * from cpandle_1sec
-where ticker = %s and expiration = %s AND tstamp > %s - interval '5 minute'
-"""
-
-CANDLE_1SEC_PRICE_QUERY = """
-WITH ticker_1min AS (
-    SELECT tstamp, close AS ticker_close
-    FROM candle_1sec WHERE event_symbol = %s AND close != 0 AND tstamp > %s - interval '5 minute'
-)
-SELECT * FROM ticker_1min
-ORDER BY tstamp
+WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(starttime)s::timestamp
+AND ticker = %(ticker)s
+AND expiration = %(dstamp)s::timestamp
 """
 
 # maybe this is wrong does not match with gexbot. end of day convexity is always extremely negative.

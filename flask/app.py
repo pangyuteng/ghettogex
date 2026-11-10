@@ -61,7 +61,6 @@ from utils.pg_queries import (
     LATEST_GEX_STRIKE_QUERY,
     CANDLE_1MIN_SINGLE_QUERY,
     CANDLE_1MIN_PRICE_QUERY,
-    CANDLE_1SEC_PRICE_QUERY,
     ORDER_IMBALANCE_5MIN_QUERY,
     ORDER_IMBALANCE_1MIN_QUERY,
     ORDER_IMBALANCE_LASTXMIN_QUERY,
@@ -663,10 +662,12 @@ async def ws_scratch():
 
                         # Order imbalance zoom (last x min)
                         if need_ordim_zoom:
+                            starttime = tstamp_utc - datetime.timedelta(minutes=5)
                             query_keys.append((ticker, 'price1sec'))
-                            query_list.append(apostgres_execute(apool, CANDLE_1SEC_PRICE_QUERY, (ticker, tstamp_utc)))
+                            query_list.append(apostgres_execute(apool, PRICE_1SEC_QUERY, {"ticker":ticker,"endtime":tstamp_utc,"starttime":starttime}))
+
                             query_keys.append((ticker, 'order_imbalance_zoom'))
-                            query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_LASTXMIN_QUERY, (options_ticker, dstamp, tstamp_utc)))
+                            query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_LASTXMIN_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc,"starttime":starttime,"dstamp":dstamp}))
 
                         # Flow data (dex, gex diff, convexity diff)
                         if need_flow:
@@ -893,7 +894,7 @@ async def home():
         market_status = "unexepcted error!"
         load_data = False
 
-    grid_cols, grid_rows = 4, 8
+    grid_cols, grid_rows = 3, 8
     if interval == "1sec":
         colorbar_png_file = volume_colorbar_1sec_file
     elif interval == "1min":
@@ -906,8 +907,8 @@ async def home():
         dstamp=dstamp, interval=interval, load_data=load_data,
         colorbar_png_file=colorbar_png_file,
         market_status=market_status, grid_cols=grid_cols, grid_rows=grid_rows, 
-        div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume","chart-SPX-volatility"],
-        ticker_charts={'SPX':['expectedmove','volume','volatility']})
+        div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume","chart-SPX-volatility","chart-SPX-call-order-imbalance","chart-SPX-put-order-imbalance"],
+        ticker_charts={'SPX':['expectedmove','volume','volatility','call-order-imbalance','put-order-imbalance']})
 
 def process_contractvolume(rows):
     try:
@@ -1241,16 +1242,25 @@ async def ws_main():
                         query_list.append(apostgres_execute(apool, PRICE_1SEC_QUERY, {"ticker":ticker,"endtime":tstamp_utc,"starttime":starttime}))
                         query_keys.append((ticker, 'volume'))
                         query_list.append(apostgres_execute(apool, VOLUME_1SEC_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc,"starttime":starttime,"dstamp":dstamp}))
+                        query_keys.append((ticker, 'orderimbalance'))
+                        query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_LASTXMIN_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc,"starttime":starttime,"dstamp":dstamp}))
+
                     elif interval == "1min":
                         query_keys.append((ticker, 'expectedmove'))
                         query_list.append(apostgres_execute(apool, PRICE_1MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
                         query_keys.append((ticker, 'volume'))
                         query_list.append(apostgres_execute(apool, VOLUME_1MIN_QUERY, (dstamp, dstamp, options_ticker)))
+                        query_keys.append((ticker, 'orderimbalance'))
+                        query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_1MIN_QUERY, (dstamp, options_ticker)))
+
                     elif interval == "5min":
                         query_keys.append((ticker, 'expectedmove'))
                         query_list.append(apostgres_execute(apool, PRICE_5MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
                         query_keys.append((ticker, 'volume'))
                         query_list.append(apostgres_execute(apool, VOLUME_5MIN_QUERY, (dstamp, dstamp, options_ticker)))
+                        query_keys.append((ticker, 'orderimbalance'))
+                        query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_5MIN_QUERY, (dstamp, options_ticker)))
+
                     else:
                         raise NotImplementedError()
 
@@ -1313,6 +1323,21 @@ async def ws_main():
                         except:
                             ticker_data['volatility'] = {'volatility_list': []}
                             app.logger.error(traceback.format_exc())
+
+
+                    # process Order imbalance
+                    if (ticker, 'orderimbalance') in result_map:
+                        try:
+                            source_data = result_map[(ticker, 'orderimbalance')]
+                            spot_min_lim, spot_max_lim = ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim']
+                            oi_result = process_order_imbalance_data(source_data, spot_min_lim, spot_max_lim, ticker_data['expectedmove']['prices'], interval)
+                            ticker_data['call-order-imbalance'] = {'data': oi_result['C']}
+                            ticker_data['put-order-imbalance'] = {'data': oi_result['P']}
+                        except:
+                            ticker_data['call-order-imbalance'] = {'data': []}
+                            ticker_data['put-order-imbalance'] = {'data': []}
+                            app.logger.error(traceback.format_exc())
+
 
                     ret_dict['tickers']={ticker:ticker_data}
                     qc_key = (ticker, 'qc')
