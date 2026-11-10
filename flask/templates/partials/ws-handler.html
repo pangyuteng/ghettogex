@@ -10,7 +10,7 @@
     let contractvolumeSpan = document.getElementById("contractvolumeSpan");
 
     const WS_ENDPOINT = "/ws-main";
-    let WS_EXTRA_PARAMS = "?dstamp={{ dstamp }}&interval={{ interval }}";
+    let WS_EXTRA_PARAMS = "?dstamp={{ dstamp }}&interval={{ interval }}&enableoi={{ enableoi }}";
     let wsUrl = WS_ENDPOINT + WS_EXTRA_PARAMS;
     let enableReconnect = true;
     function connect() {

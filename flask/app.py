@@ -863,6 +863,7 @@ async def home():
        return redirect(url_for("login"))
     dstamp = request.args.get("dstamp",None)
     interval = request.args.get("interval","1min")
+    enableoi = request.args.get("enableoi","false")
     market_status = None
     load_data = True
     try:
@@ -903,12 +904,20 @@ async def home():
         colorbar_png_file = volume_colorbar_5min_file
     else:
         raise NotImplementedError()
+    
+    if enableoi == 'true':
+        div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume","chart-SPX-volatility","chart-SPX-call-order-imbalance","chart-SPX-put-order-imbalance"]
+        ticker_charts = {'SPX':['expectedmove','volume','volatility','call-order-imbalance','put-order-imbalance']}
+    else:
+        div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume","chart-SPX-volatility"]
+        ticker_charts = {'SPX':['expectedmove','volume','volatility']}
+
     return await render_template("index.html", 
-        dstamp=dstamp, interval=interval, load_data=load_data,
+        dstamp=dstamp, interval=interval, enableoi=enableoi,load_data=load_data,
         colorbar_png_file=colorbar_png_file,
         market_status=market_status, grid_cols=grid_cols, grid_rows=grid_rows, 
-        div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume","chart-SPX-volatility","chart-SPX-call-order-imbalance","chart-SPX-put-order-imbalance"],
-        ticker_charts={'SPX':['expectedmove','volume','volatility','call-order-imbalance','put-order-imbalance']})
+        div_id_list = div_id_list,
+        ticker_charts = ticker_charts)
 
 def process_contractvolume(rows):
     try:
@@ -1200,6 +1209,7 @@ async def ws_main():
         dstamp = websocket.args.get("dstamp")
         ticker = websocket.args.get("ticker","SPX")
         interval = websocket.args.get("interval","1min") # 1sec, 1min, 5min
+        enableoi = websocket.args.get("enableoi","false") == "true"
 
         async with psycopg_pool.AsyncConnectionPool(postgres_uri,min_size=1,open=False) as apool:
             while True:
@@ -1242,24 +1252,27 @@ async def ws_main():
                         query_list.append(apostgres_execute(apool, PRICE_1SEC_QUERY, {"ticker":ticker,"endtime":tstamp_utc,"starttime":starttime}))
                         query_keys.append((ticker, 'volume'))
                         query_list.append(apostgres_execute(apool, VOLUME_1SEC_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc,"starttime":starttime,"dstamp":dstamp}))
-                        query_keys.append((ticker, 'orderimbalance'))
-                        query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_LASTXMIN_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc,"starttime":starttime,"dstamp":dstamp}))
+                        if enableoi:
+                            query_keys.append((ticker, 'orderimbalance'))
+                            query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_LASTXMIN_QUERY, {"ticker":options_ticker,"endtime":tstamp_utc,"starttime":starttime,"dstamp":dstamp}))
 
                     elif interval == "1min":
                         query_keys.append((ticker, 'expectedmove'))
                         query_list.append(apostgres_execute(apool, PRICE_1MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
                         query_keys.append((ticker, 'volume'))
                         query_list.append(apostgres_execute(apool, VOLUME_1MIN_QUERY, (dstamp, dstamp, options_ticker)))
-                        query_keys.append((ticker, 'orderimbalance'))
-                        query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_1MIN_QUERY, (dstamp, options_ticker)))
+                        if enableoi:
+                            query_keys.append((ticker, 'orderimbalance'))
+                            query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_1MIN_QUERY, (dstamp, options_ticker)))
 
                     elif interval == "5min":
                         query_keys.append((ticker, 'expectedmove'))
                         query_list.append(apostgres_execute(apool, PRICE_5MIN_QUERY, (dstamp, ticker,dstamp, ticker, dstamp, dstamp, dstamp)))
                         query_keys.append((ticker, 'volume'))
                         query_list.append(apostgres_execute(apool, VOLUME_5MIN_QUERY, (dstamp, dstamp, options_ticker)))
-                        query_keys.append((ticker, 'orderimbalance'))
-                        query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_5MIN_QUERY, (dstamp, options_ticker)))
+                        if enableoi:
+                            query_keys.append((ticker, 'orderimbalance'))
+                            query_list.append(apostgres_execute(apool, ORDER_IMBALANCE_5MIN_QUERY, (dstamp, options_ticker)))
 
                     else:
                         raise NotImplementedError()
@@ -1326,7 +1339,7 @@ async def ws_main():
 
 
                     # process Order imbalance
-                    if (ticker, 'orderimbalance') in result_map:
+                    if (ticker, 'orderimbalance') in result_map and enableoi is True:
                         try:
                             source_data = result_map[(ticker, 'orderimbalance')]
                             spot_min_lim, spot_max_lim = ticker_data['expectedmove']['min_lim'], ticker_data['expectedmove']['max_lim']
