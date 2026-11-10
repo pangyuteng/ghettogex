@@ -46,7 +46,10 @@ data_tstamp: <span id="dataTstampSpan" style="font-size: 18px !important; color:
     {% endfor %}
 </div>
 <div>
-<img src={{colorbar_png_file}} width="500px">
+<img src="{{ volume_colorbar_png_file }}" width="500px">
+{% if enableoi == 'true' %}
+<img src="{{ orderimbalance_colorbar_png_file }}" width="500px">
+{% endif %}
 </div>
 <br>
 <span style="font-size: 18px !important; color: #ffffff;">PM0DTE total contract volume >1000 by minute:</span>

@@ -324,23 +324,9 @@ def NOTUSED_process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, price
     return {'call': call_list, 'put': put_list}
 
 
-import matplotlib.colors as colors
-import matplotlib as mpl
-
-palette = 'RdBlkGn'
-cmap_name, cmap_data = 'RdBlkGn', (
-    (1,0,0),
-    (0,0,0),
-    (0,1,0),
-)
-
-order_imbalance_cmap = colors.LinearSegmentedColormap.from_list(cmap_name, cmap_data, 256)
-if cmap_name not in [x for x in mpl.colormaps.keys()]:
-    mpl.colormaps.register(cmap=order_imbalance_cmap, name=cmap_name)
-
 def process_order_imbalance_data(rows, spot_min_lim, spot_max_lim, prices_lst, interval):
     if interval == '1sec':
-        minval,maxval,alpha = -100,100,0.5
+        minval,maxval,alpha = -50,50,0.5
     elif interval == '1min':
         minval,maxval,alpha = -100,100,0.5
     elif interval == '5min':
@@ -897,14 +883,23 @@ async def home():
 
     grid_cols, grid_rows = 3, 8
     if interval == "1sec":
-        colorbar_png_file = volume_colorbar_1sec_file
+        volume_colorbar_png_file = volume_colorbar_1sec_file
     elif interval == "1min":
-        colorbar_png_file = volume_colorbar_1min_file
+        volume_colorbar_png_file = volume_colorbar_1min_file
     elif interval == "5min":
-        colorbar_png_file = volume_colorbar_5min_file
+        volume_colorbar_png_file = volume_colorbar_5min_file
     else:
         raise NotImplementedError()
-    
+
+    if interval == "1sec":
+        orderimbalance_colorbar_png_file = orderimbalance_colorbar_1sec_file
+    elif interval == "1min":
+        orderimbalance_colorbar_png_file = orderimbalance_colorbar_1min_file
+    elif interval == "5min":
+        orderimbalance_colorbar_png_file = orderimbalance_colorbar_5min_file
+    else:
+        raise NotImplementedError()
+
     if enableoi == 'true':
         div_id_list = ["chart-SPX-expectedmove","chart-SPX-volume","chart-SPX-volatility","chart-SPX-call-order-imbalance","chart-SPX-put-order-imbalance"]
         ticker_charts = {'SPX':['expectedmove','volume','volatility','call-order-imbalance','put-order-imbalance']}
@@ -914,7 +909,7 @@ async def home():
 
     return await render_template("index.html", 
         dstamp=dstamp, interval=interval, enableoi=enableoi,load_data=load_data,
-        colorbar_png_file=colorbar_png_file,
+        volume_colorbar_png_file=volume_colorbar_png_file,orderimbalance_colorbar_png_file=orderimbalance_colorbar_png_file,
         market_status=market_status, grid_cols=grid_cols, grid_rows=grid_rows, 
         div_id_list = div_id_list,
         ticker_charts = ticker_charts)
@@ -992,6 +987,52 @@ def process_price_data_with_expected_move(rows, ticker):
         'max_lim': spot_max_lim,
     }
 
+order_imbalance_cmap = mpl.colors.LinearSegmentedColormap.from_list('RdBlkGn', ((1,0,0),(0,0,0),(0,1,0)), 256)
+
+orderimbalance_colorbar_1sec_file = os.path.join('static','colorbar_orderimbalance_1sec.png')
+if not os.path.exists(orderimbalance_colorbar_1sec_file):
+    fig = plt.figure()
+    ax = fig.add_axes([0.05, 0.80, 0.9, 0.1])
+    minval,maxval,alpha = -50,50,0.5
+    ticks = np.linspace(minval,maxval,5)
+    norm = mpl.colors.Normalize(vmin=0, vmax=maxval)
+    cbar = mpl.colorbar.ColorbarBase(ax,orientation='horizontal',
+        cmap=order_imbalance_cmap,
+        norm=mpl.colors.Normalize(minval, maxval),
+        ticks=ticks
+    )
+    ax.tick_params(colors='gray',grid_color='gray', grid_alpha=0.5)
+    plt.savefig(orderimbalance_colorbar_1sec_file,bbox_inches='tight',transparent=True)
+
+orderimbalance_colorbar_1min_file = os.path.join('static','colorbar_orderimbalance_1min.png')
+if not os.path.exists(orderimbalance_colorbar_1min_file):
+    fig = plt.figure()
+    ax = fig.add_axes([0.05, 0.80, 0.9, 0.1])
+    minval,maxval,alpha = -100,100,0.5
+    ticks = np.linspace(minval,maxval,5)
+    norm = mpl.colors.Normalize(vmin=0, vmax=maxval)
+    cbar = mpl.colorbar.ColorbarBase(ax,orientation='horizontal',
+        cmap=order_imbalance_cmap,
+        norm=mpl.colors.Normalize(minval, maxval),
+        ticks=ticks
+    )
+    ax.tick_params(colors='gray',grid_color='gray', grid_alpha=0.5)
+    plt.savefig(orderimbalance_colorbar_1min_file,bbox_inches='tight',transparent=True)
+
+orderimbalance_colorbar_5min_file = os.path.join('static','colorbar_orderimbalance_5min.png')
+if not os.path.exists(orderimbalance_colorbar_5min_file):
+    fig = plt.figure()
+    minval,maxval,alpha = -500,500,0.5
+    ax = fig.add_axes([0.05, 0.80, 0.9, 0.1])
+    ticks = np.linspace(minval,maxval,5)
+    norm = mpl.colors.Normalize(vmin=0, vmax=maxval)
+    cbar = mpl.colorbar.ColorbarBase(ax,orientation='horizontal',
+        cmap=order_imbalance_cmap,
+        norm=mpl.colors.Normalize(minval, maxval),
+        ticks=ticks
+    )
+    ax.tick_params(colors='gray',grid_color='gray', grid_alpha=0.5)
+    plt.savefig(orderimbalance_colorbar_5min_file,bbox_inches='tight',transparent=True)
 
 volumecmap = cm.get_cmap('hot')
 volume_colorbar_1sec_file = os.path.join('static','colorbar_volume_1sec.png')
