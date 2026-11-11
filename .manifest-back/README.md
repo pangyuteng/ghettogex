@@ -104,5 +104,6 @@ kubectl rollout restart deployment enqueue -n gg
 kubectl rollout restart deployment beat -n gg
 kubectl rollout restart deployment worker-default -n gg
 kubectl rollout restart deployment worker-stream -n gg
+kubectl rollout restart deployment worker-subs -n gg
 
 ```
