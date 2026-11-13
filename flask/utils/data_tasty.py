@@ -406,8 +406,9 @@ class LivePrices:
         asyncio.gather(*self.task_list)
 
         # wait we have quotes and greeks for each option
-        while len(self.candle) < 1:
-            await asyncio.sleep(0.1)
+        if self.is_candle:
+            while len(self.candle) < 1:
+                await asyncio.sleep(0.1)
         if self.is_option:
             while len(self.quote) < 1 or len(self.greeks) < 1 or len(self.summary) < 1:
                 await asyncio.sleep(0.1)
