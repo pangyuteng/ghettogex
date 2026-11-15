@@ -3,6 +3,8 @@ kind: Service
 metadata:
   namespace: gg
   name: rabbitmq
+  labels:
+    app: rabbitmq
 spec:
   selector:
     app: rabbitmq

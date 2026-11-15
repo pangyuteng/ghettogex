@@ -8,3 +8,5 @@
   + spot price line will be black
   + volume will be a gradient from black to bright orange. min is 0, max is 2500.
 
++ plot put call volume centroid
++ track and plot strike at min volatility 
