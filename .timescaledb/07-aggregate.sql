@@ -232,6 +232,32 @@ CREATE INDEX candle_1day_index on candle_1day using brin (tstamp,ticker) WITH (t
 -- DROP MATERIALIZED VIEW candle_1day
 -- SELECT remove_continuous_aggregate_policy('candle_1day');
 
+--
+
+CREATE MATERIALIZED VIEW quote_last WITH (timescaledb.continuous) AS
+SELECT time_bucket('1 day', tstamp) as tstamp, event_symbol,ticker,expiration,contract_type,strike,
+last(bid_price,tstamp) as bid_price,
+last(ask_price,tstamp) as ask_price,
+last(bid_size,tstamp) as bid_size,
+last(ask_size,tstamp) as ask_size
+FROM quote
+GROUP BY time_bucket('1 day', tstamp), event_symbol, ticker,expiration,contract_type,strike;
+
+SELECT add_continuous_aggregate_policy('quote_last',
+  start_offset => INTERVAL '1 month',
+  end_offset => NULL,
+  schedule_interval => INTERVAL '1 sec');
+
+CALL refresh_continuous_aggregate('quote_last', NULL, NULL);
+ALTER MATERIALIZED VIEW quote_last set (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW quote_last set (timescaledb.enable_columnstore = true);
+
+CREATE INDEX quote_last_tstamp_event_symbol_index on quote_last using brin (tstamp,event_symbol) WITH (timescaledb.transaction_per_chunk);
+CREATE INDEX quote_last_index on quote_last using brin (tstamp,ticker) WITH (timescaledb.transaction_per_chunk);
+
+-- DROP MATERIALIZED VIEW quote_last
+-- SELECT remove_continuous_aggregate_policy('quote_last');
+
 
 --
 
