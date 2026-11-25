@@ -255,7 +255,7 @@ ORDER BY bucket
 VOLUME_1SEC_QUERY = """
 WITH volume AS (
 SELECT time_bucket_gapfill('1 sec', tstamp, %(starttime)s::timestamp, %(endtime)s::timestamp) AS bucket,
-strike,avg(volume) as volume FROM volume_1sec
+strike,sum(volume) as volume FROM cpandle_1sec
 WHERE tstamp <= %(endtime)s::timestamp AND tstamp >= %(starttime)s::timestamp
 AND ticker = %(ticker)s
 AND expiration = %(dstamp)s::timestamp
@@ -297,7 +297,7 @@ ORDER BY tstamp
 """
 
 VOLUME_1MIN_QUERY = """
-SELECT * FROM volume_1min
+SELECT * FROM cpandle_1min
 WHERE tstamp::date = %s AND expiration = %s AND ticker = %s
 ORDER BY tstamp, strike
 """
@@ -332,7 +332,7 @@ ORDER BY tstamp
 """
 
 VOLUME_5MIN_QUERY = """
-SELECT * FROM volume_5min
+SELECT * FROM cpandle_5min 
 WHERE tstamp::date = %s AND expiration = %s AND ticker = %s
 ORDER BY tstamp, strike
 """
